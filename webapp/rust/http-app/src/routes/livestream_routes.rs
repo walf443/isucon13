@@ -1,10 +1,11 @@
 use crate::utils::fill_livestream_response;
 use async_session::{CookieStore, SessionStore};
-use axum::extract::State;
+use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use isupipe_core::models::livestream::{Livestream, LivestreamModel};
+use isupipe_core::models::livestream_tag::LivestreamTagModel;
 use isupipe_core::models::reservation_slot::ReservationSlotModel;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
@@ -146,4 +147,71 @@ pub async fn reserve_livestream_handler(
     tx.commit().await?;
 
     Ok((StatusCode::CREATED, axum::Json(livestream)))
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct SearchLivestreamsQuery {
+    #[serde(default)]
+    pub tag: String,
+    #[serde(default)]
+    pub limit: String,
+}
+
+pub async fn search_livestreams_handler(
+    State(AppState { pool, .. }): State<AppState>,
+    Query(SearchLivestreamsQuery {
+              tag: key_tag_name,
+              limit,
+          }): Query<SearchLivestreamsQuery>,
+) -> Result<axum::Json<Vec<Livestream>>, Error> {
+    let mut tx = pool.begin().await?;
+
+    let livestream_models: Vec<LivestreamModel> = if key_tag_name.is_empty() {
+        // 検索条件なし
+        let mut query = "SELECT * FROM livestreams ORDER BY id DESC".to_owned();
+        if !limit.is_empty() {
+            let limit: i64 = limit
+                .parse()
+                .map_err(|_| Error::BadRequest("failed to parse limit".into()))?;
+            query = format!("{} LIMIT {}", query, limit);
+        }
+        sqlx::query_as(&query).fetch_all(&mut *tx).await?
+    } else {
+        // タグによる取得
+        let tag_id_list: Vec<i64> = sqlx::query_scalar("SELECT id FROM tags WHERE name = ?")
+            .bind(key_tag_name)
+            .fetch_all(&mut *tx)
+            .await?;
+
+        let mut query_builder = sqlx::query_builder::QueryBuilder::new(
+            "SELECT * FROM livestream_tags WHERE tag_id IN (",
+        );
+        let mut separated = query_builder.separated(", ");
+        for tag_id in tag_id_list {
+            separated.push_bind(tag_id);
+        }
+        separated.push_unseparated(") ORDER BY livestream_id DESC");
+        let key_tagged_livestreams: Vec<LivestreamTagModel> =
+            query_builder.build_query_as().fetch_all(&mut *tx).await?;
+
+        let mut livestream_models = Vec::new();
+        for key_tagged_livestream in key_tagged_livestreams {
+            let ls = sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
+                .bind(key_tagged_livestream.livestream_id)
+                .fetch_one(&mut *tx)
+                .await?;
+            livestream_models.push(ls);
+        }
+        livestream_models
+    };
+
+    let mut livestreams = Vec::with_capacity(livestream_models.len());
+    for livestream_model in livestream_models {
+        let livestream = fill_livestream_response(&mut tx, livestream_model).await?;
+        livestreams.push(livestream);
+    }
+
+    tx.commit().await?;
+
+    Ok(axum::Json(livestreams))
 }
