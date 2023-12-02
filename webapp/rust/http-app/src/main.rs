@@ -5,7 +5,6 @@ use axum_extra::extract::cookie::SignedCookieJar;
 use chrono::Utc;
 use isupipe_core::models::livestream::LivestreamModel;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
-use isupipe_core::models::user::UserModel;
 use isupipe_http_app::routes::initialize_routes::initialize_handler;
 use isupipe_http_app::routes::livestream_comment_report_routes::{
     get_livecomment_reports_handler, report_livecomment_handler,
@@ -24,10 +23,7 @@ use isupipe_http_app::routes::livestream_routes::{
 use isupipe_http_app::routes::login_routes::login_handler;
 use isupipe_http_app::routes::register_routes::register_handler;
 use isupipe_http_app::routes::tag_routes::get_tag_handler;
-use isupipe_http_app::routes::user_routes::{
-    get_me_handler, get_streamer_theme_handler, get_user_handler, get_user_livestreams_handler,
-    get_user_statistics_handler,
-};
+use isupipe_http_app::routes::user_routes::{get_icon_handler, get_me_handler, get_streamer_theme_handler, get_user_handler, get_user_livestreams_handler, get_user_statistics_handler};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use std::sync::Arc;
@@ -35,7 +31,6 @@ use std::sync::Arc;
 const DEFAULT_SESSION_ID_KEY: &str = "SESSIONID";
 const DEFUALT_SESSION_EXPIRES_KEY: &str = "EXPIRES";
 const DEFAULT_USER_ID_KEY: &str = "USERID";
-const FALLBACK_IMAGE: &str = "../img/NoImage.jpg";
 
 fn build_mysql_options() -> sqlx::mysql::MySqlConnectOptions {
     let mut options = sqlx::mysql::MySqlConnectOptions::new()
@@ -228,36 +223,6 @@ where
 #[derive(Debug, serde::Serialize)]
 struct PostIconResponse {
     id: i64,
-}
-
-async fn get_icon_handler(
-    State(AppState { pool, .. }): State<AppState>,
-    Path((username,)): Path<(String,)>,
-) -> Result<axum::response::Response, Error> {
-    use axum::response::IntoResponse as _;
-
-    let mut tx = pool.begin().await?;
-
-    let user: UserModel = sqlx::query_as("SELECT * FROM users WHERE name = ?")
-        .bind(username)
-        .fetch_one(&mut *tx)
-        .await?;
-
-    let image: Option<Vec<u8>> = sqlx::query_scalar("SELECT image FROM icons WHERE user_id = ?")
-        .bind(user.id)
-        .fetch_optional(&mut *tx)
-        .await?;
-
-    let headers = [(axum::http::header::CONTENT_TYPE, "image/jpeg")];
-    if let Some(image) = image {
-        Ok((headers, image).into_response())
-    } else {
-        let file = tokio::fs::File::open(FALLBACK_IMAGE).await.unwrap();
-        let stream = tokio_util::io::ReaderStream::new(file);
-        let body = axum::body::StreamBody::new(stream);
-
-        Ok((headers, body).into_response())
-    }
 }
 
 async fn post_icon_handler(
