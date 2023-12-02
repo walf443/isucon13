@@ -5,6 +5,7 @@ use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use isupipe_core::models::livestream::{Livestream, LivestreamModel};
+use isupipe_core::models::livestream_comment::LivecommentModel;
 use isupipe_core::models::livestream_tag::LivestreamTagModel;
 use isupipe_core::models::ng_word::NgWord;
 use isupipe_core::models::reservation_slot::ReservationSlotModel;
@@ -298,4 +299,99 @@ pub async fn get_ngwords(
     tx.commit().await?;
 
     Ok(axum::Json(ng_words))
+}
+#[derive(Debug, serde::Deserialize)]
+pub struct ModerateRequest {
+    ng_word: String,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct ModerateResponse {
+    word_id: i64,
+}
+
+// NGワードを登録
+pub async fn moderate_handler(
+    State(AppState { pool, .. }): State<AppState>,
+    jar: SignedCookieJar,
+    Path((livestream_id,)): Path<(i64,)>,
+    axum::Json(req): axum::Json<ModerateRequest>,
+) -> Result<(StatusCode, axum::Json<ModerateResponse>), Error> {
+    verify_user_session(&jar).await?;
+
+    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
+    let sess = CookieStore::new()
+        .load_session(cookie.value().to_owned())
+        .await?
+        .ok_or(Error::SessionError)?;
+    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
+
+    let mut tx = pool.begin().await?;
+
+    // 配信者自身の配信に対するmoderateなのかを検証
+    let owned_livestreams: Vec<LivestreamModel> =
+        sqlx::query_as("SELECT * FROM livestreams WHERE id = ? AND user_id = ?")
+            .bind(livestream_id)
+            .bind(user_id)
+            .fetch_all(&mut *tx)
+            .await?;
+    if owned_livestreams.is_empty() {
+        return Err(Error::BadRequest(
+            "A streamer can't moderate livestreams that other streamers own".into(),
+        ));
+    }
+
+    let created_at = Utc::now().timestamp();
+    let rs = sqlx::query(
+        "INSERT INTO ng_words(user_id, livestream_id, word, created_at) VALUES (?, ?, ?, ?)",
+    )
+        .bind(user_id)
+        .bind(livestream_id)
+        .bind(req.ng_word)
+        .bind(created_at)
+        .execute(&mut *tx)
+        .await?;
+    let word_id = rs.last_insert_id() as i64;
+
+    let ngwords: Vec<NgWord> = sqlx::query_as("SELECT * FROM ng_words WHERE livestream_id = ?")
+        .bind(livestream_id)
+        .fetch_all(&mut *tx)
+        .await?;
+
+    // NGワードにヒットする過去の投稿も全削除する
+    for ngword in ngwords {
+        // ライブコメント一覧取得
+        let livecomments: Vec<LivecommentModel> = sqlx::query_as("SELECT * FROM livecomments")
+            .fetch_all(&mut *tx)
+            .await?;
+
+        for livecomment in livecomments {
+            let query = r#"
+            DELETE FROM livecomments
+            WHERE
+            id = ? AND
+            livestream_id = ? AND
+            (SELECT COUNT(*)
+            FROM
+            (SELECT ? AS text) AS texts
+            INNER JOIN
+            (SELECT CONCAT('%', ?, '%')	AS pattern) AS patterns
+            ON texts.text LIKE patterns.pattern) >= 1
+            "#;
+            sqlx::query(query)
+                .bind(livecomment.id)
+                .bind(livestream_id)
+                .bind(livecomment.comment)
+                .bind(&ngword.word)
+                .execute(&mut *tx)
+                .await?;
+        }
+    }
+
+    tx.commit().await?;
+
+    Ok((
+        StatusCode::CREATED,
+        axum::Json(ModerateResponse { word_id }),
+    ))
 }
