@@ -23,9 +23,7 @@ use isupipe_http_app::routes::livestream_routes::{
     search_livestreams_handler,
 };
 use isupipe_http_app::routes::tag_routes::get_tag_handler;
-use isupipe_http_app::routes::user_routes::{
-    get_streamer_theme_handler, get_user_livestreams_handler,
-};
+use isupipe_http_app::routes::user_routes::{get_me_handler, get_streamer_theme_handler, get_user_livestreams_handler};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use sqlx::mysql::MySqlConnection;
@@ -296,36 +294,6 @@ async fn post_icon_handler(
         StatusCode::CREATED,
         axum::Json(PostIconResponse { id: icon_id }),
     ))
-}
-
-async fn get_me_handler(
-    State(AppState { pool, .. }): State<AppState>,
-    jar: SignedCookieJar,
-) -> Result<axum::Json<User>, Error> {
-    verify_user_session(&jar).await?;
-
-    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
-    let sess = CookieStore::new()
-        .load_session(cookie.value().to_owned())
-        .await?
-        .ok_or(Error::SessionError)?;
-    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
-
-    let mut tx = pool.begin().await?;
-
-    let user_model: UserModel = sqlx::query_as("SELECT * FROM users WHERE id = ?")
-        .bind(user_id)
-        .fetch_optional(&mut *tx)
-        .await?
-        .ok_or(Error::NotFound(
-            "not found user that has the userid in session".into(),
-        ))?;
-
-    let user = fill_user_response(&mut tx, user_model).await?;
-
-    tx.commit().await?;
-
-    Ok(axum::Json(user))
 }
 
 #[derive(Debug, serde::Serialize)]

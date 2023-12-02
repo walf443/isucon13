@@ -1,12 +1,13 @@
-use crate::utils::fill_livestream_response;
+use async_session::{CookieStore, SessionStore};
+use crate::utils::{fill_livestream_response, fill_user_response};
 use axum::extract::{Path, State};
 use axum_extra::extract::SignedCookieJar;
 use isupipe_core::models::livestream::{Livestream, LivestreamModel};
 use isupipe_core::models::theme::{Theme, ThemeModel};
-use isupipe_core::models::user::UserModel;
+use isupipe_core::models::user::{User, UserModel};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
-use isupipe_http_core::verify_user_session;
+use isupipe_http_core::{DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY, verify_user_session};
 
 // 配信者のテーマ取得API
 // GET /api/user/:username/theme
@@ -68,4 +69,33 @@ pub async fn get_user_livestreams_handler(
     tx.commit().await?;
 
     Ok(axum::Json(livestreams))
+}
+pub async fn get_me_handler(
+    State(AppState { pool, .. }): State<AppState>,
+    jar: SignedCookieJar,
+) -> Result<axum::Json<User>, Error> {
+    verify_user_session(&jar).await?;
+
+    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
+    let sess = CookieStore::new()
+        .load_session(cookie.value().to_owned())
+        .await?
+        .ok_or(Error::SessionError)?;
+    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
+
+    let mut tx = pool.begin().await?;
+
+    let user_model: UserModel = sqlx::query_as("SELECT * FROM users WHERE id = ?")
+        .bind(user_id)
+        .fetch_optional(&mut *tx)
+        .await?
+        .ok_or(Error::NotFound(
+            "not found user that has the userid in session".into(),
+        ))?;
+
+    let user = fill_user_response(&mut tx, user_model).await?;
+
+    tx.commit().await?;
+
+    Ok(axum::Json(user))
 }
