@@ -427,3 +427,29 @@ pub async fn enter_livestream_handler(
 
     Ok(())
 }
+pub async fn exit_livestream_handler(
+    State(AppState { pool, .. }): State<AppState>,
+    jar: SignedCookieJar,
+    Path((livestream_id,)): Path<(i64,)>,
+) -> Result<(), Error> {
+    verify_user_session(&jar).await?;
+
+    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
+    let sess = CookieStore::new()
+        .load_session(cookie.value().to_owned())
+        .await?
+        .ok_or(Error::SessionError)?;
+    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
+
+    let mut tx = pool.begin().await?;
+
+    sqlx::query("DELETE FROM livestream_viewers_history WHERE user_id = ? AND livestream_id = ?")
+        .bind(user_id)
+        .bind(livestream_id)
+        .execute(&mut *tx)
+        .await?;
+
+    tx.commit().await?;
+
+    Ok(())
+}
