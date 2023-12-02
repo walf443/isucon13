@@ -4,7 +4,9 @@ use axum::http::StatusCode;
 use axum_extra::extract::cookie::SignedCookieJar;
 use chrono::Utc;
 use isupipe_http_app::routes::initialize_routes::initialize_handler;
-use isupipe_http_app::routes::livestream_routes::{reserve_livestream_handler, search_livestreams_handler};
+use isupipe_http_app::routes::livestream_routes::{
+    get_my_livestreams_handler, reserve_livestream_handler, search_livestreams_handler,
+};
 use isupipe_http_app::routes::tag_routes::get_tag_handler;
 use isupipe_http_app::routes::user_routes::get_streamer_theme_handler;
 use isupipe_http_core::error::Error;
@@ -233,37 +235,6 @@ struct LivestreamTagModel {
     id: i64,
     livestream_id: i64,
     tag_id: i64,
-}
-
-async fn get_my_livestreams_handler(
-    State(AppState { pool, .. }): State<AppState>,
-    jar: SignedCookieJar,
-) -> Result<axum::Json<Vec<Livestream>>, Error> {
-    verify_user_session(&jar).await?;
-
-    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
-    let sess = CookieStore::new()
-        .load_session(cookie.value().to_owned())
-        .await?
-        .ok_or(Error::SessionError)?;
-    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
-
-    let mut tx = pool.begin().await?;
-
-    let livestream_models: Vec<LivestreamModel> =
-        sqlx::query_as("SELECT * FROM livestreams WHERE user_id = ?")
-            .bind(user_id)
-            .fetch_all(&mut *tx)
-            .await?;
-    let mut livestreams = Vec::with_capacity(livestream_models.len());
-    for livestream_model in livestream_models {
-        let livestream = fill_livestream_response(&mut tx, livestream_model).await?;
-        livestreams.push(livestream);
-    }
-
-    tx.commit().await?;
-
-    Ok(axum::Json(livestreams))
 }
 
 async fn get_user_livestreams_handler(

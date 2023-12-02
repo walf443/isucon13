@@ -160,9 +160,9 @@ pub struct SearchLivestreamsQuery {
 pub async fn search_livestreams_handler(
     State(AppState { pool, .. }): State<AppState>,
     Query(SearchLivestreamsQuery {
-              tag: key_tag_name,
-              limit,
-          }): Query<SearchLivestreamsQuery>,
+        tag: key_tag_name,
+        limit,
+    }): Query<SearchLivestreamsQuery>,
 ) -> Result<axum::Json<Vec<Livestream>>, Error> {
     let mut tx = pool.begin().await?;
 
@@ -205,6 +205,36 @@ pub async fn search_livestreams_handler(
         livestream_models
     };
 
+    let mut livestreams = Vec::with_capacity(livestream_models.len());
+    for livestream_model in livestream_models {
+        let livestream = fill_livestream_response(&mut tx, livestream_model).await?;
+        livestreams.push(livestream);
+    }
+
+    tx.commit().await?;
+
+    Ok(axum::Json(livestreams))
+}
+pub async fn get_my_livestreams_handler(
+    State(AppState { pool, .. }): State<AppState>,
+    jar: SignedCookieJar,
+) -> Result<axum::Json<Vec<Livestream>>, Error> {
+    verify_user_session(&jar).await?;
+
+    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
+    let sess = CookieStore::new()
+        .load_session(cookie.value().to_owned())
+        .await?
+        .ok_or(Error::SessionError)?;
+    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
+
+    let mut tx = pool.begin().await?;
+
+    let livestream_models: Vec<LivestreamModel> =
+        sqlx::query_as("SELECT * FROM livestreams WHERE user_id = ?")
+            .bind(user_id)
+            .fetch_all(&mut *tx)
+            .await?;
     let mut livestreams = Vec::with_capacity(livestream_models.len());
     for livestream_model in livestream_models {
         let livestream = fill_livestream_response(&mut tx, livestream_model).await?;
