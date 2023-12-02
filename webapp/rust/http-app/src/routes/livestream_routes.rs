@@ -6,6 +6,7 @@ use axum_extra::extract::SignedCookieJar;
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use isupipe_core::models::livestream::{Livestream, LivestreamModel};
 use isupipe_core::models::livestream_tag::LivestreamTagModel;
+use isupipe_core::models::ng_word::NgWord;
 use isupipe_core::models::reservation_slot::ReservationSlotModel;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
@@ -269,4 +270,32 @@ pub async fn get_livestream_handler(
     tx.commit().await?;
 
     Ok(axum::Json(livestream))
+}
+pub async fn get_ngwords(
+    State(AppState { pool, .. }): State<AppState>,
+    jar: SignedCookieJar,
+    Path((livestream_id,)): Path<(i64,)>,
+) -> Result<axum::Json<Vec<NgWord>>, Error> {
+    verify_user_session(&jar).await?;
+
+    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
+    let sess = CookieStore::new()
+        .load_session(cookie.value().to_owned())
+        .await?
+        .ok_or(Error::SessionError)?;
+    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
+
+    let mut tx = pool.begin().await?;
+
+    let ng_words: Vec<NgWord> = sqlx::query_as(
+        "SELECT * FROM ng_words WHERE user_id = ? AND livestream_id = ? ORDER BY created_at DESC",
+    )
+        .bind(user_id)
+        .bind(livestream_id)
+        .fetch_all(&mut *tx)
+        .await?;
+
+    tx.commit().await?;
+
+    Ok(axum::Json(ng_words))
 }

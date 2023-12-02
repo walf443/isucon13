@@ -12,10 +12,7 @@ use isupipe_http_app::routes::livestream_comment_routes::{
 use isupipe_http_app::routes::livestream_reaction_routes::{
     get_reactions_handler, post_reaction_handler,
 };
-use isupipe_http_app::routes::livestream_routes::{
-    get_livestream_handler, get_my_livestreams_handler, reserve_livestream_handler,
-    search_livestreams_handler,
-};
+use isupipe_http_app::routes::livestream_routes::{get_livestream_handler, get_my_livestreams_handler, get_ngwords, reserve_livestream_handler, search_livestreams_handler};
 use isupipe_http_app::routes::tag_routes::get_tag_handler;
 use isupipe_http_app::routes::user_routes::{
     get_streamer_theme_handler, get_user_livestreams_handler,
@@ -391,35 +388,6 @@ struct NgWord {
     word: String,
     #[sqlx(default)]
     created_at: i64,
-}
-
-async fn get_ngwords(
-    State(AppState { pool, .. }): State<AppState>,
-    jar: SignedCookieJar,
-    Path((livestream_id,)): Path<(i64,)>,
-) -> Result<axum::Json<Vec<NgWord>>, Error> {
-    verify_user_session(&jar).await?;
-
-    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
-    let sess = CookieStore::new()
-        .load_session(cookie.value().to_owned())
-        .await?
-        .ok_or(Error::SessionError)?;
-    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
-
-    let mut tx = pool.begin().await?;
-
-    let ng_words: Vec<NgWord> = sqlx::query_as(
-        "SELECT * FROM ng_words WHERE user_id = ? AND livestream_id = ? ORDER BY created_at DESC",
-    )
-    .bind(user_id)
-    .bind(livestream_id)
-    .fetch_all(&mut *tx)
-    .await?;
-
-    tx.commit().await?;
-
-    Ok(axum::Json(ng_words))
 }
 
 async fn report_livecomment_handler(
