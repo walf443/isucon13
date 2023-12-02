@@ -6,6 +6,7 @@ use isupipe_core::models::user::{User, UserModel};
 use isupipe_http_core::FALLBACK_IMAGE;
 use sqlx::MySqlConnection;
 use isupipe_core::models::livestream_comment::{Livecomment, LivecommentModel};
+use isupipe_core::models::reaction::{Reaction, ReactionModel};
 
 pub async fn fill_user_response(
     tx: &mut MySqlConnection,
@@ -104,5 +105,30 @@ pub async fn fill_livecomment_response(
         comment: livecomment_model.comment,
         tip: livecomment_model.tip,
         created_at: livecomment_model.created_at,
+    })
+}
+pub async fn fill_reaction_response(
+    tx: &mut MySqlConnection,
+    reaction_model: ReactionModel,
+) -> sqlx::Result<Reaction> {
+    let user_model: UserModel = sqlx::query_as("SELECT * FROM users WHERE id = ?")
+        .bind(reaction_model.user_id)
+        .fetch_one(&mut *tx)
+        .await?;
+    let user = fill_user_response(&mut *tx, user_model).await?;
+
+    let livestream_model: LivestreamModel =
+        sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
+            .bind(reaction_model.livestream_id)
+            .fetch_one(&mut *tx)
+            .await?;
+    let livestream = fill_livestream_response(&mut *tx, livestream_model).await?;
+
+    Ok(Reaction {
+        id: reaction_model.id,
+        emoji_name: reaction_model.emoji_name,
+        user,
+        livestream,
+        created_at: reaction_model.created_at,
     })
 }

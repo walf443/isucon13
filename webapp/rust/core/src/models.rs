@@ -2,6 +2,7 @@ pub mod livestream;
 pub mod livestream_comment;
 pub mod livestream_tag;
 pub mod ng_word;
+pub mod reaction;
 pub mod reservation_slot;
 pub mod tag;
 pub mod theme;
