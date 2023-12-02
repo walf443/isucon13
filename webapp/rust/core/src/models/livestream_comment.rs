@@ -2,7 +2,7 @@ use crate::models::livestream::Livestream;
 use crate::models::user::User;
 
 #[derive(Debug, serde::Serialize)]
-pub struct Livecomment {
+pub struct LivestreamComment {
     pub id: i64,
     pub user: User,
     pub livestream: Livestream,
@@ -12,7 +12,7 @@ pub struct Livecomment {
 }
 
 #[derive(Debug, sqlx::FromRow)]
-pub struct LivecommentModel {
+pub struct LivestreamCommentModel {
     pub id: i64,
     pub user_id: i64,
     pub livestream_id: i64,

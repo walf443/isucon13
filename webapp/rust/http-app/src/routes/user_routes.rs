@@ -3,7 +3,7 @@ use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, State};
 use axum_extra::extract::SignedCookieJar;
 use isupipe_core::models::livestream::{Livestream, LivestreamModel};
-use isupipe_core::models::livestream_comment::LivecommentModel;
+use isupipe_core::models::livestream_comment::LivestreamCommentModel;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::theme::{Theme, ThemeModel};
 use isupipe_core::models::user::{User, UserModel};
@@ -217,7 +217,7 @@ pub async fn get_user_statistics_handler(
             .await?;
 
     for livestream in &livestreams {
-        let livecomments: Vec<LivecommentModel> =
+        let livecomments: Vec<LivestreamCommentModel> =
             sqlx::query_as("SELECT * FROM livecomments WHERE livestream_id = ?")
                 .bind(livestream.id)
                 .fetch_all(&mut *tx)

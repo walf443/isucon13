@@ -5,7 +5,7 @@ use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use isupipe_core::models::livestream::{Livestream, LivestreamModel};
-use isupipe_core::models::livestream_comment::LivecommentModel;
+use isupipe_core::models::livestream_comment::LivestreamCommentModel;
 use isupipe_core::models::livestream_ranking_entry::LivestreamRankingEntry;
 use isupipe_core::models::livestream_statistics::LivestreamStatistics;
 use isupipe_core::models::livestream_tag::LivestreamTagModel;
@@ -364,7 +364,7 @@ pub async fn moderate_handler(
     // NGワードにヒットする過去の投稿も全削除する
     for ngword in ngwords {
         // ライブコメント一覧取得
-        let livecomments: Vec<LivecommentModel> = sqlx::query_as("SELECT * FROM livecomments")
+        let livecomments: Vec<LivestreamCommentModel> = sqlx::query_as("SELECT * FROM livecomments")
             .fetch_all(&mut *tx)
             .await?;
 

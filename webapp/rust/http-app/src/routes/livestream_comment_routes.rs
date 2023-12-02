@@ -5,7 +5,7 @@ use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
 use isupipe_core::models::livestream::LivestreamModel;
-use isupipe_core::models::livestream_comment::{Livecomment, LivecommentModel};
+use isupipe_core::models::livestream_comment::{LivestreamComment, LivestreamCommentModel};
 use isupipe_core::models::ng_word::NgWord;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
@@ -22,7 +22,7 @@ pub async fn get_livecomments_handler(
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
     Query(GetLivecommentsQuery { limit }): Query<GetLivecommentsQuery>,
-) -> Result<axum::Json<Vec<Livecomment>>, Error> {
+) -> Result<axum::Json<Vec<LivestreamComment>>, Error> {
     verify_user_session(&jar).await?;
 
     let mut tx = pool.begin().await?;
@@ -34,7 +34,7 @@ pub async fn get_livecomments_handler(
         query = format!("{} LIMIT {}", query, limit);
     }
 
-    let livecomment_models: Vec<LivecommentModel> = sqlx::query_as(&query)
+    let livecomment_models: Vec<LivestreamCommentModel> = sqlx::query_as(&query)
         .bind(livestream_id)
         .fetch_all(&mut *tx)
         .await?;
@@ -61,7 +61,7 @@ pub async fn post_livecomment_handler(
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
     axum::Json(req): axum::Json<PostLivecommentRequest>,
-) -> Result<(StatusCode, axum::Json<Livecomment>), Error> {
+) -> Result<(StatusCode, axum::Json<LivestreamComment>), Error> {
     verify_user_session(&jar).await?;
 
     let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
@@ -125,7 +125,7 @@ pub async fn post_livecomment_handler(
 
     let livecomment = fill_livecomment_response(
         &mut tx,
-        LivecommentModel {
+        LivestreamCommentModel {
             id: livecomment_id,
             user_id,
             livestream_id,

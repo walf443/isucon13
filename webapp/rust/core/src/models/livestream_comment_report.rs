@@ -1,11 +1,11 @@
-use crate::models::livestream_comment::Livecomment;
+use crate::models::livestream_comment::LivestreamComment;
 use crate::models::user::User;
 
 #[derive(Debug, serde::Serialize)]
 pub struct LivecommentReport {
     pub id: i64,
     pub reporter: User,
-    pub livecomment: Livecomment,
+    pub livecomment: LivestreamComment,
     pub created_at: i64,
 }
 

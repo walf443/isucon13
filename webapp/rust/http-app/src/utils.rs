@@ -1,5 +1,5 @@
 use isupipe_core::models::livestream::{Livestream, LivestreamModel};
-use isupipe_core::models::livestream_comment::{Livecomment, LivecommentModel};
+use isupipe_core::models::livestream_comment::{LivestreamComment, LivestreamCommentModel};
 use isupipe_core::models::livestream_comment_report::{LivecommentReport, LivecommentReportModel};
 use isupipe_core::models::livestream_tag::LivestreamTagModel;
 use isupipe_core::models::reaction::{Reaction, ReactionModel};
@@ -84,8 +84,8 @@ pub async fn fill_livestream_response(
 }
 pub async fn fill_livecomment_response(
     tx: &mut MySqlConnection,
-    livecomment_model: LivecommentModel,
-) -> sqlx::Result<Livecomment> {
+    livecomment_model: LivestreamCommentModel,
+) -> sqlx::Result<LivestreamComment> {
     let comment_owner_model: UserModel = sqlx::query_as("SELECT * FROM users WHERE id = ?")
         .bind(livecomment_model.user_id)
         .fetch_one(&mut *tx)
@@ -99,7 +99,7 @@ pub async fn fill_livecomment_response(
             .await?;
     let livestream = fill_livestream_response(&mut *tx, livestream_model).await?;
 
-    Ok(Livecomment {
+    Ok(LivestreamComment {
         id: livecomment_model.id,
         user: comment_owner,
         livestream,
@@ -143,7 +143,7 @@ pub async fn fill_livecomment_report_response(
         .await?;
     let reporter = fill_user_response(&mut *tx, reporter_model).await?;
 
-    let livecomment_model: LivecommentModel =
+    let livecomment_model: LivestreamCommentModel =
         sqlx::query_as("SELECT * FROM livecomments WHERE id = ?")
             .bind(report_model.livecomment_id)
             .fetch_one(&mut *tx)

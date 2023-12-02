@@ -5,7 +5,7 @@ use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
 use isupipe_core::models::livestream::LivestreamModel;
-use isupipe_core::models::livestream_comment::LivecommentModel;
+use isupipe_core::models::livestream_comment::LivestreamCommentModel;
 use isupipe_core::models::livestream_comment_report::{LivecommentReport, LivecommentReportModel};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
@@ -77,7 +77,7 @@ pub async fn report_livecomment_handler(
         .await?
         .ok_or(Error::NotFound("livestream not found".into()))?;
 
-    let _: LivecommentModel = sqlx::query_as("SELECT * FROM livecomments WHERE id = ?")
+    let _: LivestreamCommentModel = sqlx::query_as("SELECT * FROM livecomments WHERE id = ?")
         .bind(livecomment_id)
         .fetch_optional(&mut *tx)
         .await?
