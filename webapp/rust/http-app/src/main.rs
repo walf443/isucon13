@@ -3,9 +3,8 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum_extra::extract::cookie::SignedCookieJar;
 use chrono::Utc;
-use isupipe_core::models::livestream_tag::LivestreamTagModel;
 use isupipe_http_app::routes::initialize_routes::initialize_handler;
-use isupipe_http_app::routes::livestream_comment_report_routes::get_livecomment_reports_handler;
+use isupipe_http_app::routes::livestream_comment_report_routes::{get_livecomment_reports_handler, report_livecomment_handler};
 use isupipe_http_app::routes::livestream_comment_routes::{
     get_livecomments_handler, post_livecomment_handler,
 };
@@ -22,6 +21,10 @@ use isupipe_http_core::state::AppState;
 use sqlx::mysql::MySqlConnection;
 use std::sync::Arc;
 use uuid::Uuid;
+use isupipe_core::models::livestream::{LivestreamModel};
+use isupipe_core::models::livestream_comment::LivecommentModel;
+use isupipe_core::models::theme::{Theme, ThemeModel};
+use isupipe_core::models::user::{User, UserModel};
 
 const DEFAULT_SESSION_ID_KEY: &str = "SESSIONID";
 const DEFUALT_SESSION_EXPIRES_KEY: &str = "EXPIRES";
@@ -200,43 +203,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-#[derive(Debug, serde::Serialize)]
-struct Tag {
-    id: i64,
-    name: String,
-}
-
-#[derive(Debug, sqlx::FromRow)]
-struct TagModel {
-    id: i64,
-    name: String,
-}
-
-#[derive(Debug, sqlx::FromRow)]
-struct LivestreamModel {
-    id: i64,
-    user_id: i64,
-    title: String,
-    description: String,
-    playlist_url: String,
-    thumbnail_url: String,
-    start_at: i64,
-    end_at: i64,
-}
-
-#[derive(Debug, serde::Serialize)]
-struct Livestream {
-    id: i64,
-    owner: User,
-    title: String,
-    description: String,
-    playlist_url: String,
-    thumbnail_url: String,
-    tags: Vec<Tag>,
-    start_at: i64,
-    end_at: i64,
-}
-
 // viewerテーブルの廃止
 async fn enter_livestream_handler(
     State(AppState { pool, .. }): State<AppState>,
@@ -296,85 +262,6 @@ async fn exit_livestream_handler(
     Ok(())
 }
 
-async fn fill_livestream_response(
-    tx: &mut MySqlConnection,
-    livestream_model: LivestreamModel,
-) -> sqlx::Result<Livestream> {
-    let owner_model: UserModel = sqlx::query_as("SELECT * FROM users WHERE id = ?")
-        .bind(livestream_model.user_id)
-        .fetch_one(&mut *tx)
-        .await?;
-    let owner = fill_user_response(tx, owner_model).await?;
-
-    let livestream_tag_models: Vec<LivestreamTagModel> =
-        sqlx::query_as("SELECT * FROM livestream_tags WHERE livestream_id = ?")
-            .bind(livestream_model.id)
-            .fetch_all(&mut *tx)
-            .await?;
-
-    let mut tags = Vec::with_capacity(livestream_tag_models.len());
-    for livestream_tag_model in livestream_tag_models {
-        let tag_model: TagModel = sqlx::query_as("SELECT * FROM tags WHERE id = ?")
-            .bind(livestream_tag_model.tag_id)
-            .fetch_one(&mut *tx)
-            .await?;
-        tags.push(Tag {
-            id: tag_model.id,
-            name: tag_model.name,
-        });
-    }
-
-    Ok(Livestream {
-        id: livestream_model.id,
-        owner,
-        title: livestream_model.title,
-        tags,
-        description: livestream_model.description,
-        playlist_url: livestream_model.playlist_url,
-        thumbnail_url: livestream_model.thumbnail_url,
-        start_at: livestream_model.start_at,
-        end_at: livestream_model.end_at,
-    })
-}
-
-#[derive(Debug, sqlx::FromRow)]
-struct LivecommentModel {
-    id: i64,
-    user_id: i64,
-    livestream_id: i64,
-    comment: String,
-    tip: i64,
-    created_at: i64,
-}
-
-#[derive(Debug, serde::Serialize)]
-struct Livecomment {
-    id: i64,
-    user: User,
-    livestream: Livestream,
-    comment: String,
-    tip: i64,
-    created_at: i64,
-}
-
-#[derive(Debug, serde::Serialize)]
-struct LivecommentReport {
-    id: i64,
-    reporter: User,
-    livecomment: Livecomment,
-    created_at: i64,
-}
-
-#[derive(Debug, sqlx::FromRow)]
-struct LivecommentReportModel {
-    id: i64,
-    user_id: i64,
-    #[allow(unused)]
-    livestream_id: i64,
-    livecomment_id: i64,
-    created_at: i64,
-}
-
 #[derive(Debug, serde::Deserialize)]
 struct ModerateRequest {
     ng_word: String,
@@ -388,63 +275,6 @@ struct NgWord {
     word: String,
     #[sqlx(default)]
     created_at: i64,
-}
-
-async fn report_livecomment_handler(
-    State(AppState { pool, .. }): State<AppState>,
-    jar: SignedCookieJar,
-    Path((livestream_id, livecomment_id)): Path<(i64, i64)>,
-) -> Result<(StatusCode, axum::Json<LivecommentReport>), Error> {
-    verify_user_session(&jar).await?;
-
-    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
-    let sess = CookieStore::new()
-        .load_session(cookie.value().to_owned())
-        .await?
-        .ok_or(Error::SessionError)?;
-    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
-
-    let mut tx = pool.begin().await?;
-
-    let _: LivestreamModel = sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
-        .bind(livestream_id)
-        .fetch_optional(&mut *tx)
-        .await?
-        .ok_or(Error::NotFound("livestream not found".into()))?;
-
-    let _: LivecommentModel = sqlx::query_as("SELECT * FROM livecomments WHERE id = ?")
-        .bind(livecomment_id)
-        .fetch_optional(&mut *tx)
-        .await?
-        .ok_or(Error::NotFound("livecomment not found".into()))?;
-
-    let now = Utc::now().timestamp();
-    let rs = sqlx::query(
-        "INSERT INTO livecomment_reports(user_id, livestream_id, livecomment_id, created_at) VALUES (?, ?, ?, ?)",
-    )
-    .bind(user_id)
-    .bind(livestream_id)
-    .bind(livecomment_id)
-    .bind(now)
-    .execute(&mut *tx)
-    .await?;
-    let report_id = rs.last_insert_id() as i64;
-
-    let report = fill_livecomment_report_response(
-        &mut tx,
-        LivecommentReportModel {
-            id: report_id,
-            user_id,
-            livestream_id,
-            livecomment_id,
-            created_at: now,
-        },
-    )
-    .await?;
-
-    tx.commit().await?;
-
-    Ok((StatusCode::CREATED, axum::Json(report)))
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -536,103 +366,6 @@ async fn moderate_handler(
         StatusCode::CREATED,
         axum::Json(ModerateResponse { word_id }),
     ))
-}
-
-async fn fill_livecomment_response(
-    tx: &mut MySqlConnection,
-    livecomment_model: LivecommentModel,
-) -> sqlx::Result<Livecomment> {
-    let comment_owner_model: UserModel = sqlx::query_as("SELECT * FROM users WHERE id = ?")
-        .bind(livecomment_model.user_id)
-        .fetch_one(&mut *tx)
-        .await?;
-    let comment_owner = fill_user_response(&mut *tx, comment_owner_model).await?;
-
-    let livestream_model: LivestreamModel =
-        sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
-            .bind(livecomment_model.livestream_id)
-            .fetch_one(&mut *tx)
-            .await?;
-    let livestream = fill_livestream_response(&mut *tx, livestream_model).await?;
-
-    Ok(Livecomment {
-        id: livecomment_model.id,
-        user: comment_owner,
-        livestream,
-        comment: livecomment_model.comment,
-        tip: livecomment_model.tip,
-        created_at: livecomment_model.created_at,
-    })
-}
-
-async fn fill_livecomment_report_response(
-    tx: &mut MySqlConnection,
-    report_model: LivecommentReportModel,
-) -> sqlx::Result<LivecommentReport> {
-    let reporter_model: UserModel = sqlx::query_as("SELECT * FROM users WHERE id = ?")
-        .bind(report_model.user_id)
-        .fetch_one(&mut *tx)
-        .await?;
-    let reporter = fill_user_response(&mut *tx, reporter_model).await?;
-
-    let livecomment_model: LivecommentModel =
-        sqlx::query_as("SELECT * FROM livecomments WHERE id = ?")
-            .bind(report_model.livecomment_id)
-            .fetch_one(&mut *tx)
-            .await?;
-    let livecomment = fill_livecomment_response(&mut *tx, livecomment_model).await?;
-
-    Ok(LivecommentReport {
-        id: report_model.id,
-        reporter,
-        livecomment,
-        created_at: report_model.created_at,
-    })
-}
-
-#[derive(Debug, serde::Serialize)]
-struct Reaction {
-    id: i64,
-    emoji_name: String,
-    user: User,
-    livestream: Livestream,
-    created_at: i64,
-}
-
-#[derive(Debug, sqlx::FromRow)]
-struct UserModel {
-    id: i64,
-    name: String,
-    display_name: Option<String>,
-    description: Option<String>,
-    #[sqlx(default, rename = "password")]
-    hashed_password: Option<String>,
-}
-
-#[derive(Debug, serde::Serialize)]
-struct User {
-    id: i64,
-    name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    display_name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    description: Option<String>,
-    theme: Theme,
-    icon_hash: String,
-}
-
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
-struct Theme {
-    id: i64,
-    dark_mode: bool,
-}
-
-#[derive(Debug, sqlx::FromRow)]
-struct ThemeModel {
-    id: i64,
-    #[allow(unused)]
-    user_id: i64,
-    dark_mode: bool,
 }
 
 #[derive(Debug, serde::Deserialize)]
