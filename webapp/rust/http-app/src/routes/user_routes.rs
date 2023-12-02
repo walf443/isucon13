@@ -1,3 +1,4 @@
+use crate::utils::fill_livestream_response;
 use axum::extract::{Path, State};
 use axum_extra::extract::SignedCookieJar;
 use isupipe_core::models::livestream::{Livestream, LivestreamModel};
@@ -6,7 +7,6 @@ use isupipe_core::models::user::UserModel;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::verify_user_session;
-use crate::utils::fill_livestream_response;
 
 // 配信者のテーマ取得API
 // GET /api/user/:username/theme

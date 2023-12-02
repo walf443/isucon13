@@ -4,11 +4,15 @@ use axum::http::StatusCode;
 use axum_extra::extract::cookie::SignedCookieJar;
 use chrono::Utc;
 use isupipe_http_app::routes::initialize_routes::initialize_handler;
+use isupipe_http_app::routes::livestream_comment_route::get_livecomments_handler;
 use isupipe_http_app::routes::livestream_routes::{
-    get_my_livestreams_handler, reserve_livestream_handler, search_livestreams_handler,
+    get_livestream_handler, get_my_livestreams_handler, reserve_livestream_handler,
+    search_livestreams_handler,
 };
 use isupipe_http_app::routes::tag_routes::get_tag_handler;
-use isupipe_http_app::routes::user_routes::{get_streamer_theme_handler, get_user_livestreams_handler};
+use isupipe_http_app::routes::user_routes::{
+    get_streamer_theme_handler, get_user_livestreams_handler,
+};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use sqlx::mysql::MySqlConnection;
@@ -296,31 +300,6 @@ async fn exit_livestream_handler(
     Ok(())
 }
 
-async fn get_livestream_handler(
-    State(AppState { pool, .. }): State<AppState>,
-    jar: SignedCookieJar,
-    Path((livestream_id,)): Path<(i64,)>,
-) -> Result<axum::Json<Livestream>, Error> {
-    verify_user_session(&jar).await?;
-
-    let mut tx = pool.begin().await?;
-
-    let livestream_model: LivestreamModel =
-        sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
-            .bind(livestream_id)
-            .fetch_optional(&mut *tx)
-            .await?
-            .ok_or(Error::NotFound(
-                "not found livestream that has the given id".into(),
-            ))?;
-
-    let livestream = fill_livestream_response(&mut tx, livestream_model).await?;
-
-    tx.commit().await?;
-
-    Ok(axum::Json(livestream))
-}
-
 async fn get_livecomment_reports_handler(
     State(AppState { pool, .. }): State<AppState>,
     jar: SignedCookieJar,
@@ -464,45 +443,6 @@ struct NgWord {
     word: String,
     #[sqlx(default)]
     created_at: i64,
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct GetLivecommentsQuery {
-    #[serde(default)]
-    limit: String,
-}
-
-async fn get_livecomments_handler(
-    State(AppState { pool, .. }): State<AppState>,
-    jar: SignedCookieJar,
-    Path((livestream_id,)): Path<(i64,)>,
-    Query(GetLivecommentsQuery { limit }): Query<GetLivecommentsQuery>,
-) -> Result<axum::Json<Vec<Livecomment>>, Error> {
-    verify_user_session(&jar).await?;
-
-    let mut tx = pool.begin().await?;
-
-    let mut query =
-        "SELECT * FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC".to_owned();
-    if !limit.is_empty() {
-        let limit: i64 = limit.parse().map_err(|_| Error::BadRequest("".into()))?;
-        query = format!("{} LIMIT {}", query, limit);
-    }
-
-    let livecomment_models: Vec<LivecommentModel> = sqlx::query_as(&query)
-        .bind(livestream_id)
-        .fetch_all(&mut *tx)
-        .await?;
-
-    let mut livecomments = Vec::with_capacity(livecomment_models.len());
-    for livecomment_model in livecomment_models {
-        let livecomment = fill_livecomment_response(&mut tx, livecomment_model).await?;
-        livecomments.push(livecomment);
-    }
-
-    tx.commit().await?;
-
-    Ok(axum::Json(livecomments))
 }
 
 async fn get_ngwords(

@@ -5,6 +5,7 @@ use isupipe_core::models::theme::{Theme, ThemeModel};
 use isupipe_core::models::user::{User, UserModel};
 use isupipe_http_core::FALLBACK_IMAGE;
 use sqlx::MySqlConnection;
+use isupipe_core::models::livestream_comment::{Livecomment, LivecommentModel};
 
 pub async fn fill_user_response(
     tx: &mut MySqlConnection,
@@ -77,5 +78,31 @@ pub async fn fill_livestream_response(
         thumbnail_url: livestream_model.thumbnail_url,
         start_at: livestream_model.start_at,
         end_at: livestream_model.end_at,
+    })
+}
+pub async fn fill_livecomment_response(
+    tx: &mut MySqlConnection,
+    livecomment_model: LivecommentModel,
+) -> sqlx::Result<Livecomment> {
+    let comment_owner_model: UserModel = sqlx::query_as("SELECT * FROM users WHERE id = ?")
+        .bind(livecomment_model.user_id)
+        .fetch_one(&mut *tx)
+        .await?;
+    let comment_owner = fill_user_response(&mut *tx, comment_owner_model).await?;
+
+    let livestream_model: LivestreamModel =
+        sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
+            .bind(livecomment_model.livestream_id)
+            .fetch_one(&mut *tx)
+            .await?;
+    let livestream = fill_livestream_response(&mut *tx, livestream_model).await?;
+
+    Ok(Livecomment {
+        id: livecomment_model.id,
+        user: comment_owner,
+        livestream,
+        comment: livecomment_model.comment,
+        tip: livecomment_model.tip,
+        created_at: livecomment_model.created_at,
     })
 }

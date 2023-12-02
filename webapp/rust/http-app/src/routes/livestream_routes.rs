@@ -1,6 +1,6 @@
 use crate::utils::fill_livestream_response;
 use async_session::{CookieStore, SessionStore};
-use axum::extract::{Query, State};
+use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
@@ -244,4 +244,29 @@ pub async fn get_my_livestreams_handler(
     tx.commit().await?;
 
     Ok(axum::Json(livestreams))
+}
+
+pub async fn get_livestream_handler(
+    State(AppState { pool, .. }): State<AppState>,
+    jar: SignedCookieJar,
+    Path((livestream_id,)): Path<(i64,)>,
+) -> Result<axum::Json<Livestream>, Error> {
+    verify_user_session(&jar).await?;
+
+    let mut tx = pool.begin().await?;
+
+    let livestream_model: LivestreamModel =
+        sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
+            .bind(livestream_id)
+            .fetch_optional(&mut *tx)
+            .await?
+            .ok_or(Error::NotFound(
+                "not found livestream that has the given id".into(),
+            ))?;
+
+    let livestream = fill_livestream_response(&mut tx, livestream_model).await?;
+
+    tx.commit().await?;
+
+    Ok(axum::Json(livestream))
 }
