@@ -4,8 +4,10 @@ use axum::http::StatusCode;
 use axum_extra::extract::cookie::SignedCookieJar;
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use isupipe_http_app::routes::initialize_routes::initialize_handler;
-use sqlx::mysql::{MySqlConnection, MySqlPool};
-use std::borrow::Cow;
+use isupipe_http_app::routes::tag_routes::get_tag_handler;
+use isupipe_http_core::error::Error;
+use isupipe_http_core::state::AppState;
+use sqlx::mysql::MySqlConnection;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -14,71 +16,6 @@ const DEFUALT_SESSION_EXPIRES_KEY: &str = "EXPIRES";
 const DEFAULT_USER_ID_KEY: &str = "USERID";
 const DEFAULT_USERNAME_KEY: &str = "USERNAME";
 const FALLBACK_IMAGE: &str = "../img/NoImage.jpg";
-
-#[derive(Debug, thiserror::Error)]
-enum Error {
-    #[error("I/O error: {0}")]
-    Io(#[from] std::io::Error),
-    #[error("SQLx error: {0}")]
-    Sqlx(#[from] sqlx::Error),
-    #[error("bcrypt error: {0}")]
-    Bcrypt(#[from] bcrypt::BcryptError),
-    #[error("async-session error: {0}")]
-    AsyncSession(#[from] async_session::Error),
-    #[error("{0}")]
-    BadRequest(Cow<'static, str>),
-    #[error("session error")]
-    SessionError,
-    #[error("unauthorized: {0}")]
-    Unauthorized(Cow<'static, str>),
-    #[error("forbidden: {0}")]
-    Forbidden(Cow<'static, str>),
-    #[error("not found: {0}")]
-    NotFound(Cow<'static, str>),
-    #[error("{0}")]
-    InternalServerError(String),
-}
-impl axum::response::IntoResponse for Error {
-    fn into_response(self) -> axum::response::Response {
-        #[derive(Debug, serde::Serialize)]
-        struct ErrorResponse {
-            error: String,
-        }
-
-        let status = match self {
-            Self::BadRequest(_) => StatusCode::BAD_REQUEST,
-            Self::Unauthorized(_) | Self::SessionError => StatusCode::UNAUTHORIZED,
-            Self::Forbidden(_) => StatusCode::FORBIDDEN,
-            Self::NotFound(_) => StatusCode::NOT_FOUND,
-            Self::Io(_)
-            | Self::Sqlx(_)
-            | Self::Bcrypt(_)
-            | Self::AsyncSession(_)
-            | Self::InternalServerError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-        };
-
-        tracing::error!("{}", self);
-        (
-            status,
-            axum::Json(ErrorResponse {
-                error: format!("{}", self),
-            }),
-        )
-            .into_response()
-    }
-}
-
-#[derive(Clone)]
-struct AppState {
-    pool: MySqlPool,
-    key: axum_extra::extract::cookie::Key,
-    powerdns_subdomain_address: Arc<String>,
-}
-impl axum::extract::FromRef<AppState> for axum_extra::extract::cookie::Key {
-    fn from_ref(state: &AppState) -> Self {
-        state.key.clone()
-    }
-}
 
 fn build_mysql_options() -> sqlx::mysql::MySqlConnectOptions {
     let mut options = sqlx::mysql::MySqlConnectOptions::new()
@@ -261,32 +198,6 @@ struct Tag {
 struct TagModel {
     id: i64,
     name: String,
-}
-
-#[derive(Debug, serde::Serialize)]
-struct TagsResponse {
-    tags: Vec<Tag>,
-}
-
-async fn get_tag_handler(
-    State(AppState { pool, .. }): State<AppState>,
-) -> Result<axum::Json<TagsResponse>, Error> {
-    let mut tx = pool.begin().await?;
-
-    let tag_models: Vec<TagModel> = sqlx::query_as("SELECT * FROM tags")
-        .fetch_all(&mut *tx)
-        .await?;
-
-    tx.commit().await?;
-
-    let tags = tag_models
-        .into_iter()
-        .map(|tag| Tag {
-            id: tag.id,
-            name: tag.name,
-        })
-        .collect();
-    Ok(axum::Json(TagsResponse { tags }))
 }
 
 // 配信者のテーマ取得API
