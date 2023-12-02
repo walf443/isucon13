@@ -291,10 +291,10 @@ pub async fn get_ngwords(
     let ng_words: Vec<NgWord> = sqlx::query_as(
         "SELECT * FROM ng_words WHERE user_id = ? AND livestream_id = ? ORDER BY created_at DESC",
     )
-        .bind(user_id)
-        .bind(livestream_id)
-        .fetch_all(&mut *tx)
-        .await?;
+    .bind(user_id)
+    .bind(livestream_id)
+    .fetch_all(&mut *tx)
+    .await?;
 
     tx.commit().await?;
 
@@ -345,12 +345,12 @@ pub async fn moderate_handler(
     let rs = sqlx::query(
         "INSERT INTO ng_words(user_id, livestream_id, word, created_at) VALUES (?, ?, ?, ?)",
     )
-        .bind(user_id)
-        .bind(livestream_id)
-        .bind(req.ng_word)
-        .bind(created_at)
-        .execute(&mut *tx)
-        .await?;
+    .bind(user_id)
+    .bind(livestream_id)
+    .bind(req.ng_word)
+    .bind(created_at)
+    .execute(&mut *tx)
+    .await?;
     let word_id = rs.last_insert_id() as i64;
 
     let ngwords: Vec<NgWord> = sqlx::query_as("SELECT * FROM ng_words WHERE livestream_id = ?")

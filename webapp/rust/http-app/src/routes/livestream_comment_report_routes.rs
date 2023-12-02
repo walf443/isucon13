@@ -105,7 +105,7 @@ pub async fn report_livecomment_handler(
             created_at: now,
         },
     )
-        .await?;
+    .await?;
 
     tx.commit().await?;
 

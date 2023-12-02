@@ -3,15 +3,25 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum_extra::extract::cookie::SignedCookieJar;
 use chrono::Utc;
+use isupipe_core::models::livestream::LivestreamModel;
+use isupipe_core::models::livestream_comment::LivecommentModel;
+use isupipe_core::models::theme::{Theme, ThemeModel};
+use isupipe_core::models::user::{User, UserModel};
 use isupipe_http_app::routes::initialize_routes::initialize_handler;
-use isupipe_http_app::routes::livestream_comment_report_routes::{get_livecomment_reports_handler, report_livecomment_handler};
+use isupipe_http_app::routes::livestream_comment_report_routes::{
+    get_livecomment_reports_handler, report_livecomment_handler,
+};
 use isupipe_http_app::routes::livestream_comment_routes::{
     get_livecomments_handler, post_livecomment_handler,
 };
 use isupipe_http_app::routes::livestream_reaction_routes::{
     get_reactions_handler, post_reaction_handler,
 };
-use isupipe_http_app::routes::livestream_routes::{enter_livestream_handler, exit_livestream_handler, get_livestream_handler, get_my_livestreams_handler, get_ngwords, moderate_handler, reserve_livestream_handler, search_livestreams_handler};
+use isupipe_http_app::routes::livestream_routes::{
+    enter_livestream_handler, exit_livestream_handler, get_livestream_handler,
+    get_my_livestreams_handler, get_ngwords, moderate_handler, reserve_livestream_handler,
+    search_livestreams_handler,
+};
 use isupipe_http_app::routes::tag_routes::get_tag_handler;
 use isupipe_http_app::routes::user_routes::{
     get_streamer_theme_handler, get_user_livestreams_handler,
@@ -21,10 +31,7 @@ use isupipe_http_core::state::AppState;
 use sqlx::mysql::MySqlConnection;
 use std::sync::Arc;
 use uuid::Uuid;
-use isupipe_core::models::livestream::{LivestreamModel};
-use isupipe_core::models::livestream_comment::LivecommentModel;
-use isupipe_core::models::theme::{Theme, ThemeModel};
-use isupipe_core::models::user::{User, UserModel};
+use isupipe_http_app::routes::register_routes::register_handler;
 
 const DEFAULT_SESSION_ID_KEY: &str = "SESSIONID";
 const DEFUALT_SESSION_EXPIRES_KEY: &str = "EXPIRES";
@@ -204,21 +211,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[derive(Debug, serde::Deserialize)]
-struct PostUserRequest {
-    name: String,
-    display_name: String,
-    description: String,
-    // password is non-hashed password.
-    password: String,
-    theme: PostUserRequestTheme,
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct PostUserRequestTheme {
-    dark_mode: bool,
-}
-
-#[derive(Debug, serde::Deserialize)]
 struct LoginRequest {
     username: String,
     // password is non-hashed password.
@@ -341,76 +333,6 @@ async fn get_me_handler(
     tx.commit().await?;
 
     Ok(axum::Json(user))
-}
-
-// ユーザ登録API
-// POST /api/register
-async fn register_handler(
-    State(AppState {
-        pool,
-        powerdns_subdomain_address,
-        ..
-    }): State<AppState>,
-    axum::Json(req): axum::Json<PostUserRequest>,
-) -> Result<(StatusCode, axum::Json<User>), Error> {
-    if req.name == "pipe" {
-        return Err(Error::BadRequest("the username 'pipe' is reserved".into()));
-    }
-
-    const BCRYPT_DEFAULT_COST: u32 = 4;
-    let hashed_password = bcrypt::hash(&req.password, BCRYPT_DEFAULT_COST)?;
-
-    let mut tx = pool.begin().await?;
-
-    let result = sqlx::query(
-        "INSERT INTO users (name, display_name, description, password) VALUES(?, ?, ?, ?)",
-    )
-    .bind(&req.name)
-    .bind(&req.display_name)
-    .bind(&req.description)
-    .bind(&hashed_password)
-    .execute(&mut *tx)
-    .await?;
-    let user_id = result.last_insert_id() as i64;
-
-    sqlx::query("INSERT INTO themes (user_id, dark_mode) VALUES(?, ?)")
-        .bind(user_id)
-        .bind(req.theme.dark_mode)
-        .execute(&mut *tx)
-        .await?;
-
-    let output = tokio::process::Command::new("pdnsutil")
-        .arg("add-record")
-        .arg("u.isucon.dev")
-        .arg(&req.name)
-        .arg("A")
-        .arg("0")
-        .arg(&*powerdns_subdomain_address)
-        .output()
-        .await?;
-    if !output.status.success() {
-        return Err(Error::InternalServerError(format!(
-            "pdnsutil failed with stdout={} stderr={}",
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr),
-        )));
-    }
-
-    let user = fill_user_response(
-        &mut tx,
-        UserModel {
-            id: user_id,
-            name: req.name,
-            display_name: Some(req.display_name),
-            description: Some(req.description),
-            hashed_password: Some(hashed_password),
-        },
-    )
-    .await?;
-
-    tx.commit().await?;
-
-    Ok((StatusCode::CREATED, axum::Json(user)))
 }
 
 #[derive(Debug, serde::Serialize)]
