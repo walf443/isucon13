@@ -4,7 +4,7 @@ use axum::http::StatusCode;
 use axum_extra::extract::cookie::SignedCookieJar;
 use chrono::Utc;
 use isupipe_core::models::livestream::LivestreamModel;
-use isupipe_core::models::livestream_comment::LivecommentModel;
+use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::user::UserModel;
 use isupipe_http_app::routes::initialize_routes::initialize_handler;
 use isupipe_http_app::routes::livestream_comment_report_routes::{
@@ -26,6 +26,7 @@ use isupipe_http_app::routes::register_routes::register_handler;
 use isupipe_http_app::routes::tag_routes::get_tag_handler;
 use isupipe_http_app::routes::user_routes::{
     get_me_handler, get_streamer_theme_handler, get_user_handler, get_user_livestreams_handler,
+    get_user_statistics_handler,
 };
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
@@ -333,201 +334,6 @@ struct LivestreamStatistics {
 struct LivestreamRankingEntry {
     livestream_id: i64,
     score: i64,
-}
-
-#[derive(Debug, serde::Serialize)]
-struct UserStatistics {
-    rank: i64,
-    viewers_count: i64,
-    total_reactions: i64,
-    total_livecomments: i64,
-    total_tip: i64,
-    favorite_emoji: String,
-}
-
-#[derive(Debug)]
-struct UserRankingEntry {
-    username: String,
-    score: i64,
-}
-
-/// MySQL で COUNT()、SUM() 等を使って DECIMAL 型の値になったものを i64 に変換するための構造体。
-#[derive(Debug)]
-struct MysqlDecimal(i64);
-impl sqlx::Decode<'_, sqlx::MySql> for MysqlDecimal {
-    fn decode(
-        value: sqlx::mysql::MySqlValueRef,
-    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        use sqlx::{Type as _, ValueRef as _};
-
-        let type_info = value.type_info();
-        if i64::compatible(&type_info) {
-            i64::decode(value).map(Self)
-        } else if u64::compatible(&type_info) {
-            let n = u64::decode(value)?.try_into()?;
-            Ok(Self(n))
-        } else if sqlx::types::Decimal::compatible(&type_info) {
-            use num_traits::ToPrimitive as _;
-            let n = sqlx::types::Decimal::decode(value)?
-                .to_i64()
-                .expect("failed to convert DECIMAL type to i64");
-            Ok(Self(n))
-        } else {
-            todo!()
-        }
-    }
-}
-impl sqlx::Type<sqlx::MySql> for MysqlDecimal {
-    fn type_info() -> sqlx::mysql::MySqlTypeInfo {
-        i64::type_info()
-    }
-
-    fn compatible(ty: &sqlx::mysql::MySqlTypeInfo) -> bool {
-        i64::compatible(ty) || u64::compatible(ty) || sqlx::types::Decimal::compatible(ty)
-    }
-}
-impl From<MysqlDecimal> for i64 {
-    fn from(value: MysqlDecimal) -> Self {
-        value.0
-    }
-}
-
-async fn get_user_statistics_handler(
-    State(AppState { pool, .. }): State<AppState>,
-    jar: SignedCookieJar,
-    Path((username,)): Path<(String,)>,
-) -> Result<axum::Json<UserStatistics>, Error> {
-    verify_user_session(&jar).await?;
-
-    // ユーザごとに、紐づく配信について、累計リアクション数、累計ライブコメント数、累計売上金額を算出
-    // また、現在の合計視聴者数もだす
-
-    let mut tx = pool.begin().await?;
-
-    let user: UserModel = sqlx::query_as("SELECT * FROM users WHERE name = ?")
-        .bind(&username)
-        .fetch_optional(&mut *tx)
-        .await?
-        .ok_or(Error::BadRequest("".into()))?;
-
-    // ランク算出
-    let users: Vec<UserModel> = sqlx::query_as("SELECT * FROM users")
-        .fetch_all(&mut *tx)
-        .await?;
-
-    let mut ranking = Vec::new();
-    for user in users {
-        let query = r#"
-        SELECT COUNT(*) FROM users u
-        INNER JOIN livestreams l ON l.user_id = u.id
-        INNER JOIN reactions r ON r.livestream_id = l.id
-        WHERE u.id = ?
-        "#;
-        let MysqlDecimal(reactions) = sqlx::query_scalar(query)
-            .bind(user.id)
-            .fetch_one(&mut *tx)
-            .await?;
-
-        let query = r#"
-        SELECT IFNULL(SUM(l2.tip), 0) FROM users u
-        INNER JOIN livestreams l ON l.user_id = u.id
-        INNER JOIN livecomments l2 ON l2.livestream_id = l.id
-        WHERE u.id = ?
-        "#;
-        let MysqlDecimal(tips) = sqlx::query_scalar(query)
-            .bind(user.id)
-            .fetch_one(&mut *tx)
-            .await?;
-
-        let score = reactions + tips;
-        ranking.push(UserRankingEntry {
-            username: user.name,
-            score,
-        });
-    }
-    ranking.sort_by(|a, b| {
-        a.score
-            .cmp(&b.score)
-            .then_with(|| a.username.cmp(&b.username))
-    });
-
-    let rpos = ranking
-        .iter()
-        .rposition(|entry| entry.username == username)
-        .unwrap();
-    let rank = (ranking.len() - rpos) as i64;
-
-    // リアクション数
-    let query = r"#
-    SELECT COUNT(*) FROM users u
-    INNER JOIN livestreams l ON l.user_id = u.id
-    INNER JOIN reactions r ON r.livestream_id = l.id
-    WHERE u.name = ?
-    #";
-    let MysqlDecimal(total_reactions) = sqlx::query_scalar(query)
-        .bind(&username)
-        .fetch_one(&mut *tx)
-        .await?;
-
-    // ライブコメント数、チップ合計
-    let mut total_livecomments = 0;
-    let mut total_tip = 0;
-    let livestreams: Vec<LivestreamModel> =
-        sqlx::query_as("SELECT * FROM livestreams WHERE user_id = ?")
-            .bind(user.id)
-            .fetch_all(&mut *tx)
-            .await?;
-
-    for livestream in &livestreams {
-        let livecomments: Vec<LivecommentModel> =
-            sqlx::query_as("SELECT * FROM livecomments WHERE livestream_id = ?")
-                .bind(livestream.id)
-                .fetch_all(&mut *tx)
-                .await?;
-
-        for livecomment in livecomments {
-            total_tip += livecomment.tip;
-            total_livecomments += 1;
-        }
-    }
-
-    // 合計視聴者数
-    let mut viewers_count = 0;
-    for livestream in livestreams {
-        let MysqlDecimal(cnt) = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM livestream_viewers_history WHERE livestream_id = ?",
-        )
-        .bind(livestream.id)
-        .fetch_one(&mut *tx)
-        .await?;
-        viewers_count += cnt;
-    }
-
-    // お気に入り絵文字
-    let query = r#"
-    SELECT r.emoji_name
-    FROM users u
-    INNER JOIN livestreams l ON l.user_id = u.id
-    INNER JOIN reactions r ON r.livestream_id = l.id
-    WHERE u.name = ?
-    GROUP BY emoji_name
-    ORDER BY COUNT(*) DESC, emoji_name DESC
-    LIMIT 1
-    "#;
-    let favorite_emoji: String = sqlx::query_scalar(query)
-        .bind(&username)
-        .fetch_optional(&mut *tx)
-        .await?
-        .unwrap_or_default();
-
-    Ok(axum::Json(UserStatistics {
-        rank,
-        viewers_count,
-        total_reactions,
-        total_livecomments,
-        total_tip,
-        favorite_emoji,
-    }))
 }
 
 async fn get_livestream_statistics_handler(
