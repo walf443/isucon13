@@ -2,11 +2,13 @@ use async_session::{CookieStore, SessionStore};
 use axum::extract::State;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
-use uuid::Uuid;
 use isupipe_core::models::user::UserModel;
-use isupipe_http_core::{DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY, DEFAULT_USERNAME_KEY, DEFUALT_SESSION_EXPIRES_KEY};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
+use isupipe_http_core::{
+    DEFAULT_SESSION_ID_KEY, DEFAULT_USERNAME_KEY, DEFAULT_USER_ID_KEY, DEFUALT_SESSION_EXPIRES_KEY,
+};
+use uuid::Uuid;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct LoginRequest {

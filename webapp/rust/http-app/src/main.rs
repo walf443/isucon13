@@ -5,8 +5,7 @@ use axum_extra::extract::cookie::SignedCookieJar;
 use chrono::Utc;
 use isupipe_core::models::livestream::LivestreamModel;
 use isupipe_core::models::livestream_comment::LivecommentModel;
-use isupipe_core::models::theme::{Theme, ThemeModel};
-use isupipe_core::models::user::{User, UserModel};
+use isupipe_core::models::user::UserModel;
 use isupipe_http_app::routes::initialize_routes::initialize_handler;
 use isupipe_http_app::routes::livestream_comment_report_routes::{
     get_livecomment_reports_handler, report_livecomment_handler,
@@ -22,14 +21,15 @@ use isupipe_http_app::routes::livestream_routes::{
     get_my_livestreams_handler, get_ngwords, moderate_handler, reserve_livestream_handler,
     search_livestreams_handler,
 };
-use isupipe_http_app::routes::tag_routes::get_tag_handler;
-use isupipe_http_app::routes::user_routes::{get_me_handler, get_streamer_theme_handler, get_user_livestreams_handler};
-use isupipe_http_core::error::Error;
-use isupipe_http_core::state::AppState;
-use sqlx::mysql::MySqlConnection;
-use std::sync::Arc;
 use isupipe_http_app::routes::login_routes::login_handler;
 use isupipe_http_app::routes::register_routes::register_handler;
+use isupipe_http_app::routes::tag_routes::get_tag_handler;
+use isupipe_http_app::routes::user_routes::{
+    get_me_handler, get_streamer_theme_handler, get_user_handler, get_user_livestreams_handler,
+};
+use isupipe_http_core::error::Error;
+use isupipe_http_core::state::AppState;
+use std::sync::Arc;
 
 const DEFAULT_SESSION_ID_KEY: &str = "SESSIONID";
 const DEFUALT_SESSION_EXPIRES_KEY: &str = "EXPIRES";
@@ -207,7 +207,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-
 #[derive(Debug, serde::Deserialize)]
 struct PostIconRequest {
     #[serde(deserialize_with = "from_base64")]
@@ -303,33 +302,6 @@ struct Session {
     expires: i64,
 }
 
-
-// ユーザ詳細API
-// GET /api/user/:username
-async fn get_user_handler(
-    State(AppState { pool, .. }): State<AppState>,
-    jar: SignedCookieJar,
-    Path((username,)): Path<(String,)>,
-) -> Result<axum::Json<User>, Error> {
-    verify_user_session(&jar).await?;
-
-    let mut tx = pool.begin().await?;
-
-    let user_model: UserModel = sqlx::query_as("SELECT * FROM users WHERE name = ?")
-        .bind(username)
-        .fetch_optional(&mut *tx)
-        .await?
-        .ok_or(Error::NotFound(
-            "not found user that has the given username".into(),
-        ))?;
-
-    let user = fill_user_response(&mut tx, user_model).await?;
-
-    tx.commit().await?;
-
-    Ok(axum::Json(user))
-}
-
 async fn verify_user_session(jar: &SignedCookieJar) -> Result<(), Error> {
     let cookie = jar
         .get(DEFAULT_SESSION_ID_KEY)
@@ -346,37 +318,6 @@ async fn verify_user_session(jar: &SignedCookieJar) -> Result<(), Error> {
         return Err(Error::Unauthorized("session has expired".into()));
     }
     Ok(())
-}
-
-async fn fill_user_response(tx: &mut MySqlConnection, user_model: UserModel) -> sqlx::Result<User> {
-    let theme_model: ThemeModel = sqlx::query_as("SELECT * FROM themes WHERE user_id = ?")
-        .bind(user_model.id)
-        .fetch_one(&mut *tx)
-        .await?;
-
-    let image: Option<Vec<u8>> = sqlx::query_scalar("SELECT image FROM icons WHERE user_id = ?")
-        .bind(user_model.id)
-        .fetch_optional(&mut *tx)
-        .await?;
-    let image = if let Some(image) = image {
-        image
-    } else {
-        tokio::fs::read(FALLBACK_IMAGE).await?
-    };
-    use sha2::digest::Digest as _;
-    let icon_hash = sha2::Sha256::digest(image);
-
-    Ok(User {
-        id: user_model.id,
-        name: user_model.name,
-        display_name: user_model.display_name,
-        description: user_model.description,
-        theme: Theme {
-            id: theme_model.id,
-            dark_mode: theme_model.dark_mode,
-        },
-        icon_hash: format!("{:x}", icon_hash),
-    })
 }
 
 #[derive(Debug, serde::Serialize)]
