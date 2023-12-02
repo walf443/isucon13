@@ -5,10 +5,10 @@ use axum_extra::extract::cookie::SignedCookieJar;
 use chrono::Utc;
 use isupipe_core::models::livestream_tag::LivestreamTagModel;
 use isupipe_http_app::routes::initialize_routes::initialize_handler;
-use isupipe_http_app::routes::livestream_comment_route::{
+use isupipe_http_app::routes::livestream_comment_routes::{
     get_livecomments_handler, post_livecomment_handler,
 };
-use isupipe_http_app::routes::livestream_reaction_route::{
+use isupipe_http_app::routes::livestream_reaction_routes::{
     get_reactions_handler, post_reaction_handler,
 };
 use isupipe_http_app::routes::livestream_routes::{
