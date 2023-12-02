@@ -10,6 +10,7 @@ use isupipe_http_core::state::AppState;
 use sqlx::mysql::MySqlConnection;
 use std::sync::Arc;
 use uuid::Uuid;
+use isupipe_http_app::routes::user_routes::get_streamer_theme_handler;
 
 const DEFAULT_SESSION_ID_KEY: &str = "SESSIONID";
 const DEFUALT_SESSION_EXPIRES_KEY: &str = "EXPIRES";
@@ -198,38 +199,6 @@ struct Tag {
 struct TagModel {
     id: i64,
     name: String,
-}
-
-// 配信者のテーマ取得API
-// GET /api/user/:username/theme
-async fn get_streamer_theme_handler(
-    State(AppState { pool, .. }): State<AppState>,
-    jar: SignedCookieJar,
-    Path((username,)): Path<(String,)>,
-) -> Result<axum::Json<Theme>, Error> {
-    verify_user_session(&jar).await?;
-
-    let mut tx = pool.begin().await?;
-
-    let user_id: i64 = sqlx::query_scalar("SELECT id FROM users WHERE name = ?")
-        .bind(username)
-        .fetch_optional(&mut *tx)
-        .await?
-        .ok_or(Error::NotFound(
-            "not found user that has the given username".into(),
-        ))?;
-
-    let theme_model: ThemeModel = sqlx::query_as("SELECT * FROM themes WHERE user_id = ?")
-        .bind(user_id)
-        .fetch_one(&mut *tx)
-        .await?;
-
-    tx.commit().await?;
-
-    Ok(axum::Json(Theme {
-        id: theme_model.id,
-        dark_mode: theme_model.dark_mode,
-    }))
 }
 
 #[derive(Debug, serde::Deserialize)]
