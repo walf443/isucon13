@@ -1,5 +1,3 @@
-use axum::extract::State;
-use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_http_app::routes::initialize_routes::initialize_handler;
 use isupipe_http_app::routes::livestream_comment_report_routes::{
     get_livecomment_reports_handler, report_livecomment_handler,
@@ -23,9 +21,9 @@ use isupipe_http_app::routes::user_routes::{
     get_me_handler, get_streamer_theme_handler, get_user_handler, get_user_livestreams_handler,
     get_user_statistics_handler,
 };
-use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use std::sync::Arc;
+use isupipe_http_app::routes::payment_routes::get_payment_result;
 
 fn build_mysql_options() -> sqlx::mysql::MySqlConnectOptions {
     let mut options = sqlx::mysql::MySqlConnectOptions::new()
@@ -203,24 +201,4 @@ struct Session {
     id: String,
     user_id: i64,
     expires: i64,
-}
-
-#[derive(Debug, serde::Serialize)]
-struct PaymentResult {
-    total_tip: i64,
-}
-
-async fn get_payment_result(
-    State(AppState { pool, .. }): State<AppState>,
-) -> Result<axum::Json<PaymentResult>, Error> {
-    let mut tx = pool.begin().await?;
-
-    let MysqlDecimal(total_tip) =
-        sqlx::query_scalar("SELECT IFNULL(SUM(tip), 0) FROM livecomments")
-            .fetch_one(&mut *tx)
-            .await?;
-
-    tx.commit().await?;
-
-    Ok(axum::Json(PaymentResult { total_tip }))
 }
