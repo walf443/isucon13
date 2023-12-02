@@ -18,4 +18,3 @@ pub struct ReactionModel {
     pub livestream_id: i64,
     pub created_at: i64,
 }
-

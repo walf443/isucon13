@@ -1,5 +1,5 @@
-use async_session::{CookieStore, SessionStore};
 use crate::utils::fill_livecomment_response;
+use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
@@ -9,7 +9,7 @@ use isupipe_core::models::livestream_comment::{Livecomment, LivecommentModel};
 use isupipe_core::models::ng_word::NgWord;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
-use isupipe_http_core::{DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY, verify_user_session};
+use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
 
 #[derive(Debug, serde::Deserialize)]
 pub struct GetLivecommentsQuery {
@@ -134,7 +134,7 @@ pub async fn post_livecomment_handler(
             created_at: now,
         },
     )
-        .await?;
+    .await?;
 
     tx.commit().await?;
 

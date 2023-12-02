@@ -1,4 +1,3 @@
-
 #[derive(Debug, serde::Serialize, sqlx::FromRow)]
 pub struct NgWord {
     pub id: i64,

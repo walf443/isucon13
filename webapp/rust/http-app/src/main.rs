@@ -3,8 +3,14 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum_extra::extract::cookie::SignedCookieJar;
 use chrono::Utc;
+use isupipe_core::models::livestream_tag::LivestreamTagModel;
 use isupipe_http_app::routes::initialize_routes::initialize_handler;
-use isupipe_http_app::routes::livestream_comment_route::{get_livecomments_handler, post_livecomment_handler};
+use isupipe_http_app::routes::livestream_comment_route::{
+    get_livecomments_handler, post_livecomment_handler,
+};
+use isupipe_http_app::routes::livestream_reaction_route::{
+    get_reactions_handler, post_reaction_handler,
+};
 use isupipe_http_app::routes::livestream_routes::{
     get_livestream_handler, get_my_livestreams_handler, reserve_livestream_handler,
     search_livestreams_handler,
@@ -18,8 +24,6 @@ use isupipe_http_core::state::AppState;
 use sqlx::mysql::MySqlConnection;
 use std::sync::Arc;
 use uuid::Uuid;
-use isupipe_core::models::livestream_tag::LivestreamTagModel;
-use isupipe_http_app::routes::livestream_reaction_route::get_reactions_handler;
 
 const DEFAULT_SESSION_ID_KEY: &str = "SESSIONID";
 const DEFUALT_SESSION_EXPIRES_KEY: &str = "EXPIRES";
@@ -662,15 +666,6 @@ async fn fill_livecomment_report_response(
     })
 }
 
-#[derive(Debug, sqlx::FromRow)]
-struct ReactionModel {
-    id: i64,
-    emoji_name: String,
-    user_id: i64,
-    livestream_id: i64,
-    created_at: i64,
-}
-
 #[derive(Debug, serde::Serialize)]
 struct Reaction {
     id: i64,
@@ -678,82 +673,6 @@ struct Reaction {
     user: User,
     livestream: Livestream,
     created_at: i64,
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct PostReactionRequest {
-    emoji_name: String,
-}
-
-async fn post_reaction_handler(
-    State(AppState { pool, .. }): State<AppState>,
-    jar: SignedCookieJar,
-    Path((livestream_id,)): Path<(i64,)>,
-    axum::Json(req): axum::Json<PostReactionRequest>,
-) -> Result<(StatusCode, axum::Json<Reaction>), Error> {
-    verify_user_session(&jar).await?;
-
-    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
-    let sess = CookieStore::new()
-        .load_session(cookie.value().to_owned())
-        .await?
-        .ok_or(Error::SessionError)?;
-    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
-
-    let mut tx = pool.begin().await?;
-
-    let created_at = Utc::now().timestamp();
-    let result =
-        sqlx::query("INSERT INTO reactions (user_id, livestream_id, emoji_name, created_at) VALUES (?, ?, ?, ?)")
-            .bind(user_id)
-            .bind(livestream_id)
-            .bind(&req.emoji_name)
-            .bind(created_at)
-            .execute(&mut *tx)
-            .await?;
-    let reaction_id = result.last_insert_id() as i64;
-
-    let reaction = fill_reaction_response(
-        &mut tx,
-        ReactionModel {
-            id: reaction_id,
-            user_id,
-            livestream_id,
-            emoji_name: req.emoji_name,
-            created_at,
-        },
-    )
-    .await?;
-
-    tx.commit().await?;
-
-    Ok((StatusCode::CREATED, axum::Json(reaction)))
-}
-
-async fn fill_reaction_response(
-    tx: &mut MySqlConnection,
-    reaction_model: ReactionModel,
-) -> sqlx::Result<Reaction> {
-    let user_model: UserModel = sqlx::query_as("SELECT * FROM users WHERE id = ?")
-        .bind(reaction_model.user_id)
-        .fetch_one(&mut *tx)
-        .await?;
-    let user = fill_user_response(&mut *tx, user_model).await?;
-
-    let livestream_model: LivestreamModel =
-        sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
-            .bind(reaction_model.livestream_id)
-            .fetch_one(&mut *tx)
-            .await?;
-    let livestream = fill_livestream_response(&mut *tx, livestream_model).await?;
-
-    Ok(Reaction {
-        id: reaction_model.id,
-        emoji_name: reaction_model.emoji_name,
-        user,
-        livestream,
-        created_at: reaction_model.created_at,
-    })
 }
 
 #[derive(Debug, sqlx::FromRow)]
