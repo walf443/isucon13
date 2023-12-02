@@ -1041,7 +1041,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "isupipe"
+name = "isupipe-http-app"
 version = "0.1.0"
 dependencies = [
  "async-session",
