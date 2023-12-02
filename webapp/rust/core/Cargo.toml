@@ -1,22 +1,13 @@
 [package]
-name = "isupipe-http-app"
+name = "isupipe-core"
 version = "0.1.0"
 edition = "2021"
 publish = false
 
 [dependencies]
-isupipe-core = { path = "../core" }
-isupipe-http-core = { path = "../http-core" }
-isupipe-infra= { path = "../infra" }
-
-async-session = "3"
-axum = { version = "0.6", features = ["headers", "tracing"] }
-axum-extra = { version = "0.8", features = ["cookie-signed", "cookie-key-expansion"] }
 base64 = "0.21"
 bcrypt = "0.15"
 chrono = { version = "0.4", features = ["serde"] }
-hyper = "0.14"
-listenfd = "1"
 num-traits = "0.2"
 serde = { version = "1", features = ["derive"] }
 sha2 = "0.10"
@@ -25,7 +16,6 @@ thiserror = "1"
 time = "0.3"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "process", "fs"] }
 tokio-util = { version = "0.7", features = ["io"] }
-tower-http = { version = "0.4", features = ["trace"] }
 tracing = "0.1"
 tracing-subscriber = { version =  "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4"] }

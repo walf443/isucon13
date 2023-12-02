@@ -1041,6 +1041,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "isupipe-core"
+version = "0.1.0"
+dependencies = [
+ "base64 0.21.5",
+ "bcrypt",
+ "chrono",
+ "num-traits",
+ "serde",
+ "sha2 0.10.8",
+ "sqlx",
+ "thiserror",
+ "time",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "isupipe-http-app"
 version = "0.1.0"
 dependencies = [
@@ -1051,6 +1071,9 @@ dependencies = [
  "bcrypt",
  "chrono",
  "hyper",
+ "isupipe-core",
+ "isupipe-http-core",
+ "isupipe-infra",
  "listenfd",
  "num-traits",
  "serde",
@@ -1061,6 +1084,55 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "isupipe-http-core"
+version = "0.1.0"
+dependencies = [
+ "async-session",
+ "axum",
+ "axum-extra",
+ "base64 0.21.5",
+ "bcrypt",
+ "chrono",
+ "hyper",
+ "isupipe-core",
+ "listenfd",
+ "num-traits",
+ "serde",
+ "sha2 0.10.8",
+ "sqlx",
+ "thiserror",
+ "time",
+ "tokio",
+ "tokio-util",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "isupipe-infra"
+version = "0.1.0"
+dependencies = [
+ "async-session",
+ "base64 0.21.5",
+ "bcrypt",
+ "chrono",
+ "isupipe-core",
+ "num-traits",
+ "serde",
+ "sha2 0.10.8",
+ "sqlx",
+ "thiserror",
+ "time",
+ "tokio",
+ "tokio-util",
  "tracing",
  "tracing-subscriber",
  "uuid",

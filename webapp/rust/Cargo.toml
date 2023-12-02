@@ -1,3 +1,3 @@
 [workspace]
-members = ["http-app"]
+members = ["core", "infra", "http-core", "http-app"]
 resolver = "2"
