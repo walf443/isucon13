@@ -1,5 +1,6 @@
 use isupipe_core::models::livestream::{Livestream, LivestreamModel};
 use isupipe_core::models::livestream_comment::{Livecomment, LivecommentModel};
+use isupipe_core::models::livestream_comment_report::{LivecommentReport, LivecommentReportModel};
 use isupipe_core::models::livestream_tag::LivestreamTagModel;
 use isupipe_core::models::reaction::{Reaction, ReactionModel};
 use isupipe_core::models::tag::{Tag, TagModel};
@@ -130,5 +131,29 @@ pub async fn fill_reaction_response(
         user,
         livestream,
         created_at: reaction_model.created_at,
+    })
+}
+pub async fn fill_livecomment_report_response(
+    tx: &mut MySqlConnection,
+    report_model: LivecommentReportModel,
+) -> sqlx::Result<LivecommentReport> {
+    let reporter_model: UserModel = sqlx::query_as("SELECT * FROM users WHERE id = ?")
+        .bind(report_model.user_id)
+        .fetch_one(&mut *tx)
+        .await?;
+    let reporter = fill_user_response(&mut *tx, reporter_model).await?;
+
+    let livecomment_model: LivecommentModel =
+        sqlx::query_as("SELECT * FROM livecomments WHERE id = ?")
+            .bind(report_model.livecomment_id)
+            .fetch_one(&mut *tx)
+            .await?;
+    let livecomment = fill_livecomment_response(&mut *tx, livecomment_model).await?;
+
+    Ok(LivecommentReport {
+        id: report_model.id,
+        reporter,
+        livecomment,
+        created_at: report_model.created_at,
     })
 }

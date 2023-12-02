@@ -5,6 +5,7 @@ use axum_extra::extract::cookie::SignedCookieJar;
 use chrono::Utc;
 use isupipe_core::models::livestream_tag::LivestreamTagModel;
 use isupipe_http_app::routes::initialize_routes::initialize_handler;
+use isupipe_http_app::routes::livestream_comment_report_routes::get_livecomment_reports_handler;
 use isupipe_http_app::routes::livestream_comment_routes::{
     get_livecomments_handler, post_livecomment_handler,
 };
@@ -296,51 +297,6 @@ async fn exit_livestream_handler(
     tx.commit().await?;
 
     Ok(())
-}
-
-async fn get_livecomment_reports_handler(
-    State(AppState { pool, .. }): State<AppState>,
-    jar: SignedCookieJar,
-    Path((livestream_id,)): Path<(i64,)>,
-) -> Result<axum::Json<Vec<LivecommentReport>>, Error> {
-    verify_user_session(&jar).await?;
-
-    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
-    let sess = CookieStore::new()
-        .load_session(cookie.value().to_owned())
-        .await?
-        .ok_or(Error::SessionError)?;
-    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
-
-    let mut tx = pool.begin().await?;
-
-    let livestream_model: LivestreamModel =
-        sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
-            .bind(livestream_id)
-            .fetch_one(&mut *tx)
-            .await?;
-
-    if livestream_model.user_id != user_id {
-        return Err(Error::Forbidden(
-            "can't get other streamer's livecomment reports".into(),
-        ));
-    }
-
-    let report_models: Vec<LivecommentReportModel> =
-        sqlx::query_as("SELECT * FROM livecomment_reports WHERE livestream_id = ?")
-            .bind(livestream_id)
-            .fetch_all(&mut *tx)
-            .await?;
-
-    let mut reports = Vec::with_capacity(report_models.len());
-    for report_model in report_models {
-        let report = fill_livecomment_report_response(&mut tx, report_model).await?;
-        reports.push(report);
-    }
-
-    tx.commit().await?;
-
-    Ok(axum::Json(reports))
 }
 
 async fn fill_livestream_response(
