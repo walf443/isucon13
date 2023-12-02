@@ -1,6 +1,8 @@
 pub mod livestream;
 pub mod livestream_comment;
 pub mod livestream_comment_report;
+pub mod livestream_ranking_entry;
+pub mod livestream_statistics;
 pub mod livestream_tag;
 pub mod mysql_decimal;
 pub mod ng_word;

@@ -6,7 +6,10 @@ use axum_extra::extract::SignedCookieJar;
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use isupipe_core::models::livestream::{Livestream, LivestreamModel};
 use isupipe_core::models::livestream_comment::LivecommentModel;
+use isupipe_core::models::livestream_ranking_entry::LivestreamRankingEntry;
+use isupipe_core::models::livestream_statistics::LivestreamStatistics;
 use isupipe_core::models::livestream_tag::LivestreamTagModel;
+use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::ng_word::NgWord;
 use isupipe_core::models::reservation_slot::ReservationSlotModel;
 use isupipe_http_core::error::Error;
@@ -452,4 +455,88 @@ pub async fn exit_livestream_handler(
     tx.commit().await?;
 
     Ok(())
+}
+pub async fn get_livestream_statistics_handler(
+    State(AppState { pool, .. }): State<AppState>,
+    jar: SignedCookieJar,
+    Path((livestream_id,)): Path<(i64,)>,
+) -> Result<axum::Json<LivestreamStatistics>, Error> {
+    verify_user_session(&jar).await?;
+
+    let mut tx = pool.begin().await?;
+
+    let _: LivestreamModel = sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
+        .bind(livestream_id)
+        .fetch_optional(&mut *tx)
+        .await?
+        .ok_or(Error::BadRequest("".into()))?;
+
+    let livestreams: Vec<LivestreamModel> = sqlx::query_as("SELECT * FROM livestreams")
+        .fetch_all(&mut *tx)
+        .await?;
+
+    // ランク算出
+    let mut ranking = Vec::new();
+    for livestream in livestreams {
+        let MysqlDecimal(reactions) = sqlx::query_scalar("SELECT COUNT(*) FROM livestreams l INNER JOIN reactions r ON l.id = r.livestream_id WHERE l.id = ?")
+            .bind(livestream.id)
+            .fetch_one(&mut *tx)
+            .await?;
+
+        let MysqlDecimal(total_tips) = sqlx::query_scalar("SELECT IFNULL(SUM(l2.tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l.id = l2.livestream_id WHERE l.id = ?")
+            .bind(livestream.id)
+            .fetch_one(&mut *tx)
+            .await?;
+
+        let score = reactions + total_tips;
+        ranking.push(LivestreamRankingEntry {
+            livestream_id: livestream.id,
+            score,
+        })
+    }
+    ranking.sort_by(|a, b| {
+        a.score
+            .cmp(&b.score)
+            .then_with(|| a.livestream_id.cmp(&b.livestream_id))
+    });
+
+    let rpos = ranking
+        .iter()
+        .rposition(|entry| entry.livestream_id == livestream_id)
+        .unwrap();
+    let rank = (ranking.len() - rpos) as i64;
+
+    // 視聴者数算出
+    let MysqlDecimal(viewers_count) = sqlx::query_scalar("SELECT COUNT(*) FROM livestreams l INNER JOIN livestream_viewers_history h ON h.livestream_id = l.id WHERE l.id = ?")
+        .bind(livestream_id)
+        .fetch_one(&mut *tx)
+        .await?;
+
+    // 最大チップ額
+    let MysqlDecimal(max_tip) = sqlx::query_scalar("SELECT IFNULL(MAX(tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l2.livestream_id = l.id WHERE l.id = ?")
+        .bind(livestream_id)
+        .fetch_one(&mut *tx)
+        .await?;
+
+    // リアクション数
+    let MysqlDecimal(total_reactions) = sqlx::query_scalar("SELECT COUNT(*) FROM livestreams l INNER JOIN reactions r ON r.livestream_id = l.id WHERE l.id = ?")
+        .bind(livestream_id)
+        .fetch_one(&mut *tx)
+        .await?;
+
+    // スパム報告数
+    let MysqlDecimal(total_reports) = sqlx::query_scalar("SELECT COUNT(*) FROM livestreams l INNER JOIN livecomment_reports r ON r.livestream_id = l.id WHERE l.id = ?")
+        .bind(livestream_id)
+        .fetch_one(&mut *tx)
+        .await?;
+
+    tx.commit().await?;
+
+    Ok(axum::Json(LivestreamStatistics {
+        rank,
+        viewers_count,
+        max_tip,
+        total_reactions,
+        total_reports,
+    }))
 }

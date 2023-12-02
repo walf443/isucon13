@@ -1,8 +1,4 @@
-use async_session::{CookieStore, SessionStore};
-use axum::extract::{Path, State};
-use axum_extra::extract::cookie::SignedCookieJar;
-use chrono::Utc;
-use isupipe_core::models::livestream::LivestreamModel;
+use axum::extract::State;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_http_app::routes::initialize_routes::initialize_handler;
 use isupipe_http_app::routes::livestream_comment_report_routes::{
@@ -16,8 +12,8 @@ use isupipe_http_app::routes::livestream_reaction_routes::{
 };
 use isupipe_http_app::routes::livestream_routes::{
     enter_livestream_handler, exit_livestream_handler, get_livestream_handler,
-    get_my_livestreams_handler, get_ngwords, moderate_handler, reserve_livestream_handler,
-    search_livestreams_handler,
+    get_livestream_statistics_handler, get_my_livestreams_handler, get_ngwords, moderate_handler,
+    reserve_livestream_handler, search_livestreams_handler,
 };
 use isupipe_http_app::routes::login_routes::login_handler;
 use isupipe_http_app::routes::register_routes::register_handler;
@@ -30,9 +26,6 @@ use isupipe_http_app::routes::user_routes::{
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use std::sync::Arc;
-
-const DEFAULT_SESSION_ID_KEY: &str = "SESSIONID";
-const DEFUALT_SESSION_EXPIRES_KEY: &str = "EXPIRES";
 
 fn build_mysql_options() -> sqlx::mysql::MySqlConnectOptions {
     let mut options = sqlx::mysql::MySqlConnectOptions::new()
@@ -210,124 +203,6 @@ struct Session {
     id: String,
     user_id: i64,
     expires: i64,
-}
-
-async fn verify_user_session(jar: &SignedCookieJar) -> Result<(), Error> {
-    let cookie = jar
-        .get(DEFAULT_SESSION_ID_KEY)
-        .ok_or(Error::Forbidden("".into()))?;
-    let sess = CookieStore::new()
-        .load_session(cookie.value().to_owned())
-        .await?
-        .ok_or(Error::Forbidden("".into()))?;
-    let session_expires: i64 = sess
-        .get(DEFUALT_SESSION_EXPIRES_KEY)
-        .ok_or(Error::Forbidden("".into()))?;
-    let now = Utc::now();
-    if now.timestamp() > session_expires {
-        return Err(Error::Unauthorized("session has expired".into()));
-    }
-    Ok(())
-}
-
-#[derive(Debug, serde::Serialize)]
-struct LivestreamStatistics {
-    rank: i64,
-    viewers_count: i64,
-    total_reactions: i64,
-    total_reports: i64,
-    max_tip: i64,
-}
-
-#[derive(Debug)]
-struct LivestreamRankingEntry {
-    livestream_id: i64,
-    score: i64,
-}
-
-async fn get_livestream_statistics_handler(
-    State(AppState { pool, .. }): State<AppState>,
-    jar: SignedCookieJar,
-    Path((livestream_id,)): Path<(i64,)>,
-) -> Result<axum::Json<LivestreamStatistics>, Error> {
-    verify_user_session(&jar).await?;
-
-    let mut tx = pool.begin().await?;
-
-    let _: LivestreamModel = sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
-        .bind(livestream_id)
-        .fetch_optional(&mut *tx)
-        .await?
-        .ok_or(Error::BadRequest("".into()))?;
-
-    let livestreams: Vec<LivestreamModel> = sqlx::query_as("SELECT * FROM livestreams")
-        .fetch_all(&mut *tx)
-        .await?;
-
-    // ランク算出
-    let mut ranking = Vec::new();
-    for livestream in livestreams {
-        let MysqlDecimal(reactions) = sqlx::query_scalar("SELECT COUNT(*) FROM livestreams l INNER JOIN reactions r ON l.id = r.livestream_id WHERE l.id = ?")
-            .bind(livestream.id)
-            .fetch_one(&mut *tx)
-            .await?;
-
-        let MysqlDecimal(total_tips) = sqlx::query_scalar("SELECT IFNULL(SUM(l2.tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l.id = l2.livestream_id WHERE l.id = ?")
-            .bind(livestream.id)
-            .fetch_one(&mut *tx)
-            .await?;
-
-        let score = reactions + total_tips;
-        ranking.push(LivestreamRankingEntry {
-            livestream_id: livestream.id,
-            score,
-        })
-    }
-    ranking.sort_by(|a, b| {
-        a.score
-            .cmp(&b.score)
-            .then_with(|| a.livestream_id.cmp(&b.livestream_id))
-    });
-
-    let rpos = ranking
-        .iter()
-        .rposition(|entry| entry.livestream_id == livestream_id)
-        .unwrap();
-    let rank = (ranking.len() - rpos) as i64;
-
-    // 視聴者数算出
-    let MysqlDecimal(viewers_count) = sqlx::query_scalar("SELECT COUNT(*) FROM livestreams l INNER JOIN livestream_viewers_history h ON h.livestream_id = l.id WHERE l.id = ?")
-        .bind(livestream_id)
-        .fetch_one(&mut *tx)
-        .await?;
-
-    // 最大チップ額
-    let MysqlDecimal(max_tip) = sqlx::query_scalar("SELECT IFNULL(MAX(tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l2.livestream_id = l.id WHERE l.id = ?")
-        .bind(livestream_id)
-        .fetch_one(&mut *tx)
-        .await?;
-
-    // リアクション数
-    let MysqlDecimal(total_reactions) = sqlx::query_scalar("SELECT COUNT(*) FROM livestreams l INNER JOIN reactions r ON r.livestream_id = l.id WHERE l.id = ?")
-        .bind(livestream_id)
-        .fetch_one(&mut *tx)
-        .await?;
-
-    // スパム報告数
-    let MysqlDecimal(total_reports) = sqlx::query_scalar("SELECT COUNT(*) FROM livestreams l INNER JOIN livecomment_reports r ON r.livestream_id = l.id WHERE l.id = ?")
-        .bind(livestream_id)
-        .fetch_one(&mut *tx)
-        .await?;
-
-    tx.commit().await?;
-
-    Ok(axum::Json(LivestreamStatistics {
-        rank,
-        viewers_count,
-        max_tip,
-        total_reactions,
-        total_reports,
-    }))
 }
 
 #[derive(Debug, serde::Serialize)]
