@@ -11,7 +11,7 @@ use isupipe_core::models::user_ranking_entry::UserRankingEntry;
 use isupipe_core::models::user_statistics::UserStatistics;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
-use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY, FALLBACK_IMAGE};
+use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
 
 // 配信者のテーマ取得API
 // GET /api/user/:username/theme
@@ -266,33 +266,4 @@ pub async fn get_user_statistics_handler(
         total_tip,
         favorite_emoji,
     }))
-}
-pub async fn get_icon_handler(
-    State(AppState { pool, .. }): State<AppState>,
-    Path((username,)): Path<(String,)>,
-) -> Result<axum::response::Response, Error> {
-    use axum::response::IntoResponse as _;
-
-    let mut tx = pool.begin().await?;
-
-    let user: UserModel = sqlx::query_as("SELECT * FROM users WHERE name = ?")
-        .bind(username)
-        .fetch_one(&mut *tx)
-        .await?;
-
-    let image: Option<Vec<u8>> = sqlx::query_scalar("SELECT image FROM icons WHERE user_id = ?")
-        .bind(user.id)
-        .fetch_optional(&mut *tx)
-        .await?;
-
-    let headers = [(axum::http::header::CONTENT_TYPE, "image/jpeg")];
-    if let Some(image) = image {
-        Ok((headers, image).into_response())
-    } else {
-        let file = tokio::fs::File::open(FALLBACK_IMAGE).await.unwrap();
-        let stream = tokio_util::io::ReaderStream::new(file);
-        let body = axum::body::StreamBody::new(stream);
-
-        Ok((headers, body).into_response())
-    }
 }

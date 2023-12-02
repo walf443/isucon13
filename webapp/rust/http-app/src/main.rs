@@ -1,6 +1,5 @@
 use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, State};
-use axum::http::StatusCode;
 use axum_extra::extract::cookie::SignedCookieJar;
 use chrono::Utc;
 use isupipe_core::models::livestream::LivestreamModel;
@@ -23,14 +22,17 @@ use isupipe_http_app::routes::livestream_routes::{
 use isupipe_http_app::routes::login_routes::login_handler;
 use isupipe_http_app::routes::register_routes::register_handler;
 use isupipe_http_app::routes::tag_routes::get_tag_handler;
-use isupipe_http_app::routes::user_routes::{get_icon_handler, get_me_handler, get_streamer_theme_handler, get_user_handler, get_user_livestreams_handler, get_user_statistics_handler};
+use isupipe_http_app::routes::user_icon_routes::{get_icon_handler, post_icon_handler};
+use isupipe_http_app::routes::user_routes::{
+    get_me_handler, get_streamer_theme_handler, get_user_handler, get_user_livestreams_handler,
+    get_user_statistics_handler,
+};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use std::sync::Arc;
 
 const DEFAULT_SESSION_ID_KEY: &str = "SESSIONID";
 const DEFUALT_SESSION_EXPIRES_KEY: &str = "EXPIRES";
-const DEFAULT_USER_ID_KEY: &str = "USERID";
 
 fn build_mysql_options() -> sqlx::mysql::MySqlConnectOptions {
     let mut options = sqlx::mysql::MySqlConnectOptions::new()
@@ -201,64 +203,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .await?;
 
     Ok(())
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct PostIconRequest {
-    #[serde(deserialize_with = "from_base64")]
-    image: Vec<u8>,
-}
-fn from_base64<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    use base64::Engine as _;
-    use serde::de::{Deserialize as _, Error as _};
-    let value = String::deserialize(deserializer)?;
-    base64::engine::general_purpose::STANDARD
-        .decode(value)
-        .map_err(D::Error::custom)
-}
-
-#[derive(Debug, serde::Serialize)]
-struct PostIconResponse {
-    id: i64,
-}
-
-async fn post_icon_handler(
-    State(AppState { pool, .. }): State<AppState>,
-    jar: SignedCookieJar,
-    axum::Json(req): axum::Json<PostIconRequest>,
-) -> Result<(StatusCode, axum::Json<PostIconResponse>), Error> {
-    verify_user_session(&jar).await?;
-
-    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
-    let sess = CookieStore::new()
-        .load_session(cookie.value().to_owned())
-        .await?
-        .ok_or(Error::SessionError)?;
-    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
-
-    let mut tx = pool.begin().await?;
-
-    sqlx::query("DELETE FROM icons WHERE user_id = ?")
-        .bind(user_id)
-        .execute(&mut *tx)
-        .await?;
-
-    let rs = sqlx::query("INSERT INTO icons (user_id, image) VALUES (?, ?)")
-        .bind(user_id)
-        .bind(req.image)
-        .execute(&mut *tx)
-        .await?;
-    let icon_id = rs.last_insert_id() as i64;
-
-    tx.commit().await?;
-
-    Ok((
-        StatusCode::CREATED,
-        axum::Json(PostIconResponse { id: icon_id }),
-    ))
 }
 
 #[derive(Debug, serde::Serialize)]
