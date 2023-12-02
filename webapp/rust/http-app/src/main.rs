@@ -11,7 +11,7 @@ use isupipe_http_app::routes::livestream_comment_routes::{
 use isupipe_http_app::routes::livestream_reaction_routes::{
     get_reactions_handler, post_reaction_handler,
 };
-use isupipe_http_app::routes::livestream_routes::{get_livestream_handler, get_my_livestreams_handler, get_ngwords, moderate_handler, reserve_livestream_handler, search_livestreams_handler};
+use isupipe_http_app::routes::livestream_routes::{enter_livestream_handler, get_livestream_handler, get_my_livestreams_handler, get_ngwords, moderate_handler, reserve_livestream_handler, search_livestreams_handler};
 use isupipe_http_app::routes::tag_routes::get_tag_handler;
 use isupipe_http_app::routes::user_routes::{
     get_streamer_theme_handler, get_user_livestreams_handler,
@@ -199,38 +199,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     .serve(app.into_make_service())
     .await?;
-
-    Ok(())
-}
-
-// viewerテーブルの廃止
-async fn enter_livestream_handler(
-    State(AppState { pool, .. }): State<AppState>,
-    jar: SignedCookieJar,
-    Path((livestream_id,)): Path<(i64,)>,
-) -> Result<(), Error> {
-    verify_user_session(&jar).await?;
-
-    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
-    let sess = CookieStore::new()
-        .load_session(cookie.value().to_owned())
-        .await?
-        .ok_or(Error::SessionError)?;
-    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
-
-    let mut tx = pool.begin().await?;
-
-    let created_at = Utc::now().timestamp();
-    sqlx::query(
-        "INSERT INTO livestream_viewers_history (user_id, livestream_id, created_at) VALUES(?, ?, ?)",
-    )
-    .bind(user_id)
-    .bind(livestream_id)
-    .bind(created_at)
-    .execute(&mut *tx)
-    .await?;
-
-    tx.commit().await?;
 
     Ok(())
 }
