@@ -3,6 +3,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum_extra::extract::cookie::SignedCookieJar;
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
+use isupipe_http_app::routes::initialize_routes::initialize_handler;
 use sqlx::mysql::{MySqlConnection, MySqlPool};
 use std::borrow::Cow;
 use std::sync::Arc;
@@ -79,11 +80,6 @@ impl axum::extract::FromRef<AppState> for axum_extra::extract::cookie::Key {
     }
 }
 
-#[derive(Debug, serde::Serialize)]
-struct InitializeResponse {
-    language: &'static str,
-}
-
 fn build_mysql_options() -> sqlx::mysql::MySqlConnectOptions {
     let mut options = sqlx::mysql::MySqlConnectOptions::new()
         .host("127.0.0.1")
@@ -110,21 +106,6 @@ fn build_mysql_options() -> sqlx::mysql::MySqlConnectOptions {
         options = options.database(&database);
     }
     options
-}
-
-async fn initialize_handler() -> Result<axum::Json<InitializeResponse>, Error> {
-    let output = tokio::process::Command::new("../sql/init.sh")
-        .output()
-        .await?;
-    if !output.status.success() {
-        return Err(Error::InternalServerError(format!(
-            "init.sh failed with stdout={} stderr={}",
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr),
-        )));
-    }
-
-    Ok(axum::Json(InitializeResponse { language: "rust" }))
 }
 
 #[tokio::main]
