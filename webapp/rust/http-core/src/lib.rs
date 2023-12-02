@@ -1,13 +1,18 @@
+use crate::error::Error;
 use async_session::{CookieStore, SessionStore};
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
-use crate::error::Error;
 
 pub mod error;
 pub mod state;
 
-const DEFAULT_SESSION_ID_KEY: &str = "SESSIONID";
-const DEFUALT_SESSION_EXPIRES_KEY: &str = "EXPIRES";
+pub const DEFAULT_SESSION_ID_KEY: &str = "SESSIONID";
+pub const DEFUALT_SESSION_EXPIRES_KEY: &str = "EXPIRES";
+
+pub const DEFAULT_USER_ID_KEY: &str = "USERID";
+pub const DEFAULT_USERNAME_KEY: &str = "USERNAME";
+pub const FALLBACK_IMAGE: &str = "../img/NoImage.jpg";
+
 pub async fn verify_user_session(jar: &SignedCookieJar) -> Result<(), Error> {
     let cookie = jar
         .get(DEFAULT_SESSION_ID_KEY)
