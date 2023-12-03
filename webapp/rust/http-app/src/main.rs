@@ -14,6 +14,7 @@ use isupipe_http_app::routes::livestream_routes::{
     reserve_livestream_handler, search_livestreams_handler,
 };
 use isupipe_http_app::routes::login_routes::login_handler;
+use isupipe_http_app::routes::payment_routes::get_payment_result;
 use isupipe_http_app::routes::register_routes::register_handler;
 use isupipe_http_app::routes::tag_routes::get_tag_handler;
 use isupipe_http_app::routes::user_icon_routes::{get_icon_handler, post_icon_handler};
@@ -23,7 +24,6 @@ use isupipe_http_app::routes::user_routes::{
 };
 use isupipe_http_core::state::AppState;
 use std::sync::Arc;
-use isupipe_http_app::routes::payment_routes::get_payment_result;
 
 fn build_mysql_options() -> sqlx::mysql::MySqlConnectOptions {
     let mut options = sqlx::mysql::MySqlConnectOptions::new()

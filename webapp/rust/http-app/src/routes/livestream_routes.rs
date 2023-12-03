@@ -364,9 +364,10 @@ pub async fn moderate_handler(
     // NGワードにヒットする過去の投稿も全削除する
     for ngword in ngwords {
         // ライブコメント一覧取得
-        let livecomments: Vec<LivestreamCommentModel> = sqlx::query_as("SELECT * FROM livecomments")
-            .fetch_all(&mut *tx)
-            .await?;
+        let livecomments: Vec<LivestreamCommentModel> =
+            sqlx::query_as("SELECT * FROM livecomments")
+                .fetch_all(&mut *tx)
+                .await?;
 
         for livecomment in livecomments {
             let query = r#"

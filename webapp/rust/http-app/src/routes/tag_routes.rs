@@ -1,7 +1,9 @@
 use axum::extract::State;
-use isupipe_core::models::tag::{Tag, TagModel};
+use isupipe_core::models::tag::Tag;
+use isupipe_core::repos::tag_repository::TagRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
+use isupipe_infra::repos::tag_repository::TagRepositoryInfra;
 
 #[derive(Debug, serde::Serialize)]
 pub struct TagsResponse {
@@ -12,9 +14,8 @@ pub async fn get_tag_handler(
 ) -> Result<axum::Json<TagsResponse>, Error> {
     let mut tx = pool.begin().await?;
 
-    let tag_models: Vec<TagModel> = sqlx::query_as("SELECT * FROM tags")
-        .fetch_all(&mut *tx)
-        .await?;
+    let tag_repos = TagRepositoryInfra {};
+    let tag_models = tag_repos.find_all(&mut tx).await?;
 
     tx.commit().await?;
 

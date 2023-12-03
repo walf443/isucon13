@@ -1,4 +1,5 @@
 use axum::http::StatusCode;
+use isupipe_core::repos::ReposError;
 use std::borrow::Cow;
 
 #[derive(Debug, thiserror::Error)]
@@ -7,6 +8,8 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("SQLx error: {0}")]
     Sqlx(#[from] sqlx::Error),
+    #[error("Repos error: {0}")]
+    ReposError(#[from] ReposError),
     #[error("bcrypt error: {0}")]
     Bcrypt(#[from] bcrypt::BcryptError),
     #[error("async-session error: {0}")]
@@ -39,6 +42,7 @@ impl axum::response::IntoResponse for Error {
             Self::NotFound(_) => StatusCode::NOT_FOUND,
             Self::Io(_)
             | Self::Sqlx(_)
+            | Self::ReposError(_)
             | Self::Bcrypt(_)
             | Self::AsyncSession(_)
             | Self::InternalServerError(_) => StatusCode::INTERNAL_SERVER_ERROR,
