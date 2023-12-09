@@ -9,9 +9,11 @@ use isupipe_core::models::theme::{Theme, ThemeModel};
 use isupipe_core::models::user::{User, UserModel};
 use isupipe_core::models::user_ranking_entry::UserRankingEntry;
 use isupipe_core::models::user_statistics::UserStatistics;
+use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
+use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepositoryInfra;
 
 // 配信者のテーマ取得API
 // GET /api/user/:username/theme
@@ -229,15 +231,14 @@ pub async fn get_user_statistics_handler(
         }
     }
 
+    let history_repo = LivestreamViewersHistoryRepositoryInfra {};
+    let mut conn = pool.acquire().await?;
     // 合計視聴者数
     let mut viewers_count = 0;
     for livestream in livestreams {
-        let MysqlDecimal(cnt) = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM livestream_viewers_history WHERE livestream_id = ?",
-        )
-        .bind(livestream.id)
-        .fetch_one(&mut *tx)
-        .await?;
+        let cnt = history_repo
+            .count_by_livestream_id(&mut conn, livestream.id)
+            .await?;
         viewers_count += cnt;
     }
 
