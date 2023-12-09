@@ -12,9 +12,11 @@ use isupipe_core::models::livestream_tag::LivestreamTagModel;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::ng_word::NgWord;
 use isupipe_core::models::reservation_slot::ReservationSlotModel;
+use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
+use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepositoryInfra;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct ReserveLivestreamRequest {
@@ -445,15 +447,11 @@ pub async fn exit_livestream_handler(
         .ok_or(Error::SessionError)?;
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
 
-    let mut tx = pool.begin().await?;
-
-    sqlx::query("DELETE FROM livestream_viewers_history WHERE user_id = ? AND livestream_id = ?")
-        .bind(user_id)
-        .bind(livestream_id)
-        .execute(&mut *tx)
+    let history_repo = LivestreamViewersHistoryRepositoryInfra {};
+    let mut conn = pool.acquire().await?;
+    history_repo
+        .delete_by_livestream_id_and_user_id(&mut conn, livestream_id, user_id)
         .await?;
-
-    tx.commit().await?;
 
     Ok(())
 }

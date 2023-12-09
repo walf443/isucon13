@@ -19,9 +19,6 @@ pub async fn get_tag_handler(
 
     tx.commit().await?;
 
-    let tags = tag_models
-        .into_iter()
-        .map(|tag| tag.into())
-        .collect();
+    let tags = tag_models.into_iter().map(|tag| tag.into()).collect();
     Ok(axum::Json(TagsResponse { tags }))
 }
