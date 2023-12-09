@@ -417,19 +417,12 @@ pub async fn enter_livestream_handler(
         .ok_or(Error::SessionError)?;
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
 
-    let mut tx = pool.begin().await?;
-
     let created_at = Utc::now().timestamp();
-    sqlx::query(
-        "INSERT INTO livestream_viewers_history (user_id, livestream_id, created_at) VALUES(?, ?, ?)",
-    )
-        .bind(user_id)
-        .bind(livestream_id)
-        .bind(created_at)
-        .execute(&mut *tx)
+    let mut conn = pool.acquire().await?;
+    let history_repo = LivestreamViewersHistoryRepositoryInfra {};
+    history_repo
+        .insert(&mut conn, livestream_id, user_id, created_at)
         .await?;
-
-    tx.commit().await?;
 
     Ok(())
 }

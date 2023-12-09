@@ -8,6 +8,29 @@ pub struct LivestreamViewersHistoryRepositoryInfra {}
 
 #[async_trait]
 impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryInfra {
+    async fn insert(
+        &self,
+        conn: &mut DBConn,
+        livestream_id: i64,
+        user_id: i64,
+        created_at: i64,
+    ) -> isupipe_core::repos::Result<()> {
+        let mut tx = conn.begin().await?;
+
+        sqlx::query(
+            "INSERT INTO livestream_viewers_history (user_id, livestream_id, created_at) VALUES(?, ?, ?)",
+        )
+            .bind(user_id)
+            .bind(livestream_id)
+            .bind(created_at)
+            .execute(&mut *tx)
+            .await?;
+
+        tx.commit().await?;
+
+        Ok(())
+    }
+
     async fn count_by_livestream_id(
         &self,
         conn: &mut DBConn,
