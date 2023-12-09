@@ -506,9 +506,9 @@ pub async fn get_livestream_statistics_handler(
     let rank = (ranking.len() - rpos) as i64;
 
     // 視聴者数算出
-    let MysqlDecimal(viewers_count) = sqlx::query_scalar("SELECT COUNT(*) FROM livestreams l INNER JOIN livestream_viewers_history h ON h.livestream_id = l.id WHERE l.id = ?")
-        .bind(livestream_id)
-        .fetch_one(&mut *tx)
+    let history_repo = LivestreamViewersHistoryRepositoryInfra {};
+    let viewers_count = history_repo
+        .count_by_livestream_id(&mut tx, livestream_id)
         .await?;
 
     // 最大チップ額
