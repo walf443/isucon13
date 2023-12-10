@@ -4,12 +4,13 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
-use isupipe_core::models::livestream::LivestreamModel;
 use isupipe_core::models::livestream_comment::LivestreamCommentModel;
 use isupipe_core::models::livestream_comment_report::{LivecommentReport, LivecommentReportModel};
+use isupipe_core::repos::livestream_repository::LivestreamRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
+use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
 
 pub async fn get_livecomment_reports_handler(
     State(AppState { pool, .. }): State<AppState>,
@@ -27,11 +28,11 @@ pub async fn get_livecomment_reports_handler(
 
     let mut tx = pool.begin().await?;
 
-    let livestream_model: LivestreamModel =
-        sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
-            .bind(livestream_id)
-            .fetch_one(&mut *tx)
-            .await?;
+    let livestream_repo = LivestreamRepositoryInfra {};
+    let livestream_model = livestream_repo
+        .find(&mut *tx, livestream_id)
+        .await?
+        .unwrap();
 
     if livestream_model.user_id != user_id {
         return Err(Error::Forbidden(
@@ -71,9 +72,9 @@ pub async fn report_livecomment_handler(
 
     let mut tx = pool.begin().await?;
 
-    let _: LivestreamModel = sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
-        .bind(livestream_id)
-        .fetch_optional(&mut *tx)
+    let livestream_repo = LivestreamRepositoryInfra {};
+    livestream_repo
+        .find(&mut *tx, livestream_id)
         .await?
         .ok_or(Error::NotFound("livestream not found".into()))?;
 

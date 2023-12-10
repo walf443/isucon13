@@ -4,12 +4,13 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
-use isupipe_core::models::livestream::LivestreamModel;
 use isupipe_core::models::livestream_comment::{LivestreamComment, LivestreamCommentModel};
 use isupipe_core::models::ng_word::NgWord;
+use isupipe_core::repos::livestream_repository::LivestreamRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
+use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct GetLivecommentsQuery {
@@ -73,12 +74,11 @@ pub async fn post_livecomment_handler(
 
     let mut tx = pool.begin().await?;
 
-    let livestream_model: LivestreamModel =
-        sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
-            .bind(livestream_id)
-            .fetch_optional(&mut *tx)
-            .await?
-            .ok_or(Error::NotFound("livestream not found".into()))?;
+    let livestream_repo = LivestreamRepositoryInfra {};
+    let livestream_model = livestream_repo
+        .find(&mut tx, livestream_id)
+        .await?
+        .ok_or(Error::NotFound("livestream not found".into()))?;
 
     // スパム判定
     let ngwords: Vec<NgWord> =
