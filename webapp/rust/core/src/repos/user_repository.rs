@@ -6,6 +6,7 @@ use async_trait::async_trait;
 #[async_trait]
 pub trait UserRepository {
     async fn find(&self, conn: &mut DBConn, id: i64) -> Result<Option<UserModel>>;
+    async fn find_all(&self, conn: &mut DBConn) -> Result<Vec<UserModel>>;
     async fn find_id_by_name(&self, conn: &mut DBConn, name: &str) -> Result<Option<i64>>;
     async fn find_by_name(&self, conn: &mut DBConn, name: &str) -> Result<Option<UserModel>>;
 }

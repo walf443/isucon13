@@ -20,6 +20,14 @@ impl UserRepository for UserRepositoryInfra {
         Ok(user_model)
     }
 
+    async fn find_all(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<Vec<UserModel>> {
+        let users: Vec<UserModel> = sqlx::query_as("SELECT * FROM users")
+            .fetch_all(conn)
+            .await?;
+
+        Ok(users)
+    }
+
     async fn find_id_by_name(
         &self,
         conn: &mut DBConn,

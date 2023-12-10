@@ -6,7 +6,7 @@ use isupipe_core::models::livestream::{Livestream, LivestreamModel};
 use isupipe_core::models::livestream_comment::LivestreamCommentModel;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::theme::Theme;
-use isupipe_core::models::user::{User, UserModel};
+use isupipe_core::models::user::User;
 use isupipe_core::models::user_ranking_entry::UserRankingEntry;
 use isupipe_core::models::user_statistics::UserStatistics;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
@@ -153,9 +153,7 @@ pub async fn get_user_statistics_handler(
         .ok_or(Error::BadRequest("".into()))?;
 
     // ランク算出
-    let users: Vec<UserModel> = sqlx::query_as("SELECT * FROM users")
-        .fetch_all(&mut *tx)
-        .await?;
+    let users = user_repo.find_all(&mut *tx).await?;
 
     let mut ranking = Vec::new();
     for user in users {
