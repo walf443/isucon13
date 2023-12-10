@@ -6,10 +6,12 @@ use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
 use isupipe_core::models::livestream_comment::LivestreamCommentModel;
 use isupipe_core::models::livestream_comment_report::{LivecommentReport, LivecommentReportModel};
+use isupipe_core::repos::livestream_comment_report::LivestreamCommentReportRepository;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
+use isupipe_infra::repos::livestream_comment_report::LivestreamCommentReportRepositoryInfra;
 use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
 
 pub async fn get_livecomment_reports_handler(
@@ -40,11 +42,10 @@ pub async fn get_livecomment_reports_handler(
         ));
     }
 
-    let report_models: Vec<LivecommentReportModel> =
-        sqlx::query_as("SELECT * FROM livecomment_reports WHERE livestream_id = ?")
-            .bind(livestream_id)
-            .fetch_all(&mut *tx)
-            .await?;
+    let report_repo = LivestreamCommentReportRepositoryInfra {};
+    let report_models = report_repo
+        .find_all_by_livestream_id(&mut *tx, livestream_id)
+        .await?;
 
     let mut reports = Vec::with_capacity(report_models.len());
     for report_model in report_models {
