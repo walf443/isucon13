@@ -86,16 +86,10 @@ pub async fn report_livecomment_handler(
         .ok_or(Error::NotFound("livecomment not found".into()))?;
 
     let now = Utc::now().timestamp();
-    let rs = sqlx::query(
-        "INSERT INTO livecomment_reports(user_id, livestream_id, livecomment_id, created_at) VALUES (?, ?, ?, ?)",
-    )
-        .bind(user_id)
-        .bind(livestream_id)
-        .bind(livecomment_id)
-        .bind(now)
-        .execute(&mut *tx)
+    let report_repo = LivestreamCommentReportRepositoryInfra {};
+    let report_id = report_repo
+        .insert(&mut *tx, user_id, livestream_id, livecomment_id, now)
         .await?;
-    let report_id = rs.last_insert_id() as i64;
 
     let report = fill_livecomment_report_response(
         &mut tx,

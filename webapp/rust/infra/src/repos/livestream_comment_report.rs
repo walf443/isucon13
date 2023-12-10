@@ -8,6 +8,28 @@ pub struct LivestreamCommentReportRepositoryInfra {}
 
 #[async_trait]
 impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfra {
+    async fn insert(
+        &self,
+        conn: &mut DBConn,
+        user_id: i64,
+        livestream_id: i64,
+        livestream_comment_id: i64,
+        created_at: i64,
+    ) -> isupipe_core::repos::Result<i64> {
+        let rs = sqlx::query(
+            "INSERT INTO livecomment_reports(user_id, livestream_id, livecomment_id, created_at) VALUES (?, ?, ?, ?)",
+        )
+            .bind(user_id)
+            .bind(livestream_id)
+            .bind(livestream_comment_id)
+            .bind(created_at)
+            .execute(conn)
+            .await?;
+        let report_id = rs.last_insert_id() as i64;
+
+        Ok(report_id)
+    }
+
     async fn count_by_livestream_id(
         &self,
         conn: &mut DBConn,
