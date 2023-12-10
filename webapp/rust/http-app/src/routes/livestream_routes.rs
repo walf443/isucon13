@@ -15,12 +15,14 @@ use isupipe_core::models::reservation_slot::ReservationSlotModel;
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
 use isupipe_core::repos::ng_word_repository::NgWordRepository;
+use isupipe_core::repos::reaction_repository::ReactionRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
 use isupipe_infra::repos::livestream_comment_report_repository::LivestreamCommentReportRepositoryInfra;
 use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepositoryInfra;
 use isupipe_infra::repos::ng_word_repository::NgWordRepositoryInfra;
+use isupipe_infra::repos::reaction_repository::ReactionRepositoryInfra;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct ReserveLivestreamRequest {
@@ -463,10 +465,10 @@ pub async fn get_livestream_statistics_handler(
 
     // ランク算出
     let mut ranking = Vec::new();
+    let reaction_repo = ReactionRepositoryInfra {};
     for livestream in livestreams {
-        let MysqlDecimal(reactions) = sqlx::query_scalar("SELECT COUNT(*) FROM livestreams l INNER JOIN reactions r ON l.id = r.livestream_id WHERE l.id = ?")
-            .bind(livestream.id)
-            .fetch_one(&mut *tx)
+        let reactions = reaction_repo
+            .count_by_livestream_id(&mut *tx, livestream.id)
             .await?;
 
         let MysqlDecimal(total_tips) = sqlx::query_scalar("SELECT IFNULL(SUM(l2.tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l.id = l2.livestream_id WHERE l.id = ?")

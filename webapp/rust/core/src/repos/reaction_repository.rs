@@ -13,6 +13,9 @@ pub trait ReactionRepository {
         emoji_name: &str,
         created_at: i64,
     ) -> Result<i64>;
+
+    async fn count_by_livestream_id(&self, conn: &mut DBConn, livestream_id: i64) -> Result<i64>;
+
     async fn find_all_by_livestream_id(
         &self,
         conn: &mut DBConn,

@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
+use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::reaction::ReactionModel;
 use isupipe_core::repos::reaction_repository::ReactionRepository;
 
@@ -26,6 +27,19 @@ impl ReactionRepository for ReactionRepositoryInfra {
         let reaction_id = result.last_insert_id() as i64;
 
         Ok(reaction_id)
+    }
+
+    async fn count_by_livestream_id(
+        &self,
+        conn: &mut DBConn,
+        livestream_id: i64,
+    ) -> isupipe_core::repos::Result<i64> {
+        let MysqlDecimal(reactions) = sqlx::query_scalar("SELECT COUNT(*) FROM livestreams l INNER JOIN reactions r ON l.id = r.livestream_id WHERE l.id = ?")
+            .bind(livestream_id)
+            .fetch_one(conn)
+            .await?;
+
+        Ok(reactions)
     }
 
     async fn find_all_by_livestream_id(
