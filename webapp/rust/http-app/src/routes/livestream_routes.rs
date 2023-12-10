@@ -348,19 +348,12 @@ pub async fn moderate_handler(
     }
 
     let created_at = Utc::now().timestamp();
-    let rs = sqlx::query(
-        "INSERT INTO ng_words(user_id, livestream_id, word, created_at) VALUES (?, ?, ?, ?)",
-    )
-    .bind(user_id)
-    .bind(livestream_id)
-    .bind(req.ng_word)
-    .bind(created_at)
-    .execute(&mut *tx)
-    .await?;
-    let word_id = rs.last_insert_id() as i64;
+    let ng_word_repo = NgWordRepositoryInfra {};
+    let word_id = ng_word_repo
+        .insert(&mut *tx, user_id, livestream_id, &req.ng_word, created_at)
+        .await?;
 
-    let ng_words_repos = NgWordRepositoryInfra {};
-    let ng_words = ng_words_repos
+    let ng_words = ng_word_repo
         .find_all_by_livestream_id(&mut *tx, livestream_id)
         .await?;
 

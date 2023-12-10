@@ -7,6 +7,29 @@ pub struct NgWordRepositoryInfra {}
 
 #[async_trait]
 impl NgWordRepository for NgWordRepositoryInfra {
+    async fn insert(
+        &self,
+        conn: &mut DBConn,
+        user_id: i64,
+        livestream_id: i64,
+        word: &str,
+        created_at: i64,
+    ) -> isupipe_core::repos::Result<i64> {
+        let rs = sqlx::query(
+            "INSERT INTO ng_words(user_id, livestream_id, word, created_at) VALUES (?, ?, ?, ?)",
+        )
+        .bind(user_id)
+        .bind(livestream_id)
+        .bind(word)
+        .bind(created_at)
+        .execute(conn)
+        .await?;
+
+        let word_id = rs.last_insert_id() as i64;
+
+        Ok(word_id)
+    }
+
     async fn find_all_by_livestream_id(
         &self,
         conn: &mut DBConn,

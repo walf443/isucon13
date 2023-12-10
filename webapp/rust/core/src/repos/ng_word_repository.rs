@@ -5,6 +5,14 @@ use async_trait::async_trait;
 
 #[async_trait]
 pub trait NgWordRepository {
+    async fn insert(
+        &self,
+        conn: &mut DBConn,
+        user_id: i64,
+        livestream_id: i64,
+        word: &str,
+        created_at: i64,
+    ) -> Result<i64>;
     async fn find_all_by_livestream_id(
         &self,
         conn: &mut DBConn,
