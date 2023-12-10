@@ -14,11 +14,13 @@ use isupipe_core::models::ng_word::NgWord;
 use isupipe_core::models::reservation_slot::ReservationSlotModel;
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
+use isupipe_core::repos::ng_word_repository::NgWordRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
 use isupipe_infra::repos::livestream_comment_report_repository::LivestreamCommentReportRepositoryInfra;
 use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepositoryInfra;
+use isupipe_infra::repos::ng_word_repository::NgWordRepositoryInfra;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct ReserveLivestreamRequest {
@@ -360,13 +362,13 @@ pub async fn moderate_handler(
     .await?;
     let word_id = rs.last_insert_id() as i64;
 
-    let ngwords: Vec<NgWord> = sqlx::query_as("SELECT * FROM ng_words WHERE livestream_id = ?")
-        .bind(livestream_id)
-        .fetch_all(&mut *tx)
+    let ng_words_repos = NgWordRepositoryInfra {};
+    let ng_words = ng_words_repos
+        .find_all_by_livestream_id(&mut *tx, livestream_id)
         .await?;
 
     // NGワードにヒットする過去の投稿も全削除する
-    for ngword in ngwords {
+    for ngword in ng_words {
         // ライブコメント一覧取得
         let livecomments: Vec<LivestreamCommentModel> =
             sqlx::query_as("SELECT * FROM livecomments")
