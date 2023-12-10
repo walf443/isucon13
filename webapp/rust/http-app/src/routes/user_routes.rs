@@ -10,10 +10,12 @@ use isupipe_core::models::user::{User, UserModel};
 use isupipe_core::models::user_ranking_entry::UserRankingEntry;
 use isupipe_core::models::user_statistics::UserStatistics;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
+use isupipe_core::repos::user_repository::UserRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
 use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepositoryInfra;
+use isupipe_infra::repos::user_repository::UserRepositoryInfra;
 
 // 配信者のテーマ取得API
 // GET /api/user/:username/theme
@@ -54,10 +56,10 @@ pub async fn get_user_livestreams_handler(
     verify_user_session(&jar).await?;
 
     let mut tx = pool.begin().await?;
+    let user_repo = UserRepositoryInfra {};
 
-    let user: UserModel = sqlx::query_as("SELECT * FROM users WHERE name = ?")
-        .bind(username)
-        .fetch_optional(&mut *tx)
+    let user = user_repo
+        .find_by_name(&mut *tx, &username)
         .await?
         .ok_or(Error::NotFound("user not found".into()))?;
 
@@ -117,9 +119,9 @@ pub async fn get_user_handler(
 
     let mut tx = pool.begin().await?;
 
-    let user_model: UserModel = sqlx::query_as("SELECT * FROM users WHERE name = ?")
-        .bind(username)
-        .fetch_optional(&mut *tx)
+    let user_repo = UserRepositoryInfra {};
+    let user_model = user_repo
+        .find_by_name(&mut *tx, &username)
         .await?
         .ok_or(Error::NotFound(
             "not found user that has the given username".into(),
@@ -144,9 +146,9 @@ pub async fn get_user_statistics_handler(
 
     let mut tx = pool.begin().await?;
 
-    let user: UserModel = sqlx::query_as("SELECT * FROM users WHERE name = ?")
-        .bind(&username)
-        .fetch_optional(&mut *tx)
+    let user_repo = UserRepositoryInfra {};
+    let user = user_repo
+        .find_by_name(&mut *tx, &username)
         .await?
         .ok_or(Error::BadRequest("".into()))?;
 

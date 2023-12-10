@@ -2,12 +2,13 @@ use async_session::{CookieStore, SessionStore};
 use axum::extract::State;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
-use isupipe_core::models::user::UserModel;
+use isupipe_core::repos::user_repository::UserRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{
     DEFAULT_SESSION_ID_KEY, DEFAULT_USERNAME_KEY, DEFAULT_USER_ID_KEY, DEFUALT_SESSION_EXPIRES_KEY,
 };
+use isupipe_infra::repos::user_repository::UserRepositoryInfra;
 use uuid::Uuid;
 
 #[derive(Debug, serde::Deserialize)]
@@ -25,10 +26,9 @@ pub async fn login_handler(
 ) -> Result<(SignedCookieJar, ()), Error> {
     let mut tx = pool.begin().await?;
 
-    // usernameはUNIQUEなので、whereで一意に特定できる
-    let user_model: UserModel = sqlx::query_as("SELECT * FROM users WHERE name = ?")
-        .bind(req.username)
-        .fetch_optional(&mut *tx)
+    let user_repo = UserRepositoryInfra {};
+    let user_model = user_repo
+        .find_by_name(&mut *tx, &req.username)
         .await?
         .ok_or(Error::Unauthorized("invalid username or password".into()))?;
 
