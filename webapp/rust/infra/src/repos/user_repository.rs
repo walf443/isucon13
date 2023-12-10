@@ -7,7 +7,11 @@ pub struct UserRepositoryInfra {}
 
 #[async_trait]
 impl UserRepository for UserRepositoryInfra {
-    async fn find(&self, conn: &mut DBConn, id: i64) -> isupipe_core::repos::Result<Option<UserModel>> {
+    async fn find(
+        &self,
+        conn: &mut DBConn,
+        id: i64,
+    ) -> isupipe_core::repos::Result<Option<UserModel>> {
         let user_model = sqlx::query_as("SELECT * FROM users WHERE id = ?")
             .bind(id)
             .fetch_optional(conn)
@@ -16,8 +20,12 @@ impl UserRepository for UserRepositoryInfra {
         Ok(user_model)
     }
 
-    async fn find_id_by_name(&self, conn: &mut DBConn, name: &str) -> isupipe_core::repos::Result<Option<i64>> {
-        let user_id= sqlx::query_scalar("SELECT id FROM users WHERE name = ?")
+    async fn find_id_by_name(
+        &self,
+        conn: &mut DBConn,
+        name: &str,
+    ) -> isupipe_core::repos::Result<Option<i64>> {
+        let user_id = sqlx::query_scalar("SELECT id FROM users WHERE name = ?")
             .bind(name)
             .fetch_optional(conn)
             .await?;

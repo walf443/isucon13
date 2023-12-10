@@ -5,16 +5,18 @@ use axum_extra::extract::SignedCookieJar;
 use isupipe_core::models::livestream::{Livestream, LivestreamModel};
 use isupipe_core::models::livestream_comment::LivestreamCommentModel;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
-use isupipe_core::models::theme::{Theme, ThemeModel};
+use isupipe_core::models::theme::Theme;
 use isupipe_core::models::user::{User, UserModel};
 use isupipe_core::models::user_ranking_entry::UserRankingEntry;
 use isupipe_core::models::user_statistics::UserStatistics;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
+use isupipe_core::repos::theme_repository::ThemeRepository;
 use isupipe_core::repos::user_repository::UserRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
 use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepositoryInfra;
+use isupipe_infra::repos::theme_repository::ThemeRepositoryInfra;
 use isupipe_infra::repos::user_repository::UserRepositoryInfra;
 
 // 配信者のテーマ取得API
@@ -29,15 +31,15 @@ pub async fn get_streamer_theme_handler(
     let mut tx = pool.begin().await?;
 
     let user_repo = UserRepositoryInfra {};
-    let user_id = user_repo.find_id_by_name(&mut *tx, &username).await?
+    let user_id = user_repo
+        .find_id_by_name(&mut *tx, &username)
+        .await?
         .ok_or(Error::NotFound(
             "not found user that has the given username".into(),
         ))?;
 
-    let theme_model: ThemeModel = sqlx::query_as("SELECT * FROM themes WHERE user_id = ?")
-        .bind(user_id)
-        .fetch_one(&mut *tx)
-        .await?;
+    let theme_repo = ThemeRepositoryInfra {};
+    let theme_model = theme_repo.find_by_user_id(&mut *tx, user_id).await?;
 
     tx.commit().await?;
 
@@ -92,7 +94,9 @@ pub async fn get_me_handler(
     let mut tx = pool.begin().await?;
 
     let user_repo = UserRepositoryInfra {};
-    let user_model = user_repo.find(&mut *tx, user_id).await?
+    let user_model = user_repo
+        .find(&mut *tx, user_id)
+        .await?
         .ok_or(Error::NotFound(
             "not found user that has the userid in session".into(),
         ))?;
