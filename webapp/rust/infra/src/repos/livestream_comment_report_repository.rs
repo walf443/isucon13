@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream_comment_report::LivecommentReportModel;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
-use isupipe_core::repos::livestream_comment_report::LivestreamCommentReportRepository;
+use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 
 pub struct LivestreamCommentReportRepositoryInfra {}
 

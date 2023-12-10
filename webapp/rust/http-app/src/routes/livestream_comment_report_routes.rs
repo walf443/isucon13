@@ -6,12 +6,12 @@ use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
 use isupipe_core::models::livestream_comment::LivestreamCommentModel;
 use isupipe_core::models::livestream_comment_report::{LivecommentReport, LivecommentReportModel};
-use isupipe_core::repos::livestream_comment_report::LivestreamCommentReportRepository;
+use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
-use isupipe_infra::repos::livestream_comment_report::LivestreamCommentReportRepositoryInfra;
+use isupipe_infra::repos::livestream_comment_report_repository::LivestreamCommentReportRepositoryInfra;
 use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
 
 pub async fn get_livecomment_reports_handler(

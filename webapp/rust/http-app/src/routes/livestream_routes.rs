@@ -12,12 +12,12 @@ use isupipe_core::models::livestream_tag::LivestreamTagModel;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::ng_word::NgWord;
 use isupipe_core::models::reservation_slot::ReservationSlotModel;
-use isupipe_core::repos::livestream_comment_report::LivestreamCommentReportRepository;
+use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
-use isupipe_infra::repos::livestream_comment_report::LivestreamCommentReportRepositoryInfra;
+use isupipe_infra::repos::livestream_comment_report_repository::LivestreamCommentReportRepositoryInfra;
 use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepositoryInfra;
 
 #[derive(Debug, serde::Deserialize)]
