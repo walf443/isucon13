@@ -19,4 +19,20 @@ impl NgWordRepository for NgWordRepositoryInfra {
 
         Ok(ng_words)
     }
+
+    async fn find_all_by_livestream_id_and_user_id(
+        &self,
+        conn: &mut DBConn,
+        livestream_id: i64,
+        user_id: i64,
+    ) -> isupipe_core::repos::Result<Vec<NgWord>> {
+        let ng_words: Vec<NgWord> =
+            sqlx::query_as("SELECT id, user_id, livestream_id, word FROM ng_words WHERE user_id = ? AND livestream_id = ?")
+                .bind(livestream_id)
+                .bind(user_id)
+                .fetch_all(conn)
+                .await?;
+
+        Ok(ng_words)
+    }
 }

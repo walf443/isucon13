@@ -5,12 +5,13 @@ use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
 use isupipe_core::models::livestream_comment::{LivestreamComment, LivestreamCommentModel};
-use isupipe_core::models::ng_word::NgWord;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
+use isupipe_core::repos::ng_word_repository::NgWordRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
 use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
+use isupipe_infra::repos::ng_word_repository::NgWordRepositoryInfra;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct GetLivecommentsQuery {
@@ -80,14 +81,17 @@ pub async fn post_livecomment_handler(
         .await?
         .ok_or(Error::NotFound("livestream not found".into()))?;
 
+    let ng_word_repo = NgWordRepositoryInfra {};
     // スパム判定
-    let ngwords: Vec<NgWord> =
-        sqlx::query_as("SELECT id, user_id, livestream_id, word FROM ng_words WHERE user_id = ? AND livestream_id = ?")
-            .bind(livestream_model.user_id)
-            .bind(livestream_model.id)
-            .fetch_all(&mut *tx)
-            .await?;
-    for ngword in &ngwords {
+    let ng_words = ng_word_repo
+        .find_all_by_livestream_id_and_user_id(
+            &mut *tx,
+            livestream_model.id,
+            livestream_model.user_id,
+        )
+        .await?;
+
+    for ngword in &ng_words {
         let query = r#"
         SELECT COUNT(*)
         FROM
