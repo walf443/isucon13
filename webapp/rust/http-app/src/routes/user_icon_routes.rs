@@ -76,10 +76,8 @@ pub async fn post_icon_handler(
 
     let mut tx = pool.begin().await?;
 
-    sqlx::query("DELETE FROM icons WHERE user_id = ?")
-        .bind(user_id)
-        .execute(&mut *tx)
-        .await?;
+    let icon_repo = IconRepositoryInfra {};
+    icon_repo.delete_by_user_id(&mut *tx, user_id).await?;
 
     let rs = sqlx::query("INSERT INTO icons (user_id, image) VALUES (?, ?)")
         .bind(user_id)

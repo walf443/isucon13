@@ -19,4 +19,13 @@ impl IconRepository for IconRepositoryInfra {
 
         Ok(image)
     }
+
+    async fn delete_by_user_id(&self, conn: &mut DBConn, user_id: i64) -> isupipe_core::repos::Result<()> {
+        sqlx::query("DELETE FROM icons WHERE user_id = ?")
+            .bind(user_id)
+            .execute(conn)
+            .await?;
+
+        Ok(())
+    }
 }
