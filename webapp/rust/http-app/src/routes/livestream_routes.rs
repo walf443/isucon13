@@ -12,10 +12,12 @@ use isupipe_core::models::livestream_tag::LivestreamTagModel;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::ng_word::NgWord;
 use isupipe_core::models::reservation_slot::ReservationSlotModel;
+use isupipe_core::repos::livestream_comment_report::LivestreamCommentReportRepository;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
+use isupipe_infra::repos::livestream_comment_report::LivestreamCommentReportRepositoryInfra;
 use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepositoryInfra;
 
 #[derive(Debug, serde::Deserialize)]
@@ -517,9 +519,9 @@ pub async fn get_livestream_statistics_handler(
         .await?;
 
     // スパム報告数
-    let MysqlDecimal(total_reports) = sqlx::query_scalar("SELECT COUNT(*) FROM livestreams l INNER JOIN livecomment_reports r ON r.livestream_id = l.id WHERE l.id = ?")
-        .bind(livestream_id)
-        .fetch_one(&mut *tx)
+    let report_repo = LivestreamCommentReportRepositoryInfra {};
+    let total_reports = report_repo
+        .count_by_livestream_id(&mut *tx, livestream_id)
         .await?;
 
     tx.commit().await?;
