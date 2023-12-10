@@ -7,6 +7,27 @@ pub struct ReactionRepositoryInfra {}
 
 #[async_trait]
 impl ReactionRepository for ReactionRepositoryInfra {
+    async fn insert(
+        &self,
+        conn: &mut DBConn,
+        user_id: i64,
+        livestream_id: i64,
+        emoji_name: &str,
+        created_at: i64,
+    ) -> isupipe_core::repos::Result<i64> {
+        let result =
+            sqlx::query("INSERT INTO reactions (user_id, livestream_id, emoji_name, created_at) VALUES (?, ?, ?, ?)")
+                .bind(user_id)
+                .bind(livestream_id)
+                .bind(emoji_name)
+                .bind(created_at)
+                .execute(conn)
+                .await?;
+        let reaction_id = result.last_insert_id() as i64;
+
+        Ok(reaction_id)
+    }
+
     async fn find_all_by_livestream_id(
         &self,
         conn: &mut DBConn,

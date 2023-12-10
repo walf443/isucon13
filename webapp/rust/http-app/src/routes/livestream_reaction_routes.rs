@@ -72,16 +72,17 @@ pub async fn post_reaction_handler(
 
     let mut tx = pool.begin().await?;
 
+    let reaction_repo = ReactionRepositoryInfra {};
     let created_at = Utc::now().timestamp();
-    let result =
-        sqlx::query("INSERT INTO reactions (user_id, livestream_id, emoji_name, created_at) VALUES (?, ?, ?, ?)")
-            .bind(user_id)
-            .bind(livestream_id)
-            .bind(&req.emoji_name)
-            .bind(created_at)
-            .execute(&mut *tx)
-            .await?;
-    let reaction_id = result.last_insert_id() as i64;
+    let reaction_id = reaction_repo
+        .insert(
+            &mut *tx,
+            user_id,
+            livestream_id,
+            &req.emoji_name,
+            created_at,
+        )
+        .await?;
 
     let reaction = fill_reaction_response(
         &mut tx,
