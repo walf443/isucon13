@@ -507,9 +507,9 @@ pub async fn get_livestream_statistics_handler(
         .await?;
 
     // リアクション数
-    let MysqlDecimal(total_reactions) = sqlx::query_scalar("SELECT COUNT(*) FROM livestreams l INNER JOIN reactions r ON r.livestream_id = l.id WHERE l.id = ?")
-        .bind(livestream_id)
-        .fetch_one(&mut *tx)
+    let reaction_repo = ReactionRepositoryInfra {};
+    let total_reactions = reaction_repo
+        .count_by_livestream_id(&mut *tx, livestream_id)
         .await?;
 
     // スパム報告数
