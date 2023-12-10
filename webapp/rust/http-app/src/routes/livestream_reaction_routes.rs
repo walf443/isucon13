@@ -5,9 +5,11 @@ use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
 use isupipe_core::models::reaction::{Reaction, ReactionModel};
+use isupipe_core::repos::reaction_repository::ReactionRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
+use isupipe_infra::repos::reaction_repository::ReactionRepositoryInfra;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct GetReactionsQuery {
@@ -25,17 +27,17 @@ pub async fn get_reactions_handler(
 
     let mut tx = pool.begin().await?;
 
-    let mut query =
-        "SELECT * FROM reactions WHERE livestream_id = ? ORDER BY created_at DESC".to_owned();
-    if !limit.is_empty() {
+    let reaction_repo = ReactionRepositoryInfra {};
+    let reaction_models = if limit.is_empty() {
+        reaction_repo
+            .find_all_by_livestream_id(&mut *tx, livestream_id)
+            .await?
+    } else {
         let limit: i64 = limit.parse().map_err(|_| Error::BadRequest("".into()))?;
-        query = format!("{} LIMIT {}", query, limit);
-    }
-
-    let reaction_models: Vec<ReactionModel> = sqlx::query_as(&query)
-        .bind(livestream_id)
-        .fetch_all(&mut *tx)
-        .await?;
+        reaction_repo
+            .find_all_by_livestream_id_limit(&mut *tx, livestream_id, limit)
+            .await?
+    };
 
     let mut reactions = Vec::with_capacity(reaction_models.len());
     for reaction_model in reaction_models {
