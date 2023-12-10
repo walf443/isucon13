@@ -74,17 +74,12 @@ pub async fn post_icon_handler(
         .ok_or(Error::SessionError)?;
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
 
+    let icon_repo = IconRepositoryInfra {};
+
     let mut tx = pool.begin().await?;
 
-    let icon_repo = IconRepositoryInfra {};
     icon_repo.delete_by_user_id(&mut *tx, user_id).await?;
-
-    let rs = sqlx::query("INSERT INTO icons (user_id, image) VALUES (?, ?)")
-        .bind(user_id)
-        .bind(req.image)
-        .execute(&mut *tx)
-        .await?;
-    let icon_id = rs.last_insert_id() as i64;
+    let icon_id = icon_repo.insert(&mut *tx, user_id, &req.image).await?;
 
     tx.commit().await?;
 

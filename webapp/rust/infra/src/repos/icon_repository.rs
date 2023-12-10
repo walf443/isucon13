@@ -20,7 +20,27 @@ impl IconRepository for IconRepositoryInfra {
         Ok(image)
     }
 
-    async fn delete_by_user_id(&self, conn: &mut DBConn, user_id: i64) -> isupipe_core::repos::Result<()> {
+    async fn insert(
+        &self,
+        conn: &mut DBConn,
+        user_id: i64,
+        image: &Vec<u8>,
+    ) -> isupipe_core::repos::Result<i64> {
+        let rs = sqlx::query("INSERT INTO icons (user_id, image) VALUES (?, ?)")
+            .bind(user_id)
+            .bind(image)
+            .execute(conn)
+            .await?;
+        let icon_id = rs.last_insert_id() as i64;
+
+        Ok(icon_id)
+    }
+
+    async fn delete_by_user_id(
+        &self,
+        conn: &mut DBConn,
+        user_id: i64,
+    ) -> isupipe_core::repos::Result<()> {
         sqlx::query("DELETE FROM icons WHERE user_id = ?")
             .bind(user_id)
             .execute(conn)
