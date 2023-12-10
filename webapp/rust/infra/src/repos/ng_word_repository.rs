@@ -35,4 +35,21 @@ impl NgWordRepository for NgWordRepositoryInfra {
 
         Ok(ng_words)
     }
+
+    async fn find_all_by_livestream_id_and_user_id_order_by_created_at(
+        &self,
+        conn: &mut DBConn,
+        livestream_id: i64,
+        user_id: i64,
+    ) -> isupipe_core::repos::Result<Vec<NgWord>> {
+        let ng_words: Vec<NgWord> = sqlx::query_as(
+            "SELECT * FROM ng_words WHERE user_id = ? AND livestream_id = ? ORDER BY created_at DESC",
+        )
+            .bind(user_id)
+            .bind(livestream_id)
+            .fetch_all(conn)
+            .await?;
+
+        Ok(ng_words)
+    }
 }

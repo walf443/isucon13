@@ -17,4 +17,11 @@ pub trait NgWordRepository {
         livestream_id: i64,
         user_id: i64,
     ) -> Result<Vec<NgWord>>;
+
+    async fn find_all_by_livestream_id_and_user_id_order_by_created_at(
+        &self,
+        conn: &mut DBConn,
+        livestream_id: i64,
+        user_id: i64,
+    ) -> Result<Vec<NgWord>>;
 }

@@ -297,13 +297,10 @@ pub async fn get_ngwords(
 
     let mut tx = pool.begin().await?;
 
-    let ng_words: Vec<NgWord> = sqlx::query_as(
-        "SELECT * FROM ng_words WHERE user_id = ? AND livestream_id = ? ORDER BY created_at DESC",
-    )
-    .bind(user_id)
-    .bind(livestream_id)
-    .fetch_all(&mut *tx)
-    .await?;
+    let ng_word_repo = NgWordRepositoryInfra {};
+    let ng_words = ng_word_repo
+        .find_all_by_livestream_id_and_user_id_order_by_created_at(&mut *tx, livestream_id, user_id)
+        .await?;
 
     tx.commit().await?;
 
