@@ -91,10 +91,8 @@ pub async fn get_me_handler(
 
     let mut tx = pool.begin().await?;
 
-    let user_model: UserModel = sqlx::query_as("SELECT * FROM users WHERE id = ?")
-        .bind(user_id)
-        .fetch_optional(&mut *tx)
-        .await?
+    let user_repo = UserRepositoryInfra {};
+    let user_model = user_repo.find(&mut *tx, user_id).await?
         .ok_or(Error::NotFound(
             "not found user that has the userid in session".into(),
         ))?;
