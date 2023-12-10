@@ -28,10 +28,8 @@ pub async fn get_streamer_theme_handler(
 
     let mut tx = pool.begin().await?;
 
-    let user_id: i64 = sqlx::query_scalar("SELECT id FROM users WHERE name = ?")
-        .bind(username)
-        .fetch_optional(&mut *tx)
-        .await?
+    let user_repo = UserRepositoryInfra {};
+    let user_id = user_repo.find_id_by_name(&mut *tx, &username).await?
         .ok_or(Error::NotFound(
             "not found user that has the given username".into(),
         ))?;
