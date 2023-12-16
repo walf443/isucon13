@@ -1,3 +1,4 @@
+use bcrypt::BcryptError;
 use thiserror::Error;
 
 pub mod icon_repository;
@@ -15,6 +16,8 @@ pub mod user_repository;
 pub enum ReposError {
     #[error("SQLx error: {0}")]
     Sqlx(#[from] sqlx::Error),
+    #[error("bcrypt error: {0}")]
+    Bcrypt(#[from] BcryptError),
 }
 
 pub type Result<T> = std::result::Result<T, ReposError>;

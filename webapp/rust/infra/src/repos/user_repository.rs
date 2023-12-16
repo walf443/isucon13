@@ -7,6 +7,31 @@ pub struct UserRepositoryInfra {}
 
 #[async_trait]
 impl UserRepository for UserRepositoryInfra {
+    async fn insert(
+        &self,
+        conn: &mut DBConn,
+        name: &str,
+        display_name: &str,
+        description: &str,
+        password: &str,
+    ) -> isupipe_core::repos::Result<i64> {
+        let hashed_password = self.hash_password(&password)?;
+
+        let result = sqlx::query(
+            "INSERT INTO users (name, display_name, description, password) VALUES(?, ?, ?, ?)",
+        )
+        .bind(&name)
+        .bind(&display_name)
+        .bind(&description)
+        .bind(&hashed_password)
+        .execute(conn)
+        .await?;
+
+        let user_id = result.last_insert_id() as i64;
+
+        Ok(user_id)
+    }
+
     async fn find(
         &self,
         conn: &mut DBConn,
