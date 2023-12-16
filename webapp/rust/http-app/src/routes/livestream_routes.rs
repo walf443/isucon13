@@ -464,9 +464,7 @@ pub async fn get_livestream_statistics_handler(
         .await?
         .ok_or(Error::BadRequest("".into()))?;
 
-    let livestreams: Vec<LivestreamModel> = sqlx::query_as("SELECT * FROM livestreams")
-        .fetch_all(&mut *tx)
-        .await?;
+    let livestreams = livestream_repo.find_all(&mut *tx).await?;
 
     // ランク算出
     let mut ranking = Vec::new();

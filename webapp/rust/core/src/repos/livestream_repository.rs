@@ -5,6 +5,9 @@ use async_trait::async_trait;
 
 #[async_trait]
 pub trait LivestreamRepository {
+
+    async fn find_all(&self, conn: &mut DBConn) -> Result<Vec<LivestreamModel>>;
+
     async fn find_all_by_user_id(
         &self,
         conn: &mut DBConn,
