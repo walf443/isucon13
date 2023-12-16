@@ -181,6 +181,8 @@ pub async fn search_livestreams_handler(
         limit,
     }): Query<SearchLivestreamsQuery>,
 ) -> Result<axum::Json<Vec<Livestream>>, Error> {
+    let livestream_repo = LivestreamRepositoryInfra {};
+
     let mut tx = pool.begin().await?;
 
     let livestream_models: Vec<LivestreamModel> = if key_tag_name.is_empty() {
@@ -211,10 +213,11 @@ pub async fn search_livestreams_handler(
 
         let mut livestream_models = Vec::new();
         for key_tagged_livestream in key_tagged_livestreams {
-            let ls = sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
-                .bind(key_tagged_livestream.livestream_id)
-                .fetch_one(&mut *tx)
-                .await?;
+            let ls = livestream_repo
+                .find(&mut *tx, key_tagged_livestream.livestream_id)
+                .await?
+                .unwrap();
+
             livestream_models.push(ls);
         }
         livestream_models
@@ -266,17 +269,18 @@ pub async fn get_livestream_handler(
     Path((livestream_id,)): Path<(i64,)>,
 ) -> Result<axum::Json<Livestream>, Error> {
     verify_user_session(&jar).await?;
+    let livestream_repo = LivestreamRepositoryInfra {};
 
     let mut tx = pool.begin().await?;
 
-    let livestream_model: LivestreamModel =
-        sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
-            .bind(livestream_id)
-            .fetch_optional(&mut *tx)
-            .await?
-            .ok_or(Error::NotFound(
-                "not found livestream that has the given id".into(),
-            ))?;
+    let livestream_model = livestream_repo.find(&mut *tx, livestream_id).await?;
+
+    if livestream_model.is_none() {
+        return Err(Error::NotFound(
+            "not found livestream that has the given id".into(),
+        ));
+    }
+    let livestream_model = livestream_model.unwrap();
 
     let livestream = fill_livestream_response(&mut tx, livestream_model).await?;
 
@@ -453,10 +457,10 @@ pub async fn get_livestream_statistics_handler(
     verify_user_session(&jar).await?;
 
     let mut tx = pool.begin().await?;
+    let livestream_repo = LivestreamRepositoryInfra {};
 
-    let _: LivestreamModel = sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
-        .bind(livestream_id)
-        .fetch_optional(&mut *tx)
+    let _ = livestream_repo
+        .find(&mut *tx, livestream_id)
         .await?
         .ok_or(Error::BadRequest("".into()))?;
 
