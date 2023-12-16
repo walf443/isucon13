@@ -5,11 +5,13 @@ use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
 use isupipe_core::models::livestream_comment::{LivestreamComment, LivestreamCommentModel};
+use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
 use isupipe_core::repos::ng_word_repository::NgWordRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
+use isupipe_infra::repos::livestream_comment_repository::LivestreamCommentRepositoryInfra;
 use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
 use isupipe_infra::repos::ng_word_repository::NgWordRepositoryInfra;
 
@@ -114,23 +116,15 @@ pub async fn post_livecomment_handler(
     }
 
     let now = Utc::now().timestamp();
-
-    let rs = sqlx::query(
-        "INSERT INTO livecomments (user_id, livestream_id, comment, tip, created_at) VALUES (?, ?, ?, ?, ?)",
-    )
-        .bind(user_id)
-        .bind(livestream_id)
-        .bind(&req.comment)
-        .bind(req.tip)
-        .bind(now)
-        .execute(&mut *tx)
+    let comment_repo = LivestreamCommentRepositoryInfra {};
+    let comment_id = comment_repo
+        .insert(&mut *tx, user_id, livestream_id, &req.comment, req.tip, now)
         .await?;
-    let livecomment_id = rs.last_insert_id() as i64;
 
     let livecomment = fill_livecomment_response(
         &mut tx,
         LivestreamCommentModel {
-            id: livecomment_id,
+            id: comment_id,
             user_id,
             livestream_id,
             comment: req.comment,
