@@ -7,6 +7,21 @@ pub struct LivestreamTagRepositoryInfra {}
 
 #[async_trait]
 impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
+    async fn insert(
+        &self,
+        conn: &mut DBConn,
+        livestream_id: i64,
+        tag_id: i64,
+    ) -> isupipe_core::repos::Result<()> {
+        sqlx::query("INSERT INTO livestream_tags (livestream_id, tag_id) VALUES (?, ?)")
+            .bind(livestream_id)
+            .bind(tag_id)
+            .execute(conn)
+            .await?;
+
+        Ok(())
+    }
+
     async fn find_all_by_tag_ids(
         &self,
         conn: &mut DBConn,

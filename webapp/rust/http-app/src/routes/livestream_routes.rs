@@ -138,12 +138,11 @@ pub async fn reserve_livestream_handler(
         .await?;
     let livestream_id = rs.last_insert_id() as i64;
 
+    let livestream_tag_repo = LivestreamTagRepositoryInfra {};
     // タグ追加
     for tag_id in req.tags {
-        sqlx::query("INSERT INTO livestream_tags (livestream_id, tag_id) VALUES (?, ?)")
-            .bind(livestream_id)
-            .bind(tag_id)
-            .execute(&mut *tx)
+        livestream_tag_repo
+            .insert(&mut *tx, livestream_id, tag_id)
             .await?;
     }
 
