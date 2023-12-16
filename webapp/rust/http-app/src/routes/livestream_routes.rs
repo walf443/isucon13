@@ -16,6 +16,7 @@ use isupipe_core::repos::livestream_comment_report_repository::LivestreamComment
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
 use isupipe_core::repos::ng_word_repository::NgWordRepository;
 use isupipe_core::repos::reaction_repository::ReactionRepository;
+use isupipe_core::repos::tag_repository::TagRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
@@ -23,6 +24,7 @@ use isupipe_infra::repos::livestream_comment_report_repository::LivestreamCommen
 use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepositoryInfra;
 use isupipe_infra::repos::ng_word_repository::NgWordRepositoryInfra;
 use isupipe_infra::repos::reaction_repository::ReactionRepositoryInfra;
+use isupipe_infra::repos::tag_repository::TagRepositoryInfra;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct ReserveLivestreamRequest {
@@ -191,10 +193,8 @@ pub async fn search_livestreams_handler(
         sqlx::query_as(&query).fetch_all(&mut *tx).await?
     } else {
         // タグによる取得
-        let tag_id_list: Vec<i64> = sqlx::query_scalar("SELECT id FROM tags WHERE name = ?")
-            .bind(key_tag_name)
-            .fetch_all(&mut *tx)
-            .await?;
+        let tag_repo = TagRepositoryInfra {};
+        let tag_id_list = tag_repo.find_ids_by_name(&mut *tx, &key_tag_name).await?;
 
         let mut query_builder = sqlx::query_builder::QueryBuilder::new(
             "SELECT * FROM livestream_tags WHERE tag_id IN (",
