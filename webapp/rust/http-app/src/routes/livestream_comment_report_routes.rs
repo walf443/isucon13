@@ -4,14 +4,15 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
-use isupipe_core::models::livestream_comment::LivestreamCommentModel;
 use isupipe_core::models::livestream_comment_report::{LivecommentReport, LivecommentReportModel};
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
+use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
 use isupipe_infra::repos::livestream_comment_report_repository::LivestreamCommentReportRepositoryInfra;
+use isupipe_infra::repos::livestream_comment_repository::LivestreamCommentRepositoryInfra;
 use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
 
 pub async fn get_livecomment_reports_handler(
@@ -79,9 +80,9 @@ pub async fn report_livecomment_handler(
         .await?
         .ok_or(Error::NotFound("livestream not found".into()))?;
 
-    let _: LivestreamCommentModel = sqlx::query_as("SELECT * FROM livecomments WHERE id = ?")
-        .bind(livecomment_id)
-        .fetch_optional(&mut *tx)
+    let comment_repo = LivestreamCommentRepositoryInfra {};
+    let _ = comment_repo
+        .find(&mut *tx, livecomment_id)
         .await?
         .ok_or(Error::NotFound("livecomment not found".into()))?;
 

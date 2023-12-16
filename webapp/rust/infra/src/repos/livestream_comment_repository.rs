@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
+use isupipe_core::models::livestream_comment::LivestreamCommentModel;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 
 pub struct LivestreamCommentRepositoryInfra {}
@@ -28,5 +29,18 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let comment_id = rs.last_insert_id() as i64;
 
         Ok(comment_id)
+    }
+
+    async fn find(
+        &self,
+        conn: &mut DBConn,
+        comment_id: i64,
+    ) -> isupipe_core::repos::Result<Option<LivestreamCommentModel>> {
+        let comment = sqlx::query_as("SELECT * FROM livecomments WHERE id = ?")
+            .bind(comment_id)
+            .fetch_optional(conn)
+            .await?;
+
+        Ok(comment)
     }
 }
