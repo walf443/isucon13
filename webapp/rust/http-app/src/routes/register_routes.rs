@@ -2,8 +2,10 @@ use crate::utils::fill_user_response;
 use axum::extract::State;
 use axum::http::StatusCode;
 use isupipe_core::models::user::{User, UserModel};
+use isupipe_core::repos::theme_repository::ThemeRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
+use isupipe_infra::repos::theme_repository::ThemeRepositoryInfra;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct PostUserRequest {
@@ -50,10 +52,9 @@ pub async fn register_handler(
     .await?;
     let user_id = result.last_insert_id() as i64;
 
-    sqlx::query("INSERT INTO themes (user_id, dark_mode) VALUES(?, ?)")
-        .bind(user_id)
-        .bind(req.theme.dark_mode)
-        .execute(&mut *tx)
+    let theme_repo = ThemeRepositoryInfra {};
+    theme_repo
+        .insert(&mut *tx, user_id, req.theme.dark_mode)
         .await?;
 
     let output = tokio::process::Command::new("pdnsutil")
