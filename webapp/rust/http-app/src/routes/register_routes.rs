@@ -3,9 +3,11 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use isupipe_core::models::user::{User, UserModel};
 use isupipe_core::repos::theme_repository::ThemeRepository;
+use isupipe_core::repos::user_repository::UserRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_infra::repos::theme_repository::ThemeRepositoryInfra;
+use isupipe_infra::repos::user_repository::UserRepositoryInfra;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct PostUserRequest {
@@ -41,16 +43,16 @@ pub async fn register_handler(
 
     let mut tx = pool.begin().await?;
 
-    let result = sqlx::query(
-        "INSERT INTO users (name, display_name, description, password) VALUES(?, ?, ?, ?)",
-    )
-    .bind(&req.name)
-    .bind(&req.display_name)
-    .bind(&req.description)
-    .bind(&hashed_password)
-    .execute(&mut *tx)
-    .await?;
-    let user_id = result.last_insert_id() as i64;
+    let user_repo = UserRepositoryInfra {};
+    let user_id = user_repo
+        .insert(
+            &mut *tx,
+            &req.name,
+            &req.display_name,
+            &req.description,
+            &req.password,
+        )
+        .await?;
 
     let theme_repo = ThemeRepositoryInfra {};
     theme_repo
