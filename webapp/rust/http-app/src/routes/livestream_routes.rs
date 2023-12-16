@@ -13,6 +13,7 @@ use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::ng_word::NgWord;
 use isupipe_core::models::reservation_slot::ReservationSlotModel;
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
+use isupipe_core::repos::livestream_repository::LivestreamRepository;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
 use isupipe_core::repos::ng_word_repository::NgWordRepository;
 use isupipe_core::repos::reaction_repository::ReactionRepository;
@@ -21,6 +22,7 @@ use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
 use isupipe_infra::repos::livestream_comment_report_repository::LivestreamCommentReportRepositoryInfra;
+use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
 use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepositoryInfra;
 use isupipe_infra::repos::ng_word_repository::NgWordRepositoryInfra;
 use isupipe_infra::repos::reaction_repository::ReactionRepositoryInfra;
@@ -243,11 +245,10 @@ pub async fn get_my_livestreams_handler(
 
     let mut tx = pool.begin().await?;
 
-    let livestream_models: Vec<LivestreamModel> =
-        sqlx::query_as("SELECT * FROM livestreams WHERE user_id = ?")
-            .bind(user_id)
-            .fetch_all(&mut *tx)
-            .await?;
+    let livestream_repo = LivestreamRepositoryInfra {};
+    let livestream_models = livestream_repo
+        .find_all_by_user_id(&mut *tx, user_id)
+        .await?;
     let mut livestreams = Vec::with_capacity(livestream_models.len());
     for livestream_model in livestream_models {
         let livestream = fill_livestream_response(&mut tx, livestream_model).await?;

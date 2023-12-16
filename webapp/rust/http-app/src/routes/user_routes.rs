@@ -2,19 +2,21 @@ use crate::utils::{fill_livestream_response, fill_user_response};
 use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, State};
 use axum_extra::extract::SignedCookieJar;
-use isupipe_core::models::livestream::{Livestream, LivestreamModel};
+use isupipe_core::models::livestream::Livestream;
 use isupipe_core::models::livestream_comment::LivestreamCommentModel;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::theme::Theme;
 use isupipe_core::models::user::User;
 use isupipe_core::models::user_ranking_entry::UserRankingEntry;
 use isupipe_core::models::user_statistics::UserStatistics;
+use isupipe_core::repos::livestream_repository::LivestreamRepository;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
 use isupipe_core::repos::theme_repository::ThemeRepository;
 use isupipe_core::repos::user_repository::UserRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
+use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
 use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepositoryInfra;
 use isupipe_infra::repos::theme_repository::ThemeRepositoryInfra;
 use isupipe_infra::repos::user_repository::UserRepositoryInfra;
@@ -63,11 +65,11 @@ pub async fn get_user_livestreams_handler(
         .await?
         .ok_or(Error::NotFound("user not found".into()))?;
 
-    let livestream_models: Vec<LivestreamModel> =
-        sqlx::query_as("SELECT * FROM livestreams WHERE user_id = ?")
-            .bind(user.id)
-            .fetch_all(&mut *tx)
-            .await?;
+    let livestream_repo = LivestreamRepositoryInfra {};
+    let livestream_models = livestream_repo
+        .find_all_by_user_id(&mut *tx, user.id)
+        .await?;
+
     let mut livestreams = Vec::with_capacity(livestream_models.len());
     for livestream_model in livestream_models {
         let livestream = fill_livestream_response(&mut tx, livestream_model).await?;
@@ -212,11 +214,11 @@ pub async fn get_user_statistics_handler(
     // ライブコメント数、チップ合計
     let mut total_livecomments = 0;
     let mut total_tip = 0;
-    let livestreams: Vec<LivestreamModel> =
-        sqlx::query_as("SELECT * FROM livestreams WHERE user_id = ?")
-            .bind(user.id)
-            .fetch_all(&mut *tx)
-            .await?;
+
+    let livestream_repo = LivestreamRepositoryInfra {};
+    let livestreams = livestream_repo
+        .find_all_by_user_id(&mut *tx, user.id)
+        .await?;
 
     for livestream in &livestreams {
         let livecomments: Vec<LivestreamCommentModel> =
