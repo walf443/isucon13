@@ -43,4 +43,39 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
 
         Ok(comment)
     }
+
+    async fn find_all_by_livestream_id_order_by_created_at(
+        &self,
+        conn: &mut DBConn,
+        livestream_id: i64,
+    ) -> isupipe_core::repos::Result<Vec<LivestreamCommentModel>> {
+        let query = "SELECT * FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC"
+            .to_owned();
+
+        let comments: Vec<LivestreamCommentModel> = sqlx::query_as(&query)
+            .bind(livestream_id)
+            .fetch_all(conn)
+            .await?;
+
+        Ok(comments)
+    }
+
+    async fn find_all_by_livestream_id_order_by_created_at_limit(
+        &self,
+        conn: &mut DBConn,
+        livestream_id: i64,
+        limit: i64,
+    ) -> isupipe_core::repos::Result<Vec<LivestreamCommentModel>> {
+        let query =
+            "SELECT * FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC LIMIT ?"
+                .to_owned();
+
+        let comments: Vec<LivestreamCommentModel> = sqlx::query_as(&query)
+            .bind(livestream_id)
+            .bind(limit)
+            .fetch_all(conn)
+            .await?;
+
+        Ok(comments)
+    }
 }

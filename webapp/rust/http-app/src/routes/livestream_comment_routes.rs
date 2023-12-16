@@ -31,17 +31,17 @@ pub async fn get_livecomments_handler(
 
     let mut tx = pool.begin().await?;
 
-    let mut query =
-        "SELECT * FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC".to_owned();
-    if !limit.is_empty() {
+    let comment_repo = LivestreamCommentRepositoryInfra {};
+    let livecomment_models = if limit.is_empty() {
+        comment_repo
+            .find_all_by_livestream_id_order_by_created_at(&mut *tx, livestream_id)
+            .await?
+    } else {
         let limit: i64 = limit.parse().map_err(|_| Error::BadRequest("".into()))?;
-        query = format!("{} LIMIT {}", query, limit);
-    }
-
-    let livecomment_models: Vec<LivestreamCommentModel> = sqlx::query_as(&query)
-        .bind(livestream_id)
-        .fetch_all(&mut *tx)
-        .await?;
+        comment_repo
+            .find_all_by_livestream_id_order_by_created_at_limit(&mut *tx, livestream_id, limit)
+            .await?
+    };
 
     let mut livecomments = Vec::with_capacity(livecomment_models.len());
     for livecomment_model in livecomment_models {
