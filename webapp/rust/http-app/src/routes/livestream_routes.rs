@@ -8,12 +8,12 @@ use isupipe_core::models::livestream::{Livestream, LivestreamModel};
 use isupipe_core::models::livestream_comment::LivestreamCommentModel;
 use isupipe_core::models::livestream_ranking_entry::LivestreamRankingEntry;
 use isupipe_core::models::livestream_statistics::LivestreamStatistics;
-use isupipe_core::models::livestream_tag::LivestreamTagModel;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::ng_word::NgWord;
 use isupipe_core::models::reservation_slot::ReservationSlotModel;
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
+use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
 use isupipe_core::repos::ng_word_repository::NgWordRepository;
 use isupipe_core::repos::reaction_repository::ReactionRepository;
@@ -23,6 +23,7 @@ use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
 use isupipe_infra::repos::livestream_comment_report_repository::LivestreamCommentReportRepositoryInfra;
 use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
+use isupipe_infra::repos::livestream_tag_repository::LivestreamTagRepositoryInfra;
 use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepositoryInfra;
 use isupipe_infra::repos::ng_word_repository::NgWordRepositoryInfra;
 use isupipe_infra::repos::reaction_repository::ReactionRepositoryInfra;
@@ -202,16 +203,10 @@ pub async fn search_livestreams_handler(
         let tag_repo = TagRepositoryInfra {};
         let tag_id_list = tag_repo.find_ids_by_name(&mut *tx, &key_tag_name).await?;
 
-        let mut query_builder = sqlx::query_builder::QueryBuilder::new(
-            "SELECT * FROM livestream_tags WHERE tag_id IN (",
-        );
-        let mut separated = query_builder.separated(", ");
-        for tag_id in tag_id_list {
-            separated.push_bind(tag_id);
-        }
-        separated.push_unseparated(") ORDER BY livestream_id DESC");
-        let key_tagged_livestreams: Vec<LivestreamTagModel> =
-            query_builder.build_query_as().fetch_all(&mut *tx).await?;
+        let livestream_tag_repo = LivestreamTagRepositoryInfra {};
+        let key_tagged_livestreams = livestream_tag_repo
+            .find_all_by_tag_ids(&mut *tx, &tag_id_list)
+            .await?;
 
         let mut livestream_models = Vec::new();
         for key_tagged_livestream in key_tagged_livestreams {
