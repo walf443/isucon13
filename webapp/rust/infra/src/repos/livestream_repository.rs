@@ -7,7 +7,10 @@ pub struct LivestreamRepositoryInfra {}
 
 #[async_trait]
 impl LivestreamRepository for LivestreamRepositoryInfra {
-    async fn find_all(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<Vec<LivestreamModel>> {
+    async fn find_all(
+        &self,
+        conn: &mut DBConn,
+    ) -> isupipe_core::repos::Result<Vec<LivestreamModel>> {
         let livestreams: Vec<LivestreamModel> = sqlx::query_as("SELECT * FROM livestreams")
             .fetch_all(conn)
             .await?;
@@ -40,5 +43,21 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
             .await?;
 
         Ok(livestream)
+    }
+
+    async fn exist_by_id_and_user_id(
+        &self,
+        conn: &mut DBConn,
+        id: i64,
+        user_id: i64,
+    ) -> isupipe_core::repos::Result<bool> {
+        let livestreams: Vec<LivestreamModel> =
+            sqlx::query_as("SELECT * FROM livestreams WHERE id = ? AND user_id = ?")
+                .bind(id)
+                .bind(user_id)
+                .fetch_all(conn)
+                .await?;
+
+        Ok(!livestreams.is_empty())
     }
 }

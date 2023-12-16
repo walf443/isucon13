@@ -332,6 +332,8 @@ pub async fn moderate_handler(
 ) -> Result<(StatusCode, axum::Json<ModerateResponse>), Error> {
     verify_user_session(&jar).await?;
 
+    let livestream_repo = LivestreamRepositoryInfra {};
+
     let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
     let sess = CookieStore::new()
         .load_session(cookie.value().to_owned())
@@ -342,13 +344,10 @@ pub async fn moderate_handler(
     let mut tx = pool.begin().await?;
 
     // 配信者自身の配信に対するmoderateなのかを検証
-    let owned_livestreams: Vec<LivestreamModel> =
-        sqlx::query_as("SELECT * FROM livestreams WHERE id = ? AND user_id = ?")
-            .bind(livestream_id)
-            .bind(user_id)
-            .fetch_all(&mut *tx)
-            .await?;
-    if owned_livestreams.is_empty() {
+    let is_exist = livestream_repo
+        .exist_by_id_and_user_id(&mut *tx, livestream_id, user_id)
+        .await?;
+    if !is_exist {
         return Err(Error::BadRequest(
             "A streamer can't moderate livestreams that other streamers own".into(),
         ));
