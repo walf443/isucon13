@@ -18,6 +18,32 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         Ok(livestreams)
     }
 
+    async fn find_all_order_by_id_desc(
+        &self,
+        conn: &mut DBConn,
+    ) -> isupipe_core::repos::Result<Vec<LivestreamModel>> {
+        let livestreams: Vec<LivestreamModel> =
+            sqlx::query_as("SELECT * FROM livestreams ORDER BY id DESC")
+                .fetch_all(conn)
+                .await?;
+
+        Ok(livestreams)
+    }
+
+    async fn find_all_order_by_id_desc_limit(
+        &self,
+        conn: &mut DBConn,
+        limit: i64,
+    ) -> isupipe_core::repos::Result<Vec<LivestreamModel>> {
+        let livestreams: Vec<LivestreamModel> =
+            sqlx::query_as("SELECT * FROM livestreams ORDER BY id DESC LIMIT ?")
+                .bind(limit)
+                .fetch_all(conn)
+                .await?;
+
+        Ok(livestreams)
+    }
+
     async fn find_all_by_user_id(
         &self,
         conn: &mut DBConn,

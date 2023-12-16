@@ -186,15 +186,17 @@ pub async fn search_livestreams_handler(
     let mut tx = pool.begin().await?;
 
     let livestream_models: Vec<LivestreamModel> = if key_tag_name.is_empty() {
-        // 検索条件なし
-        let mut query = "SELECT * FROM livestreams ORDER BY id DESC".to_owned();
-        if !limit.is_empty() {
+        if limit.is_empty() {
+            livestream_repo.find_all_order_by_id_desc(&mut *tx).await?
+        } else {
             let limit: i64 = limit
                 .parse()
                 .map_err(|_| Error::BadRequest("failed to parse limit".into()))?;
-            query = format!("{} LIMIT {}", query, limit);
+
+            livestream_repo
+                .find_all_order_by_id_desc_limit(&mut *tx, limit)
+                .await?
         }
-        sqlx::query_as(&query).fetch_all(&mut *tx).await?
     } else {
         // タグによる取得
         let tag_repo = TagRepositoryInfra {};
