@@ -3,7 +3,6 @@ use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, State};
 use axum_extra::extract::SignedCookieJar;
 use isupipe_core::models::livestream::Livestream;
-use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::theme::Theme;
 use isupipe_core::models::user::User;
 use isupipe_core::models::user_ranking_entry::UserRankingEntry;
@@ -191,16 +190,7 @@ pub async fn get_user_statistics_handler(
     let rank = (ranking.len() - rpos) as i64;
 
     // リアクション数
-    let query = r"#
-    SELECT COUNT(*) FROM users u
-    INNER JOIN livestreams l ON l.user_id = u.id
-    INNER JOIN reactions r ON r.livestream_id = l.id
-    WHERE u.name = ?
-    #";
-    let MysqlDecimal(total_reactions) = sqlx::query_scalar(query)
-        .bind(&username)
-        .fetch_one(&mut *tx)
-        .await?;
+    let total_reactions = reaction_repo.count_by_livestream_user_name(&mut *tx, &username).await?;
 
     // ライブコメント数、チップ合計
     let mut total_livecomments = 0;

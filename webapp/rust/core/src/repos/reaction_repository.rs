@@ -22,6 +22,12 @@ pub trait ReactionRepository {
         livestream_user_id: i64,
     ) -> Result<i64>;
 
+    async fn count_by_livestream_user_name(
+        &self,
+        conn: &mut DBConn,
+        livestream_user_name: &str,
+    ) -> Result<i64>;
+
     async fn find_all_by_livestream_id(
         &self,
         conn: &mut DBConn,

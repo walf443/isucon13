@@ -61,6 +61,25 @@ impl ReactionRepository for ReactionRepositoryInfra {
         Ok(reactions)
     }
 
+    async fn count_by_livestream_user_name(
+        &self,
+        conn: &mut DBConn,
+        livestream_user_name: &str,
+    ) -> isupipe_core::repos::Result<i64> {
+        let query = r"#
+    SELECT COUNT(*) FROM users u
+    INNER JOIN livestreams l ON l.user_id = u.id
+    INNER JOIN reactions r ON r.livestream_id = l.id
+    WHERE u.name = ?
+    #";
+        let MysqlDecimal(total_reactions) = sqlx::query_scalar(query)
+            .bind(livestream_user_name)
+            .fetch_one(conn)
+            .await?;
+
+        Ok(total_reactions)
+    }
+
     async fn find_all_by_livestream_id(
         &self,
         conn: &mut DBConn,
