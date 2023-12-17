@@ -62,4 +62,10 @@ pub trait LivestreamCommentRepository {
         conn: &mut DBConn,
         livestream_id: i64,
     ) -> Result<i64>;
+
+    async fn get_sum_tip_of_livestream_user_id(
+        &self,
+        conn: &mut DBConn,
+        user_id: i64,
+    ) -> Result<i64>;
 }

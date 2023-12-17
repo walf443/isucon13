@@ -159,6 +159,7 @@ pub async fn get_user_statistics_handler(
     let users = user_repo.find_all(&mut *tx).await?;
 
     let mut ranking = Vec::new();
+    let comment_repo = LivestreamCommentRepositoryInfra {};
     for user in users {
         let query = r#"
         SELECT COUNT(*) FROM users u
@@ -171,15 +172,8 @@ pub async fn get_user_statistics_handler(
             .fetch_one(&mut *tx)
             .await?;
 
-        let query = r#"
-        SELECT IFNULL(SUM(l2.tip), 0) FROM users u
-        INNER JOIN livestreams l ON l.user_id = u.id
-        INNER JOIN livecomments l2 ON l2.livestream_id = l.id
-        WHERE u.id = ?
-        "#;
-        let MysqlDecimal(tips) = sqlx::query_scalar(query)
-            .bind(user.id)
-            .fetch_one(&mut *tx)
+        let tips = comment_repo
+            .get_sum_tip_of_livestream_user_id(&mut *tx, user.id)
             .await?;
 
         let score = reactions + tips;
