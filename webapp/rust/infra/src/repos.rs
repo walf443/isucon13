@@ -6,6 +6,7 @@ pub mod livestream_tag_repository;
 pub mod livestream_viewers_history_repository;
 pub mod ng_word_repository;
 pub mod reaction_repository;
+pub mod reservation_slot_repository;
 pub mod tag_repository;
 pub mod theme_repository;
 pub mod user_repository;

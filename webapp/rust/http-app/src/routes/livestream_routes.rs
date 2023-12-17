@@ -9,7 +9,6 @@ use isupipe_core::models::livestream_ranking_entry::LivestreamRankingEntry;
 use isupipe_core::models::livestream_statistics::LivestreamStatistics;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::ng_word::NgWord;
-use isupipe_core::models::reservation_slot::ReservationSlotModel;
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
@@ -17,6 +16,7 @@ use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
 use isupipe_core::repos::ng_word_repository::NgWordRepository;
 use isupipe_core::repos::reaction_repository::ReactionRepository;
+use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
 use isupipe_core::repos::tag_repository::TagRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
@@ -28,6 +28,7 @@ use isupipe_infra::repos::livestream_tag_repository::LivestreamTagRepositoryInfr
 use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepositoryInfra;
 use isupipe_infra::repos::ng_word_repository::NgWordRepositoryInfra;
 use isupipe_infra::repos::reaction_repository::ReactionRepositoryInfra;
+use isupipe_infra::repos::reservation_slot_repository::ReservationSlotRepositoryInfra;
 use isupipe_infra::repos::tag_repository::TagRepositoryInfra;
 
 #[derive(Debug, serde::Deserialize)]
@@ -80,19 +81,18 @@ pub async fn reserve_livestream_handler(
         return Err(Error::BadRequest("bad reservation time range".into()));
     }
 
+    let reservation_slot_repo = ReservationSlotRepositoryInfra {};
+
     // 予約枠をみて、予約が可能か調べる
     // NOTE: 並列な予約のoverbooking防止にFOR UPDATEが必要
-    let slots: Vec<ReservationSlotModel> = sqlx::query_as(
-        "SELECT * FROM reservation_slots WHERE start_at >= ? AND end_at <= ? FOR UPDATE",
-    )
-    .bind(req.start_at)
-    .bind(req.end_at)
-    .fetch_all(&mut *tx)
-    .await
-    .map_err(|e| {
-        tracing::warn!("予約枠一覧取得でエラー発生: {e:?}");
-        e
-    })?;
+    let slots = reservation_slot_repo
+        .find_all_between_for_update(&mut *tx, req.start_at, req.end_at)
+        .await
+        .map_err(|e| {
+            tracing::warn!("予約枠一覧取得でエラー発生: {e:?}");
+            e
+        })?;
+
     for slot in slots {
         let count: i64 = sqlx::query_scalar(
             "SELECT slot FROM reservation_slots WHERE start_at = ? AND end_at = ?",
