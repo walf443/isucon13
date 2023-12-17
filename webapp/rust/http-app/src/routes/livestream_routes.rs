@@ -5,13 +5,13 @@ use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use isupipe_core::models::livestream::{Livestream, LivestreamModel};
-use isupipe_core::models::livestream_comment::LivestreamCommentModel;
 use isupipe_core::models::livestream_ranking_entry::LivestreamRankingEntry;
 use isupipe_core::models::livestream_statistics::LivestreamStatistics;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::ng_word::NgWord;
 use isupipe_core::models::reservation_slot::ReservationSlotModel;
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
+use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
 use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
@@ -22,6 +22,7 @@ use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
 use isupipe_infra::repos::livestream_comment_report_repository::LivestreamCommentReportRepositoryInfra;
+use isupipe_infra::repos::livestream_comment_repository::LivestreamCommentRepositoryInfra;
 use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
 use isupipe_infra::repos::livestream_tag_repository::LivestreamTagRepositoryInfra;
 use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepositoryInfra;
@@ -359,13 +360,11 @@ pub async fn moderate_handler(
         .find_all_by_livestream_id(&mut *tx, livestream_id)
         .await?;
 
+    let comment_repo = LivestreamCommentRepositoryInfra {};
     // NGワードにヒットする過去の投稿も全削除する
     for ngword in ng_words {
         // ライブコメント一覧取得
-        let livecomments: Vec<LivestreamCommentModel> =
-            sqlx::query_as("SELECT * FROM livecomments")
-                .fetch_all(&mut *tx)
-                .await?;
+        let livecomments = comment_repo.find_all(&mut *tx).await?;
 
         for livecomment in livecomments {
             let query = r#"

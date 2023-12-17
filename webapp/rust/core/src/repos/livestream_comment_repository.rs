@@ -21,6 +21,8 @@ pub trait LivestreamCommentRepository {
         comment_id: i64,
     ) -> Result<Option<LivestreamCommentModel>>;
 
+    async fn find_all(&self, conn: &mut DBConn) -> Result<Vec<LivestreamCommentModel>>;
+
     async fn find_all_by_livestream_id_order_by_created_at(
         &self,
         conn: &mut DBConn,

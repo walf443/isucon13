@@ -44,6 +44,18 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         Ok(comment)
     }
 
+    async fn find_all(
+        &self,
+        conn: &mut DBConn,
+    ) -> isupipe_core::repos::Result<Vec<LivestreamCommentModel>> {
+        let livecomments: Vec<LivestreamCommentModel> =
+            sqlx::query_as("SELECT * FROM livecomments")
+                .fetch_all(conn)
+                .await?;
+
+        Ok(livecomments)
+    }
+
     async fn find_all_by_livestream_id_order_by_created_at(
         &self,
         conn: &mut DBConn,
