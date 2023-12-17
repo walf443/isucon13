@@ -23,4 +23,21 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
 
         Ok(slots)
     }
+
+    async fn find_slot_between(
+        &self,
+        conn: &mut DBConn,
+        start_at: i64,
+        end_at: i64,
+    ) -> isupipe_core::repos::Result<i64> {
+        let count: i64 = sqlx::query_scalar(
+            "SELECT slot FROM reservation_slots WHERE start_at = ? AND end_at = ?",
+        )
+        .bind(start_at)
+        .bind(end_at)
+        .fetch_one(conn)
+        .await?;
+
+        Ok(count)
+    }
 }

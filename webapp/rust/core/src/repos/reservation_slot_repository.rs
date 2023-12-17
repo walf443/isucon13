@@ -11,4 +11,7 @@ pub trait ReservationSlotRepository {
         start_at: i64,
         end_at: i64,
     ) -> Result<Vec<ReservationSlotModel>>;
+
+    async fn find_slot_between(&self, conn: &mut DBConn, start_at: i64, end_at: i64)
+        -> Result<i64>;
 }

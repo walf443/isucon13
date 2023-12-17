@@ -101,6 +101,10 @@ pub async fn reserve_livestream_handler(
         .bind(slot.end_at)
         .fetch_one(&mut *tx)
         .await?;
+
+        let count = reservation_slot_repo
+            .find_slot_between(&mut *tx, slot.start_at, slot.end_at)
+            .await?;
         tracing::info!(
             "{} ~ {}予約枠の残数 = {}",
             slot.start_at,
