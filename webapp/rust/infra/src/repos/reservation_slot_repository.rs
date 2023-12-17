@@ -40,4 +40,21 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
 
         Ok(count)
     }
+
+    async fn decrement_slot_between(
+        &self,
+        conn: &mut DBConn,
+        start_at: i64,
+        end_at: i64,
+    ) -> isupipe_core::repos::Result<()> {
+        sqlx::query(
+            "UPDATE reservation_slots SET slot = slot - 1 WHERE start_at >= ? AND end_at <= ?",
+        )
+        .bind(start_at)
+        .bind(end_at)
+        .execute(conn)
+        .await?;
+
+        Ok(())
+    }
 }

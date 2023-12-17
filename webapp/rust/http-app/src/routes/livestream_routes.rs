@@ -94,14 +94,6 @@ pub async fn reserve_livestream_handler(
         })?;
 
     for slot in slots {
-        let count: i64 = sqlx::query_scalar(
-            "SELECT slot FROM reservation_slots WHERE start_at = ? AND end_at = ?",
-        )
-        .bind(slot.start_at)
-        .bind(slot.end_at)
-        .fetch_one(&mut *tx)
-        .await?;
-
         let count = reservation_slot_repo
             .find_slot_between(&mut *tx, slot.start_at, slot.end_at)
             .await?;
@@ -125,10 +117,8 @@ pub async fn reserve_livestream_handler(
         }
     }
 
-    sqlx::query("UPDATE reservation_slots SET slot = slot - 1 WHERE start_at >= ? AND end_at <= ?")
-        .bind(req.start_at)
-        .bind(req.end_at)
-        .execute(&mut *tx)
+    reservation_slot_repo
+        .decrement_slot_between(&mut *tx, req.start_at, req.end_at)
         .await?;
 
     let rs = sqlx::query("INSERT INTO livestreams (user_id, title, description, playlist_url, thumbnail_url, start_at, end_at) VALUES(?, ?, ?, ?, ?, ?, ?)")
