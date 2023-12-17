@@ -1,12 +1,32 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::livestream::LivestreamModel;
+use isupipe_core::models::livestream::{CreateLivestreamModel, LivestreamModel};
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
 
 pub struct LivestreamRepositoryInfra {}
 
 #[async_trait]
 impl LivestreamRepository for LivestreamRepositoryInfra {
+    async fn create(
+        &self,
+        conn: &mut DBConn,
+        stream: &CreateLivestreamModel,
+    ) -> isupipe_core::repos::Result<i64> {
+        let rs = sqlx::query("INSERT INTO livestreams (user_id, title, description, playlist_url, thumbnail_url, start_at, end_at) VALUES(?, ?, ?, ?, ?, ?, ?)")
+            .bind(stream.user_id)
+            .bind(&stream.title)
+            .bind(&stream.description)
+            .bind(&stream.playlist_url)
+            .bind(&stream.thumbnail_url)
+            .bind(&stream.start_at)
+            .bind(&stream.end_at)
+            .execute(conn)
+            .await?;
+
+        let livestream_id = rs.last_insert_id() as i64;
+        Ok(livestream_id)
+    }
+
     async fn find_all(
         &self,
         conn: &mut DBConn,

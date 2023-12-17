@@ -4,7 +4,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
-use isupipe_core::models::livestream::{Livestream, LivestreamModel};
+use isupipe_core::models::livestream::{CreateLivestreamModel, Livestream, LivestreamModel};
 use isupipe_core::models::livestream_ranking_entry::LivestreamRankingEntry;
 use isupipe_core::models::livestream_statistics::LivestreamStatistics;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
@@ -121,17 +121,21 @@ pub async fn reserve_livestream_handler(
         .decrement_slot_between(&mut *tx, req.start_at, req.end_at)
         .await?;
 
-    let rs = sqlx::query("INSERT INTO livestreams (user_id, title, description, playlist_url, thumbnail_url, start_at, end_at) VALUES(?, ?, ?, ?, ?, ?, ?)")
-        .bind(user_id)
-        .bind(&req.title)
-        .bind(&req.description)
-        .bind(&req.playlist_url)
-        .bind(&req.thumbnail_url)
-        .bind(req.start_at)
-        .bind(req.end_at)
-        .execute(&mut *tx)
+    let livestream_repo = LivestreamRepositoryInfra {};
+    let livestream_id = livestream_repo
+        .create(
+            &mut *tx,
+            &CreateLivestreamModel {
+                user_id,
+                title: req.title.clone(),
+                description: req.description.clone(),
+                playlist_url: req.playlist_url.clone(),
+                thumbnail_url: req.thumbnail_url.clone(),
+                start_at: req.start_at,
+                end_at: req.end_at,
+            },
+        )
         .await?;
-    let livestream_id = rs.last_insert_id() as i64;
 
     let livestream_tag_repo = LivestreamTagRepositoryInfra {};
     // タグ追加
