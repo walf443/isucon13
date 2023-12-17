@@ -1,5 +1,5 @@
 use crate::db::DBConn;
-use crate::models::livestream_comment_report::LivecommentReportModel;
+use crate::models::livestream_comment_report::LivestreamCommentReportModel;
 use crate::repos::Result;
 use async_trait::async_trait;
 
@@ -19,5 +19,5 @@ pub trait LivestreamCommentReportRepository {
         &self,
         conn: &mut DBConn,
         livestream_id: i64,
-    ) -> Result<Vec<LivecommentReportModel>>;
+    ) -> Result<Vec<LivestreamCommentReportModel>>;
 }

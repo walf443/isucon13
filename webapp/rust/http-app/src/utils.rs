@@ -1,6 +1,8 @@
 use isupipe_core::models::livestream::{Livestream, LivestreamModel};
 use isupipe_core::models::livestream_comment::{LivestreamComment, LivestreamCommentModel};
-use isupipe_core::models::livestream_comment_report::{LivecommentReport, LivecommentReportModel};
+use isupipe_core::models::livestream_comment_report::{
+    LivestreamCommentReport, LivestreamCommentReportModel,
+};
 use isupipe_core::models::livestream_tag::LivestreamTagModel;
 use isupipe_core::models::reaction::{Reaction, ReactionModel};
 use isupipe_core::models::tag::{Tag, TagModel};
@@ -135,8 +137,8 @@ pub async fn fill_reaction_response(
 }
 pub async fn fill_livecomment_report_response(
     tx: &mut MySqlConnection,
-    report_model: LivecommentReportModel,
-) -> sqlx::Result<LivecommentReport> {
+    report_model: LivestreamCommentReportModel,
+) -> sqlx::Result<LivestreamCommentReport> {
     let reporter_model: UserModel = sqlx::query_as("SELECT * FROM users WHERE id = ?")
         .bind(report_model.user_id)
         .fetch_one(&mut *tx)
@@ -150,7 +152,7 @@ pub async fn fill_livecomment_report_response(
             .await?;
     let livecomment = fill_livecomment_response(&mut *tx, livecomment_model).await?;
 
-    Ok(LivecommentReport {
+    Ok(LivestreamCommentReport {
         id: report_model.id,
         reporter,
         livecomment,

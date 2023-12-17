@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::livestream_comment_report::LivecommentReportModel;
+use isupipe_core::models::livestream_comment_report::LivestreamCommentReportModel;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 
@@ -47,8 +47,8 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         &self,
         conn: &mut DBConn,
         livestream_id: i64,
-    ) -> isupipe_core::repos::Result<Vec<LivecommentReportModel>> {
-        let report_models: Vec<LivecommentReportModel> =
+    ) -> isupipe_core::repos::Result<Vec<LivestreamCommentReportModel>> {
+        let report_models: Vec<LivestreamCommentReportModel> =
             sqlx::query_as("SELECT * FROM livecomment_reports WHERE livestream_id = ?")
                 .bind(livestream_id)
                 .fetch_all(conn)

@@ -4,7 +4,9 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
-use isupipe_core::models::livestream_comment_report::{LivecommentReport, LivecommentReportModel};
+use isupipe_core::models::livestream_comment_report::{
+    LivestreamCommentReport, LivestreamCommentReportModel,
+};
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
@@ -19,7 +21,7 @@ pub async fn get_livecomment_reports_handler(
     State(AppState { pool, .. }): State<AppState>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
-) -> Result<axum::Json<Vec<LivecommentReport>>, Error> {
+) -> Result<axum::Json<Vec<LivestreamCommentReport>>, Error> {
     verify_user_session(&jar).await?;
 
     let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
@@ -62,7 +64,7 @@ pub async fn report_livecomment_handler(
     State(AppState { pool, .. }): State<AppState>,
     jar: SignedCookieJar,
     Path((livestream_id, livecomment_id)): Path<(i64, i64)>,
-) -> Result<(StatusCode, axum::Json<LivecommentReport>), Error> {
+) -> Result<(StatusCode, axum::Json<LivestreamCommentReport>), Error> {
     verify_user_session(&jar).await?;
 
     let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
@@ -94,7 +96,7 @@ pub async fn report_livecomment_handler(
 
     let report = fill_livecomment_report_response(
         &mut tx,
-        LivecommentReportModel {
+        LivestreamCommentReportModel {
             id: report_id,
             user_id,
             livestream_id,
