@@ -31,6 +31,35 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         Ok(comment_id)
     }
 
+    async fn remove_if_match_ng_word(
+        &self,
+        conn: &mut DBConn,
+        comment: &LivestreamCommentModel,
+        ng_word: &str,
+    ) -> isupipe_core::repos::Result<()> {
+        let query = r#"
+        DELETE FROM livecomments
+        WHERE
+        id = ? AND
+        livestream_id = ? AND
+        (SELECT COUNT(*)
+        FROM
+        (SELECT ? AS text) AS texts
+        INNER JOIN
+        (SELECT CONCAT('%', ?, '%')	AS pattern) AS patterns
+        ON texts.text LIKE patterns.pattern) >= 1
+        "#;
+        sqlx::query(query)
+            .bind(comment.id)
+            .bind(comment.livestream_id)
+            .bind(&comment.comment)
+            .bind(&ng_word)
+            .execute(conn)
+            .await?;
+
+        Ok(())
+    }
+
     async fn find(
         &self,
         conn: &mut DBConn,

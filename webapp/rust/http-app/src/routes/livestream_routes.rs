@@ -367,24 +367,8 @@ pub async fn moderate_handler(
         let livecomments = comment_repo.find_all(&mut *tx).await?;
 
         for livecomment in livecomments {
-            let query = r#"
-            DELETE FROM livecomments
-            WHERE
-            id = ? AND
-            livestream_id = ? AND
-            (SELECT COUNT(*)
-            FROM
-            (SELECT ? AS text) AS texts
-            INNER JOIN
-            (SELECT CONCAT('%', ?, '%')	AS pattern) AS patterns
-            ON texts.text LIKE patterns.pattern) >= 1
-            "#;
-            sqlx::query(query)
-                .bind(livecomment.id)
-                .bind(livestream_id)
-                .bind(livecomment.comment)
-                .bind(&ngword.word)
-                .execute(&mut *tx)
+            comment_repo
+                .remove_if_match_ng_word(&mut *tx, &livecomment, &ngword.word)
                 .await?;
         }
     }

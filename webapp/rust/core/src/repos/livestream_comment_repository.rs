@@ -15,6 +15,13 @@ pub trait LivestreamCommentRepository {
         created_at: i64,
     ) -> Result<i64>;
 
+    async fn remove_if_match_ng_word(
+        &self,
+        conn: &mut DBConn,
+        comment: &LivestreamCommentModel,
+        ng_word: &str,
+    ) -> Result<()>;
+
     async fn find(
         &self,
         conn: &mut DBConn,
