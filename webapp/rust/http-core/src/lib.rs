@@ -4,6 +4,7 @@ use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
 
 pub mod error;
+pub mod responses;
 pub mod state;
 
 pub const DEFAULT_SESSION_ID_KEY: &str = "SESSIONID";

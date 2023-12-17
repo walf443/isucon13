@@ -1,3 +1,4 @@
+use crate::responses::ResponseError;
 use axum::http::StatusCode;
 use isupipe_core::repos::ReposError;
 use isupipe_core::utils::UtilError;
@@ -11,6 +12,8 @@ pub enum Error {
     Sqlx(#[from] sqlx::Error),
     #[error("Repos error: {0}")]
     ReposError(#[from] ReposError),
+    #[error("response error: {0}")]
+    ResponseError(#[from] ResponseError),
     #[error("utils error: {0}")]
     UtilsError(#[from] UtilError),
     #[error("bcrypt error: {0}")]
@@ -46,6 +49,7 @@ impl axum::response::IntoResponse for Error {
             Self::Io(_)
             | Self::Sqlx(_)
             | Self::ReposError(_)
+            | Self::ResponseError(_)
             | Self::UtilsError(_)
             | Self::Bcrypt(_)
             | Self::AsyncSession(_)

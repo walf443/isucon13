@@ -1,10 +1,10 @@
-use crate::utils::{fill_livestream_response, fill_user_response};
+use crate::responses::user_response::UserResponse;
+use crate::utils::{fill_livestream_response};
 use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, State};
 use axum_extra::extract::SignedCookieJar;
 use isupipe_core::models::livestream::Livestream;
 use isupipe_core::models::theme::Theme;
-use isupipe_core::models::user::User;
 use isupipe_core::models::user_ranking_entry::UserRankingEntry;
 use isupipe_core::models::user_statistics::UserStatistics;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
@@ -85,7 +85,7 @@ pub async fn get_user_livestreams_handler(
 pub async fn get_me_handler(
     State(AppState { pool, .. }): State<AppState>,
     jar: SignedCookieJar,
-) -> Result<axum::Json<User>, Error> {
+) -> Result<axum::Json<UserResponse>, Error> {
     verify_user_session(&jar).await?;
 
     let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
@@ -105,7 +105,7 @@ pub async fn get_me_handler(
             "not found user that has the userid in session".into(),
         ))?;
 
-    let user = fill_user_response(&mut tx, user_model).await?;
+    let user = UserResponse::build(&mut *tx, user_model).await?;
 
     tx.commit().await?;
 
@@ -118,7 +118,7 @@ pub async fn get_user_handler(
     State(AppState { pool, .. }): State<AppState>,
     jar: SignedCookieJar,
     Path((username,)): Path<(String,)>,
-) -> Result<axum::Json<User>, Error> {
+) -> Result<axum::Json<UserResponse>, Error> {
     verify_user_session(&jar).await?;
 
     let mut tx = pool.begin().await?;
@@ -131,7 +131,7 @@ pub async fn get_user_handler(
             "not found user that has the given username".into(),
         ))?;
 
-    let user = fill_user_response(&mut tx, user_model).await?;
+    let user = UserResponse::build(&mut *tx, user_model).await?;
 
     tx.commit().await?;
 

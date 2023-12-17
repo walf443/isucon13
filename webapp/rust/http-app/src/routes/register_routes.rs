@@ -1,7 +1,7 @@
-use crate::utils::fill_user_response;
+use crate::responses::user_response::UserResponse;
 use axum::extract::State;
 use axum::http::StatusCode;
-use isupipe_core::models::user::{User, UserModel};
+use isupipe_core::models::user::UserModel;
 use isupipe_core::repos::theme_repository::ThemeRepository;
 use isupipe_core::repos::user_repository::UserRepository;
 use isupipe_http_core::error::Error;
@@ -33,7 +33,7 @@ pub async fn register_handler(
         ..
     }): State<AppState>,
     axum::Json(req): axum::Json<PostUserRequest>,
-) -> Result<(StatusCode, axum::Json<User>), Error> {
+) -> Result<(StatusCode, axum::Json<UserResponse>), Error> {
     if req.name == "pipe" {
         return Err(Error::BadRequest("the username 'pipe' is reserved".into()));
     }
@@ -76,8 +76,8 @@ pub async fn register_handler(
         )));
     }
 
-    let user = fill_user_response(
-        &mut tx,
+    let user = UserResponse::build(
+        &mut *tx,
         UserModel {
             id: user_id,
             name: req.name,
