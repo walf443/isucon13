@@ -7,7 +7,6 @@ use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use isupipe_core::models::livestream::{CreateLivestreamModel, Livestream, LivestreamModel};
 use isupipe_core::models::livestream_ranking_entry::LivestreamRankingEntry;
 use isupipe_core::models::livestream_statistics::LivestreamStatistics;
-use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::ng_word::NgWord;
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
@@ -452,7 +451,7 @@ pub async fn get_livestream_statistics_handler(
             .await?;
 
         let total_tips = comment_repo
-            .get_sum_of_tips_by_livestream_id(&mut *tx, livestream.id)
+            .get_sum_tip_of_livestream_id(&mut *tx, livestream.id)
             .await?;
 
         let score = reactions + total_tips;
@@ -480,9 +479,8 @@ pub async fn get_livestream_statistics_handler(
         .await?;
 
     // 最大チップ額
-    let MysqlDecimal(max_tip) = sqlx::query_scalar("SELECT IFNULL(MAX(tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l2.livestream_id = l.id WHERE l.id = ?")
-        .bind(livestream_id)
-        .fetch_one(&mut *tx)
+    let max_tip = comment_repo
+        .get_max_tip_of_livestream_id(&mut *tx, livestream_id)
         .await?;
 
     // リアクション数

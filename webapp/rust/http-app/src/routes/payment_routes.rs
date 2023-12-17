@@ -15,7 +15,7 @@ pub async fn get_payment_result(
     let mut tx = pool.begin().await?;
 
     let comment_repo = LivestreamCommentRepositoryInfra {};
-    let total_tip = comment_repo.get_sum_of_tips(&mut *tx).await?;
+    let total_tip = comment_repo.get_sum_tip(&mut *tx).await?;
 
     tx.commit().await?;
 

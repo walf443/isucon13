@@ -43,9 +43,15 @@ pub trait LivestreamCommentRepository {
         limit: i64,
     ) -> Result<Vec<LivestreamCommentModel>>;
 
-    async fn get_sum_of_tips(&self, conn: &mut DBConn) -> Result<i64>;
+    async fn get_sum_tip(&self, conn: &mut DBConn) -> Result<i64>;
 
-    async fn get_sum_of_tips_by_livestream_id(
+    async fn get_sum_tip_of_livestream_id(
+        &self,
+        conn: &mut DBConn,
+        livestream_id: i64,
+    ) -> Result<i64>;
+
+    async fn get_max_tip_of_livestream_id(
         &self,
         conn: &mut DBConn,
         livestream_id: i64,

@@ -121,7 +121,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         Ok(comments)
     }
 
-    async fn get_sum_of_tips(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<i64> {
+    async fn get_sum_tip(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<i64> {
         let MysqlDecimal(total_tip) =
             sqlx::query_scalar("SELECT IFNULL(SUM(tip), 0) FROM livecomments")
                 .fetch_one(conn)
@@ -130,7 +130,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         Ok(total_tip)
     }
 
-    async fn get_sum_of_tips_by_livestream_id(
+    async fn get_sum_tip_of_livestream_id(
         &self,
         conn: &mut DBConn,
         livestream_id: i64,
@@ -141,5 +141,18 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
             .await?;
 
         Ok(total_tips)
+    }
+
+    async fn get_max_tip_of_livestream_id(
+        &self,
+        conn: &mut DBConn,
+        livestream_id: i64,
+    ) -> isupipe_core::repos::Result<i64> {
+        let MysqlDecimal(max_tip) = sqlx::query_scalar("SELECT IFNULL(MAX(tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l2.livestream_id = l.id WHERE l.id = ?")
+            .bind(livestream_id)
+            .fetch_one(conn)
+            .await?;
+
+        Ok(max_tip)
     }
 }
