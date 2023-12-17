@@ -8,13 +8,14 @@ use isupipe_core::models::reaction::{Reaction, ReactionModel};
 use isupipe_core::models::tag::{Tag, TagModel};
 use isupipe_core::models::theme::{Theme, ThemeModel};
 use isupipe_core::models::user::{User, UserModel};
+use isupipe_core::utils::UtilResult;
 use isupipe_http_core::FALLBACK_IMAGE;
 use sqlx::MySqlConnection;
 
 pub async fn fill_user_response(
     tx: &mut MySqlConnection,
     user_model: UserModel,
-) -> sqlx::Result<User> {
+) -> UtilResult<User> {
     let theme_model: ThemeModel = sqlx::query_as("SELECT * FROM themes WHERE user_id = ?")
         .bind(user_model.id)
         .fetch_one(&mut *tx)
@@ -47,7 +48,7 @@ pub async fn fill_user_response(
 pub async fn fill_livestream_response(
     tx: &mut MySqlConnection,
     livestream_model: LivestreamModel,
-) -> sqlx::Result<Livestream> {
+) -> UtilResult<Livestream> {
     let owner_model: UserModel = sqlx::query_as("SELECT * FROM users WHERE id = ?")
         .bind(livestream_model.user_id)
         .fetch_one(&mut *tx)
@@ -87,7 +88,7 @@ pub async fn fill_livestream_response(
 pub async fn fill_livecomment_response(
     tx: &mut MySqlConnection,
     livecomment_model: LivestreamCommentModel,
-) -> sqlx::Result<LivestreamComment> {
+) -> UtilResult<LivestreamComment> {
     let comment_owner_model: UserModel = sqlx::query_as("SELECT * FROM users WHERE id = ?")
         .bind(livecomment_model.user_id)
         .fetch_one(&mut *tx)
@@ -113,7 +114,7 @@ pub async fn fill_livecomment_response(
 pub async fn fill_reaction_response(
     tx: &mut MySqlConnection,
     reaction_model: ReactionModel,
-) -> sqlx::Result<Reaction> {
+) -> UtilResult<Reaction> {
     let user_model: UserModel = sqlx::query_as("SELECT * FROM users WHERE id = ?")
         .bind(reaction_model.user_id)
         .fetch_one(&mut *tx)
@@ -138,7 +139,7 @@ pub async fn fill_reaction_response(
 pub async fn fill_livecomment_report_response(
     tx: &mut MySqlConnection,
     report_model: LivestreamCommentReportModel,
-) -> sqlx::Result<LivestreamCommentReport> {
+) -> UtilResult<LivestreamCommentReport> {
     let reporter_model: UserModel = sqlx::query_as("SELECT * FROM users WHERE id = ?")
         .bind(report_model.user_id)
         .fetch_one(&mut *tx)
