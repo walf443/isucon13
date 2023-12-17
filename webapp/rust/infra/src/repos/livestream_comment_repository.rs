@@ -129,4 +129,17 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
 
         Ok(total_tip)
     }
+
+    async fn get_sum_of_tips_by_livestream_id(
+        &self,
+        conn: &mut DBConn,
+        livestream_id: i64,
+    ) -> isupipe_core::repos::Result<i64> {
+        let MysqlDecimal(total_tips) = sqlx::query_scalar("SELECT IFNULL(SUM(l2.tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l.id = l2.livestream_id WHERE l.id = ?")
+            .bind(livestream_id)
+            .fetch_one(conn)
+            .await?;
+
+        Ok(total_tips)
+    }
 }

@@ -445,14 +445,14 @@ pub async fn get_livestream_statistics_handler(
     // ランク算出
     let mut ranking = Vec::new();
     let reaction_repo = ReactionRepositoryInfra {};
+    let comment_repo = LivestreamCommentRepositoryInfra {};
     for livestream in livestreams {
         let reactions = reaction_repo
             .count_by_livestream_id(&mut *tx, livestream.id)
             .await?;
 
-        let MysqlDecimal(total_tips) = sqlx::query_scalar("SELECT IFNULL(SUM(l2.tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l.id = l2.livestream_id WHERE l.id = ?")
-            .bind(livestream.id)
-            .fetch_one(&mut *tx)
+        let total_tips = comment_repo
+            .get_sum_of_tips_by_livestream_id(&mut *tx, livestream.id)
             .await?;
 
         let score = reactions + total_tips;
