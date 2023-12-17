@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream_comment::LivestreamCommentModel;
+use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 
 pub struct LivestreamCommentRepositoryInfra {}
@@ -118,5 +119,14 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
             .await?;
 
         Ok(comments)
+    }
+
+    async fn get_sum_of_tips(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<i64> {
+        let MysqlDecimal(total_tip) =
+            sqlx::query_scalar("SELECT IFNULL(SUM(tip), 0) FROM livecomments")
+                .fetch_one(conn)
+                .await?;
+
+        Ok(total_tip)
     }
 }

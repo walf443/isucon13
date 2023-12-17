@@ -42,4 +42,6 @@ pub trait LivestreamCommentRepository {
         livestream_id: i64,
         limit: i64,
     ) -> Result<Vec<LivestreamCommentModel>>;
+
+    async fn get_sum_of_tips(&self, conn: &mut DBConn) -> Result<i64>;
 }

@@ -1,7 +1,8 @@
 use axum::extract::State;
-use isupipe_core::models::mysql_decimal::MysqlDecimal;
+use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
+use isupipe_infra::repos::livestream_comment_repository::LivestreamCommentRepositoryInfra;
 
 #[derive(Debug, serde::Serialize)]
 pub struct PaymentResult {
@@ -13,10 +14,8 @@ pub async fn get_payment_result(
 ) -> Result<axum::Json<PaymentResult>, Error> {
     let mut tx = pool.begin().await?;
 
-    let MysqlDecimal(total_tip) =
-        sqlx::query_scalar("SELECT IFNULL(SUM(tip), 0) FROM livecomments")
-            .fetch_one(&mut *tx)
-            .await?;
+    let comment_repo = LivestreamCommentRepositoryInfra {};
+    let total_tip = comment_repo.get_sum_of_tips(&mut *tx).await?;
 
     tx.commit().await?;
 
