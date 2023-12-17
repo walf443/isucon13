@@ -22,6 +22,20 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
         Ok(())
     }
 
+    async fn find_all_by_livestream_id(
+        &self,
+        conn: &mut DBConn,
+        livestream_id: i64,
+    ) -> isupipe_core::repos::Result<Vec<LivestreamTagModel>> {
+        let livestream_tag_models =
+            sqlx::query_as("SELECT * FROM livestream_tags WHERE livestream_id = ?")
+                .bind(livestream_id)
+                .fetch_all(conn)
+                .await?;
+
+        Ok(livestream_tag_models)
+    }
+
     async fn find_all_by_tag_ids(
         &self,
         conn: &mut DBConn,

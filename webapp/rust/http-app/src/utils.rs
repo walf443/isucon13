@@ -3,28 +3,36 @@ use isupipe_core::models::livestream_comment::{LivestreamComment, LivestreamComm
 use isupipe_core::models::livestream_comment_report::{
     LivestreamCommentReport, LivestreamCommentReportModel,
 };
-use isupipe_core::models::livestream_tag::LivestreamTagModel;
 use isupipe_core::models::reaction::{Reaction, ReactionModel};
-use isupipe_core::models::tag::{Tag, TagModel};
-use isupipe_core::models::theme::{Theme, ThemeModel};
+use isupipe_core::models::tag::Tag;
+use isupipe_core::models::theme::Theme;
 use isupipe_core::models::user::{User, UserModel};
+use isupipe_core::repos::icon_repository::IconRepository;
+use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
+use isupipe_core::repos::tag_repository::TagRepository;
+use isupipe_core::repos::theme_repository::ThemeRepository;
+use isupipe_core::repos::user_repository::UserRepository;
 use isupipe_core::utils::UtilResult;
 use isupipe_http_core::FALLBACK_IMAGE;
+use isupipe_infra::repos::icon_repository::IconRepositoryInfra;
+use isupipe_infra::repos::livestream_tag_repository::LivestreamTagRepositoryInfra;
+use isupipe_infra::repos::tag_repository::TagRepositoryInfra;
+use isupipe_infra::repos::theme_repository::ThemeRepositoryInfra;
+use isupipe_infra::repos::user_repository::UserRepositoryInfra;
 use sqlx::MySqlConnection;
 
 pub async fn fill_user_response(
     tx: &mut MySqlConnection,
     user_model: UserModel,
 ) -> UtilResult<User> {
-    let theme_model: ThemeModel = sqlx::query_as("SELECT * FROM themes WHERE user_id = ?")
-        .bind(user_model.id)
-        .fetch_one(&mut *tx)
+    let theme_repo = ThemeRepositoryInfra {};
+    let theme_model = theme_repo.find_by_user_id(&mut *tx, user_model.id).await?;
+
+    let icon_repo = IconRepositoryInfra {};
+    let image = icon_repo
+        .find_image_by_user_id(&mut *tx, user_model.id)
         .await?;
 
-    let image: Option<Vec<u8>> = sqlx::query_scalar("SELECT image FROM icons WHERE user_id = ?")
-        .bind(user_model.id)
-        .fetch_optional(&mut *tx)
-        .await?;
     let image = if let Some(image) = image {
         image
     } else {
@@ -49,24 +57,22 @@ pub async fn fill_livestream_response(
     tx: &mut MySqlConnection,
     livestream_model: LivestreamModel,
 ) -> UtilResult<Livestream> {
-    let owner_model: UserModel = sqlx::query_as("SELECT * FROM users WHERE id = ?")
-        .bind(livestream_model.user_id)
-        .fetch_one(&mut *tx)
-        .await?;
+    let user_repo = UserRepositoryInfra {};
+    let owner_model = user_repo
+        .find(&mut *tx, livestream_model.user_id)
+        .await?
+        .unwrap();
     let owner = fill_user_response(tx, owner_model).await?;
 
-    let livestream_tag_models: Vec<LivestreamTagModel> =
-        sqlx::query_as("SELECT * FROM livestream_tags WHERE livestream_id = ?")
-            .bind(livestream_model.id)
-            .fetch_all(&mut *tx)
-            .await?;
+    let livestream_tag_repo = LivestreamTagRepositoryInfra {};
+    let livestream_tag_models = livestream_tag_repo
+        .find_all_by_livestream_id(&mut *tx, livestream_model.id)
+        .await?;
 
+    let tag_repo = TagRepositoryInfra {};
     let mut tags = Vec::with_capacity(livestream_tag_models.len());
     for livestream_tag_model in livestream_tag_models {
-        let tag_model: TagModel = sqlx::query_as("SELECT * FROM tags WHERE id = ?")
-            .bind(livestream_tag_model.tag_id)
-            .fetch_one(&mut *tx)
-            .await?;
+        let tag_model = tag_repo.find(&mut *tx, livestream_tag_model.tag_id).await?;
         tags.push(Tag {
             id: tag_model.id,
             name: tag_model.name,
