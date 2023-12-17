@@ -16,6 +16,12 @@ pub trait ReactionRepository {
 
     async fn count_by_livestream_id(&self, conn: &mut DBConn, livestream_id: i64) -> Result<i64>;
 
+    async fn most_favorite_emoji_by_livestream_user_name(
+        &self,
+        conn: &mut DBConn,
+        livestream_user_name: &str,
+    ) -> Result<String>;
+
     async fn count_by_livestream_user_id(
         &self,
         conn: &mut DBConn,

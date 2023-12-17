@@ -42,16 +42,40 @@ impl ReactionRepository for ReactionRepositoryInfra {
         Ok(reactions)
     }
 
+    async fn most_favorite_emoji_by_livestream_user_name(
+        &self,
+        conn: &mut DBConn,
+        livestream_user_name: &str,
+    ) -> isupipe_core::repos::Result<String> {
+        let query = r#"
+            SELECT r.emoji_name
+            FROM users u
+            INNER JOIN livestreams l ON l.user_id = u.id
+            INNER JOIN reactions r ON r.livestream_id = l.id
+            WHERE u.name = ?
+            GROUP BY emoji_name
+            ORDER BY COUNT(*) DESC, emoji_name DESC
+            LIMIT 1
+        "#;
+        let favorite_emoji: String = sqlx::query_scalar(query)
+            .bind(livestream_user_name)
+            .fetch_optional(conn)
+            .await?
+            .unwrap_or_default();
+
+        Ok(favorite_emoji)
+    }
+
     async fn count_by_livestream_user_id(
         &self,
         conn: &mut DBConn,
         livestream_user_id: i64,
     ) -> isupipe_core::repos::Result<i64> {
         let query = r#"
-        SELECT COUNT(*) FROM users u
-        INNER JOIN livestreams l ON l.user_id = u.id
-        INNER JOIN reactions r ON r.livestream_id = l.id
-        WHERE u.id = ?
+            SELECT COUNT(*) FROM users u
+            INNER JOIN livestreams l ON l.user_id = u.id
+            INNER JOIN reactions r ON r.livestream_id = l.id
+            WHERE u.id = ?
         "#;
         let MysqlDecimal(reactions) = sqlx::query_scalar(query)
             .bind(livestream_user_id)
@@ -67,11 +91,11 @@ impl ReactionRepository for ReactionRepositoryInfra {
         livestream_user_name: &str,
     ) -> isupipe_core::repos::Result<i64> {
         let query = r"#
-    SELECT COUNT(*) FROM users u
-    INNER JOIN livestreams l ON l.user_id = u.id
-    INNER JOIN reactions r ON r.livestream_id = l.id
-    WHERE u.name = ?
-    #";
+            SELECT COUNT(*) FROM users u
+            INNER JOIN livestreams l ON l.user_id = u.id
+            INNER JOIN reactions r ON r.livestream_id = l.id
+            WHERE u.name = ?
+        #";
         let MysqlDecimal(total_reactions) = sqlx::query_scalar(query)
             .bind(livestream_user_name)
             .fetch_one(conn)

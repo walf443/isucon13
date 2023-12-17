@@ -190,7 +190,9 @@ pub async fn get_user_statistics_handler(
     let rank = (ranking.len() - rpos) as i64;
 
     // リアクション数
-    let total_reactions = reaction_repo.count_by_livestream_user_name(&mut *tx, &username).await?;
+    let total_reactions = reaction_repo
+        .count_by_livestream_user_name(&mut *tx, &username)
+        .await?;
 
     // ライブコメント数、チップ合計
     let mut total_livecomments = 0;
@@ -225,21 +227,9 @@ pub async fn get_user_statistics_handler(
     }
 
     // お気に入り絵文字
-    let query = r#"
-    SELECT r.emoji_name
-    FROM users u
-    INNER JOIN livestreams l ON l.user_id = u.id
-    INNER JOIN reactions r ON r.livestream_id = l.id
-    WHERE u.name = ?
-    GROUP BY emoji_name
-    ORDER BY COUNT(*) DESC, emoji_name DESC
-    LIMIT 1
-    "#;
-    let favorite_emoji: String = sqlx::query_scalar(query)
-        .bind(&username)
-        .fetch_optional(&mut *tx)
-        .await?
-        .unwrap_or_default();
+    let favorite_emoji = reaction_repo
+        .most_favorite_emoji_by_livestream_user_name(&mut *tx, &username)
+        .await?;
 
     Ok(axum::Json(UserStatistics {
         rank,
