@@ -1,5 +1,5 @@
 #[derive(Debug, sqlx::FromRow)]
-pub struct ReactionModel {
+pub struct Reaction {
     pub id: i64,
     pub emoji_name: String,
     pub user_id: i64,

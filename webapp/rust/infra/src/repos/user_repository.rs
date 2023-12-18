@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::user::UserModel;
+use isupipe_core::models::user::User;
 use isupipe_core::repos::user_repository::UserRepository;
 
 pub struct UserRepositoryInfra {}
@@ -36,7 +36,7 @@ impl UserRepository for UserRepositoryInfra {
         &self,
         conn: &mut DBConn,
         id: i64,
-    ) -> isupipe_core::repos::Result<Option<UserModel>> {
+    ) -> isupipe_core::repos::Result<Option<User>> {
         let user_model = sqlx::query_as("SELECT * FROM users WHERE id = ?")
             .bind(id)
             .fetch_optional(conn)
@@ -45,8 +45,8 @@ impl UserRepository for UserRepositoryInfra {
         Ok(user_model)
     }
 
-    async fn find_all(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<Vec<UserModel>> {
-        let users: Vec<UserModel> = sqlx::query_as("SELECT * FROM users")
+    async fn find_all(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<Vec<User>> {
+        let users: Vec<User> = sqlx::query_as("SELECT * FROM users")
             .fetch_all(conn)
             .await?;
 
@@ -70,8 +70,8 @@ impl UserRepository for UserRepositoryInfra {
         &self,
         conn: &mut DBConn,
         name: &str,
-    ) -> isupipe_core::repos::Result<Option<UserModel>> {
-        let user_model: Option<UserModel> = sqlx::query_as("SELECT * FROM users WHERE name = ?")
+    ) -> isupipe_core::repos::Result<Option<User>> {
+        let user_model: Option<User> = sqlx::query_as("SELECT * FROM users WHERE name = ?")
             .bind(name)
             .fetch_optional(conn)
             .await?;

@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::theme::ThemeModel;
+use isupipe_core::models::theme::Theme;
 use isupipe_core::repos::theme_repository::ThemeRepository;
 
 pub struct ThemeRepositoryInfra {}
@@ -26,8 +26,8 @@ impl ThemeRepository for ThemeRepositoryInfra {
         &self,
         conn: &mut DBConn,
         user_id: i64,
-    ) -> isupipe_core::repos::Result<ThemeModel> {
-        let theme_model: ThemeModel = sqlx::query_as("SELECT * FROM themes WHERE user_id = ?")
+    ) -> isupipe_core::repos::Result<Theme> {
+        let theme_model: Theme = sqlx::query_as("SELECT * FROM themes WHERE user_id = ?")
             .bind(user_id)
             .fetch_one(conn)
             .await?;

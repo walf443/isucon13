@@ -1,5 +1,5 @@
 use crate::db::DBConn;
-use crate::models::user::UserModel;
+use crate::models::user::User;
 use crate::repos::Result;
 use async_trait::async_trait;
 
@@ -20,8 +20,8 @@ pub trait UserRepository {
         Ok(hashed_password)
     }
 
-    async fn find(&self, conn: &mut DBConn, id: i64) -> Result<Option<UserModel>>;
-    async fn find_all(&self, conn: &mut DBConn) -> Result<Vec<UserModel>>;
+    async fn find(&self, conn: &mut DBConn, id: i64) -> Result<Option<User>>;
+    async fn find_all(&self, conn: &mut DBConn) -> Result<Vec<User>>;
     async fn find_id_by_name(&self, conn: &mut DBConn, name: &str) -> Result<Option<i64>>;
-    async fn find_by_name(&self, conn: &mut DBConn, name: &str) -> Result<Option<UserModel>>;
+    async fn find_by_name(&self, conn: &mut DBConn, name: &str) -> Result<Option<User>>;
 }

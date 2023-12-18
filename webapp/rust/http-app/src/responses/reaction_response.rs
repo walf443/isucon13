@@ -1,7 +1,7 @@
 use crate::responses::livestream_response::LivestreamResponse;
 use crate::responses::user_response::UserResponse;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::reaction::ReactionModel;
+use isupipe_core::models::reaction::Reaction;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
 use isupipe_core::repos::user_repository::UserRepository;
 use isupipe_http_core::responses::ResponseResult;
@@ -18,7 +18,7 @@ pub struct ReactionResponse {
 }
 
 impl ReactionResponse {
-    pub async fn build(conn: &mut DBConn, reaction_model: ReactionModel) -> ResponseResult<Self> {
+    pub async fn build(conn: &mut DBConn, reaction_model: Reaction) -> ResponseResult<Self> {
         let user_repo = UserRepositoryInfra {};
         let user_model = user_repo.find(conn, reaction_model.user_id).await?.unwrap();
         let user = UserResponse::build(conn, user_model).await?;

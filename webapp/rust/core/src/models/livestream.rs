@@ -1,4 +1,4 @@
-pub struct CreateLivestreamModel {
+pub struct CreateLivestream {
     pub user_id: i64,
     pub title: String,
     pub description: String,
@@ -9,7 +9,7 @@ pub struct CreateLivestreamModel {
 }
 
 #[derive(Debug, sqlx::FromRow)]
-pub struct LivestreamModel {
+pub struct Livestream {
     pub id: i64,
     pub user_id: i64,
     pub title: String,

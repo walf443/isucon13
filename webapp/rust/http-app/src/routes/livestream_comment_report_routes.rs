@@ -4,7 +4,7 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
-use isupipe_core::models::livestream_comment_report::LivestreamCommentReportModel;
+use isupipe_core::models::livestream_comment_report::LivestreamCommentReport;
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
@@ -94,7 +94,7 @@ pub async fn report_livecomment_handler(
 
     let report = LivestreamCommentReportResponse::build(
         &mut tx,
-        LivestreamCommentReportModel {
+        LivestreamCommentReport {
             id: report_id,
             user_id,
             livestream_id,

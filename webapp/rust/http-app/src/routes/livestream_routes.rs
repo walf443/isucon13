@@ -4,7 +4,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
-use isupipe_core::models::livestream::{CreateLivestreamModel, LivestreamModel};
+use isupipe_core::models::livestream::{CreateLivestream, Livestream};
 use isupipe_core::models::livestream_ranking_entry::LivestreamRankingEntry;
 use isupipe_core::models::livestream_statistics::LivestreamStatistics;
 use isupipe_core::models::ng_word::NgWord;
@@ -124,7 +124,7 @@ pub async fn reserve_livestream_handler(
     let livestream_id = livestream_repo
         .create(
             &mut *tx,
-            &CreateLivestreamModel {
+            &CreateLivestream {
                 user_id,
                 title: req.title.clone(),
                 description: req.description.clone(),
@@ -146,7 +146,7 @@ pub async fn reserve_livestream_handler(
 
     let livestream = LivestreamResponse::build(
         &mut tx,
-        LivestreamModel {
+        Livestream {
             id: livestream_id,
             user_id,
             title: req.title,
@@ -183,7 +183,7 @@ pub async fn search_livestreams_handler(
 
     let mut tx = pool.begin().await?;
 
-    let livestream_models: Vec<LivestreamModel> = if key_tag_name.is_empty() {
+    let livestream_models: Vec<Livestream> = if key_tag_name.is_empty() {
         if limit.is_empty() {
             livestream_repo.find_all_order_by_id_desc(&mut *tx).await?
         } else {

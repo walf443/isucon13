@@ -1,5 +1,5 @@
 #[derive(Debug, sqlx::FromRow)]
-pub struct ReservationSlotModel {
+pub struct ReservationSlot {
     #[allow(unused)]
     pub id: i64,
     pub slot: i64,

@@ -1,5 +1,5 @@
 use isupipe_core::db::DBConn;
-use isupipe_core::models::user::UserModel;
+use isupipe_core::models::user::User;
 use isupipe_core::repos::icon_repository::IconRepository;
 use isupipe_core::repos::theme_repository::ThemeRepository;
 use isupipe_http_core::responses::ResponseResult;
@@ -21,7 +21,7 @@ pub struct UserResponse {
 }
 
 impl UserResponse {
-    pub async fn build(conn: &mut DBConn, user: UserModel) -> ResponseResult<Self> {
+    pub async fn build(conn: &mut DBConn, user: User) -> ResponseResult<Self> {
         let theme_repo = ThemeRepositoryInfra {};
         let theme_model = theme_repo.find_by_user_id(conn, user.id).await?;
 

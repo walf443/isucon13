@@ -1,5 +1,5 @@
 use crate::db::DBConn;
-use crate::models::reservation_slot::ReservationSlotModel;
+use crate::models::reservation_slot::ReservationSlot;
 use crate::repos::Result;
 use async_trait::async_trait;
 
@@ -10,7 +10,7 @@ pub trait ReservationSlotRepository {
         conn: &mut DBConn,
         start_at: i64,
         end_at: i64,
-    ) -> Result<Vec<ReservationSlotModel>>;
+    ) -> Result<Vec<ReservationSlot>>;
 
     async fn find_slot_between(&self, conn: &mut DBConn, start_at: i64, end_at: i64)
         -> Result<i64>;

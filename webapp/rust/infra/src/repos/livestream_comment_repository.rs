@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::livestream_comment::LivestreamCommentModel;
+use isupipe_core::models::livestream_comment::LivestreamComment;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 
@@ -35,7 +35,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     async fn remove_if_match_ng_word(
         &self,
         conn: &mut DBConn,
-        comment: &LivestreamCommentModel,
+        comment: &LivestreamComment,
         ng_word: &str,
     ) -> isupipe_core::repos::Result<()> {
         let query = r#"
@@ -65,7 +65,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         &self,
         conn: &mut DBConn,
         comment_id: i64,
-    ) -> isupipe_core::repos::Result<Option<LivestreamCommentModel>> {
+    ) -> isupipe_core::repos::Result<Option<LivestreamComment>> {
         let comment = sqlx::query_as("SELECT * FROM livecomments WHERE id = ?")
             .bind(comment_id)
             .fetch_optional(conn)
@@ -77,8 +77,8 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     async fn find_all(
         &self,
         conn: &mut DBConn,
-    ) -> isupipe_core::repos::Result<Vec<LivestreamCommentModel>> {
-        let livecomments: Vec<LivestreamCommentModel> =
+    ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
+        let livecomments: Vec<LivestreamComment> =
             sqlx::query_as("SELECT * FROM livecomments")
                 .fetch_all(conn)
                 .await?;
@@ -90,8 +90,8 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         &self,
         conn: &mut DBConn,
         livestream_id: i64,
-    ) -> isupipe_core::repos::Result<Vec<LivestreamCommentModel>> {
-        let comments: Vec<LivestreamCommentModel> =
+    ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
+        let comments: Vec<LivestreamComment> =
             sqlx::query_as("SELECT * FROM livecomments WHERE livestream_id = ?")
                 .bind(livestream_id)
                 .fetch_all(conn)
@@ -104,11 +104,11 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         &self,
         conn: &mut DBConn,
         livestream_id: i64,
-    ) -> isupipe_core::repos::Result<Vec<LivestreamCommentModel>> {
+    ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
         let query = "SELECT * FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC"
             .to_owned();
 
-        let comments: Vec<LivestreamCommentModel> = sqlx::query_as(&query)
+        let comments: Vec<LivestreamComment> = sqlx::query_as(&query)
             .bind(livestream_id)
             .fetch_all(conn)
             .await?;
@@ -121,12 +121,12 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: i64,
         limit: i64,
-    ) -> isupipe_core::repos::Result<Vec<LivestreamCommentModel>> {
+    ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
         let query =
             "SELECT * FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC LIMIT ?"
                 .to_owned();
 
-        let comments: Vec<LivestreamCommentModel> = sqlx::query_as(&query)
+        let comments: Vec<LivestreamComment> = sqlx::query_as(&query)
             .bind(livestream_id)
             .bind(limit)
             .fetch_all(conn)

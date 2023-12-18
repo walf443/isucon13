@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::reservation_slot::ReservationSlotModel;
+use isupipe_core::models::reservation_slot::ReservationSlot;
 use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
 
 pub struct ReservationSlotRepositoryInfra {}
@@ -12,8 +12,8 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         conn: &mut DBConn,
         start_at: i64,
         end_at: i64,
-    ) -> isupipe_core::repos::Result<Vec<ReservationSlotModel>> {
-        let slots: Vec<ReservationSlotModel> = sqlx::query_as(
+    ) -> isupipe_core::repos::Result<Vec<ReservationSlot>> {
+        let slots: Vec<ReservationSlot> = sqlx::query_as(
             "SELECT * FROM reservation_slots WHERE start_at >= ? AND end_at <= ? FOR UPDATE",
         )
         .bind(start_at)

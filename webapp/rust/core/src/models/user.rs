@@ -1,6 +1,6 @@
 
 #[derive(Debug, sqlx::FromRow)]
-pub struct UserModel {
+pub struct User {
     pub id: i64,
     pub name: String,
     pub display_name: Option<String>,

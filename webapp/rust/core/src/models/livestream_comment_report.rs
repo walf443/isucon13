@@ -1,5 +1,5 @@
 #[derive(Debug, sqlx::FromRow)]
-pub struct LivestreamCommentReportModel {
+pub struct LivestreamCommentReport {
     pub id: i64,
     pub user_id: i64,
     #[allow(unused)]

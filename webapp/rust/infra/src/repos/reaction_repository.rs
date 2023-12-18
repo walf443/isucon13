@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
-use isupipe_core::models::reaction::ReactionModel;
+use isupipe_core::models::reaction::Reaction;
 use isupipe_core::repos::reaction_repository::ReactionRepository;
 
 pub struct ReactionRepositoryInfra {}
@@ -108,8 +108,8 @@ impl ReactionRepository for ReactionRepositoryInfra {
         &self,
         conn: &mut DBConn,
         livestream_id: i64,
-    ) -> isupipe_core::repos::Result<Vec<ReactionModel>> {
-        let reaction_models: Vec<ReactionModel> = sqlx::query_as(
+    ) -> isupipe_core::repos::Result<Vec<Reaction>> {
+        let reaction_models: Vec<Reaction> = sqlx::query_as(
             "SELECT * FROM reactions WHERE livestream_id = ? ORDER BY created_at DESC",
         )
         .bind(livestream_id)
@@ -123,8 +123,8 @@ impl ReactionRepository for ReactionRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: i64,
         limit: i64,
-    ) -> isupipe_core::repos::Result<Vec<ReactionModel>> {
-        let reaction_models: Vec<ReactionModel> = sqlx::query_as(
+    ) -> isupipe_core::repos::Result<Vec<Reaction>> {
+        let reaction_models: Vec<Reaction> = sqlx::query_as(
             "SELECT * FROM reactions WHERE livestream_id = ? ORDER BY created_at DESC LIMIT ?",
         )
         .bind(livestream_id)

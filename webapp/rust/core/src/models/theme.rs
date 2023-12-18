@@ -1,5 +1,5 @@
 #[derive(Debug, sqlx::FromRow)]
-pub struct ThemeModel {
+pub struct Theme {
     pub id: i64,
     #[allow(unused)]
     pub user_id: i64,

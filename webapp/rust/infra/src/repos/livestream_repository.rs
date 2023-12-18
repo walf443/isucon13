@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::livestream::{CreateLivestreamModel, LivestreamModel};
+use isupipe_core::models::livestream::{CreateLivestream, Livestream};
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
 
 pub struct LivestreamRepositoryInfra {}
@@ -10,7 +10,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
     async fn create(
         &self,
         conn: &mut DBConn,
-        stream: &CreateLivestreamModel,
+        stream: &CreateLivestream,
     ) -> isupipe_core::repos::Result<i64> {
         let rs = sqlx::query("INSERT INTO livestreams (user_id, title, description, playlist_url, thumbnail_url, start_at, end_at) VALUES(?, ?, ?, ?, ?, ?, ?)")
             .bind(stream.user_id)
@@ -30,8 +30,8 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
     async fn find_all(
         &self,
         conn: &mut DBConn,
-    ) -> isupipe_core::repos::Result<Vec<LivestreamModel>> {
-        let livestreams: Vec<LivestreamModel> = sqlx::query_as("SELECT * FROM livestreams")
+    ) -> isupipe_core::repos::Result<Vec<Livestream>> {
+        let livestreams: Vec<Livestream> = sqlx::query_as("SELECT * FROM livestreams")
             .fetch_all(conn)
             .await?;
 
@@ -41,8 +41,8 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
     async fn find_all_order_by_id_desc(
         &self,
         conn: &mut DBConn,
-    ) -> isupipe_core::repos::Result<Vec<LivestreamModel>> {
-        let livestreams: Vec<LivestreamModel> =
+    ) -> isupipe_core::repos::Result<Vec<Livestream>> {
+        let livestreams: Vec<Livestream> =
             sqlx::query_as("SELECT * FROM livestreams ORDER BY id DESC")
                 .fetch_all(conn)
                 .await?;
@@ -54,8 +54,8 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         &self,
         conn: &mut DBConn,
         limit: i64,
-    ) -> isupipe_core::repos::Result<Vec<LivestreamModel>> {
-        let livestreams: Vec<LivestreamModel> =
+    ) -> isupipe_core::repos::Result<Vec<Livestream>> {
+        let livestreams: Vec<Livestream> =
             sqlx::query_as("SELECT * FROM livestreams ORDER BY id DESC LIMIT ?")
                 .bind(limit)
                 .fetch_all(conn)
@@ -68,8 +68,8 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         &self,
         conn: &mut DBConn,
         user_id: i64,
-    ) -> isupipe_core::repos::Result<Vec<LivestreamModel>> {
-        let livestream_models: Vec<LivestreamModel> =
+    ) -> isupipe_core::repos::Result<Vec<Livestream>> {
+        let livestream_models: Vec<Livestream> =
             sqlx::query_as("SELECT * FROM livestreams WHERE user_id = ?")
                 .bind(user_id)
                 .fetch_all(conn)
@@ -82,7 +82,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         &self,
         conn: &mut DBConn,
         id: i64,
-    ) -> isupipe_core::repos::Result<Option<LivestreamModel>> {
+    ) -> isupipe_core::repos::Result<Option<Livestream>> {
         let livestream = sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
             .bind(id)
             .fetch_optional(conn)
@@ -97,7 +97,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         id: i64,
         user_id: i64,
     ) -> isupipe_core::repos::Result<bool> {
-        let livestreams: Vec<LivestreamModel> =
+        let livestreams: Vec<Livestream> =
             sqlx::query_as("SELECT * FROM livestreams WHERE id = ? AND user_id = ?")
                 .bind(id)
                 .bind(user_id)

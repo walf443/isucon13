@@ -1,7 +1,7 @@
 use crate::responses::tag_response::TagResponse;
 use crate::responses::user_response::UserResponse;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::livestream::LivestreamModel;
+use isupipe_core::models::livestream::Livestream;
 use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
 use isupipe_core::repos::tag_repository::TagRepository;
 use isupipe_core::repos::user_repository::UserRepository;
@@ -26,7 +26,7 @@ pub struct LivestreamResponse {
 impl LivestreamResponse {
     pub async fn build(
         conn: &mut DBConn,
-        livestream_model: LivestreamModel,
+        livestream_model: Livestream,
     ) -> ResponseResult<Self> {
         let user_repo = UserRepositoryInfra {};
         let owner_model = user_repo

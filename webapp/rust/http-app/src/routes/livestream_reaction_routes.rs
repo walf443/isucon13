@@ -4,7 +4,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
-use isupipe_core::models::reaction::ReactionModel;
+use isupipe_core::models::reaction::Reaction;
 use isupipe_core::repos::reaction_repository::ReactionRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
@@ -86,7 +86,7 @@ pub async fn post_reaction_handler(
 
     let reaction = ReactionResponse::build(
         &mut tx,
-        ReactionModel {
+        Reaction {
             id: reaction_id,
             user_id,
             livestream_id,

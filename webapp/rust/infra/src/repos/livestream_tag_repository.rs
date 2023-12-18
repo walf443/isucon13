@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::livestream_tag::LivestreamTagModel;
+use isupipe_core::models::livestream_tag::LivestreamTag;
 use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
 
 pub struct LivestreamTagRepositoryInfra {}
@@ -26,7 +26,7 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
         &self,
         conn: &mut DBConn,
         livestream_id: i64,
-    ) -> isupipe_core::repos::Result<Vec<LivestreamTagModel>> {
+    ) -> isupipe_core::repos::Result<Vec<LivestreamTag>> {
         let livestream_tag_models =
             sqlx::query_as("SELECT * FROM livestream_tags WHERE livestream_id = ?")
                 .bind(livestream_id)
@@ -40,7 +40,7 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
         &self,
         conn: &mut DBConn,
         tag_ids: &Vec<i64>,
-    ) -> isupipe_core::repos::Result<Vec<LivestreamTagModel>> {
+    ) -> isupipe_core::repos::Result<Vec<LivestreamTag>> {
         let mut query_builder = sqlx::query_builder::QueryBuilder::new(
             "SELECT * FROM livestream_tags WHERE tag_id IN (",
         );
@@ -49,7 +49,7 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
             separated.push_bind(tag_id);
         }
         separated.push_unseparated(") ORDER BY livestream_id DESC");
-        let livestreams: Vec<LivestreamTagModel> =
+        let livestreams: Vec<LivestreamTag> =
             query_builder.build_query_as().fetch_all(conn).await?;
 
         Ok(livestreams)

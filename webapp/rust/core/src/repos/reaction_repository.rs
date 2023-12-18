@@ -1,5 +1,5 @@
 use crate::db::DBConn;
-use crate::models::reaction::ReactionModel;
+use crate::models::reaction::Reaction;
 use crate::repos::Result;
 use async_trait::async_trait;
 
@@ -38,11 +38,11 @@ pub trait ReactionRepository {
         &self,
         conn: &mut DBConn,
         livestream_id: i64,
-    ) -> Result<Vec<ReactionModel>>;
+    ) -> Result<Vec<Reaction>>;
     async fn find_all_by_livestream_id_limit(
         &self,
         conn: &mut DBConn,
         livestream_id: i64,
         limit: i64,
-    ) -> Result<Vec<ReactionModel>>;
+    ) -> Result<Vec<Reaction>>;
 }

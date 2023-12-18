@@ -1,7 +1,7 @@
 use crate::responses::livestream_comment_response::LivestreamCommentResponse;
 use crate::responses::user_response::UserResponse;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::livestream_comment_report::LivestreamCommentReportModel;
+use isupipe_core::models::livestream_comment_report::LivestreamCommentReport;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 use isupipe_core::repos::user_repository::UserRepository;
 use isupipe_http_core::responses::ResponseResult;
@@ -19,7 +19,7 @@ pub struct LivestreamCommentReportResponse {
 impl LivestreamCommentReportResponse {
     pub async fn build(
         conn: &mut DBConn,
-        report_model: LivestreamCommentReportModel,
+        report_model: LivestreamCommentReport,
     ) -> ResponseResult<Self> {
         let user_repo = UserRepositoryInfra {};
         let reporter_model = user_repo.find(conn, report_model.id).await?.unwrap();
