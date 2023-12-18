@@ -3,7 +3,6 @@ use crate::responses::user_response::UserResponse;
 use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, State};
 use axum_extra::extract::SignedCookieJar;
-use isupipe_core::models::theme::Theme;
 use isupipe_core::models::user_ranking_entry::UserRankingEntry;
 use isupipe_core::models::user_statistics::UserStatistics;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
@@ -21,6 +20,7 @@ use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewe
 use isupipe_infra::repos::reaction_repository::ReactionRepositoryInfra;
 use isupipe_infra::repos::theme_repository::ThemeRepositoryInfra;
 use isupipe_infra::repos::user_repository::UserRepositoryInfra;
+use crate::responses::theme_response::ThemeResponse;
 
 // 配信者のテーマ取得API
 // GET /api/user/:username/theme
@@ -28,7 +28,7 @@ pub async fn get_streamer_theme_handler(
     State(AppState { pool, .. }): State<AppState>,
     jar: SignedCookieJar,
     Path((username,)): Path<(String,)>,
-) -> Result<axum::Json<Theme>, Error> {
+) -> Result<axum::Json<ThemeResponse>, Error> {
     verify_user_session(&jar).await?;
 
     let mut tx = pool.begin().await?;
@@ -46,7 +46,7 @@ pub async fn get_streamer_theme_handler(
 
     tx.commit().await?;
 
-    Ok(axum::Json(Theme {
+    Ok(axum::Json(ThemeResponse {
         id: theme_model.id,
         dark_mode: theme_model.dark_mode,
     }))

@@ -1,5 +1,4 @@
 use isupipe_core::db::DBConn;
-use isupipe_core::models::theme::Theme;
 use isupipe_core::models::user::UserModel;
 use isupipe_core::repos::icon_repository::IconRepository;
 use isupipe_core::repos::theme_repository::ThemeRepository;
@@ -7,6 +6,7 @@ use isupipe_http_core::responses::ResponseResult;
 use isupipe_http_core::FALLBACK_IMAGE;
 use isupipe_infra::repos::icon_repository::IconRepositoryInfra;
 use isupipe_infra::repos::theme_repository::ThemeRepositoryInfra;
+use crate::responses::theme_response::ThemeResponse;
 
 #[derive(Debug, serde::Serialize)]
 pub struct UserResponse {
@@ -16,7 +16,7 @@ pub struct UserResponse {
     pub display_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    pub theme: Theme,
+    pub theme: ThemeResponse,
     pub icon_hash: String,
 }
 
@@ -41,7 +41,7 @@ impl UserResponse {
             name: user.name,
             display_name: user.display_name,
             description: user.description,
-            theme: Theme {
+            theme: ThemeResponse {
                 id: theme_model.id,
                 dark_mode: theme_model.dark_mode,
             },

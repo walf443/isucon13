@@ -1,13 +1,13 @@
 use axum::extract::State;
-use isupipe_core::models::tag::Tag;
 use isupipe_core::repos::tag_repository::TagRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_infra::repos::tag_repository::TagRepositoryInfra;
+use crate::responses::tag_response::TagResponse;
 
 #[derive(Debug, serde::Serialize)]
 pub struct TagsResponse {
-    tags: Vec<Tag>,
+    tags: Vec<TagResponse>,
 }
 pub async fn get_tag_handler(
     State(AppState { pool, .. }): State<AppState>,
