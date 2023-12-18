@@ -3,7 +3,6 @@ use isupipe_core::models::livestream_comment::{LivestreamComment, LivestreamComm
 use isupipe_core::models::livestream_comment_report::{
     LivestreamCommentReport, LivestreamCommentReportModel,
 };
-use isupipe_core::models::reaction::{Reaction, ReactionModel};
 use isupipe_core::models::tag::Tag;
 use isupipe_core::models::theme::Theme;
 use isupipe_core::models::user::{User, UserModel};
@@ -120,32 +119,6 @@ pub async fn fill_livecomment_response(
         comment: livecomment_model.comment,
         tip: livecomment_model.tip,
         created_at: livecomment_model.created_at,
-    })
-}
-pub async fn fill_reaction_response(
-    tx: &mut MySqlConnection,
-    reaction_model: ReactionModel,
-) -> UtilResult<Reaction> {
-    let user_repo = UserRepositoryInfra {};
-    let user_model = user_repo
-        .find(&mut *tx, reaction_model.user_id)
-        .await?
-        .unwrap();
-    let user = fill_user_response(&mut *tx, user_model).await?;
-
-    let livestream_repo = LivestreamRepositoryInfra {};
-    let livestream_model = livestream_repo
-        .find(&mut *tx, reaction_model.livestream_id)
-        .await?
-        .unwrap();
-    let livestream = fill_livestream_response(&mut *tx, livestream_model).await?;
-
-    Ok(Reaction {
-        id: reaction_model.id,
-        emoji_name: reaction_model.emoji_name,
-        user,
-        livestream,
-        created_at: reaction_model.created_at,
     })
 }
 pub async fn fill_livecomment_report_response(

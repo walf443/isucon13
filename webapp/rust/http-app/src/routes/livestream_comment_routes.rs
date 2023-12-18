@@ -1,10 +1,10 @@
-use crate::utils::fill_livecomment_response;
+use crate::responses::livestream_comment_response::LivestreamCommentResponse;
 use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
-use isupipe_core::models::livestream_comment::{LivestreamComment, LivestreamCommentModel};
+use isupipe_core::models::livestream_comment::LivestreamCommentModel;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
 use isupipe_core::repos::ng_word_repository::NgWordRepository;
@@ -26,7 +26,7 @@ pub async fn get_livecomments_handler(
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
     Query(GetLivecommentsQuery { limit }): Query<GetLivecommentsQuery>,
-) -> Result<axum::Json<Vec<LivestreamComment>>, Error> {
+) -> Result<axum::Json<Vec<LivestreamCommentResponse>>, Error> {
     verify_user_session(&jar).await?;
 
     let mut tx = pool.begin().await?;
@@ -45,7 +45,7 @@ pub async fn get_livecomments_handler(
 
     let mut livecomments = Vec::with_capacity(livecomment_models.len());
     for livecomment_model in livecomment_models {
-        let livecomment = fill_livecomment_response(&mut tx, livecomment_model).await?;
+        let livecomment = LivestreamCommentResponse::build(&mut tx, livecomment_model).await?;
         livecomments.push(livecomment);
     }
 
@@ -65,7 +65,7 @@ pub async fn post_livecomment_handler(
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
     axum::Json(req): axum::Json<PostLivecommentRequest>,
-) -> Result<(StatusCode, axum::Json<LivestreamComment>), Error> {
+) -> Result<(StatusCode, axum::Json<LivestreamCommentResponse>), Error> {
     verify_user_session(&jar).await?;
 
     let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
@@ -121,7 +121,7 @@ pub async fn post_livecomment_handler(
         .insert(&mut *tx, user_id, livestream_id, &req.comment, req.tip, now)
         .await?;
 
-    let livecomment = fill_livecomment_response(
+    let livecomment = LivestreamCommentResponse::build(
         &mut tx,
         LivestreamCommentModel {
             id: comment_id,

@@ -1,10 +1,10 @@
-use crate::utils::fill_reaction_response;
+use crate::responses::reaction_response::ReactionResponse;
 use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
-use isupipe_core::models::reaction::{Reaction, ReactionModel};
+use isupipe_core::models::reaction::ReactionModel;
 use isupipe_core::repos::reaction_repository::ReactionRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
@@ -22,7 +22,7 @@ pub async fn get_reactions_handler(
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
     Query(GetReactionsQuery { limit }): Query<GetReactionsQuery>,
-) -> Result<axum::Json<Vec<Reaction>>, Error> {
+) -> Result<axum::Json<Vec<ReactionResponse>>, Error> {
     verify_user_session(&jar).await?;
 
     let mut tx = pool.begin().await?;
@@ -41,7 +41,7 @@ pub async fn get_reactions_handler(
 
     let mut reactions = Vec::with_capacity(reaction_models.len());
     for reaction_model in reaction_models {
-        let reaction = fill_reaction_response(&mut tx, reaction_model).await?;
+        let reaction = ReactionResponse::build(&mut tx, reaction_model).await?;
         reactions.push(reaction);
     }
 
@@ -60,7 +60,7 @@ pub async fn post_reaction_handler(
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
     axum::Json(req): axum::Json<PostReactionRequest>,
-) -> Result<(StatusCode, axum::Json<Reaction>), Error> {
+) -> Result<(StatusCode, axum::Json<ReactionResponse>), Error> {
     verify_user_session(&jar).await?;
 
     let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
@@ -84,7 +84,7 @@ pub async fn post_reaction_handler(
         )
         .await?;
 
-    let reaction = fill_reaction_response(
+    let reaction = ReactionResponse::build(
         &mut tx,
         ReactionModel {
             id: reaction_id,
