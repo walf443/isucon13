@@ -1,4 +1,5 @@
 use crate::responses::livestream_response::LivestreamResponse;
+use crate::responses::theme_response::ThemeResponse;
 use crate::responses::user_response::UserResponse;
 use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, State};
@@ -20,7 +21,6 @@ use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewe
 use isupipe_infra::repos::reaction_repository::ReactionRepositoryInfra;
 use isupipe_infra::repos::theme_repository::ThemeRepositoryInfra;
 use isupipe_infra::repos::user_repository::UserRepositoryInfra;
-use crate::responses::theme_response::ThemeResponse;
 
 // 配信者のテーマ取得API
 // GET /api/user/:username/theme

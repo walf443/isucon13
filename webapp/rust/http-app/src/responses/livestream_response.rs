@@ -24,10 +24,7 @@ pub struct LivestreamResponse {
 }
 
 impl LivestreamResponse {
-    pub async fn build(
-        conn: &mut DBConn,
-        livestream_model: Livestream,
-    ) -> ResponseResult<Self> {
+    pub async fn build(conn: &mut DBConn, livestream_model: Livestream) -> ResponseResult<Self> {
         let user_repo = UserRepositoryInfra {};
         let owner_model = user_repo
             .find(conn, livestream_model.user_id)

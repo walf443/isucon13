@@ -17,8 +17,7 @@ impl TagRepository for TagRepositoryInfra {
     }
 
     async fn find_all(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<Vec<Tag>> {
-        let tag_models: Vec<Tag> =
-            sqlx::query_as("SELECT * FROM tags").fetch_all(conn).await?;
+        let tag_models: Vec<Tag> = sqlx::query_as("SELECT * FROM tags").fetch_all(conn).await?;
 
         Ok(tag_models)
     }

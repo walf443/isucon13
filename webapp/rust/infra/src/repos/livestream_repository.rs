@@ -27,10 +27,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         Ok(livestream_id)
     }
 
-    async fn find_all(
-        &self,
-        conn: &mut DBConn,
-    ) -> isupipe_core::repos::Result<Vec<Livestream>> {
+    async fn find_all(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<Vec<Livestream>> {
         let livestreams: Vec<Livestream> = sqlx::query_as("SELECT * FROM livestreams")
             .fetch_all(conn)
             .await?;

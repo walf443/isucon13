@@ -1,4 +1,3 @@
-
 #[derive(Debug, sqlx::FromRow)]
 pub struct Tag {
     pub id: i64,

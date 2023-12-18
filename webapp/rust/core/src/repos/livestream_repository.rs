@@ -15,11 +15,8 @@ pub trait LivestreamRepository {
         limit: i64,
     ) -> Result<Vec<Livestream>>;
 
-    async fn find_all_by_user_id(
-        &self,
-        conn: &mut DBConn,
-        user_id: i64,
-    ) -> Result<Vec<Livestream>>;
+    async fn find_all_by_user_id(&self, conn: &mut DBConn, user_id: i64)
+        -> Result<Vec<Livestream>>;
     async fn find(&self, conn: &mut DBConn, id: i64) -> Result<Option<Livestream>>;
 
     async fn exist_by_id_and_user_id(

@@ -1,4 +1,3 @@
-
 #[derive(Debug, sqlx::FromRow)]
 pub struct LivestreamComment {
     pub id: i64,

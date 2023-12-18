@@ -78,10 +78,9 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         &self,
         conn: &mut DBConn,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
-        let livecomments: Vec<LivestreamComment> =
-            sqlx::query_as("SELECT * FROM livecomments")
-                .fetch_all(conn)
-                .await?;
+        let livecomments: Vec<LivestreamComment> = sqlx::query_as("SELECT * FROM livecomments")
+            .fetch_all(conn)
+            .await?;
 
         Ok(livecomments)
     }

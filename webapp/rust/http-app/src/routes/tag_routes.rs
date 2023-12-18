@@ -1,9 +1,9 @@
+use crate::responses::tag_response::TagResponse;
 use axum::extract::State;
 use isupipe_core::repos::tag_repository::TagRepository;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_infra::repos::tag_repository::TagRepositoryInfra;
-use crate::responses::tag_response::TagResponse;
 
 #[derive(Debug, serde::Serialize)]
 pub struct TagsResponse {

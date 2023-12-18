@@ -22,11 +22,7 @@ pub trait LivestreamCommentRepository {
         ng_word: &str,
     ) -> Result<()>;
 
-    async fn find(
-        &self,
-        conn: &mut DBConn,
-        comment_id: i64,
-    ) -> Result<Option<LivestreamComment>>;
+    async fn find(&self, conn: &mut DBConn, comment_id: i64) -> Result<Option<LivestreamComment>>;
 
     async fn find_all(&self, conn: &mut DBConn) -> Result<Vec<LivestreamComment>>;
 
