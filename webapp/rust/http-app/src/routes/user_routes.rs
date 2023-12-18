@@ -1,9 +1,8 @@
+use crate::responses::livestream_response::LivestreamResponse;
 use crate::responses::user_response::UserResponse;
-use crate::utils::{fill_livestream_response};
 use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, State};
 use axum_extra::extract::SignedCookieJar;
-use isupipe_core::models::livestream::Livestream;
 use isupipe_core::models::theme::Theme;
 use isupipe_core::models::user_ranking_entry::UserRankingEntry;
 use isupipe_core::models::user_statistics::UserStatistics;
@@ -56,7 +55,7 @@ pub async fn get_user_livestreams_handler(
     State(AppState { pool, .. }): State<AppState>,
     jar: SignedCookieJar,
     Path((username,)): Path<(String,)>,
-) -> Result<axum::Json<Vec<Livestream>>, Error> {
+) -> Result<axum::Json<Vec<LivestreamResponse>>, Error> {
     verify_user_session(&jar).await?;
 
     let mut tx = pool.begin().await?;
@@ -74,7 +73,7 @@ pub async fn get_user_livestreams_handler(
 
     let mut livestreams = Vec::with_capacity(livestream_models.len());
     for livestream_model in livestream_models {
-        let livestream = fill_livestream_response(&mut tx, livestream_model).await?;
+        let livestream = LivestreamResponse::build(&mut tx, livestream_model).await?;
         livestreams.push(livestream);
     }
 

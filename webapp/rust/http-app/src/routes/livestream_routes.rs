@@ -1,10 +1,10 @@
-use crate::utils::fill_livestream_response;
+use crate::responses::livestream_response::LivestreamResponse;
 use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
-use isupipe_core::models::livestream::{CreateLivestreamModel, Livestream, LivestreamModel};
+use isupipe_core::models::livestream::{CreateLivestreamModel, LivestreamModel};
 use isupipe_core::models::livestream_ranking_entry::LivestreamRankingEntry;
 use isupipe_core::models::livestream_statistics::LivestreamStatistics;
 use isupipe_core::models::ng_word::NgWord;
@@ -45,7 +45,7 @@ pub async fn reserve_livestream_handler(
     State(AppState { pool, .. }): State<AppState>,
     jar: SignedCookieJar,
     axum::Json(req): axum::Json<ReserveLivestreamRequest>,
-) -> Result<(StatusCode, axum::Json<Livestream>), Error> {
+) -> Result<(StatusCode, axum::Json<LivestreamResponse>), Error> {
     verify_user_session(&jar).await?;
 
     if req.tags.iter().any(|&tag_id| tag_id > 103) {
@@ -144,7 +144,7 @@ pub async fn reserve_livestream_handler(
             .await?;
     }
 
-    let livestream = fill_livestream_response(
+    let livestream = LivestreamResponse::build(
         &mut tx,
         LivestreamModel {
             id: livestream_id,
@@ -178,7 +178,7 @@ pub async fn search_livestreams_handler(
         tag: key_tag_name,
         limit,
     }): Query<SearchLivestreamsQuery>,
-) -> Result<axum::Json<Vec<Livestream>>, Error> {
+) -> Result<axum::Json<Vec<LivestreamResponse>>, Error> {
     let livestream_repo = LivestreamRepositoryInfra {};
 
     let mut tx = pool.begin().await?;
@@ -219,7 +219,7 @@ pub async fn search_livestreams_handler(
 
     let mut livestreams = Vec::with_capacity(livestream_models.len());
     for livestream_model in livestream_models {
-        let livestream = fill_livestream_response(&mut tx, livestream_model).await?;
+        let livestream = LivestreamResponse::build(&mut tx, livestream_model).await?;
         livestreams.push(livestream);
     }
 
@@ -230,7 +230,7 @@ pub async fn search_livestreams_handler(
 pub async fn get_my_livestreams_handler(
     State(AppState { pool, .. }): State<AppState>,
     jar: SignedCookieJar,
-) -> Result<axum::Json<Vec<Livestream>>, Error> {
+) -> Result<axum::Json<Vec<LivestreamResponse>>, Error> {
     verify_user_session(&jar).await?;
 
     let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
@@ -248,7 +248,7 @@ pub async fn get_my_livestreams_handler(
         .await?;
     let mut livestreams = Vec::with_capacity(livestream_models.len());
     for livestream_model in livestream_models {
-        let livestream = fill_livestream_response(&mut tx, livestream_model).await?;
+        let livestream = LivestreamResponse::build(&mut tx, livestream_model).await?;
         livestreams.push(livestream);
     }
 
@@ -261,7 +261,7 @@ pub async fn get_livestream_handler(
     State(AppState { pool, .. }): State<AppState>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
-) -> Result<axum::Json<Livestream>, Error> {
+) -> Result<axum::Json<LivestreamResponse>, Error> {
     verify_user_session(&jar).await?;
     let livestream_repo = LivestreamRepositoryInfra {};
 
@@ -276,7 +276,7 @@ pub async fn get_livestream_handler(
     }
     let livestream_model = livestream_model.unwrap();
 
-    let livestream = fill_livestream_response(&mut tx, livestream_model).await?;
+    let livestream = LivestreamResponse::build(&mut tx, livestream_model).await?;
 
     tx.commit().await?;
 
