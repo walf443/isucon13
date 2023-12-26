@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
-use isupipe_core::models::reaction::Reaction;
+use isupipe_core::models::reaction::{Reaction, ReactionId};
 use isupipe_core::repos::reaction_repository::ReactionRepository;
 
 pub struct ReactionRepositoryInfra {}
@@ -15,7 +15,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
         livestream_id: i64,
         emoji_name: &str,
         created_at: i64,
-    ) -> isupipe_core::repos::Result<i64> {
+    ) -> isupipe_core::repos::Result<ReactionId> {
         let result =
             sqlx::query("INSERT INTO reactions (user_id, livestream_id, emoji_name, created_at) VALUES (?, ?, ?, ?)")
                 .bind(user_id)
@@ -26,7 +26,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
                 .await?;
         let reaction_id = result.last_insert_id() as i64;
 
-        Ok(reaction_id)
+        Ok(ReactionId::new(reaction_id))
     }
 
     async fn count_by_livestream_id(

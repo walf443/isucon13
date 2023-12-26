@@ -31,7 +31,7 @@ impl ReactionResponse {
         let livestream = LivestreamResponse::build(conn, livestream_model).await?;
 
         Ok(Self {
-            id: reaction_model.id,
+            id: reaction_model.id.get(),
             emoji_name: reaction_model.emoji_name,
             user,
             livestream,

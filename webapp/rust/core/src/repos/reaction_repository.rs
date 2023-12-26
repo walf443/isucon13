@@ -1,5 +1,5 @@
 use crate::db::DBConn;
-use crate::models::reaction::Reaction;
+use crate::models::reaction::{Reaction, ReactionId};
 use crate::repos::Result;
 use async_trait::async_trait;
 
@@ -12,7 +12,7 @@ pub trait ReactionRepository {
         livestream_id: i64,
         emoji_name: &str,
         created_at: i64,
-    ) -> Result<i64>;
+    ) -> Result<ReactionId>;
 
     async fn count_by_livestream_id(&self, conn: &mut DBConn, livestream_id: i64) -> Result<i64>;
 
