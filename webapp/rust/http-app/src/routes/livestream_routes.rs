@@ -208,7 +208,7 @@ pub async fn search_livestreams_handler(
         let mut livestream_models = Vec::new();
         for key_tagged_livestream in key_tagged_livestreams {
             let ls = livestream_repo
-                .find(&mut *tx, key_tagged_livestream.livestream_id)
+                .find(&mut *tx, key_tagged_livestream.livestream_id.get())
                 .await?
                 .unwrap();
 
