@@ -1,3 +1,4 @@
+use serde::{Serialize, Serializer};
 use sqlx::database::{HasArguments, HasValueRef};
 use sqlx::encode::IsNull;
 use sqlx::error::BoxDynError;
@@ -9,6 +10,15 @@ use std::marker::PhantomData;
 pub struct Id<T> {
     id: i64,
     _phantom: PhantomData<T>,
+}
+
+impl<T> Serialize for Id<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_i64(self.get())
+    }
 }
 
 impl<T> Clone for Id<T> {
