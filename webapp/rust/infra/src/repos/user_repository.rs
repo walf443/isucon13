@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::user::User;
+use isupipe_core::models::user::{User, UserId};
 use isupipe_core::repos::user_repository::UserRepository;
 
 pub struct UserRepositoryInfra {}
@@ -14,7 +14,7 @@ impl UserRepository for UserRepositoryInfra {
         display_name: &str,
         description: &str,
         password: &str,
-    ) -> isupipe_core::repos::Result<i64> {
+    ) -> isupipe_core::repos::Result<UserId> {
         let hashed_password = self.hash_password(&password)?;
 
         let result = sqlx::query(
@@ -29,7 +29,7 @@ impl UserRepository for UserRepositoryInfra {
 
         let user_id = result.last_insert_id() as i64;
 
-        Ok(user_id)
+        Ok(UserId::new(user_id))
     }
 
     async fn find(&self, conn: &mut DBConn, id: i64) -> isupipe_core::repos::Result<Option<User>> {
@@ -53,7 +53,7 @@ impl UserRepository for UserRepositoryInfra {
         &self,
         conn: &mut DBConn,
         name: &str,
-    ) -> isupipe_core::repos::Result<Option<i64>> {
+    ) -> isupipe_core::repos::Result<Option<UserId>> {
         let user_id = sqlx::query_scalar("SELECT id FROM users WHERE name = ?")
             .bind(name)
             .fetch_optional(conn)

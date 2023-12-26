@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::theme::Theme;
+use isupipe_core::models::user::UserId;
 use isupipe_core::repos::theme_repository::ThemeRepository;
 
 pub struct ThemeRepositoryInfra {}
@@ -10,7 +11,7 @@ impl ThemeRepository for ThemeRepositoryInfra {
     async fn insert(
         &self,
         conn: &mut DBConn,
-        user_id: i64,
+        user_id: &UserId,
         dark_mode: bool,
     ) -> isupipe_core::repos::Result<()> {
         sqlx::query("INSERT INTO themes (user_id, dark_mode) VALUES(?, ?)")
@@ -25,7 +26,7 @@ impl ThemeRepository for ThemeRepositoryInfra {
     async fn find_by_user_id(
         &self,
         conn: &mut DBConn,
-        user_id: i64,
+        user_id: &UserId,
     ) -> isupipe_core::repos::Result<Theme> {
         let theme_model: Theme = sqlx::query_as("SELECT * FROM themes WHERE user_id = ?")
             .bind(user_id)

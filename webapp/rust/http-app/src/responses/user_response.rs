@@ -23,7 +23,7 @@ pub struct UserResponse {
 impl UserResponse {
     pub async fn build(conn: &mut DBConn, user: User) -> ResponseResult<Self> {
         let theme_repo = ThemeRepositoryInfra {};
-        let theme_model = theme_repo.find_by_user_id(conn, user.id.get()).await?;
+        let theme_model = theme_repo.find_by_user_id(conn, &user.id).await?;
 
         let icon_repo = IconRepositoryInfra {};
         let image = icon_repo.find_image_by_user_id(conn, &user.id).await?;

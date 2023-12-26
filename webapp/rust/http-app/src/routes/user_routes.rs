@@ -61,7 +61,7 @@ pub async fn get_streamer_theme_handler(
         ))?;
 
     let theme_repo = ThemeRepositoryInfra {};
-    let theme_model = theme_repo.find_by_user_id(&mut *tx, user_id).await?;
+    let theme_model = theme_repo.find_by_user_id(&mut *tx, &user_id).await?;
 
     tx.commit().await?;
 

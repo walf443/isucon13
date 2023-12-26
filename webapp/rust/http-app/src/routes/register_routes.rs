@@ -1,7 +1,7 @@
 use crate::responses::user_response::UserResponse;
 use axum::extract::State;
 use axum::http::StatusCode;
-use isupipe_core::models::user::{User, UserId};
+use isupipe_core::models::user::User;
 use isupipe_core::repos::theme_repository::ThemeRepository;
 use isupipe_core::repos::user_repository::UserRepository;
 use isupipe_http_core::error::Error;
@@ -56,7 +56,7 @@ pub async fn register_handler(
 
     let theme_repo = ThemeRepositoryInfra {};
     theme_repo
-        .insert(&mut *tx, user_id, req.theme.dark_mode)
+        .insert(&mut *tx, &user_id, req.theme.dark_mode)
         .await?;
 
     let output = tokio::process::Command::new("pdnsutil")
@@ -79,7 +79,7 @@ pub async fn register_handler(
     let user = UserResponse::build(
         &mut *tx,
         User {
-            id: UserId::new(user_id),
+            id: user_id.clone(),
             name: req.name,
             display_name: Some(req.display_name),
             description: Some(req.description),
