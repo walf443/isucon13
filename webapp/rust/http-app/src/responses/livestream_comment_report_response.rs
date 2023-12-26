@@ -22,7 +22,7 @@ impl LivestreamCommentReportResponse {
         report_model: LivestreamCommentReport,
     ) -> ResponseResult<Self> {
         let user_repo = UserRepositoryInfra {};
-        let reporter_model = user_repo.find(conn, report_model.id).await?.unwrap();
+        let reporter_model = user_repo.find(conn, report_model.user_id).await?.unwrap();
         let reporter = UserResponse::build(conn, reporter_model).await?;
 
         let comment_repo = LivestreamCommentRepositoryInfra {};
@@ -35,7 +35,7 @@ impl LivestreamCommentReportResponse {
         let livecomment = LivestreamCommentResponse::build(conn, comment_model).await?;
 
         Ok(Self {
-            id: report_model.id,
+            id: report_model.id.get(),
             reporter,
             livecomment,
             created_at: report_model.created_at,

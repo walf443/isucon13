@@ -1,6 +1,8 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::livestream_comment_report::LivestreamCommentReport;
+use isupipe_core::models::livestream_comment_report::{
+    LivestreamCommentReport, LivestreamCommentReportId,
+};
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 
@@ -15,7 +17,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         livestream_id: i64,
         livestream_comment_id: i64,
         created_at: i64,
-    ) -> isupipe_core::repos::Result<i64> {
+    ) -> isupipe_core::repos::Result<LivestreamCommentReportId> {
         let rs = sqlx::query(
             "INSERT INTO livecomment_reports(user_id, livestream_id, livecomment_id, created_at) VALUES (?, ?, ?, ?)",
         )
@@ -26,8 +28,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
             .execute(conn)
             .await?;
         let report_id = rs.last_insert_id() as i64;
-
-        Ok(report_id)
+        Ok(LivestreamCommentReportId::new(report_id))
     }
 
     async fn count_by_livestream_id(
