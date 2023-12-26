@@ -1,4 +1,5 @@
 use crate::db::HaveDBPool;
+use crate::models::livestream_comment::LivestreamCommentId;
 use crate::models::livestream_comment_report::LivestreamCommentReport;
 use crate::repos::livestream_comment_report_repository::{
     HaveLivestreamCommentReportRepository, LivestreamCommentReportRepository,
@@ -18,7 +19,7 @@ pub trait LivestreamCommentReportService {
         &self,
         user_id: i64,
         livestream_id: i64,
-        livestream_comment_id: i64,
+        livestream_comment_id: &LivestreamCommentId,
     ) -> ServiceResult<LivestreamCommentReport>;
 }
 
@@ -44,7 +45,7 @@ impl<S: LivestreamCommentReportServiceImpl> LivestreamCommentReportService for S
         &self,
         user_id: i64,
         livestream_id: i64,
-        livestream_comment_id: i64,
+        livestream_comment_id: &LivestreamCommentId,
     ) -> ServiceResult<LivestreamCommentReport> {
         let pool = self.get_db_pool();
         let mut tx = pool.begin().await?;
@@ -57,7 +58,7 @@ impl<S: LivestreamCommentReportServiceImpl> LivestreamCommentReportService for S
 
         let comment_repo = self.livestream_comment_repo();
         let _ = comment_repo
-            .find(&mut *tx, livestream_comment_id)
+            .find(&mut *tx, livestream_comment_id.get())
             .await?
             .ok_or(NotFoundLivestreamComment)?;
 
@@ -73,7 +74,7 @@ impl<S: LivestreamCommentReportServiceImpl> LivestreamCommentReportService for S
             id: report_id,
             user_id,
             livestream_id,
-            livestream_comment_id: livestream_comment_id,
+            livestream_comment_id: livestream_comment_id.clone(),
             created_at: now,
         })
     }

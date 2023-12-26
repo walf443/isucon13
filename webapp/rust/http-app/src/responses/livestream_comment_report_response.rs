@@ -28,7 +28,7 @@ impl LivestreamCommentReportResponse {
         let comment_repo = LivestreamCommentRepositoryInfra {};
 
         let comment_model = comment_repo
-            .find(conn, report_model.livestream_comment_id)
+            .find(conn, report_model.livestream_comment_id.get())
             .await?
             .unwrap();
 

@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
+use isupipe_core::models::livestream_comment::LivestreamCommentId;
 use isupipe_core::models::livestream_comment_report::{
     LivestreamCommentReport, LivestreamCommentReportId,
 };
@@ -15,7 +16,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         conn: &mut DBConn,
         user_id: i64,
         livestream_id: i64,
-        livestream_comment_id: i64,
+        livestream_comment_id: &LivestreamCommentId,
         created_at: i64,
     ) -> isupipe_core::repos::Result<LivestreamCommentReportId> {
         let rs = sqlx::query(
