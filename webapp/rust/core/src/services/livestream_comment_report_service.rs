@@ -2,6 +2,7 @@ use crate::db::HaveDBPool;
 use crate::models::livestream::LivestreamId;
 use crate::models::livestream_comment::LivestreamCommentId;
 use crate::models::livestream_comment_report::LivestreamCommentReport;
+use crate::models::user::UserId;
 use crate::repos::livestream_comment_report_repository::{
     HaveLivestreamCommentReportRepository, LivestreamCommentReportRepository,
 };
@@ -13,7 +14,6 @@ use crate::services::ServiceError::{NotFoundLivestream, NotFoundLivestreamCommen
 use crate::services::ServiceResult;
 use async_trait::async_trait;
 use chrono::Utc;
-use crate::models::user::UserId;
 
 #[async_trait]
 pub trait LivestreamCommentReportService {
@@ -80,7 +80,7 @@ impl<S: LivestreamCommentReportServiceImpl> LivestreamCommentReportService for S
 
         Ok(LivestreamCommentReport {
             id: report_id,
-            user_id: user_id.get(),
+            user_id: user_id.clone(),
             livestream_id: livestream_id.clone(),
             livestream_comment_id: livestream_comment_id.clone(),
             created_at: now,
