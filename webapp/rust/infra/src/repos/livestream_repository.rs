@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::livestream::{CreateLivestream, Livestream};
+use isupipe_core::models::livestream::{CreateLivestream, Livestream, LivestreamId};
+use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
 
 pub struct LivestreamRepositoryInfra {}
@@ -11,7 +12,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         &self,
         conn: &mut DBConn,
         stream: &CreateLivestream,
-    ) -> isupipe_core::repos::Result<i64> {
+    ) -> isupipe_core::repos::Result<LivestreamId> {
         let rs = sqlx::query("INSERT INTO livestreams (user_id, title, description, playlist_url, thumbnail_url, start_at, end_at) VALUES(?, ?, ?, ?, ?, ?, ?)")
             .bind(&stream.user_id)
             .bind(&stream.title)
@@ -24,7 +25,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
             .await?;
 
         let livestream_id = rs.last_insert_id() as i64;
-        Ok(livestream_id)
+        Ok(LivestreamId::new(livestream_id))
     }
 
     async fn find_all(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<Vec<Livestream>> {
@@ -64,7 +65,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
     async fn find_all_by_user_id(
         &self,
         conn: &mut DBConn,
-        user_id: i64,
+        user_id: &UserId,
     ) -> isupipe_core::repos::Result<Vec<Livestream>> {
         let livestream_models: Vec<Livestream> =
             sqlx::query_as("SELECT * FROM livestreams WHERE user_id = ?")
@@ -78,7 +79,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
     async fn find(
         &self,
         conn: &mut DBConn,
-        id: i64,
+        id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Option<Livestream>> {
         let livestream = sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
             .bind(id)
@@ -91,8 +92,8 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
     async fn exist_by_id_and_user_id(
         &self,
         conn: &mut DBConn,
-        id: i64,
-        user_id: i64,
+        id: &LivestreamId,
+        user_id: &UserId,
     ) -> isupipe_core::repos::Result<bool> {
         let livestreams: Vec<Livestream> =
             sqlx::query_as("SELECT * FROM livestreams WHERE id = ? AND user_id = ?")

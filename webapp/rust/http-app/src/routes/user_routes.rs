@@ -87,7 +87,7 @@ pub async fn get_user_livestreams_handler(
 
     let livestream_repo = LivestreamRepositoryInfra {};
     let livestream_models = livestream_repo
-        .find_all_by_user_id(&mut *tx, user.id.get())
+        .find_all_by_user_id(&mut *tx, &user.id)
         .await?;
 
     let mut livestreams = Vec::with_capacity(livestream_models.len());
@@ -218,7 +218,7 @@ pub async fn get_user_statistics_handler(
 
     let livestream_repo = LivestreamRepositoryInfra {};
     let livestreams = livestream_repo
-        .find_all_by_user_id(&mut *tx, user.id.get())
+        .find_all_by_user_id(&mut *tx, &user.id)
         .await?;
 
     let comment_repo = LivestreamCommentRepositoryInfra {};

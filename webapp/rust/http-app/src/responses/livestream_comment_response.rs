@@ -32,7 +32,7 @@ impl LivestreamCommentResponse {
 
         let livestream_repo = LivestreamRepositoryInfra {};
         let livestream_model = livestream_repo
-            .find(conn, livecomment_model.livestream_id.get())
+            .find(conn, &livecomment_model.livestream_id)
             .await?
             .unwrap();
         let livestream = LivestreamResponse::build(conn, livestream_model).await?;

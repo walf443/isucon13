@@ -138,8 +138,6 @@ pub async fn reserve_livestream_handler(
         )
         .await?;
 
-    let livestream_id = LivestreamId::new(livestream_id);
-
     let livestream_tag_repo = LivestreamTagRepositoryInfra {};
     // タグ追加
     for tag_id in req.tags {
@@ -212,7 +210,7 @@ pub async fn search_livestreams_handler(
         let mut livestream_models = Vec::new();
         for key_tagged_livestream in key_tagged_livestreams {
             let ls = livestream_repo
-                .find(&mut *tx, key_tagged_livestream.livestream_id.get())
+                .find(&mut *tx, &key_tagged_livestream.livestream_id)
                 .await?
                 .unwrap();
 
@@ -243,12 +241,13 @@ pub async fn get_my_livestreams_handler(
         .await?
         .ok_or(Error::SessionError)?;
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
+    let user_id = UserId::new(user_id);
 
     let mut tx = pool.begin().await?;
 
     let livestream_repo = LivestreamRepositoryInfra {};
     let livestream_models = livestream_repo
-        .find_all_by_user_id(&mut *tx, user_id)
+        .find_all_by_user_id(&mut *tx, &user_id)
         .await?;
     let mut livestreams = Vec::with_capacity(livestream_models.len());
     for livestream_model in livestream_models {
@@ -267,11 +266,12 @@ pub async fn get_livestream_handler(
     Path((livestream_id,)): Path<(i64,)>,
 ) -> Result<axum::Json<LivestreamResponse>, Error> {
     verify_user_session(&jar).await?;
+    let livestream_id = LivestreamId::new(livestream_id);
     let livestream_repo = LivestreamRepositoryInfra {};
 
     let mut tx = pool.begin().await?;
 
-    let livestream_model = livestream_repo.find(&mut *tx, livestream_id).await?;
+    let livestream_model = livestream_repo.find(&mut *tx, &livestream_id).await?;
 
     if livestream_model.is_none() {
         return Err(Error::NotFound(
@@ -338,12 +338,15 @@ pub async fn moderate_handler(
         .await?
         .ok_or(Error::SessionError)?;
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
+    let user_id = UserId::new(user_id);
+
+    let livestream_id = LivestreamId::new(livestream_id);
 
     let mut tx = pool.begin().await?;
 
     // 配信者自身の配信に対するmoderateなのかを検証
     let is_exist = livestream_repo
-        .exist_by_id_and_user_id(&mut *tx, livestream_id, user_id)
+        .exist_by_id_and_user_id(&mut *tx, &livestream_id, &user_id)
         .await?;
     if !is_exist {
         return Err(Error::BadRequest(
@@ -354,11 +357,17 @@ pub async fn moderate_handler(
     let created_at = Utc::now().timestamp();
     let ng_word_repo = NgWordRepositoryInfra {};
     let word_id = ng_word_repo
-        .insert(&mut *tx, user_id, livestream_id, &req.ng_word, created_at)
+        .insert(
+            &mut *tx,
+            user_id.get(),
+            livestream_id.get(),
+            &req.ng_word,
+            created_at,
+        )
         .await?;
 
     let ng_words = ng_word_repo
-        .find_all_by_livestream_id(&mut *tx, livestream_id)
+        .find_all_by_livestream_id(&mut *tx, livestream_id.get())
         .await?;
 
     let comment_repo = LivestreamCommentRepositoryInfra {};
@@ -435,11 +444,13 @@ pub async fn get_livestream_statistics_handler(
 ) -> Result<axum::Json<LivestreamStatistics>, Error> {
     verify_user_session(&jar).await?;
 
+    let livestream_id = LivestreamId::new(livestream_id);
+
     let mut tx = pool.begin().await?;
     let livestream_repo = LivestreamRepositoryInfra {};
 
     let livestream = livestream_repo
-        .find(&mut *tx, livestream_id)
+        .find(&mut *tx, &livestream_id)
         .await?
         .ok_or(Error::BadRequest("".into()))?;
 
@@ -472,14 +483,14 @@ pub async fn get_livestream_statistics_handler(
 
     let rpos = ranking
         .iter()
-        .rposition(|entry| entry.livestream_id.get() == livestream_id)
+        .rposition(|entry| entry.livestream_id.get() == livestream_id.get())
         .unwrap();
     let rank = (ranking.len() - rpos) as i64;
 
     // 視聴者数算出
     let history_repo = LivestreamViewersHistoryRepositoryInfra {};
     let viewers_count = history_repo
-        .count_by_livestream_id(&mut tx, livestream_id)
+        .count_by_livestream_id(&mut tx, livestream_id.get())
         .await?;
 
     // 最大チップ額
@@ -490,7 +501,7 @@ pub async fn get_livestream_statistics_handler(
     // リアクション数
     let reaction_repo = ReactionRepositoryInfra {};
     let total_reactions = reaction_repo
-        .count_by_livestream_id(&mut *tx, livestream_id)
+        .count_by_livestream_id(&mut *tx, livestream.id.get())
         .await?;
 
     // スパム報告数

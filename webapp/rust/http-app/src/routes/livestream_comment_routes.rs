@@ -79,12 +79,13 @@ pub async fn post_livecomment_handler(
         .ok_or(Error::SessionError)?;
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
     let user_id = UserId::new(user_id);
+    let livestream_id = LivestreamId::new(livestream_id);
 
     let mut tx = pool.begin().await?;
 
     let livestream_repo = LivestreamRepositoryInfra {};
     let livestream_model = livestream_repo
-        .find(&mut tx, livestream_id)
+        .find(&mut tx, &livestream_id)
         .await?
         .ok_or(Error::NotFound("livestream not found".into()))?;
 
@@ -138,7 +139,7 @@ pub async fn post_livecomment_handler(
         LivestreamComment {
             id: comment_id,
             user_id: user_id.clone(),
-            livestream_id: LivestreamId::new(livestream_id),
+            livestream_id: livestream_id.clone(),
             comment: req.comment,
             tip: req.tip,
             created_at: now,

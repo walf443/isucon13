@@ -30,12 +30,13 @@ pub async fn get_livecomment_reports_handler(
         .await?
         .ok_or(Error::SessionError)?;
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
+    let livestream_id = LivestreamId::new(livestream_id);
 
     let mut tx = pool.begin().await?;
 
     let livestream_repo = LivestreamRepositoryInfra {};
     let livestream_model = livestream_repo
-        .find(&mut *tx, livestream_id)
+        .find(&mut *tx, &livestream_id)
         .await?
         .unwrap();
 
