@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::livestream_comment::LivestreamComment;
+use isupipe_core::models::livestream_comment::{LivestreamComment, LivestreamCommentId};
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 
@@ -16,7 +16,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         comment: &str,
         tip: i64,
         created_at: i64,
-    ) -> isupipe_core::repos::Result<i64> {
+    ) -> isupipe_core::repos::Result<LivestreamCommentId> {
         let rs = sqlx::query(
             "INSERT INTO livecomments (user_id, livestream_id, comment, tip, created_at) VALUES (?, ?, ?, ?, ?)",
         )
@@ -29,7 +29,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
             .await?;
         let comment_id = rs.last_insert_id() as i64;
 
-        Ok(comment_id)
+        Ok(LivestreamCommentId::new(comment_id))
     }
 
     async fn remove_if_match_ng_word(
@@ -51,7 +51,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         ON texts.text LIKE patterns.pattern) >= 1
         "#;
         sqlx::query(query)
-            .bind(comment.id)
+            .bind(comment.id.clone())
             .bind(comment.livestream_id)
             .bind(&comment.comment)
             .bind(&ng_word)

@@ -11,6 +11,12 @@ pub struct Id<T> {
     _phantom: PhantomData<T>,
 }
 
+impl<T> Clone for Id<T> {
+    fn clone(&self) -> Self {
+        Self::new(self.get())
+    }
+}
+
 impl<T> Id<T> {
     pub fn new(id: i64) -> Self {
         Self {

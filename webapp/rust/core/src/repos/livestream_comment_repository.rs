@@ -1,5 +1,5 @@
 use crate::db::DBConn;
-use crate::models::livestream_comment::LivestreamComment;
+use crate::models::livestream_comment::{LivestreamComment, LivestreamCommentId};
 use crate::repos::Result;
 use async_trait::async_trait;
 
@@ -13,7 +13,7 @@ pub trait LivestreamCommentRepository {
         comment: &str,
         tip: i64,
         created_at: i64,
-    ) -> Result<i64>;
+    ) -> Result<LivestreamCommentId>;
 
     async fn remove_if_match_ng_word(
         &self,

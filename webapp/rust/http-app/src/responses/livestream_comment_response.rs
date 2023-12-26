@@ -38,7 +38,7 @@ impl LivestreamCommentResponse {
         let livestream = LivestreamResponse::build(conn, livestream_model).await?;
 
         Ok(Self {
-            id: livecomment_model.id,
+            id: livecomment_model.id.get(),
             user: comment_owner,
             livestream,
             comment: livecomment_model.comment,
