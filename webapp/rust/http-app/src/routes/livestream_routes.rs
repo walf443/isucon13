@@ -4,7 +4,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
-use isupipe_core::models::livestream::{CreateLivestream, Livestream};
+use isupipe_core::models::livestream::{CreateLivestream, Livestream, LivestreamId};
 use isupipe_core::models::livestream_ranking_entry::LivestreamRankingEntry;
 use isupipe_core::models::livestream_statistics::LivestreamStatistics;
 use isupipe_core::models::ng_word::NgWord;
@@ -456,19 +456,19 @@ pub async fn get_livestream_statistics_handler(
 
         let score = reactions + total_tips;
         ranking.push(LivestreamRankingEntry {
-            livestream_id: livestream.id,
+            livestream_id: LivestreamId::new(livestream.id),
             score,
         })
     }
     ranking.sort_by(|a, b| {
         a.score
             .cmp(&b.score)
-            .then_with(|| a.livestream_id.cmp(&b.livestream_id))
+            .then_with(|| a.livestream_id.get().cmp(&b.livestream_id.get()))
     });
 
     let rpos = ranking
         .iter()
-        .rposition(|entry| entry.livestream_id == livestream_id)
+        .rposition(|entry| entry.livestream_id.get() == livestream_id)
         .unwrap();
     let rank = (ranking.len() - rpos) as i64;
 

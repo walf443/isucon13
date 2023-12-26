@@ -6,7 +6,7 @@ use sqlx::mysql::MySqlTypeInfo;
 use sqlx::{Decode, Encode, MySql, Type};
 use std::marker::PhantomData;
 
-#[derive(Debug, sqlx::Type)]
+#[derive(Debug, sqlx::Type, PartialEq)]
 pub struct Id<T> {
     id: i64,
     _phantom: PhantomData<T>,
