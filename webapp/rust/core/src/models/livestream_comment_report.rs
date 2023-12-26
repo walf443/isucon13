@@ -13,4 +13,12 @@ pub struct LivestreamCommentReport {
     pub created_at: i64,
 }
 
+pub struct CreateLivestreamCommentReport {
+    pub user_id: UserId,
+    #[allow(unused)]
+    pub livestream_id: LivestreamId,
+    pub livestream_comment_id: LivestreamCommentId,
+    pub created_at: i64,
+}
+
 pub type LivestreamCommentReportId = Id<LivestreamCommentReport>;

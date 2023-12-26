@@ -1,7 +1,9 @@
 use crate::db::HaveDBPool;
 use crate::models::livestream::LivestreamId;
 use crate::models::livestream_comment::LivestreamCommentId;
-use crate::models::livestream_comment_report::LivestreamCommentReport;
+use crate::models::livestream_comment_report::{
+    CreateLivestreamCommentReport, LivestreamCommentReport,
+};
 use crate::models::user::UserId;
 use crate::repos::livestream_comment_report_repository::{
     HaveLivestreamCommentReportRepository, LivestreamCommentReportRepository,
@@ -65,15 +67,15 @@ impl<S: LivestreamCommentReportServiceImpl> LivestreamCommentReportService for S
             .ok_or(NotFoundLivestreamComment)?;
 
         let now = Utc::now().timestamp();
+        let report = CreateLivestreamCommentReport {
+            user_id: user_id.clone(),
+            livestream_id: livestream_id.clone(),
+            livestream_comment_id: livestream_comment_id.clone(),
+            created_at: now,
+        };
         let report_id = self
             .livestream_comment_report_repo()
-            .insert(
-                &mut *tx,
-                user_id,
-                livestream_id,
-                livestream_comment_id,
-                now,
-            )
+            .create(&mut *tx, &report)
             .await?;
 
         tx.commit().await?;
