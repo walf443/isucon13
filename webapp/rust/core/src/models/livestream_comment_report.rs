@@ -7,7 +7,6 @@ use crate::models::user::UserId;
 pub struct LivestreamCommentReport {
     pub id: Id<Self>,
     pub user_id: UserId,
-    #[allow(unused)]
     pub livestream_id: LivestreamId,
     pub livestream_comment_id: LivestreamCommentId,
     pub created_at: i64,
@@ -15,7 +14,6 @@ pub struct LivestreamCommentReport {
 
 pub struct CreateLivestreamCommentReport {
     pub user_id: UserId,
-    #[allow(unused)]
     pub livestream_id: LivestreamId,
     pub livestream_comment_id: LivestreamCommentId,
     pub created_at: i64,
