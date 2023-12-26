@@ -469,7 +469,7 @@ pub async fn get_livestream_statistics_handler(
     let comment_repo = LivestreamCommentRepositoryInfra {};
     for livestream in livestreams {
         let reactions = reaction_repo
-            .count_by_livestream_id(&mut *tx, livestream.id.get())
+            .count_by_livestream_id(&mut *tx, &livestream.id)
             .await?;
 
         let total_tips = comment_repo
@@ -508,7 +508,7 @@ pub async fn get_livestream_statistics_handler(
     // リアクション数
     let reaction_repo = ReactionRepositoryInfra {};
     let total_reactions = reaction_repo
-        .count_by_livestream_id(&mut *tx, livestream.id.get())
+        .count_by_livestream_id(&mut *tx, &livestream.id)
         .await?;
 
     // スパム報告数

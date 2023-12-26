@@ -182,7 +182,7 @@ pub async fn get_user_statistics_handler(
     let reaction_repo = ReactionRepositoryInfra {};
     for user in users {
         let reaction_count = reaction_repo
-            .count_by_livestream_user_id(&mut *tx, user.id.get())
+            .count_by_livestream_user_id(&mut *tx, &user.id)
             .await?;
 
         let tips = comment_repo

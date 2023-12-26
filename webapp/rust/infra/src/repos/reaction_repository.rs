@@ -1,7 +1,9 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
+use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::reaction::{Reaction, ReactionId};
+use isupipe_core::models::user::UserId;
 use isupipe_core::repos::reaction_repository::ReactionRepository;
 
 pub struct ReactionRepositoryInfra {}
@@ -11,8 +13,8 @@ impl ReactionRepository for ReactionRepositoryInfra {
     async fn insert(
         &self,
         conn: &mut DBConn,
-        user_id: i64,
-        livestream_id: i64,
+        user_id: &UserId,
+        livestream_id: &LivestreamId,
         emoji_name: &str,
         created_at: i64,
     ) -> isupipe_core::repos::Result<ReactionId> {
@@ -32,7 +34,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
     async fn count_by_livestream_id(
         &self,
         conn: &mut DBConn,
-        livestream_id: i64,
+        livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
         let MysqlDecimal(reactions) = sqlx::query_scalar("SELECT COUNT(*) FROM livestreams l INNER JOIN reactions r ON l.id = r.livestream_id WHERE l.id = ?")
             .bind(livestream_id)
@@ -69,7 +71,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
     async fn count_by_livestream_user_id(
         &self,
         conn: &mut DBConn,
-        livestream_user_id: i64,
+        livestream_user_id: &UserId,
     ) -> isupipe_core::repos::Result<i64> {
         let query = r#"
             SELECT COUNT(*) FROM users u
@@ -107,7 +109,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
     async fn find_all_by_livestream_id(
         &self,
         conn: &mut DBConn,
-        livestream_id: i64,
+        livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<Reaction>> {
         let reaction_models: Vec<Reaction> = sqlx::query_as(
             "SELECT * FROM reactions WHERE livestream_id = ? ORDER BY created_at DESC",
@@ -121,7 +123,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
     async fn find_all_by_livestream_id_limit(
         &self,
         conn: &mut DBConn,
-        livestream_id: i64,
+        livestream_id: &LivestreamId,
         limit: i64,
     ) -> isupipe_core::repos::Result<Vec<Reaction>> {
         let reaction_models: Vec<Reaction> = sqlx::query_as(

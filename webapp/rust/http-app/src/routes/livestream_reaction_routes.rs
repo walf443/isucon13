@@ -26,18 +26,19 @@ pub async fn get_reactions_handler(
     Query(GetReactionsQuery { limit }): Query<GetReactionsQuery>,
 ) -> Result<axum::Json<Vec<ReactionResponse>>, Error> {
     verify_user_session(&jar).await?;
+    let livestream_id = LivestreamId::new(livestream_id);
 
     let mut tx = pool.begin().await?;
 
     let reaction_repo = ReactionRepositoryInfra {};
     let reaction_models = if limit.is_empty() {
         reaction_repo
-            .find_all_by_livestream_id(&mut *tx, livestream_id)
+            .find_all_by_livestream_id(&mut *tx, &livestream_id)
             .await?
     } else {
         let limit: i64 = limit.parse().map_err(|_| Error::BadRequest("".into()))?;
         reaction_repo
-            .find_all_by_livestream_id_limit(&mut *tx, livestream_id, limit)
+            .find_all_by_livestream_id_limit(&mut *tx, &livestream_id, limit)
             .await?
     };
 
@@ -71,6 +72,9 @@ pub async fn post_reaction_handler(
         .await?
         .ok_or(Error::SessionError)?;
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
+    let user_id = UserId::new(user_id);
+
+    let livestream_id = LivestreamId::new(livestream_id);
 
     let mut tx = pool.begin().await?;
 
@@ -79,8 +83,8 @@ pub async fn post_reaction_handler(
     let reaction_id = reaction_repo
         .insert(
             &mut *tx,
-            user_id,
-            livestream_id,
+            &user_id,
+            &livestream_id,
             &req.emoji_name,
             created_at,
         )
@@ -90,8 +94,8 @@ pub async fn post_reaction_handler(
         &mut tx,
         Reaction {
             id: reaction_id,
-            user_id: UserId::new(user_id),
-            livestream_id: LivestreamId::new(livestream_id),
+            user_id: user_id.clone(),
+            livestream_id: livestream_id.clone(),
             emoji_name: req.emoji_name,
             created_at,
         },
