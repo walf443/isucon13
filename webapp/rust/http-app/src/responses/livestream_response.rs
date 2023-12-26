@@ -40,9 +40,7 @@ impl LivestreamResponse {
         let tag_repo = TagRepositoryInfra {};
         let mut tags = Vec::with_capacity(livestream_tag_models.len());
         for livestream_tag_model in livestream_tag_models {
-            let tag_model = tag_repo
-                .find(conn, livestream_tag_model.tag_id.get())
-                .await?;
+            let tag_model = tag_repo.find(conn, &livestream_tag_model.tag_id).await?;
             tags.push(TagResponse {
                 id: tag_model.id.get(),
                 name: tag_model.name,

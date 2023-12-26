@@ -7,7 +7,7 @@ pub struct TagRepositoryInfra {}
 
 #[async_trait]
 impl TagRepository for TagRepositoryInfra {
-    async fn find(&self, conn: &mut DBConn, id: i64) -> isupipe_core::repos::Result<Tag> {
+    async fn find(&self, conn: &mut DBConn, id: &TagId) -> isupipe_core::repos::Result<Tag> {
         let tag_model: Tag = sqlx::query_as("SELECT * FROM tags WHERE id = ?")
             .bind(id)
             .fetch_one(conn)
