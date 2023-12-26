@@ -5,14 +5,16 @@ use crate::models::livestream_comment_report::{
 };
 use crate::repos::Result;
 use async_trait::async_trait;
+use crate::models::livestream::LivestreamId;
+use crate::models::user::UserId;
 
 #[async_trait]
 pub trait LivestreamCommentReportRepository {
     async fn insert(
         &self,
         conn: &mut DBConn,
-        user_id: i64,
-        livestream_id: i64,
+        user_id: &UserId,
+        livestream_id: &LivestreamId,
         livestream_comment_id: &LivestreamCommentId,
         created_at: i64,
     ) -> Result<LivestreamCommentReportId>;

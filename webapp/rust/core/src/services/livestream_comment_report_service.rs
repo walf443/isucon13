@@ -69,8 +69,8 @@ impl<S: LivestreamCommentReportServiceImpl> LivestreamCommentReportService for S
             .livestream_comment_report_repo()
             .insert(
                 &mut *tx,
-                user_id.get(),
-                livestream_id.get(),
+                user_id,
+                livestream_id,
                 livestream_comment_id,
                 now,
             )

@@ -1,10 +1,12 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
+use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_comment::LivestreamCommentId;
 use isupipe_core::models::livestream_comment_report::{
     LivestreamCommentReport, LivestreamCommentReportId,
 };
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
+use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 
 pub struct LivestreamCommentReportRepositoryInfra {}
@@ -14,8 +16,8 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
     async fn insert(
         &self,
         conn: &mut DBConn,
-        user_id: i64,
-        livestream_id: i64,
+        user_id: &UserId,
+        livestream_id: &LivestreamId,
         livestream_comment_id: &LivestreamCommentId,
         created_at: i64,
     ) -> isupipe_core::repos::Result<LivestreamCommentReportId> {
