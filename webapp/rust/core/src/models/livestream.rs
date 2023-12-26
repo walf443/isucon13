@@ -1,3 +1,5 @@
+use crate::models::id::Id;
+
 pub struct CreateLivestream {
     pub user_id: i64,
     pub title: String,
@@ -19,3 +21,5 @@ pub struct Livestream {
     pub start_at: i64,
     pub end_at: i64,
 }
+
+pub type LivestreamId = Id<Livestream>;

@@ -1,4 +1,5 @@
 use crate::db::HaveDBPool;
+use crate::models::livestream::LivestreamId;
 use crate::models::livestream_comment::LivestreamCommentId;
 use crate::models::livestream_comment_report::LivestreamCommentReport;
 use crate::repos::livestream_comment_report_repository::{
@@ -18,7 +19,7 @@ pub trait LivestreamCommentReportService {
     async fn create(
         &self,
         user_id: i64,
-        livestream_id: i64,
+        livestream_id: &LivestreamId,
         livestream_comment_id: &LivestreamCommentId,
     ) -> ServiceResult<LivestreamCommentReport>;
 }
@@ -44,7 +45,7 @@ impl<S: LivestreamCommentReportServiceImpl> LivestreamCommentReportService for S
     async fn create(
         &self,
         user_id: i64,
-        livestream_id: i64,
+        livestream_id: &LivestreamId,
         livestream_comment_id: &LivestreamCommentId,
     ) -> ServiceResult<LivestreamCommentReport> {
         let pool = self.get_db_pool();
@@ -52,7 +53,7 @@ impl<S: LivestreamCommentReportServiceImpl> LivestreamCommentReportService for S
 
         let livestream_repo = self.livestream_repo();
         livestream_repo
-            .find(&mut *tx, livestream_id)
+            .find(&mut *tx, livestream_id.get())
             .await?
             .ok_or(NotFoundLivestream)?;
 
@@ -65,7 +66,13 @@ impl<S: LivestreamCommentReportServiceImpl> LivestreamCommentReportService for S
         let now = Utc::now().timestamp();
         let report_id = self
             .livestream_comment_report_repo()
-            .insert(&mut *tx, user_id, livestream_id, livestream_comment_id, now)
+            .insert(
+                &mut *tx,
+                user_id,
+                livestream_id.get(),
+                livestream_comment_id,
+                now,
+            )
             .await?;
 
         tx.commit().await?;
@@ -73,7 +80,7 @@ impl<S: LivestreamCommentReportServiceImpl> LivestreamCommentReportService for S
         Ok(LivestreamCommentReport {
             id: report_id,
             user_id,
-            livestream_id,
+            livestream_id: livestream_id.clone(),
             livestream_comment_id: livestream_comment_id.clone(),
             created_at: now,
         })

@@ -3,6 +3,7 @@ use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
+use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_comment::LivestreamCommentId;
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
@@ -72,10 +73,11 @@ pub async fn report_livecomment_handler(
         .ok_or(Error::SessionError)?;
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
 
+    let livestream_id = LivestreamId::new(livestream_id);
     let comment_report_service = LivestreamCommentReportServiceInfra::new(Arc::new(pool.clone()));
     let comment_id = LivestreamCommentId::new(livecomment_id);
     let report = comment_report_service
-        .create(user_id, livestream_id, &comment_id)
+        .create(user_id, &livestream_id, &comment_id)
         .await?;
 
     let mut conn = pool.acquire().await?;
