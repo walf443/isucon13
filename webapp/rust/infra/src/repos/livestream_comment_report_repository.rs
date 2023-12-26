@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
+use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_comment_report::{
     CreateLivestreamCommentReport, LivestreamCommentReport, LivestreamCommentReportId,
 };
@@ -32,7 +33,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
     async fn count_by_livestream_id(
         &self,
         conn: &mut DBConn,
-        livestream_id: i64,
+        livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
         let MysqlDecimal(total_reports) = sqlx::query_scalar("SELECT COUNT(*) FROM livestreams l INNER JOIN livecomment_reports r ON r.livestream_id = l.id WHERE l.id = ?")
             .bind(livestream_id)
@@ -45,7 +46,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
     async fn find_all_by_livestream_id(
         &self,
         conn: &mut DBConn,
-        livestream_id: i64,
+        livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamCommentReport>> {
         let report_models: Vec<LivestreamCommentReport> =
             sqlx::query_as("SELECT * FROM livecomment_reports WHERE livestream_id = ?")

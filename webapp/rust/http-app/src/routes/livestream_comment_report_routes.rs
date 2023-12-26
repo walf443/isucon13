@@ -47,7 +47,7 @@ pub async fn get_livecomment_reports_handler(
 
     let report_repo = LivestreamCommentReportRepositoryInfra {};
     let report_models = report_repo
-        .find_all_by_livestream_id(&mut *tx, livestream_id)
+        .find_all_by_livestream_id(&mut *tx, &livestream_model.id)
         .await?;
 
     let mut reports = Vec::with_capacity(report_models.len());

@@ -138,18 +138,20 @@ pub async fn reserve_livestream_handler(
         )
         .await?;
 
+    let livestream_id = LivestreamId::new(livestream_id);
+
     let livestream_tag_repo = LivestreamTagRepositoryInfra {};
     // タグ追加
     for tag_id in req.tags {
         livestream_tag_repo
-            .insert(&mut *tx, livestream_id, tag_id)
+            .insert(&mut *tx, livestream_id.get(), tag_id)
             .await?;
     }
 
     let livestream = LivestreamResponse::build(
         &mut tx,
         Livestream {
-            id: LivestreamId::new(livestream_id),
+            id: livestream_id.clone(),
             user_id: user_id.clone(),
             title: req.title,
             description: req.description,
@@ -436,7 +438,7 @@ pub async fn get_livestream_statistics_handler(
     let mut tx = pool.begin().await?;
     let livestream_repo = LivestreamRepositoryInfra {};
 
-    let _ = livestream_repo
+    let livestream = livestream_repo
         .find(&mut *tx, livestream_id)
         .await?
         .ok_or(Error::BadRequest("".into()))?;
@@ -494,7 +496,7 @@ pub async fn get_livestream_statistics_handler(
     // スパム報告数
     let report_repo = LivestreamCommentReportRepositoryInfra {};
     let total_reports = report_repo
-        .count_by_livestream_id(&mut *tx, livestream_id)
+        .count_by_livestream_id(&mut *tx, &livestream.id)
         .await?;
 
     tx.commit().await?;
