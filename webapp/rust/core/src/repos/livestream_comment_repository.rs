@@ -65,3 +65,8 @@ pub trait LivestreamCommentRepository {
         user_id: i64,
     ) -> Result<i64>;
 }
+
+pub trait HaveLivestreamCommentRepository {
+    type Repo: Sync + LivestreamCommentRepository;
+    fn livestream_comment_repo(&self) -> &Self::Repo;
+}

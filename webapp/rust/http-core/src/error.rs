@@ -1,6 +1,7 @@
 use crate::responses::ResponseError;
 use axum::http::StatusCode;
 use isupipe_core::repos::ReposError;
+use isupipe_core::services::ServiceError;
 use isupipe_core::utils::UtilError;
 use std::borrow::Cow;
 
@@ -32,6 +33,18 @@ pub enum Error {
     NotFound(Cow<'static, str>),
     #[error("{0}")]
     InternalServerError(String),
+}
+
+impl From<ServiceError> for Error {
+    fn from(err: ServiceError) -> Self {
+        match err {
+            ServiceError::NotFoundLivestream => Self::NotFound(Cow::from("livestream not found")),
+            ServiceError::NotFoundLivestreamComment => {
+                Self::NotFound(Cow::from("livecomment not found"))
+            }
+            e => e.into(),
+        }
+    }
 }
 
 impl axum::response::IntoResponse for Error {

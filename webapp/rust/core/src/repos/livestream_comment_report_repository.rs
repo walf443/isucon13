@@ -21,3 +21,8 @@ pub trait LivestreamCommentReportRepository {
         livestream_id: i64,
     ) -> Result<Vec<LivestreamCommentReport>>;
 }
+
+pub trait HaveLivestreamCommentReportRepository {
+    type Repo: Sync + LivestreamCommentReportRepository;
+    fn livestream_comment_report_repo(&self) -> &Self::Repo;
+}

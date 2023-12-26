@@ -26,3 +26,9 @@ pub trait LivestreamRepository {
         user_id: i64,
     ) -> Result<bool>;
 }
+
+pub trait HaveLivestreamRepository {
+    type Repo: Sync + LivestreamRepository;
+
+    fn livestream_repo(&self) -> &Self::Repo;
+}
