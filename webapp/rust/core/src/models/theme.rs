@@ -1,7 +1,12 @@
+use crate::models::id::Id;
+use crate::models::user::UserId;
+
 #[derive(Debug, sqlx::FromRow)]
 pub struct Theme {
-    pub id: i64,
+    pub id: Id<Self>,
     #[allow(unused)]
-    pub user_id: i64,
+    pub user_id: UserId,
     pub dark_mode: bool,
 }
+
+pub type ThemeId = Id<Theme>;

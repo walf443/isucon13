@@ -66,7 +66,7 @@ pub async fn get_streamer_theme_handler(
     tx.commit().await?;
 
     Ok(axum::Json(ThemeResponse {
-        id: theme_model.id,
+        id: theme_model.id.get(),
         dark_mode: theme_model.dark_mode,
     }))
 }
