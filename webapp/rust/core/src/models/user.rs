@@ -2,7 +2,7 @@ use crate::models::id::Id;
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct User {
-    pub id: i64,
+    pub id: Id<Self>,
     pub name: String,
     pub display_name: Option<String>,
     pub description: Option<String>,

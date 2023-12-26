@@ -2,6 +2,7 @@ use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
+use isupipe_core::models::user::UserId;
 use isupipe_core::repos::icon_repository::IconRepository;
 use isupipe_core::repos::user_repository::UserRepository;
 use isupipe_http_core::error::Error;
@@ -24,7 +25,7 @@ pub async fn get_icon_handler(
     let user = user_repo.find_by_name(&mut *tx, &username).await?.unwrap();
 
     let icon_repo = IconRepositoryInfra {};
-    let image = icon_repo.find_image_by_user_id(&mut *tx, user.id).await?;
+    let image = icon_repo.find_image_by_user_id(&mut *tx, &user.id).await?;
 
     let headers = [(axum::http::header::CONTENT_TYPE, "image/jpeg")];
     if let Some(image) = image {
@@ -73,13 +74,14 @@ pub async fn post_icon_handler(
         .await?
         .ok_or(Error::SessionError)?;
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
+    let user_id = UserId::new(user_id);
 
     let icon_repo = IconRepositoryInfra {};
 
     let mut tx = pool.begin().await?;
 
-    icon_repo.delete_by_user_id(&mut *tx, user_id).await?;
-    let icon_id = icon_repo.insert(&mut *tx, user_id, &req.image).await?;
+    icon_repo.delete_by_user_id(&mut *tx, &user_id).await?;
+    let icon_id = icon_repo.insert(&mut *tx, &user_id, &req.image).await?;
 
     tx.commit().await?;
 

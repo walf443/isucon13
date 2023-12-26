@@ -23,10 +23,10 @@ pub struct UserResponse {
 impl UserResponse {
     pub async fn build(conn: &mut DBConn, user: User) -> ResponseResult<Self> {
         let theme_repo = ThemeRepositoryInfra {};
-        let theme_model = theme_repo.find_by_user_id(conn, user.id).await?;
+        let theme_model = theme_repo.find_by_user_id(conn, user.id.get()).await?;
 
         let icon_repo = IconRepositoryInfra {};
-        let image = icon_repo.find_image_by_user_id(conn, user.id).await?;
+        let image = icon_repo.find_image_by_user_id(conn, &user.id).await?;
 
         let image = if let Some(image) = image {
             image
@@ -37,7 +37,7 @@ impl UserResponse {
         let icon_hash = sha2::Sha256::digest(image);
 
         Ok(Self {
-            id: user.id,
+            id: user.id.get(),
             name: user.name,
             display_name: user.display_name,
             description: user.description,

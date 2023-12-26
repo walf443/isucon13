@@ -87,7 +87,7 @@ pub async fn get_user_livestreams_handler(
 
     let livestream_repo = LivestreamRepositoryInfra {};
     let livestream_models = livestream_repo
-        .find_all_by_user_id(&mut *tx, user.id)
+        .find_all_by_user_id(&mut *tx, user.id.get())
         .await?;
 
     let mut livestreams = Vec::with_capacity(livestream_models.len());
@@ -182,11 +182,11 @@ pub async fn get_user_statistics_handler(
     let reaction_repo = ReactionRepositoryInfra {};
     for user in users {
         let reaction_count = reaction_repo
-            .count_by_livestream_user_id(&mut *tx, user.id)
+            .count_by_livestream_user_id(&mut *tx, user.id.get())
             .await?;
 
         let tips = comment_repo
-            .get_sum_tip_of_livestream_user_id(&mut *tx, user.id)
+            .get_sum_tip_of_livestream_user_id(&mut *tx, user.id.get())
             .await?;
 
         let score = reaction_count + tips;
@@ -218,7 +218,7 @@ pub async fn get_user_statistics_handler(
 
     let livestream_repo = LivestreamRepositoryInfra {};
     let livestreams = livestream_repo
-        .find_all_by_user_id(&mut *tx, user.id)
+        .find_all_by_user_id(&mut *tx, user.id.get())
         .await?;
 
     let comment_repo = LivestreamCommentRepositoryInfra {};
