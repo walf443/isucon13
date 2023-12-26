@@ -239,7 +239,7 @@ pub async fn get_user_statistics_handler(
     let mut viewers_count = 0;
     for livestream in livestreams {
         let cnt = history_repo
-            .count_by_livestream_id(&mut conn, livestream.id.get())
+            .count_by_livestream_id(&mut conn, &livestream.id)
             .await?;
         viewers_count += cnt;
     }

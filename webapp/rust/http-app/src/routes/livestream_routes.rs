@@ -406,12 +406,14 @@ pub async fn enter_livestream_handler(
         .await?
         .ok_or(Error::SessionError)?;
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
+    let user_id = UserId::new(user_id);
+    let livestream_id = LivestreamId::new(livestream_id);
 
     let created_at = Utc::now().timestamp();
     let mut conn = pool.acquire().await?;
     let history_repo = LivestreamViewersHistoryRepositoryInfra {};
     history_repo
-        .insert(&mut conn, livestream_id, user_id, created_at)
+        .insert(&mut conn, &livestream_id, &user_id, created_at)
         .await?;
 
     Ok(())
@@ -429,11 +431,13 @@ pub async fn exit_livestream_handler(
         .await?
         .ok_or(Error::SessionError)?;
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
+    let user_id = UserId::new(user_id);
+    let livestream_id = LivestreamId::new(livestream_id);
 
     let history_repo = LivestreamViewersHistoryRepositoryInfra {};
     let mut conn = pool.acquire().await?;
     history_repo
-        .delete_by_livestream_id_and_user_id(&mut conn, livestream_id, user_id)
+        .delete_by_livestream_id_and_user_id(&mut conn, &livestream_id, &user_id)
         .await?;
 
     Ok(())
@@ -491,7 +495,7 @@ pub async fn get_livestream_statistics_handler(
     // 視聴者数算出
     let history_repo = LivestreamViewersHistoryRepositoryInfra {};
     let viewers_count = history_repo
-        .count_by_livestream_id(&mut tx, livestream_id.get())
+        .count_by_livestream_id(&mut tx, &livestream_id)
         .await?;
 
     // 最大チップ額
