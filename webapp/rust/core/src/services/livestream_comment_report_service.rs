@@ -73,7 +73,7 @@ impl<S: LivestreamCommentReportServiceImpl> LivestreamCommentReportService for S
             id: report_id,
             user_id,
             livestream_id,
-            livecomment_id: livestream_comment_id,
+            livestream_comment_id: livestream_comment_id,
             created_at: now,
         })
     }
