@@ -8,6 +8,7 @@ use isupipe_core::models::livestream::{CreateLivestream, Livestream, LivestreamI
 use isupipe_core::models::livestream_ranking_entry::LivestreamRankingEntry;
 use isupipe_core::models::livestream_statistics::LivestreamStatistics;
 use isupipe_core::models::ng_word::NgWord;
+use isupipe_core::models::tag::TagId;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
@@ -142,7 +143,7 @@ pub async fn reserve_livestream_handler(
     // タグ追加
     for tag_id in req.tags {
         livestream_tag_repo
-            .insert(&mut *tx, livestream_id.get(), tag_id)
+            .insert(&mut *tx, &livestream_id, &TagId::new(tag_id))
             .await?;
     }
 

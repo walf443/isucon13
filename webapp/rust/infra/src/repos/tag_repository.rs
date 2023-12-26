@@ -1,6 +1,6 @@
 use async_session::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::tag::Tag;
+use isupipe_core::models::tag::{Tag, TagId};
 use isupipe_core::repos::tag_repository::TagRepository;
 
 pub struct TagRepositoryInfra {}
@@ -26,8 +26,8 @@ impl TagRepository for TagRepositoryInfra {
         &self,
         conn: &mut DBConn,
         name: &str,
-    ) -> isupipe_core::repos::Result<Vec<i64>> {
-        let tag_id_list: Vec<i64> = sqlx::query_scalar("SELECT id FROM tags WHERE name = ?")
+    ) -> isupipe_core::repos::Result<Vec<TagId>> {
+        let tag_id_list: Vec<TagId> = sqlx::query_scalar("SELECT id FROM tags WHERE name = ?")
             .bind(name)
             .fetch_all(conn)
             .await?;

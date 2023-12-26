@@ -34,7 +34,7 @@ impl LivestreamResponse {
 
         let livestream_tag_repo = LivestreamTagRepositoryInfra {};
         let livestream_tag_models = livestream_tag_repo
-            .find_all_by_livestream_id(conn, livestream_model.id.get())
+            .find_all_by_livestream_id(conn, &livestream_model.id)
             .await?;
 
         let tag_repo = TagRepositoryInfra {};
