@@ -9,7 +9,7 @@ pub struct TagResponse {
 impl From<Tag> for TagResponse {
     fn from(tag: Tag) -> Self {
         Self {
-            id: tag.id,
+            id: tag.id.get(),
             name: tag.name,
         }
     }

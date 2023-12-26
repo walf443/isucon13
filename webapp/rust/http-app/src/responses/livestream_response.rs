@@ -42,7 +42,7 @@ impl LivestreamResponse {
         for livestream_tag_model in livestream_tag_models {
             let tag_model = tag_repo.find(conn, livestream_tag_model.tag_id).await?;
             tags.push(TagResponse {
-                id: tag_model.id,
+                id: tag_model.id.get(),
                 name: tag_model.name,
             });
         }
