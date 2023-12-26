@@ -1,8 +1,11 @@
 use crate::responses::livestream_response::LivestreamResponse;
 use crate::responses::theme_response::ThemeResponse;
 use crate::responses::user_response::UserResponse;
+use crate::routes::user_icon_routes::get_icon_handler;
 use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, State};
+use axum::routing::get;
+use axum::Router;
 use axum_extra::extract::SignedCookieJar;
 use isupipe_core::models::user_ranking_entry::UserRankingEntry;
 use isupipe_core::models::user_statistics::UserStatistics;
@@ -21,6 +24,22 @@ use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewe
 use isupipe_infra::repos::reaction_repository::ReactionRepositoryInfra;
 use isupipe_infra::repos::theme_repository::ThemeRepositoryInfra;
 use isupipe_infra::repos::user_repository::UserRepositoryInfra;
+
+pub fn user_routes() -> Router<AppState> {
+    let user_routes = Router::new()
+        .route("/me", axum::routing::get(get_me_handler))
+        // フロントエンドで、配信予約のコラボレーターを指定する際に必要
+        .route("/:username", axum::routing::get(get_user_handler))
+        .route("/:username/theme", get(get_streamer_theme_handler))
+        .route("/:username/livestream", get(get_user_livestreams_handler))
+        .route(
+            "/:username/statistics",
+            axum::routing::get(get_user_statistics_handler),
+        )
+        .route("/:username/icon", axum::routing::get(get_icon_handler));
+
+    user_routes
+}
 
 // 配信者のテーマ取得API
 // GET /api/user/:username/theme

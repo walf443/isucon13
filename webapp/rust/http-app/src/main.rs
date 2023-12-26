@@ -17,11 +17,8 @@ use isupipe_http_app::routes::login_routes::login_handler;
 use isupipe_http_app::routes::payment_routes::get_payment_result;
 use isupipe_http_app::routes::register_routes::register_handler;
 use isupipe_http_app::routes::tag_routes::get_tag_handler;
-use isupipe_http_app::routes::user_icon_routes::{get_icon_handler, post_icon_handler};
-use isupipe_http_app::routes::user_routes::{
-    get_me_handler, get_streamer_theme_handler, get_user_handler, get_user_livestreams_handler,
-    get_user_statistics_handler,
-};
+use isupipe_http_app::routes::user_icon_routes::post_icon_handler;
+use isupipe_http_app::routes::user_routes::user_routes;
 use isupipe_http_core::state::AppState;
 use std::sync::Arc;
 
@@ -85,10 +82,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/initialize", axum::routing::post(initialize_handler))
         // top
         .route("/api/tag", axum::routing::get(get_tag_handler))
-        .route(
-            "/api/user/:username/theme",
-            axum::routing::get(get_streamer_theme_handler),
-        )
         // livestream
         // reserve livestream
         .route(
@@ -103,10 +96,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route(
             "/api/livestream",
             axum::routing::get(get_my_livestreams_handler),
-        )
-        .route(
-            "/api/user/:username/livestream",
-            axum::routing::get(get_user_livestreams_handler),
         )
         // get livestream
         .route(
@@ -156,17 +145,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // user
         .route("/api/register", axum::routing::post(register_handler))
         .route("/api/login", axum::routing::post(login_handler))
-        .route("/api/user/me", axum::routing::get(get_me_handler))
-        // フロントエンドで、配信予約のコラボレーターを指定する際に必要
-        .route("/api/user/:username", axum::routing::get(get_user_handler))
-        .route(
-            "/api/user/:username/statistics",
-            axum::routing::get(get_user_statistics_handler),
-        )
-        .route(
-            "/api/user/:username/icon",
-            axum::routing::get(get_icon_handler),
-        )
         .route("/api/icon", axum::routing::post(post_icon_handler))
         // stats
         // ライブ配信統計情報
@@ -176,6 +154,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         // 課金情報
         .route("/api/payment", axum::routing::get(get_payment_result))
+        .nest("/api/user/", user_routes())
         .with_state(AppState {
             pool,
             key: axum_extra::extract::cookie::Key::derive_from(&secret),
