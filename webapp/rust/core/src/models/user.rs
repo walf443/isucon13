@@ -1,3 +1,5 @@
+use crate::models::id::Id;
+
 #[derive(Debug, sqlx::FromRow)]
 pub struct User {
     pub id: i64,
@@ -7,3 +9,5 @@ pub struct User {
     #[sqlx(default, rename = "password")]
     pub hashed_password: Option<String>,
 }
+
+pub type UserId = Id<User>;

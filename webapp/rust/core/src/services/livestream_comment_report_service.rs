@@ -13,12 +13,13 @@ use crate::services::ServiceError::{NotFoundLivestream, NotFoundLivestreamCommen
 use crate::services::ServiceResult;
 use async_trait::async_trait;
 use chrono::Utc;
+use crate::models::user::UserId;
 
 #[async_trait]
 pub trait LivestreamCommentReportService {
     async fn create(
         &self,
-        user_id: i64,
+        user_id: &UserId,
         livestream_id: &LivestreamId,
         livestream_comment_id: &LivestreamCommentId,
     ) -> ServiceResult<LivestreamCommentReport>;
@@ -44,7 +45,7 @@ pub trait LivestreamCommentReportServiceImpl:
 impl<S: LivestreamCommentReportServiceImpl> LivestreamCommentReportService for S {
     async fn create(
         &self,
-        user_id: i64,
+        user_id: &UserId,
         livestream_id: &LivestreamId,
         livestream_comment_id: &LivestreamCommentId,
     ) -> ServiceResult<LivestreamCommentReport> {
@@ -68,7 +69,7 @@ impl<S: LivestreamCommentReportServiceImpl> LivestreamCommentReportService for S
             .livestream_comment_report_repo()
             .insert(
                 &mut *tx,
-                user_id,
+                user_id.get(),
                 livestream_id.get(),
                 livestream_comment_id,
                 now,
@@ -79,7 +80,7 @@ impl<S: LivestreamCommentReportServiceImpl> LivestreamCommentReportService for S
 
         Ok(LivestreamCommentReport {
             id: report_id,
-            user_id,
+            user_id: user_id.get(),
             livestream_id: livestream_id.clone(),
             livestream_comment_id: livestream_comment_id.clone(),
             created_at: now,

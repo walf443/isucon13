@@ -15,6 +15,7 @@ use isupipe_infra::repos::livestream_comment_report_repository::LivestreamCommen
 use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
 use isupipe_infra::services::LivestreamCommentReportServiceInfra;
 use std::sync::Arc;
+use isupipe_core::models::user::UserId;
 
 pub async fn get_livecomment_reports_handler(
     State(AppState { pool, .. }): State<AppState>,
@@ -72,12 +73,13 @@ pub async fn report_livecomment_handler(
         .await?
         .ok_or(Error::SessionError)?;
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
+    let user_id = UserId::new(user_id);
 
     let livestream_id = LivestreamId::new(livestream_id);
     let comment_report_service = LivestreamCommentReportServiceInfra::new(Arc::new(pool.clone()));
     let comment_id = LivestreamCommentId::new(livecomment_id);
     let report = comment_report_service
-        .create(user_id, &livestream_id, &comment_id)
+        .create(&user_id, &livestream_id, &comment_id)
         .await?;
 
     let mut conn = pool.acquire().await?;
