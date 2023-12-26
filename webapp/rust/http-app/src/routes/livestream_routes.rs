@@ -58,7 +58,8 @@ pub async fn reserve_livestream_handler(
         .load_session(cookie.value().to_owned())
         .await?
         .ok_or(Error::SessionError)?;
-    let user_id = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
+    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
+    let user_id = UserId::new(user_id);
 
     let mut tx = pool.begin().await?;
 
@@ -126,7 +127,7 @@ pub async fn reserve_livestream_handler(
         .create(
             &mut *tx,
             &CreateLivestream {
-                user_id,
+                user_id: user_id.clone(),
                 title: req.title.clone(),
                 description: req.description.clone(),
                 playlist_url: req.playlist_url.clone(),
@@ -149,7 +150,7 @@ pub async fn reserve_livestream_handler(
         &mut tx,
         Livestream {
             id: LivestreamId::new(livestream_id),
-            user_id: UserId::new(user_id),
+            user_id: user_id.clone(),
             title: req.title,
             description: req.description,
             playlist_url: req.playlist_url,

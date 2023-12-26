@@ -2,7 +2,7 @@ use crate::models::id::Id;
 use crate::models::user::UserId;
 
 pub struct CreateLivestream {
-    pub user_id: i64,
+    pub user_id: UserId,
     pub title: String,
     pub description: String,
     pub playlist_url: String,

@@ -13,7 +13,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         stream: &CreateLivestream,
     ) -> isupipe_core::repos::Result<i64> {
         let rs = sqlx::query("INSERT INTO livestreams (user_id, title, description, playlist_url, thumbnail_url, start_at, end_at) VALUES(?, ?, ?, ?, ?, ?, ?)")
-            .bind(stream.user_id)
+            .bind(&stream.user_id)
             .bind(&stream.title)
             .bind(&stream.description)
             .bind(&stream.playlist_url)
