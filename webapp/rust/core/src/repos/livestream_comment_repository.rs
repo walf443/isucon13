@@ -1,5 +1,7 @@
 use crate::db::DBConn;
+use crate::models::livestream::LivestreamId;
 use crate::models::livestream_comment::{LivestreamComment, LivestreamCommentId};
+use crate::models::user::UserId;
 use crate::repos::Result;
 use async_trait::async_trait;
 
@@ -8,8 +10,8 @@ pub trait LivestreamCommentRepository {
     async fn insert(
         &self,
         conn: &mut DBConn,
-        user_id: i64,
-        livestream_id: i64,
+        user_id: &UserId,
+        livestream_id: &LivestreamId,
         comment: &str,
         tip: i64,
         created_at: i64,
@@ -22,26 +24,30 @@ pub trait LivestreamCommentRepository {
         ng_word: &str,
     ) -> Result<()>;
 
-    async fn find(&self, conn: &mut DBConn, comment_id: i64) -> Result<Option<LivestreamComment>>;
+    async fn find(
+        &self,
+        conn: &mut DBConn,
+        comment_id: &LivestreamCommentId,
+    ) -> Result<Option<LivestreamComment>>;
 
     async fn find_all(&self, conn: &mut DBConn) -> Result<Vec<LivestreamComment>>;
 
     async fn find_all_by_livestream_id(
         &self,
         conn: &mut DBConn,
-        livestream_id: i64,
+        livestream_id: &LivestreamId,
     ) -> Result<Vec<LivestreamComment>>;
 
     async fn find_all_by_livestream_id_order_by_created_at(
         &self,
         conn: &mut DBConn,
-        livestream_id: i64,
+        livestream_id: &LivestreamId,
     ) -> Result<Vec<LivestreamComment>>;
 
     async fn find_all_by_livestream_id_order_by_created_at_limit(
         &self,
         conn: &mut DBConn,
-        livestream_id: i64,
+        livestream_id: &LivestreamId,
         limit: i64,
     ) -> Result<Vec<LivestreamComment>>;
 
@@ -50,19 +56,19 @@ pub trait LivestreamCommentRepository {
     async fn get_sum_tip_of_livestream_id(
         &self,
         conn: &mut DBConn,
-        livestream_id: i64,
+        livestream_id: &LivestreamId,
     ) -> Result<i64>;
 
     async fn get_max_tip_of_livestream_id(
         &self,
         conn: &mut DBConn,
-        livestream_id: i64,
+        livestream_id: &LivestreamId,
     ) -> Result<i64>;
 
     async fn get_sum_tip_of_livestream_user_id(
         &self,
         conn: &mut DBConn,
-        user_id: i64,
+        user_id: &UserId,
     ) -> Result<i64>;
 }
 

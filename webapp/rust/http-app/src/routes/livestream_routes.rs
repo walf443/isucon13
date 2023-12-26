@@ -455,7 +455,7 @@ pub async fn get_livestream_statistics_handler(
             .await?;
 
         let total_tips = comment_repo
-            .get_sum_tip_of_livestream_id(&mut *tx, livestream.id.get())
+            .get_sum_tip_of_livestream_id(&mut *tx, &livestream.id)
             .await?;
 
         let score = reactions + total_tips;
@@ -484,7 +484,7 @@ pub async fn get_livestream_statistics_handler(
 
     // 最大チップ額
     let max_tip = comment_repo
-        .get_max_tip_of_livestream_id(&mut *tx, livestream_id)
+        .get_max_tip_of_livestream_id(&mut *tx, &livestream.id)
         .await?;
 
     // リアクション数

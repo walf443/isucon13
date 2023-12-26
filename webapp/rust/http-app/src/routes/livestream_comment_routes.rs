@@ -31,17 +31,19 @@ pub async fn get_livecomments_handler(
 ) -> Result<axum::Json<Vec<LivestreamCommentResponse>>, Error> {
     verify_user_session(&jar).await?;
 
+    let livestream_id = LivestreamId::new(livestream_id);
+
     let mut tx = pool.begin().await?;
 
     let comment_repo = LivestreamCommentRepositoryInfra {};
     let livecomment_models = if limit.is_empty() {
         comment_repo
-            .find_all_by_livestream_id_order_by_created_at(&mut *tx, livestream_id)
+            .find_all_by_livestream_id_order_by_created_at(&mut *tx, &livestream_id)
             .await?
     } else {
         let limit: i64 = limit.parse().map_err(|_| Error::BadRequest("".into()))?;
         comment_repo
-            .find_all_by_livestream_id_order_by_created_at_limit(&mut *tx, livestream_id, limit)
+            .find_all_by_livestream_id_order_by_created_at_limit(&mut *tx, &livestream_id, limit)
             .await?
     };
 
@@ -76,6 +78,7 @@ pub async fn post_livecomment_handler(
         .await?
         .ok_or(Error::SessionError)?;
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
+    let user_id = UserId::new(user_id);
 
     let mut tx = pool.begin().await?;
 
@@ -120,14 +123,21 @@ pub async fn post_livecomment_handler(
     let now = Utc::now().timestamp();
     let comment_repo = LivestreamCommentRepositoryInfra {};
     let comment_id = comment_repo
-        .insert(&mut *tx, user_id, livestream_id, &req.comment, req.tip, now)
+        .insert(
+            &mut *tx,
+            &user_id,
+            &livestream_model.id,
+            &req.comment,
+            req.tip,
+            now,
+        )
         .await?;
 
     let livecomment = LivestreamCommentResponse::build(
         &mut tx,
         LivestreamComment {
             id: comment_id,
-            user_id: UserId::new(user_id),
+            user_id: user_id.clone(),
             livestream_id: LivestreamId::new(livestream_id),
             comment: req.comment,
             tip: req.tip,

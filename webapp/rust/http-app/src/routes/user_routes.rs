@@ -186,7 +186,7 @@ pub async fn get_user_statistics_handler(
             .await?;
 
         let tips = comment_repo
-            .get_sum_tip_of_livestream_user_id(&mut *tx, user.id.get())
+            .get_sum_tip_of_livestream_user_id(&mut *tx, &user.id)
             .await?;
 
         let score = reaction_count + tips;
@@ -224,7 +224,7 @@ pub async fn get_user_statistics_handler(
     let comment_repo = LivestreamCommentRepositoryInfra {};
     for livestream in &livestreams {
         let comments = comment_repo
-            .find_all_by_livestream_id(&mut *tx, livestream.id.get())
+            .find_all_by_livestream_id(&mut *tx, &livestream.id)
             .await?;
 
         for comment in comments {

@@ -62,7 +62,7 @@ impl<S: LivestreamCommentReportServiceImpl> LivestreamCommentReportService for S
 
         let comment_repo = self.livestream_comment_repo();
         let _ = comment_repo
-            .find(&mut *tx, livestream_comment_id.get())
+            .find(&mut *tx, &livestream_comment_id)
             .await?
             .ok_or(NotFoundLivestreamComment)?;
 

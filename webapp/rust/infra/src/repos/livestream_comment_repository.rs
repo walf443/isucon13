@@ -1,7 +1,9 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
+use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_comment::{LivestreamComment, LivestreamCommentId};
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
+use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 
 pub struct LivestreamCommentRepositoryInfra {}
@@ -11,8 +13,8 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     async fn insert(
         &self,
         conn: &mut DBConn,
-        user_id: i64,
-        livestream_id: i64,
+        user_id: &UserId,
+        livestream_id: &LivestreamId,
         comment: &str,
         tip: i64,
         created_at: i64,
@@ -64,7 +66,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     async fn find(
         &self,
         conn: &mut DBConn,
-        comment_id: i64,
+        comment_id: &LivestreamCommentId,
     ) -> isupipe_core::repos::Result<Option<LivestreamComment>> {
         let comment = sqlx::query_as("SELECT * FROM livecomments WHERE id = ?")
             .bind(comment_id)
@@ -88,7 +90,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     async fn find_all_by_livestream_id(
         &self,
         conn: &mut DBConn,
-        livestream_id: i64,
+        livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
         let comments: Vec<LivestreamComment> =
             sqlx::query_as("SELECT * FROM livecomments WHERE livestream_id = ?")
@@ -102,7 +104,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     async fn find_all_by_livestream_id_order_by_created_at(
         &self,
         conn: &mut DBConn,
-        livestream_id: i64,
+        livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
         let query = "SELECT * FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC"
             .to_owned();
@@ -118,7 +120,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     async fn find_all_by_livestream_id_order_by_created_at_limit(
         &self,
         conn: &mut DBConn,
-        livestream_id: i64,
+        livestream_id: &LivestreamId,
         limit: i64,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
         let query =
@@ -146,7 +148,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     async fn get_sum_tip_of_livestream_id(
         &self,
         conn: &mut DBConn,
-        livestream_id: i64,
+        livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
         let MysqlDecimal(total_tips) = sqlx::query_scalar("SELECT IFNULL(SUM(l2.tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l.id = l2.livestream_id WHERE l.id = ?")
             .bind(livestream_id)
@@ -159,7 +161,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     async fn get_max_tip_of_livestream_id(
         &self,
         conn: &mut DBConn,
-        livestream_id: i64,
+        livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
         let MysqlDecimal(max_tip) = sqlx::query_scalar("SELECT IFNULL(MAX(tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l2.livestream_id = l.id WHERE l.id = ?")
             .bind(livestream_id)
@@ -172,7 +174,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     async fn get_sum_tip_of_livestream_user_id(
         &self,
         conn: &mut DBConn,
-        user_id: i64,
+        user_id: &UserId,
     ) -> isupipe_core::repos::Result<i64> {
         let query = r#"
         SELECT IFNULL(SUM(l2.tip), 0) FROM users u
