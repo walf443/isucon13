@@ -51,8 +51,8 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         ON texts.text LIKE patterns.pattern) >= 1
         "#;
         sqlx::query(query)
-            .bind(comment.id.clone())
-            .bind(comment.livestream_id)
+            .bind(&comment.id)
+            .bind(&comment.livestream_id)
             .bind(&comment.comment)
             .bind(&ng_word)
             .execute(conn)

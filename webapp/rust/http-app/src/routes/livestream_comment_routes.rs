@@ -4,7 +4,9 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
+use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_comment::LivestreamComment;
+use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
 use isupipe_core::repos::ng_word_repository::NgWordRepository;
@@ -125,8 +127,8 @@ pub async fn post_livecomment_handler(
         &mut tx,
         LivestreamComment {
             id: comment_id,
-            user_id,
-            livestream_id,
+            user_id: UserId::new(user_id),
+            livestream_id: LivestreamId::new(livestream_id),
             comment: req.comment,
             tip: req.tip,
             created_at: now,
