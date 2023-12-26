@@ -300,12 +300,18 @@ pub async fn get_ngwords(
         .await?
         .ok_or(Error::SessionError)?;
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
+    let user_id = UserId::new(user_id);
+    let livestream_id = LivestreamId::new(livestream_id);
 
     let mut tx = pool.begin().await?;
 
     let ng_word_repo = NgWordRepositoryInfra {};
     let ng_words = ng_word_repo
-        .find_all_by_livestream_id_and_user_id_order_by_created_at(&mut *tx, livestream_id, user_id)
+        .find_all_by_livestream_id_and_user_id_order_by_created_at(
+            &mut *tx,
+            &livestream_id,
+            &user_id,
+        )
         .await?;
 
     tx.commit().await?;
@@ -358,17 +364,11 @@ pub async fn moderate_handler(
     let created_at = Utc::now().timestamp();
     let ng_word_repo = NgWordRepositoryInfra {};
     let word_id = ng_word_repo
-        .insert(
-            &mut *tx,
-            user_id.get(),
-            livestream_id.get(),
-            &req.ng_word,
-            created_at,
-        )
+        .insert(&mut *tx, &user_id, &livestream_id, &req.ng_word, created_at)
         .await?;
 
     let ng_words = ng_word_repo
-        .find_all_by_livestream_id(&mut *tx, livestream_id.get())
+        .find_all_by_livestream_id(&mut *tx, &livestream_id)
         .await?;
 
     let comment_repo = LivestreamCommentRepositoryInfra {};
@@ -388,7 +388,9 @@ pub async fn moderate_handler(
 
     Ok((
         StatusCode::CREATED,
-        axum::Json(ModerateResponse { word_id }),
+        axum::Json(ModerateResponse {
+            word_id: word_id.get(),
+        }),
     ))
 }
 
