@@ -21,7 +21,7 @@ impl ReactionResponse {
     pub async fn build(conn: &mut DBConn, reaction_model: Reaction) -> ResponseResult<Self> {
         let user_repo = UserRepositoryInfra {};
         let user_model = user_repo
-            .find(conn, reaction_model.user_id.get())
+            .find(conn, &reaction_model.user_id)
             .await?
             .unwrap();
         let user = UserResponse::build(conn, user_model).await?;

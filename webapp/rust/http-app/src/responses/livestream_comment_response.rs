@@ -25,7 +25,7 @@ impl LivestreamCommentResponse {
     ) -> ResponseResult<Self> {
         let user_repo = UserRepositoryInfra {};
         let comment_owner_model = user_repo
-            .find(conn, livecomment_model.user_id.get())
+            .find(conn, &livecomment_model.user_id)
             .await?
             .unwrap();
         let comment_owner = UserResponse::build(conn, comment_owner_model).await?;

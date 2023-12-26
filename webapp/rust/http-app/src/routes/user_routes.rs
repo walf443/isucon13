@@ -7,6 +7,7 @@ use axum::extract::{Path, State};
 use axum::routing::get;
 use axum::Router;
 use axum_extra::extract::SignedCookieJar;
+use isupipe_core::models::user::UserId;
 use isupipe_core::models::user_ranking_entry::UserRankingEntry;
 use isupipe_core::models::user_statistics::UserStatistics;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
@@ -112,12 +113,13 @@ pub async fn get_me_handler(
         .await?
         .ok_or(Error::SessionError)?;
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
+    let user_id = UserId::new(user_id);
 
     let mut tx = pool.begin().await?;
 
     let user_repo = UserRepositoryInfra {};
     let user_model = user_repo
-        .find(&mut *tx, user_id)
+        .find(&mut *tx, &user_id)
         .await?
         .ok_or(Error::NotFound(
             "not found user that has the userid in session".into(),

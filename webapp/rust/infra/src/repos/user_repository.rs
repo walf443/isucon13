@@ -32,7 +32,11 @@ impl UserRepository for UserRepositoryInfra {
         Ok(UserId::new(user_id))
     }
 
-    async fn find(&self, conn: &mut DBConn, id: i64) -> isupipe_core::repos::Result<Option<User>> {
+    async fn find(
+        &self,
+        conn: &mut DBConn,
+        id: &UserId,
+    ) -> isupipe_core::repos::Result<Option<User>> {
         let user_model = sqlx::query_as("SELECT * FROM users WHERE id = ?")
             .bind(id)
             .fetch_optional(conn)
