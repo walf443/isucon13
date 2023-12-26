@@ -39,7 +39,7 @@ pub async fn get_livecomment_reports_handler(
         .await?
         .unwrap();
 
-    if livestream_model.user_id != user_id {
+    if livestream_model.user_id.get() != user_id {
         return Err(Error::Forbidden(
             "can't get other streamer's livecomment reports".into(),
         ));

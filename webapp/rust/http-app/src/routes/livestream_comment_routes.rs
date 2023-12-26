@@ -90,8 +90,8 @@ pub async fn post_livecomment_handler(
     let ng_words = ng_word_repo
         .find_all_by_livestream_id_and_user_id(
             &mut *tx,
-            livestream_model.id,
-            livestream_model.user_id,
+            livestream_model.id.get(),
+            livestream_model.user_id.get(),
         )
         .await?;
 

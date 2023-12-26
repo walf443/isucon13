@@ -224,7 +224,7 @@ pub async fn get_user_statistics_handler(
     let comment_repo = LivestreamCommentRepositoryInfra {};
     for livestream in &livestreams {
         let comments = comment_repo
-            .find_all_by_livestream_id(&mut *tx, livestream.id)
+            .find_all_by_livestream_id(&mut *tx, livestream.id.get())
             .await?;
 
         for comment in comments {
@@ -239,7 +239,7 @@ pub async fn get_user_statistics_handler(
     let mut viewers_count = 0;
     for livestream in livestreams {
         let cnt = history_repo
-            .count_by_livestream_id(&mut conn, livestream.id)
+            .count_by_livestream_id(&mut conn, livestream.id.get())
             .await?;
         viewers_count += cnt;
     }

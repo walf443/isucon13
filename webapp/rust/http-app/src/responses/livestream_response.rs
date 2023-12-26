@@ -27,14 +27,14 @@ impl LivestreamResponse {
     pub async fn build(conn: &mut DBConn, livestream_model: Livestream) -> ResponseResult<Self> {
         let user_repo = UserRepositoryInfra {};
         let owner_model = user_repo
-            .find(conn, livestream_model.user_id)
+            .find(conn, livestream_model.user_id.get())
             .await?
             .unwrap();
         let owner = UserResponse::build(conn, owner_model).await?;
 
         let livestream_tag_repo = LivestreamTagRepositoryInfra {};
         let livestream_tag_models = livestream_tag_repo
-            .find_all_by_livestream_id(conn, livestream_model.id)
+            .find_all_by_livestream_id(conn, livestream_model.id.get())
             .await?;
 
         let tag_repo = TagRepositoryInfra {};
@@ -50,7 +50,7 @@ impl LivestreamResponse {
         }
 
         Ok(Self {
-            id: livestream_model.id,
+            id: livestream_model.id.get(),
             owner,
             title: livestream_model.title,
             tags,

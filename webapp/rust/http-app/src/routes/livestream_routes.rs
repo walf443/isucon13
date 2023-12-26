@@ -8,6 +8,7 @@ use isupipe_core::models::livestream::{CreateLivestream, Livestream, LivestreamI
 use isupipe_core::models::livestream_ranking_entry::LivestreamRankingEntry;
 use isupipe_core::models::livestream_statistics::LivestreamStatistics;
 use isupipe_core::models::ng_word::NgWord;
+use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
@@ -147,8 +148,8 @@ pub async fn reserve_livestream_handler(
     let livestream = LivestreamResponse::build(
         &mut tx,
         Livestream {
-            id: livestream_id,
-            user_id,
+            id: LivestreamId::new(livestream_id),
+            user_id: UserId::new(user_id),
             title: req.title,
             description: req.description,
             playlist_url: req.playlist_url,
@@ -447,16 +448,16 @@ pub async fn get_livestream_statistics_handler(
     let comment_repo = LivestreamCommentRepositoryInfra {};
     for livestream in livestreams {
         let reactions = reaction_repo
-            .count_by_livestream_id(&mut *tx, livestream.id)
+            .count_by_livestream_id(&mut *tx, livestream.id.get())
             .await?;
 
         let total_tips = comment_repo
-            .get_sum_tip_of_livestream_id(&mut *tx, livestream.id)
+            .get_sum_tip_of_livestream_id(&mut *tx, livestream.id.get())
             .await?;
 
         let score = reactions + total_tips;
         ranking.push(LivestreamRankingEntry {
-            livestream_id: LivestreamId::new(livestream.id),
+            livestream_id: LivestreamId::new(livestream.id.get()),
             score,
         })
     }
