@@ -10,3 +10,9 @@ pub trait TagRepository {
 
     async fn find_ids_by_name(&self, conn: &mut DBConn, name: &str) -> Result<Vec<TagId>>;
 }
+
+pub trait HaveTagRepository {
+    type Repo: Sync + TagRepository;
+
+    fn tag_repo(&self) -> &Self::Repo;
+}

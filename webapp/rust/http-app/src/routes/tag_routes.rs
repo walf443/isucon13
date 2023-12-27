@@ -1,9 +1,9 @@
 use crate::responses::tag_response::TagResponse;
 use axum::extract::State;
-use isupipe_core::repos::tag_repository::TagRepository;
+use isupipe_core::services::tag_service::{HaveTagService, TagService};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
-use isupipe_infra::repos::tag_repository::TagRepositoryInfra;
+use isupipe_infra::services::manager::ServiceManagerInfra;
 
 #[derive(Debug, serde::Serialize)]
 pub struct TagsResponse {
@@ -12,12 +12,9 @@ pub struct TagsResponse {
 pub async fn get_tag_handler(
     State(AppState { pool, .. }): State<AppState>,
 ) -> Result<axum::Json<TagsResponse>, Error> {
-    let mut tx = pool.begin().await?;
+    let service = ServiceManagerInfra::new(pool.clone());
 
-    let tag_repos = TagRepositoryInfra {};
-    let tag_models = tag_repos.find_all(&mut tx).await?;
-
-    tx.commit().await?;
+    let tag_models = service.tag_service().find_all().await?;
 
     let tags = tag_models.into_iter().map(|tag| tag.into()).collect();
     Ok(axum::Json(TagsResponse { tags }))
