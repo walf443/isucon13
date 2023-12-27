@@ -14,7 +14,7 @@ use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
 use isupipe_infra::repos::livestream_comment_report_repository::LivestreamCommentReportRepositoryInfra;
 use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
-use isupipe_infra::services::LivestreamCommentReportServiceInfra;
+use isupipe_infra::services::livestream_comment_report_service::LivestreamCommentReportServiceInfra;
 use std::sync::Arc;
 
 pub async fn get_livecomment_reports_handler(

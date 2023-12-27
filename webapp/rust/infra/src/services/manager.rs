@@ -1,4 +1,4 @@
-use crate::services::LivestreamCommentReportServiceInfra;
+use crate::services::livestream_comment_report_service::LivestreamCommentReportServiceInfra;
 use isupipe_core::db::DBPool;
 use isupipe_core::services::livestream_comment_report_service::HaveLivestreamCommentReportService;
 use isupipe_core::services::manager::ServiceManager;
