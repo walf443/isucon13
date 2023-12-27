@@ -1,8 +1,10 @@
 use crate::services::livestream_comment_report_service::LivestreamCommentReportServiceInfra;
+use crate::services::livestream_comment_service::LivestreamCommentServiceInfra;
 use crate::services::livestream_service::LivestreamServiceInfra;
 use crate::services::reaction_service::ReactionServiceInfra;
 use isupipe_core::db::DBPool;
 use isupipe_core::services::livestream_comment_report_service::HaveLivestreamCommentReportService;
+use isupipe_core::services::livestream_comment_service::HaveLivestreamCommentService;
 use isupipe_core::services::livestream_service::HaveLivestreamService;
 use isupipe_core::services::manager::ServiceManager;
 use isupipe_core::services::reaction_service::HaveReactionService;
@@ -10,6 +12,7 @@ use std::sync::Arc;
 
 pub struct ServiceManagerInfra {
     livestream_service: LivestreamServiceInfra,
+    livestream_comment_service: LivestreamCommentServiceInfra,
     livestream_comment_report_service: LivestreamCommentReportServiceInfra,
     reaction_service: ReactionServiceInfra,
 }
@@ -19,6 +22,7 @@ impl ServiceManagerInfra {
         let db_pool = Arc::new(db_pool);
         Self {
             livestream_service: LivestreamServiceInfra::new(db_pool.clone()),
+            livestream_comment_service: LivestreamCommentServiceInfra::new(db_pool.clone()),
             livestream_comment_report_service: LivestreamCommentReportServiceInfra::new(
                 db_pool.clone(),
             ),
@@ -48,6 +52,14 @@ impl HaveReactionService for ServiceManagerInfra {
 
     fn reaction_service(&self) -> &Self::Service {
         &self.reaction_service
+    }
+}
+
+impl HaveLivestreamCommentService for ServiceManagerInfra {
+    type Service = LivestreamCommentServiceInfra;
+
+    fn livestream_comment_service(&self) -> &Self::Service {
+        &self.livestream_comment_service
     }
 }
 

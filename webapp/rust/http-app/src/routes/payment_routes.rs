@@ -1,8 +1,10 @@
 use axum::extract::State;
-use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
+use isupipe_core::services::livestream_comment_service::{
+    HaveLivestreamCommentService, LivestreamCommentService,
+};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
-use isupipe_infra::repos::livestream_comment_repository::LivestreamCommentRepositoryInfra;
+use isupipe_infra::services::manager::ServiceManagerInfra;
 
 #[derive(Debug, serde::Serialize)]
 pub struct PaymentResult {
@@ -12,12 +14,9 @@ pub struct PaymentResult {
 pub async fn get_payment_result(
     State(AppState { pool, .. }): State<AppState>,
 ) -> Result<axum::Json<PaymentResult>, Error> {
-    let mut tx = pool.begin().await?;
+    let service = ServiceManagerInfra::new(pool.clone());
 
-    let comment_repo = LivestreamCommentRepositoryInfra {};
-    let total_tip = comment_repo.get_sum_tip(&mut *tx).await?;
-
-    tx.commit().await?;
+    let total_tip = service.livestream_comment_service().get_sum_tip().await?;
 
     Ok(axum::Json(PaymentResult { total_tip }))
 }
