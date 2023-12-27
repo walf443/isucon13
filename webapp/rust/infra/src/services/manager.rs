@@ -1,26 +1,26 @@
+use crate::services::icon_service::IconServiceInfra;
 use crate::services::livestream_comment_report_service::LivestreamCommentReportServiceInfra;
 use crate::services::livestream_comment_service::LivestreamCommentServiceInfra;
 use crate::services::livestream_service::LivestreamServiceInfra;
 use crate::services::reaction_service::ReactionServiceInfra;
 use crate::services::tag_service::TagServiceInfra;
-use crate::services::user_icon_service::UserIconServiceInfra;
 use isupipe_core::db::DBPool;
+use isupipe_core::services::icon_service::HaveIconService;
 use isupipe_core::services::livestream_comment_report_service::HaveLivestreamCommentReportService;
 use isupipe_core::services::livestream_comment_service::HaveLivestreamCommentService;
 use isupipe_core::services::livestream_service::HaveLivestreamService;
 use isupipe_core::services::manager::ServiceManager;
 use isupipe_core::services::reaction_service::HaveReactionService;
 use isupipe_core::services::tag_service::HaveTagService;
-use isupipe_core::services::user_icon_service::HaveUserIconService;
 use std::sync::Arc;
 
 pub struct ServiceManagerInfra {
+    icon_service: IconServiceInfra,
     livestream_service: LivestreamServiceInfra,
     livestream_comment_service: LivestreamCommentServiceInfra,
     livestream_comment_report_service: LivestreamCommentReportServiceInfra,
     reaction_service: ReactionServiceInfra,
     tag_service: TagServiceInfra,
-    user_icon_service: UserIconServiceInfra,
 }
 
 impl ServiceManagerInfra {
@@ -34,7 +34,7 @@ impl ServiceManagerInfra {
             ),
             reaction_service: ReactionServiceInfra::new(db_pool.clone()),
             tag_service: TagServiceInfra::new(db_pool.clone()),
-            user_icon_service: UserIconServiceInfra::new(db_pool.clone()),
+            icon_service: IconServiceInfra::new(db_pool.clone()),
         }
     }
 }
@@ -79,11 +79,11 @@ impl HaveTagService for ServiceManagerInfra {
     }
 }
 
-impl HaveUserIconService for ServiceManagerInfra {
-    type Service = UserIconServiceInfra;
+impl HaveIconService for ServiceManagerInfra {
+    type Service = IconServiceInfra;
 
-    fn user_icon_service(&self) -> &Self::Service {
-        &self.user_icon_service
+    fn icon_service(&self) -> &Self::Service {
+        &self.icon_service
     }
 }
 

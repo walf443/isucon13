@@ -5,7 +5,7 @@ use axum_extra::extract::SignedCookieJar;
 use isupipe_core::models::icon::CreateIcon;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::icon_repository::IconRepository;
-use isupipe_core::services::user_icon_service::{HaveUserIconService, UserIconService};
+use isupipe_core::services::icon_service::{HaveIconService, IconService};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{
@@ -22,7 +22,7 @@ pub async fn get_icon_handler(
 
     let service = ServiceManagerInfra::new(pool.clone());
     let image = service
-        .user_icon_service()
+        .icon_service()
         .find_image_by_user_name(&username)
         .await?;
 

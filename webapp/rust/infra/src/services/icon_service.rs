@@ -3,16 +3,16 @@ use crate::repos::user_repository::UserRepositoryInfra;
 use isupipe_core::db::{DBPool, HaveDBPool};
 use isupipe_core::repos::icon_repository::HaveIconRepository;
 use isupipe_core::repos::user_repository::HaveUserRepository;
-use isupipe_core::services::user_icon_service::UserIconServiceImpl;
+use isupipe_core::services::icon_service::IconServiceImpl;
 use std::sync::Arc;
 
-pub struct UserIconServiceInfra {
+pub struct IconServiceInfra {
     db_pool: Arc<DBPool>,
     icon_repo: IconRepositoryInfra,
     user_repo: UserRepositoryInfra,
 }
 
-impl UserIconServiceInfra {
+impl IconServiceInfra {
     pub fn new(db_pool: Arc<DBPool>) -> Self {
         Self {
             db_pool,
@@ -22,13 +22,13 @@ impl UserIconServiceInfra {
     }
 }
 
-impl HaveDBPool for UserIconServiceInfra {
+impl HaveDBPool for IconServiceInfra {
     fn get_db_pool(&self) -> &DBPool {
         &self.db_pool
     }
 }
 
-impl HaveIconRepository for UserIconServiceInfra {
+impl HaveIconRepository for IconServiceInfra {
     type Repo = IconRepositoryInfra;
 
     fn icon_repo(&self) -> &Self::Repo {
@@ -36,7 +36,7 @@ impl HaveIconRepository for UserIconServiceInfra {
     }
 }
 
-impl HaveUserRepository for UserIconServiceInfra {
+impl HaveUserRepository for IconServiceInfra {
     type Repo = UserRepositoryInfra;
 
     fn user_repo(&self) -> &Self::Repo {
@@ -44,4 +44,4 @@ impl HaveUserRepository for UserIconServiceInfra {
     }
 }
 
-impl UserIconServiceImpl for UserIconServiceInfra {}
+impl IconServiceImpl for IconServiceInfra {}

@@ -5,20 +5,20 @@ use crate::services::ServiceResult;
 use async_trait::async_trait;
 
 #[async_trait]
-pub trait UserIconService {
+pub trait IconService {
     async fn find_image_by_user_name(&self, user_name: &str) -> ServiceResult<Option<Vec<u8>>>;
 }
 
-pub trait HaveUserIconService {
-    type Service: UserIconService;
+pub trait HaveIconService {
+    type Service: IconService;
 
-    fn user_icon_service(&self) -> &Self::Service;
+    fn icon_service(&self) -> &Self::Service;
 }
 
-pub trait UserIconServiceImpl: Sync + HaveDBPool + HaveIconRepository + HaveUserRepository {}
+pub trait IconServiceImpl: Sync + HaveDBPool + HaveIconRepository + HaveUserRepository {}
 
 #[async_trait]
-impl<T: UserIconServiceImpl> UserIconService for T {
+impl<T: IconServiceImpl> IconService for T {
     async fn find_image_by_user_name(&self, user_name: &str) -> ServiceResult<Option<Vec<u8>>> {
         let mut conn = self.get_db_pool().begin().await?;
 
