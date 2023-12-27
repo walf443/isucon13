@@ -23,6 +23,6 @@ pub trait LivestreamTagRepository {
     async fn find_all_by_tag_ids(
         &self,
         conn: &mut DBConn,
-        tag_ids: &Vec<TagId>,
+        tag_ids: &[TagId],
     ) -> Result<Vec<LivestreamTag>>;
 }

@@ -41,7 +41,7 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
     async fn find_all_by_tag_ids(
         &self,
         conn: &mut DBConn,
-        tag_ids: &Vec<TagId>,
+        tag_ids: &[TagId],
     ) -> isupipe_core::repos::Result<Vec<LivestreamTag>> {
         let mut query_builder = sqlx::query_builder::QueryBuilder::new(
             "SELECT * FROM livestream_tags WHERE tag_id IN (",

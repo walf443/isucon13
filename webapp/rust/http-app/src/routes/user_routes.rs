@@ -27,8 +27,6 @@ use isupipe_infra::repos::theme_repository::ThemeRepositoryInfra;
 use isupipe_infra::repos::user_repository::UserRepositoryInfra;
 
 pub fn user_routes() -> Router<AppState> {
-    
-
     Router::new()
         .route("/me", axum::routing::get(get_me_handler))
         // フロントエンドで、配信予約のコラボレーターを指定する際に必要
