@@ -1,20 +1,13 @@
 use crate::db::DBConn;
 use crate::models::livestream::LivestreamId;
-use crate::models::reaction::{Reaction, ReactionId};
+use crate::models::reaction::{CreateReaction, Reaction, ReactionId};
 use crate::models::user::UserId;
 use crate::repos::Result;
 use async_trait::async_trait;
 
 #[async_trait]
 pub trait ReactionRepository {
-    async fn insert(
-        &self,
-        conn: &mut DBConn,
-        user_id: &UserId,
-        livestream_id: &LivestreamId,
-        emoji_name: &str,
-        created_at: i64,
-    ) -> Result<ReactionId>;
+    async fn create(&self, conn: &mut DBConn, reaction: &CreateReaction) -> Result<ReactionId>;
 
     async fn count_by_livestream_id(
         &self,

@@ -5,7 +5,7 @@ use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
 use isupipe_core::models::livestream::LivestreamId;
-use isupipe_core::models::reaction::Reaction;
+use isupipe_core::models::reaction::{CreateReaction, Reaction};
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::reaction_repository::ReactionRepository;
 use isupipe_http_core::error::Error;
@@ -81,12 +81,14 @@ pub async fn post_reaction_handler(
     let reaction_repo = ReactionRepositoryInfra {};
     let created_at = Utc::now().timestamp();
     let reaction_id = reaction_repo
-        .insert(
+        .create(
             &mut *tx,
-            &user_id,
-            &livestream_id,
-            &req.emoji_name,
-            created_at,
+            &CreateReaction {
+                emoji_name: req.emoji_name.clone(),
+                user_id: user_id.clone(),
+                livestream_id: livestream_id.clone(),
+                created_at,
+            },
         )
         .await?;
 

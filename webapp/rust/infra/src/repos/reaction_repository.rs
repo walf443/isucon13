@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
-use isupipe_core::models::reaction::{Reaction, ReactionId};
+use isupipe_core::models::reaction::{CreateReaction, Reaction, ReactionId};
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::reaction_repository::ReactionRepository;
 
@@ -10,20 +10,17 @@ pub struct ReactionRepositoryInfra {}
 
 #[async_trait]
 impl ReactionRepository for ReactionRepositoryInfra {
-    async fn insert(
+    async fn create(
         &self,
         conn: &mut DBConn,
-        user_id: &UserId,
-        livestream_id: &LivestreamId,
-        emoji_name: &str,
-        created_at: i64,
+        reaction: &CreateReaction,
     ) -> isupipe_core::repos::Result<ReactionId> {
         let result =
             sqlx::query("INSERT INTO reactions (user_id, livestream_id, emoji_name, created_at) VALUES (?, ?, ?, ?)")
-                .bind(user_id)
-                .bind(livestream_id)
-                .bind(emoji_name)
-                .bind(created_at)
+                .bind(&reaction.user_id)
+                .bind(&reaction.livestream_id)
+                .bind(&reaction.emoji_name)
+                .bind(&reaction.created_at)
                 .execute(conn)
                 .await?;
         let reaction_id = result.last_insert_id() as i64;
