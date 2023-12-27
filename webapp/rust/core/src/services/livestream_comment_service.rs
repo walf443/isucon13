@@ -26,7 +26,7 @@ impl<T: LivestreamCommentServiceImpl> LivestreamCommentService for T {
         let mut conn = self.get_db_pool().acquire().await?;
         let sum_tip = self
             .livestream_comment_repo()
-            .get_sum_tip(&mut *conn)
+            .get_sum_tip(&mut conn)
             .await?;
         Ok(sum_tip)
     }

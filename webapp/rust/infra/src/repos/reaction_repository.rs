@@ -20,7 +20,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
                 .bind(&reaction.user_id)
                 .bind(&reaction.livestream_id)
                 .bind(&reaction.emoji_name)
-                .bind(&reaction.created_at)
+                .bind(reaction.created_at)
                 .execute(conn)
                 .await?;
         let reaction_id = result.last_insert_id() as i64;

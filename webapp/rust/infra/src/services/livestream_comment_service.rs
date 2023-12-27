@@ -12,7 +12,7 @@ pub struct LivestreamCommentServiceInfra {
 impl LivestreamCommentServiceInfra {
     pub fn new(db_pool: Arc<DBPool>) -> Self {
         Self {
-            db_pool: db_pool,
+            db_pool,
             livestream_comment_repo: LivestreamCommentRepositoryInfra {},
         }
     }

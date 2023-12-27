@@ -23,7 +23,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
             .bind(&report.user_id)
             .bind(&report.livestream_id)
             .bind(&report.livestream_comment_id)
-            .bind(&report.created_at)
+            .bind(report.created_at)
             .execute(conn)
             .await?;
         let report_id = rs.last_insert_id() as i64;

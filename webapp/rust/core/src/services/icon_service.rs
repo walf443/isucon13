@@ -27,12 +27,12 @@ impl<T: IconServiceImpl> IconService for T {
 
         let user = self
             .user_repo()
-            .find_by_name(&mut *conn, user_name)
+            .find_by_name(&mut conn, user_name)
             .await?
             .unwrap();
         let image = self
             .icon_repo()
-            .find_image_by_user_id(&mut *conn, &user.id)
+            .find_image_by_user_id(&mut conn, &user.id)
             .await?;
 
         Ok(image)
@@ -42,13 +42,13 @@ impl<T: IconServiceImpl> IconService for T {
         let mut tx = self.get_db_pool().begin().await?;
 
         self.icon_repo()
-            .delete_by_user_id(&mut *tx, &user_id)
+            .delete_by_user_id(&mut tx, user_id)
             .await?;
 
         let icon_id = self
             .icon_repo()
             .create(
-                &mut *tx,
+                &mut tx,
                 &CreateIcon {
                     user_id: user_id.clone(),
                     image: image.clone(),

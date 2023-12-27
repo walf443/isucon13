@@ -19,8 +19,8 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
             .bind(&stream.description)
             .bind(&stream.playlist_url)
             .bind(&stream.thumbnail_url)
-            .bind(&stream.start_at)
-            .bind(&stream.end_at)
+            .bind(stream.start_at)
+            .bind(stream.end_at)
             .execute(conn)
             .await?;
 

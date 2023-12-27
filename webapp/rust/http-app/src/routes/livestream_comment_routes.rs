@@ -38,12 +38,12 @@ pub async fn get_livecomments_handler(
     let comment_repo = LivestreamCommentRepositoryInfra {};
     let livecomment_models = if limit.is_empty() {
         comment_repo
-            .find_all_by_livestream_id_order_by_created_at(&mut *tx, &livestream_id)
+            .find_all_by_livestream_id_order_by_created_at(&mut tx, &livestream_id)
             .await?
     } else {
         let limit: i64 = limit.parse().map_err(|_| Error::BadRequest("".into()))?;
         comment_repo
-            .find_all_by_livestream_id_order_by_created_at_limit(&mut *tx, &livestream_id, limit)
+            .find_all_by_livestream_id_order_by_created_at_limit(&mut tx, &livestream_id, limit)
             .await?
     };
 
@@ -93,7 +93,7 @@ pub async fn post_livecomment_handler(
     // スパム判定
     let ng_words = ng_word_repo
         .find_all_by_livestream_id_and_user_id(
-            &mut *tx,
+            &mut tx,
             &livestream_model.id,
             &livestream_model.user_id,
         )
@@ -125,7 +125,7 @@ pub async fn post_livecomment_handler(
     let comment_repo = LivestreamCommentRepositoryInfra {};
     let comment_id = comment_repo
         .insert(
-            &mut *tx,
+            &mut tx,
             &user_id,
             &livestream_model.id,
             &req.comment,

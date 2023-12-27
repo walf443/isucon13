@@ -23,7 +23,7 @@ impl<T: LivestreamServiceImpl> LivestreamService for T {
         let mut conn = self.get_db_pool().acquire().await?;
         let result = self
             .livestream_repo()
-            .find(&mut *conn, livestream_id)
+            .find(&mut conn, livestream_id)
             .await?;
         Ok(result)
     }

@@ -46,7 +46,7 @@ pub async fn register_handler(
     let user_repo = UserRepositoryInfra {};
     let user_id = user_repo
         .insert(
-            &mut *tx,
+            &mut tx,
             &req.name,
             &req.display_name,
             &req.description,
@@ -56,7 +56,7 @@ pub async fn register_handler(
 
     let theme_repo = ThemeRepositoryInfra {};
     theme_repo
-        .insert(&mut *tx, &user_id, req.theme.dark_mode)
+        .insert(&mut tx, &user_id, req.theme.dark_mode)
         .await?;
 
     let output = tokio::process::Command::new("pdnsutil")
@@ -77,7 +77,7 @@ pub async fn register_handler(
     }
 
     let user = UserResponse::build(
-        &mut *tx,
+        &mut tx,
         User {
             id: user_id.clone(),
             name: req.name,

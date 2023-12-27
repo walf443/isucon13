@@ -24,7 +24,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         )
             .bind(user_id)
             .bind(livestream_id)
-            .bind(&comment)
+            .bind(comment)
             .bind(tip)
             .bind(created_at)
             .execute(conn)
@@ -56,7 +56,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
             .bind(&comment.id)
             .bind(&comment.livestream_id)
             .bind(&comment.comment)
-            .bind(&ng_word)
+            .bind(ng_word)
             .execute(conn)
             .await?;
 

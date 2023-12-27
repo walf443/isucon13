@@ -15,14 +15,14 @@ impl UserRepository for UserRepositoryInfra {
         description: &str,
         password: &str,
     ) -> isupipe_core::repos::Result<UserId> {
-        let hashed_password = self.hash_password(&password)?;
+        let hashed_password = self.hash_password(password)?;
 
         let result = sqlx::query(
             "INSERT INTO users (name, display_name, description, password) VALUES(?, ?, ?, ?)",
         )
-        .bind(&name)
-        .bind(&display_name)
-        .bind(&description)
+        .bind(name)
+        .bind(display_name)
+        .bind(description)
         .bind(&hashed_password)
         .execute(conn)
         .await?;

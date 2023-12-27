@@ -28,7 +28,7 @@ pub async fn login_handler(
 
     let user_repo = UserRepositoryInfra {};
     let user_model = user_repo
-        .find_by_name(&mut *tx, &req.username)
+        .find_by_name(&mut tx, &req.username)
         .await?
         .ok_or(Error::Unauthorized("invalid username or password".into()))?;
 

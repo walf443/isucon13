@@ -27,7 +27,9 @@ use isupipe_infra::repos::theme_repository::ThemeRepositoryInfra;
 use isupipe_infra::repos::user_repository::UserRepositoryInfra;
 
 pub fn user_routes() -> Router<AppState> {
-    let user_routes = Router::new()
+    
+
+    Router::new()
         .route("/me", axum::routing::get(get_me_handler))
         // フロントエンドで、配信予約のコラボレーターを指定する際に必要
         .route("/:username", axum::routing::get(get_user_handler))
@@ -37,9 +39,7 @@ pub fn user_routes() -> Router<AppState> {
             "/:username/statistics",
             axum::routing::get(get_user_statistics_handler),
         )
-        .route("/:username/icon", axum::routing::get(get_icon_handler));
-
-    user_routes
+        .route("/:username/icon", axum::routing::get(get_icon_handler))
 }
 
 // 配信者のテーマ取得API
@@ -55,14 +55,14 @@ pub async fn get_streamer_theme_handler(
 
     let user_repo = UserRepositoryInfra {};
     let user_id = user_repo
-        .find_id_by_name(&mut *tx, &username)
+        .find_id_by_name(&mut tx, &username)
         .await?
         .ok_or(Error::NotFound(
             "not found user that has the given username".into(),
         ))?;
 
     let theme_repo = ThemeRepositoryInfra {};
-    let theme_model = theme_repo.find_by_user_id(&mut *tx, &user_id).await?;
+    let theme_model = theme_repo.find_by_user_id(&mut tx, &user_id).await?;
 
     tx.commit().await?;
 
@@ -82,13 +82,13 @@ pub async fn get_user_livestreams_handler(
     let user_repo = UserRepositoryInfra {};
 
     let user = user_repo
-        .find_by_name(&mut *tx, &username)
+        .find_by_name(&mut tx, &username)
         .await?
         .ok_or(Error::NotFound("user not found".into()))?;
 
     let livestream_repo = LivestreamRepositoryInfra {};
     let livestream_models = livestream_repo
-        .find_all_by_user_id(&mut *tx, &user.id)
+        .find_all_by_user_id(&mut tx, &user.id)
         .await?;
 
     let mut livestreams = Vec::with_capacity(livestream_models.len());
@@ -119,13 +119,13 @@ pub async fn get_me_handler(
 
     let user_repo = UserRepositoryInfra {};
     let user_model = user_repo
-        .find(&mut *tx, &user_id)
+        .find(&mut tx, &user_id)
         .await?
         .ok_or(Error::NotFound(
             "not found user that has the userid in session".into(),
         ))?;
 
-    let user = UserResponse::build(&mut *tx, user_model).await?;
+    let user = UserResponse::build(&mut tx, user_model).await?;
 
     tx.commit().await?;
 
@@ -145,13 +145,13 @@ pub async fn get_user_handler(
 
     let user_repo = UserRepositoryInfra {};
     let user_model = user_repo
-        .find_by_name(&mut *tx, &username)
+        .find_by_name(&mut tx, &username)
         .await?
         .ok_or(Error::NotFound(
             "not found user that has the given username".into(),
         ))?;
 
-    let user = UserResponse::build(&mut *tx, user_model).await?;
+    let user = UserResponse::build(&mut tx, user_model).await?;
 
     tx.commit().await?;
 
@@ -172,23 +172,23 @@ pub async fn get_user_statistics_handler(
 
     let user_repo = UserRepositoryInfra {};
     let user = user_repo
-        .find_by_name(&mut *tx, &username)
+        .find_by_name(&mut tx, &username)
         .await?
         .ok_or(Error::BadRequest("".into()))?;
 
     // ランク算出
-    let users = user_repo.find_all(&mut *tx).await?;
+    let users = user_repo.find_all(&mut tx).await?;
 
     let mut ranking = Vec::new();
     let comment_repo = LivestreamCommentRepositoryInfra {};
     let reaction_repo = ReactionRepositoryInfra {};
     for user in users {
         let reaction_count = reaction_repo
-            .count_by_livestream_user_id(&mut *tx, &user.id)
+            .count_by_livestream_user_id(&mut tx, &user.id)
             .await?;
 
         let tips = comment_repo
-            .get_sum_tip_of_livestream_user_id(&mut *tx, &user.id)
+            .get_sum_tip_of_livestream_user_id(&mut tx, &user.id)
             .await?;
 
         let score = reaction_count + tips;
@@ -211,7 +211,7 @@ pub async fn get_user_statistics_handler(
 
     // リアクション数
     let total_reactions = reaction_repo
-        .count_by_livestream_user_name(&mut *tx, &username)
+        .count_by_livestream_user_name(&mut tx, &username)
         .await?;
 
     // ライブコメント数、チップ合計
@@ -220,13 +220,13 @@ pub async fn get_user_statistics_handler(
 
     let livestream_repo = LivestreamRepositoryInfra {};
     let livestreams = livestream_repo
-        .find_all_by_user_id(&mut *tx, &user.id)
+        .find_all_by_user_id(&mut tx, &user.id)
         .await?;
 
     let comment_repo = LivestreamCommentRepositoryInfra {};
     for livestream in &livestreams {
         let comments = comment_repo
-            .find_all_by_livestream_id(&mut *tx, &livestream.id)
+            .find_all_by_livestream_id(&mut tx, &livestream.id)
             .await?;
 
         for comment in comments {
@@ -248,7 +248,7 @@ pub async fn get_user_statistics_handler(
 
     // お気に入り絵文字
     let favorite_emoji = reaction_repo
-        .most_favorite_emoji_by_livestream_user_name(&mut *tx, &username)
+        .most_favorite_emoji_by_livestream_user_name(&mut tx, &username)
         .await?;
 
     Ok(axum::Json(UserStatistics {

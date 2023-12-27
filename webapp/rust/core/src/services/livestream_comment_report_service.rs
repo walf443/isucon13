@@ -61,13 +61,13 @@ impl<S: LivestreamCommentReportServiceImpl> LivestreamCommentReportService for S
 
         let livestream_repo = self.livestream_repo();
         livestream_repo
-            .find(&mut *tx, &livestream_id)
+            .find(&mut tx, livestream_id)
             .await?
             .ok_or(NotFoundLivestream)?;
 
         let comment_repo = self.livestream_comment_repo();
         let _ = comment_repo
-            .find(&mut *tx, &livestream_comment_id)
+            .find(&mut tx, livestream_comment_id)
             .await?
             .ok_or(NotFoundLivestreamComment)?;
 
@@ -80,7 +80,7 @@ impl<S: LivestreamCommentReportServiceImpl> LivestreamCommentReportService for S
         };
         let report_id = self
             .livestream_comment_report_repo()
-            .create(&mut *tx, &report)
+            .create(&mut tx, &report)
             .await?;
 
         tx.commit().await?;
@@ -101,7 +101,7 @@ impl<S: LivestreamCommentReportServiceImpl> LivestreamCommentReportService for S
         let mut conn = self.get_db_pool().acquire().await?;
         let result = self
             .livestream_comment_report_repo()
-            .find_all_by_livestream_id(&mut *conn, livestream_id)
+            .find_all_by_livestream_id(&mut conn, livestream_id)
             .await?;
         Ok(result)
     }

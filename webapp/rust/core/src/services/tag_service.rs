@@ -21,7 +21,7 @@ pub trait TagServiceImpl: Sync + HaveDBPool + HaveTagRepository {}
 impl<T: TagServiceImpl> TagService for T {
     async fn find_all(&self) -> ServiceResult<Vec<Tag>> {
         let mut conn = self.get_db_pool().acquire().await?;
-        let tags = self.tag_repo().find_all(&mut *conn).await?;
+        let tags = self.tag_repo().find_all(&mut conn).await?;
 
         Ok(tags)
     }
