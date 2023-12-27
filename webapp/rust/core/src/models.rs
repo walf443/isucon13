@@ -1,3 +1,4 @@
+pub mod icon;
 pub mod id;
 pub mod livestream;
 pub mod livestream_comment;

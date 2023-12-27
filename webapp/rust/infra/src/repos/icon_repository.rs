@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
+use isupipe_core::models::icon::CreateIcon;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::icon_repository::IconRepository;
 
@@ -21,15 +22,14 @@ impl IconRepository for IconRepositoryInfra {
         Ok(image)
     }
 
-    async fn insert(
+    async fn create(
         &self,
         conn: &mut DBConn,
-        user_id: &UserId,
-        image: &Vec<u8>,
+        icon: &CreateIcon,
     ) -> isupipe_core::repos::Result<i64> {
         let rs = sqlx::query("INSERT INTO icons (user_id, image) VALUES (?, ?)")
-            .bind(user_id)
-            .bind(image)
+            .bind(&icon.user_id)
+            .bind(&icon.image)
             .execute(conn)
             .await?;
         let icon_id = rs.last_insert_id() as i64;

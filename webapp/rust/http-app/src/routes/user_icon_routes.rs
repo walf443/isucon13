@@ -2,6 +2,7 @@ use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
+use isupipe_core::models::icon::CreateIcon;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::icon_repository::IconRepository;
 use isupipe_core::services::user_icon_service::{HaveUserIconService, UserIconService};
@@ -79,7 +80,15 @@ pub async fn post_icon_handler(
     let mut tx = pool.begin().await?;
 
     icon_repo.delete_by_user_id(&mut *tx, &user_id).await?;
-    let icon_id = icon_repo.insert(&mut *tx, &user_id, &req.image).await?;
+    let icon_id = icon_repo
+        .create(
+            &mut *tx,
+            &CreateIcon {
+                user_id,
+                image: req.image,
+            },
+        )
+        .await?;
 
     tx.commit().await?;
 
