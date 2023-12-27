@@ -6,13 +6,11 @@ use axum_extra::extract::SignedCookieJar;
 use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_comment::LivestreamCommentId;
 use isupipe_core::models::user::UserId;
-use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
 use isupipe_core::services::livestream_comment_report_service::LivestreamCommentReportService;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
-use isupipe_infra::repos::livestream_comment_report_repository::LivestreamCommentReportRepositoryInfra;
 use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
 use isupipe_infra::services::livestream_comment_report_service::LivestreamCommentReportServiceInfra;
 use std::sync::Arc;
@@ -46,9 +44,9 @@ pub async fn get_livecomment_reports_handler(
         ));
     }
 
-    let report_repo = LivestreamCommentReportRepositoryInfra {};
-    let report_models = report_repo
-        .find_all_by_livestream_id(&mut *tx, &livestream_model.id)
+    let comment_report_service = LivestreamCommentReportServiceInfra::new(Arc::new(pool.clone()));
+    let report_models = comment_report_service
+        .find_all_by_livestream_id(&livestream_model.id)
         .await?;
 
     let mut reports = Vec::with_capacity(report_models.len());

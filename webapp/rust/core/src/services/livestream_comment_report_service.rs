@@ -25,6 +25,11 @@ pub trait LivestreamCommentReportService {
         livestream_id: &LivestreamId,
         livestream_comment_id: &LivestreamCommentId,
     ) -> ServiceResult<LivestreamCommentReport>;
+
+    async fn find_all_by_livestream_id(
+        &self,
+        livestream_id: &LivestreamId,
+    ) -> ServiceResult<Vec<LivestreamCommentReport>>;
 }
 
 pub trait HaveLivestreamCommentReportService {
@@ -87,5 +92,17 @@ impl<S: LivestreamCommentReportServiceImpl> LivestreamCommentReportService for S
             livestream_comment_id: livestream_comment_id.clone(),
             created_at: now,
         })
+    }
+
+    async fn find_all_by_livestream_id(
+        &self,
+        livestream_id: &LivestreamId,
+    ) -> ServiceResult<Vec<LivestreamCommentReport>> {
+        let mut conn = self.get_db_pool().acquire().await?;
+        let result = self
+            .livestream_comment_report_repo()
+            .find_all_by_livestream_id(&mut *conn, livestream_id)
+            .await?;
+        Ok(result)
     }
 }
