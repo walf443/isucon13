@@ -6,13 +6,15 @@ use axum_extra::extract::SignedCookieJar;
 use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_comment::LivestreamCommentId;
 use isupipe_core::models::user::UserId;
-use isupipe_core::repos::livestream_repository::LivestreamRepository;
-use isupipe_core::services::livestream_comment_report_service::LivestreamCommentReportService;
+use isupipe_core::services::livestream_comment_report_service::{
+    HaveLivestreamCommentReportService, LivestreamCommentReportService,
+};
+use isupipe_core::services::livestream_service::{HaveLivestreamService, LivestreamService};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
-use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
 use isupipe_infra::services::livestream_comment_report_service::LivestreamCommentReportServiceInfra;
+use isupipe_infra::services::manager::ServiceManagerInfra;
 use std::sync::Arc;
 
 pub async fn get_livecomment_reports_handler(
@@ -30,11 +32,11 @@ pub async fn get_livecomment_reports_handler(
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
     let livestream_id = LivestreamId::new(livestream_id);
 
-    let mut tx = pool.begin().await?;
+    let service = ServiceManagerInfra::new(pool.clone());
 
-    let livestream_repo = LivestreamRepositoryInfra {};
-    let livestream_model = livestream_repo
-        .find(&mut *tx, &livestream_id)
+    let livestream_model = service
+        .livestream_service()
+        .find(&livestream_id)
         .await?
         .unwrap();
 
@@ -44,18 +46,17 @@ pub async fn get_livecomment_reports_handler(
         ));
     }
 
-    let comment_report_service = LivestreamCommentReportServiceInfra::new(Arc::new(pool.clone()));
-    let report_models = comment_report_service
+    let report_models = service
+        .livestream_comment_report_service()
         .find_all_by_livestream_id(&livestream_model.id)
         .await?;
 
     let mut reports = Vec::with_capacity(report_models.len());
+    let mut tx = pool.begin().await?;
     for report_model in report_models {
         let report = LivestreamCommentReportResponse::build(&mut tx, report_model).await?;
         reports.push(report);
     }
-
-    tx.commit().await?;
 
     Ok(axum::Json(reports))
 }

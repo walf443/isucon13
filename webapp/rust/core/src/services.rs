@@ -2,6 +2,7 @@ use crate::repos::ReposError;
 use thiserror::Error;
 
 pub mod livestream_comment_report_service;
+pub mod livestream_service;
 pub mod manager;
 
 #[derive(Error, Debug)]
