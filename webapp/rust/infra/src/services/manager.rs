@@ -4,6 +4,7 @@ use crate::services::livestream_comment_service::LivestreamCommentServiceInfra;
 use crate::services::livestream_service::LivestreamServiceInfra;
 use crate::services::reaction_service::ReactionServiceInfra;
 use crate::services::tag_service::TagServiceInfra;
+use crate::services::user_service::UserServiceInfra;
 use isupipe_core::db::DBPool;
 use isupipe_core::services::icon_service::HaveIconService;
 use isupipe_core::services::livestream_comment_report_service::HaveLivestreamCommentReportService;
@@ -12,6 +13,7 @@ use isupipe_core::services::livestream_service::HaveLivestreamService;
 use isupipe_core::services::manager::ServiceManager;
 use isupipe_core::services::reaction_service::HaveReactionService;
 use isupipe_core::services::tag_service::HaveTagService;
+use isupipe_core::services::user_service::HaveUserService;
 use std::sync::Arc;
 
 pub struct ServiceManagerInfra {
@@ -21,12 +23,14 @@ pub struct ServiceManagerInfra {
     livestream_comment_report_service: LivestreamCommentReportServiceInfra,
     reaction_service: ReactionServiceInfra,
     tag_service: TagServiceInfra,
+    user_service: UserServiceInfra,
 }
 
 impl ServiceManagerInfra {
     pub fn new(db_pool: DBPool) -> Self {
         let db_pool = Arc::new(db_pool);
         Self {
+            icon_service: IconServiceInfra::new(db_pool.clone()),
             livestream_service: LivestreamServiceInfra::new(db_pool.clone()),
             livestream_comment_service: LivestreamCommentServiceInfra::new(db_pool.clone()),
             livestream_comment_report_service: LivestreamCommentReportServiceInfra::new(
@@ -34,7 +38,7 @@ impl ServiceManagerInfra {
             ),
             reaction_service: ReactionServiceInfra::new(db_pool.clone()),
             tag_service: TagServiceInfra::new(db_pool.clone()),
-            icon_service: IconServiceInfra::new(db_pool.clone()),
+            user_service: UserServiceInfra::new(db_pool.clone()),
         }
     }
 }
@@ -84,6 +88,14 @@ impl HaveIconService for ServiceManagerInfra {
 
     fn icon_service(&self) -> &Self::Service {
         &self.icon_service
+    }
+}
+
+impl HaveUserService for ServiceManagerInfra {
+    type Service = UserServiceInfra;
+
+    fn user_service(&self) -> &Self::Service {
+        &self.user_service
     }
 }
 

@@ -16,6 +16,7 @@ use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewer
 use isupipe_core::repos::reaction_repository::ReactionRepository;
 use isupipe_core::repos::theme_repository::ThemeRepository;
 use isupipe_core::repos::user_repository::UserRepository;
+use isupipe_core::services::user_service::{HaveUserService, UserService};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
@@ -25,6 +26,7 @@ use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewe
 use isupipe_infra::repos::reaction_repository::ReactionRepositoryInfra;
 use isupipe_infra::repos::theme_repository::ThemeRepositoryInfra;
 use isupipe_infra::repos::user_repository::UserRepositoryInfra;
+use isupipe_infra::services::manager::ServiceManagerInfra;
 
 pub fn user_routes() -> Router<AppState> {
     Router::new()
@@ -139,15 +141,16 @@ pub async fn get_user_handler(
 ) -> Result<axum::Json<UserResponse>, Error> {
     verify_user_session(&jar).await?;
 
-    let mut tx = pool.begin().await?;
-
-    let user_repo = UserRepositoryInfra {};
-    let user_model = user_repo
-        .find_by_name(&mut tx, &username)
+    let service = ServiceManagerInfra::new(pool.clone());
+    let user_model = service
+        .user_service()
+        .find_by_name(&username)
         .await?
         .ok_or(Error::NotFound(
             "not found user that has the given username".into(),
         ))?;
+
+    let mut tx = pool.begin().await?;
 
     let user = UserResponse::build(&mut tx, user_model).await?;
 
