@@ -8,10 +8,12 @@ use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::reaction::{CreateReaction, Reaction};
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::reaction_repository::ReactionRepository;
+use isupipe_core::services::reaction_service::{HaveReactionService, ReactionService};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
 use isupipe_infra::repos::reaction_repository::ReactionRepositoryInfra;
+use isupipe_infra::services::manager::ServiceManagerInfra;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct GetReactionsQuery {
@@ -78,11 +80,11 @@ pub async fn post_reaction_handler(
 
     let mut tx = pool.begin().await?;
 
-    let reaction_repo = ReactionRepositoryInfra {};
+    let service = ServiceManagerInfra::new(pool.clone());
+
     let created_at = Utc::now().timestamp();
-    let reaction_id = reaction_repo
+    let reaction_id = service.reaction_service()
         .create(
-            &mut *tx,
             &CreateReaction {
                 emoji_name: req.emoji_name.clone(),
                 user_id: user_id.clone(),

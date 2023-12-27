@@ -45,3 +45,9 @@ pub trait ReactionRepository {
         limit: i64,
     ) -> Result<Vec<Reaction>>;
 }
+
+pub trait HaveReactionRepository {
+    type Repo: Sync + ReactionRepository;
+
+    fn reaction_repo(&self) -> &Self::Repo;
+}
