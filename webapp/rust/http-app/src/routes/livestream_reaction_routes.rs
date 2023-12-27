@@ -7,12 +7,10 @@ use chrono::Utc;
 use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::reaction::{CreateReaction, Reaction};
 use isupipe_core::models::user::UserId;
-use isupipe_core::repos::reaction_repository::ReactionRepository;
 use isupipe_core::services::reaction_service::{HaveReactionService, ReactionService};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
-use isupipe_infra::repos::reaction_repository::ReactionRepositoryInfra;
 use isupipe_infra::services::manager::ServiceManagerInfra;
 
 #[derive(Debug, serde::Deserialize)]
@@ -30,20 +28,20 @@ pub async fn get_reactions_handler(
     verify_user_session(&jar).await?;
     let livestream_id = LivestreamId::new(livestream_id);
 
-    let mut tx = pool.begin().await?;
+    let service = ServiceManagerInfra::new(pool.clone());
 
-    let reaction_repo = ReactionRepositoryInfra {};
-    let reaction_models = if limit.is_empty() {
-        reaction_repo
-            .find_all_by_livestream_id(&mut *tx, &livestream_id)
-            .await?
+    let limit = if limit.is_empty() {
+        None
     } else {
         let limit: i64 = limit.parse().map_err(|_| Error::BadRequest("".into()))?;
-        reaction_repo
-            .find_all_by_livestream_id_limit(&mut *tx, &livestream_id, limit)
-            .await?
+        Some(limit)
     };
+    let reaction_models = service
+        .reaction_service()
+        .find_all_by_livestream_id_limit(&livestream_id, limit)
+        .await?;
 
+    let mut tx = pool.begin().await?;
     let mut reactions = Vec::with_capacity(reaction_models.len());
     for reaction_model in reaction_models {
         let reaction = ReactionResponse::build(&mut tx, reaction_model).await?;
@@ -83,15 +81,14 @@ pub async fn post_reaction_handler(
     let service = ServiceManagerInfra::new(pool.clone());
 
     let created_at = Utc::now().timestamp();
-    let reaction_id = service.reaction_service()
-        .create(
-            &CreateReaction {
-                emoji_name: req.emoji_name.clone(),
-                user_id: user_id.clone(),
-                livestream_id: livestream_id.clone(),
-                created_at,
-            },
-        )
+    let reaction_id = service
+        .reaction_service()
+        .create(&CreateReaction {
+            emoji_name: req.emoji_name.clone(),
+            user_id: user_id.clone(),
+            livestream_id: livestream_id.clone(),
+            created_at,
+        })
         .await?;
 
     let reaction = ReactionResponse::build(
