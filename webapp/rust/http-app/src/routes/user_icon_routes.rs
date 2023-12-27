@@ -2,16 +2,13 @@ use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
-use isupipe_core::models::icon::CreateIcon;
 use isupipe_core::models::user::UserId;
-use isupipe_core::repos::icon_repository::IconRepository;
 use isupipe_core::services::icon_service::{HaveIconService, IconService};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{
     verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY, FALLBACK_IMAGE,
 };
-use isupipe_infra::repos::icon_repository::IconRepositoryInfra;
 use isupipe_infra::services::manager::ServiceManagerInfra;
 
 pub async fn get_icon_handler(
@@ -75,22 +72,11 @@ pub async fn post_icon_handler(
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
     let user_id = UserId::new(user_id);
 
-    let icon_repo = IconRepositoryInfra {};
-
-    let mut tx = pool.begin().await?;
-
-    icon_repo.delete_by_user_id(&mut *tx, &user_id).await?;
-    let icon_id = icon_repo
-        .create(
-            &mut *tx,
-            &CreateIcon {
-                user_id,
-                image: req.image,
-            },
-        )
+    let service = ServiceManagerInfra::new(pool.clone());
+    let icon_id = service
+        .icon_service()
+        .replace_new_image(&user_id, &req.image)
         .await?;
-
-    tx.commit().await?;
 
     Ok((
         StatusCode::CREATED,
