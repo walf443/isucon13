@@ -15,3 +15,9 @@ pub trait IconRepository {
 
     async fn delete_by_user_id(&self, conn: &mut DBConn, user_id: &UserId) -> Result<()>;
 }
+
+pub trait HaveIconRepository {
+    type Repo: IconRepository;
+
+    fn icon_repo(&self) -> &Self::Repo;
+}

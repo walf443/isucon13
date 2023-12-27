@@ -4,3 +4,4 @@ pub mod livestream_service;
 pub mod manager;
 pub mod reaction_service;
 pub mod tag_service;
+pub mod user_icon_service;

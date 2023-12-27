@@ -25,3 +25,9 @@ pub trait UserRepository {
     async fn find_id_by_name(&self, conn: &mut DBConn, name: &str) -> Result<Option<UserId>>;
     async fn find_by_name(&self, conn: &mut DBConn, name: &str) -> Result<Option<User>>;
 }
+
+pub trait HaveUserRepository {
+    type Repo: UserRepository;
+
+    fn user_repo(&self) -> &Self::Repo;
+}

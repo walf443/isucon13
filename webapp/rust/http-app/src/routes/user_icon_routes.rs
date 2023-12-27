@@ -4,14 +4,14 @@ use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::icon_repository::IconRepository;
-use isupipe_core::repos::user_repository::UserRepository;
+use isupipe_core::services::user_icon_service::{HaveUserIconService, UserIconService};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{
     verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY, FALLBACK_IMAGE,
 };
 use isupipe_infra::repos::icon_repository::IconRepositoryInfra;
-use isupipe_infra::repos::user_repository::UserRepositoryInfra;
+use isupipe_infra::services::manager::ServiceManagerInfra;
 
 pub async fn get_icon_handler(
     State(AppState { pool, .. }): State<AppState>,
@@ -19,13 +19,11 @@ pub async fn get_icon_handler(
 ) -> Result<axum::response::Response, Error> {
     use axum::response::IntoResponse as _;
 
-    let mut tx = pool.begin().await?;
-
-    let user_repo = UserRepositoryInfra {};
-    let user = user_repo.find_by_name(&mut *tx, &username).await?.unwrap();
-
-    let icon_repo = IconRepositoryInfra {};
-    let image = icon_repo.find_image_by_user_id(&mut *tx, &user.id).await?;
+    let service = ServiceManagerInfra::new(pool.clone());
+    let image = service
+        .user_icon_service()
+        .find_image_by_user_name(&username)
+        .await?;
 
     let headers = [(axum::http::header::CONTENT_TYPE, "image/jpeg")];
     if let Some(image) = image {
