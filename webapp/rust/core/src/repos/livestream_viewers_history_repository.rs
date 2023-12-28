@@ -25,3 +25,9 @@ pub trait LivestreamViewersHistoryRepository {
         user_id: &UserId,
     ) -> Result<()>;
 }
+
+pub trait HaveLivestreamViewersHistoryRepository {
+    type Repo: Sync + LivestreamViewersHistoryRepository;
+
+    fn livestream_viewers_history_repo(&self) -> &Self::Repo;
+}

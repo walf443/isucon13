@@ -5,6 +5,7 @@ use crate::services::livestream_service::HaveLivestreamService;
 use crate::services::reaction_service::HaveReactionService;
 use crate::services::tag_service::HaveTagService;
 use crate::services::user_service::HaveUserService;
+use crate::services::user_statistics_service::HaveUserStatisticsService;
 
 pub trait ServiceManager:
     HaveLivestreamCommentReportService
@@ -14,5 +15,6 @@ pub trait ServiceManager:
     + HaveTagService
     + HaveIconService
     + HaveUserService
+    + HaveUserStatisticsService
 {
 }

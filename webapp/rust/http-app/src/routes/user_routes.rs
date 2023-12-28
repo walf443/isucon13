@@ -8,22 +8,18 @@ use axum::routing::get;
 use axum::Router;
 use axum_extra::extract::SignedCookieJar;
 use isupipe_core::models::user::UserId;
-use isupipe_core::models::user_ranking_entry::UserRankingEntry;
 use isupipe_core::models::user_statistics::UserStatistics;
-use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
-use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
-use isupipe_core::repos::reaction_repository::ReactionRepository;
 use isupipe_core::repos::theme_repository::ThemeRepository;
 use isupipe_core::repos::user_repository::UserRepository;
 use isupipe_core::services::user_service::{HaveUserService, UserService};
+use isupipe_core::services::user_statistics_service::{
+    HaveUserStatisticsService, UserStatisticsService,
+};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
-use isupipe_infra::repos::livestream_comment_repository::LivestreamCommentRepositoryInfra;
 use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
-use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepositoryInfra;
-use isupipe_infra::repos::reaction_repository::ReactionRepositoryInfra;
 use isupipe_infra::repos::theme_repository::ThemeRepositoryInfra;
 use isupipe_infra::repos::user_repository::UserRepositoryInfra;
 use isupipe_infra::services::manager::ServiceManagerInfra;
@@ -166,98 +162,15 @@ pub async fn get_user_statistics_handler(
 ) -> Result<axum::Json<UserStatistics>, Error> {
     verify_user_session(&jar).await?;
 
-    // ユーザごとに、紐づく配信について、累計リアクション数、累計ライブコメント数、累計売上金額を算出
-    // また、現在の合計視聴者数もだす
+    let service = ServiceManagerInfra::new(pool);
 
-    let mut tx = pool.begin().await?;
-
-    let user_repo = UserRepositoryInfra {};
-    let user = user_repo
-        .find_by_name(&mut tx, &username)
+    let user = service
+        .user_service()
+        .find_by_name(&username)
         .await?
         .ok_or(Error::BadRequest("".into()))?;
 
-    // ランク算出
-    let users = user_repo.find_all(&mut tx).await?;
+    let stats = service.user_statistics_service().get_stats(&user).await?;
 
-    let mut ranking = Vec::new();
-    let comment_repo = LivestreamCommentRepositoryInfra {};
-    let reaction_repo = ReactionRepositoryInfra {};
-    for user in users {
-        let reaction_count = reaction_repo
-            .count_by_livestream_user_id(&mut tx, &user.id)
-            .await?;
-
-        let tips = comment_repo
-            .get_sum_tip_of_livestream_user_id(&mut tx, &user.id)
-            .await?;
-
-        let score = reaction_count + tips;
-        ranking.push(UserRankingEntry {
-            username: user.name,
-            score,
-        });
-    }
-    ranking.sort_by(|a, b| {
-        a.score
-            .cmp(&b.score)
-            .then_with(|| a.username.cmp(&b.username))
-    });
-
-    let rpos = ranking
-        .iter()
-        .rposition(|entry| entry.username == username)
-        .unwrap();
-    let rank = (ranking.len() - rpos) as i64;
-
-    // リアクション数
-    let total_reactions = reaction_repo
-        .count_by_livestream_user_name(&mut tx, &username)
-        .await?;
-
-    // ライブコメント数、チップ合計
-    let mut total_livecomments = 0;
-    let mut total_tip = 0;
-
-    let livestream_repo = LivestreamRepositoryInfra {};
-    let livestreams = livestream_repo
-        .find_all_by_user_id(&mut tx, &user.id)
-        .await?;
-
-    let comment_repo = LivestreamCommentRepositoryInfra {};
-    for livestream in &livestreams {
-        let comments = comment_repo
-            .find_all_by_livestream_id(&mut tx, &livestream.id)
-            .await?;
-
-        for comment in comments {
-            total_tip += comment.tip;
-            total_livecomments += 1;
-        }
-    }
-
-    let history_repo = LivestreamViewersHistoryRepositoryInfra {};
-    let mut conn = pool.acquire().await?;
-    // 合計視聴者数
-    let mut viewers_count = 0;
-    for livestream in livestreams {
-        let cnt = history_repo
-            .count_by_livestream_id(&mut conn, &livestream.id)
-            .await?;
-        viewers_count += cnt;
-    }
-
-    // お気に入り絵文字
-    let favorite_emoji = reaction_repo
-        .most_favorite_emoji_by_livestream_user_name(&mut tx, &username)
-        .await?;
-
-    Ok(axum::Json(UserStatistics {
-        rank,
-        viewers_count,
-        total_reactions,
-        total_livecomments,
-        total_tip,
-        favorite_emoji,
-    }))
+    Ok(axum::Json(stats))
 }

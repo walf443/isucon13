@@ -5,6 +5,7 @@ use crate::services::livestream_service::LivestreamServiceInfra;
 use crate::services::reaction_service::ReactionServiceInfra;
 use crate::services::tag_service::TagServiceInfra;
 use crate::services::user_service::UserServiceInfra;
+use crate::services::user_statistics_service::UserStatisticsServiceInfra;
 use isupipe_core::db::DBPool;
 use isupipe_core::services::icon_service::HaveIconService;
 use isupipe_core::services::livestream_comment_report_service::HaveLivestreamCommentReportService;
@@ -14,6 +15,7 @@ use isupipe_core::services::manager::ServiceManager;
 use isupipe_core::services::reaction_service::HaveReactionService;
 use isupipe_core::services::tag_service::HaveTagService;
 use isupipe_core::services::user_service::HaveUserService;
+use isupipe_core::services::user_statistics_service::HaveUserStatisticsService;
 use std::sync::Arc;
 
 pub struct ServiceManagerInfra {
@@ -24,6 +26,7 @@ pub struct ServiceManagerInfra {
     reaction_service: ReactionServiceInfra,
     tag_service: TagServiceInfra,
     user_service: UserServiceInfra,
+    user_statistics_service: UserStatisticsServiceInfra,
 }
 
 impl ServiceManagerInfra {
@@ -39,6 +42,7 @@ impl ServiceManagerInfra {
             reaction_service: ReactionServiceInfra::new(db_pool.clone()),
             tag_service: TagServiceInfra::new(db_pool.clone()),
             user_service: UserServiceInfra::new(db_pool.clone()),
+            user_statistics_service: UserStatisticsServiceInfra::new(db_pool.clone()),
         }
     }
 }
@@ -96,6 +100,14 @@ impl HaveUserService for ServiceManagerInfra {
 
     fn user_service(&self) -> &Self::Service {
         &self.user_service
+    }
+}
+
+impl HaveUserStatisticsService for ServiceManagerInfra {
+    type Service = UserStatisticsServiceInfra;
+
+    fn user_statistics_service(&self) -> &Self::Service {
+        &self.user_statistics_service
     }
 }
 
