@@ -9,9 +9,9 @@ use axum::Router;
 use axum_extra::extract::SignedCookieJar;
 use isupipe_core::models::user::UserId;
 use isupipe_core::models::user_statistics::UserStatistics;
-use isupipe_core::repos::livestream_repository::LivestreamRepository;
 use isupipe_core::repos::theme_repository::ThemeRepository;
 use isupipe_core::repos::user_repository::UserRepository;
+use isupipe_core::services::livestream_service::{HaveLivestreamService, LivestreamService};
 use isupipe_core::services::user_service::{HaveUserService, UserService};
 use isupipe_core::services::user_statistics_service::{
     HaveUserStatisticsService, UserStatisticsService,
@@ -19,7 +19,6 @@ use isupipe_core::services::user_statistics_service::{
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
-use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
 use isupipe_infra::repos::theme_repository::ThemeRepositoryInfra;
 use isupipe_infra::repos::user_repository::UserRepositoryInfra;
 use isupipe_infra::services::manager::ServiceManagerInfra;
@@ -74,17 +73,19 @@ pub async fn get_user_livestreams_handler(
 ) -> Result<axum::Json<Vec<LivestreamResponse>>, Error> {
     verify_user_session(&jar).await?;
 
-    let mut tx = pool.begin().await?;
-    let user_repo = UserRepositoryInfra {};
+    let service = ServiceManagerInfra::new(pool.clone());
 
-    let user = user_repo
-        .find_by_name(&mut tx, &username)
+    let mut tx = pool.begin().await?;
+
+    let user = service
+        .user_service()
+        .find_by_name(&username)
         .await?
         .ok_or(Error::NotFound("user not found".into()))?;
 
-    let livestream_repo = LivestreamRepositoryInfra {};
-    let livestream_models = livestream_repo
-        .find_all_by_user_id(&mut tx, &user.id)
+    let livestream_models = service
+        .livestream_service()
+        .find_all_by_user_id(&user.id)
         .await?;
 
     let mut livestreams = Vec::with_capacity(livestream_models.len());
