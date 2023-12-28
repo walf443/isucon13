@@ -111,15 +111,17 @@ pub async fn get_me_handler(
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
     let user_id = UserId::new(user_id);
 
-    let mut tx = pool.begin().await?;
+    let service = ServiceManagerInfra::new(pool.clone());
 
-    let user_repo = UserRepositoryInfra {};
-    let user_model = user_repo
-        .find(&mut tx, &user_id)
+    let user_model = service
+        .user_service()
+        .find(&user_id)
         .await?
         .ok_or(Error::NotFound(
             "not found user that has the userid in session".into(),
         ))?;
+
+    let mut tx = pool.begin().await?;
 
     let user = UserResponse::build(&mut tx, user_model).await?;
 
