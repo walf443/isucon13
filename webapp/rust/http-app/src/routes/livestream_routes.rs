@@ -21,7 +21,9 @@ use isupipe_core::repos::reaction_repository::ReactionRepository;
 use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
 use isupipe_core::repos::tag_repository::TagRepository;
 use isupipe_core::services::livestream_service::{HaveLivestreamService, LivestreamService};
-use isupipe_core::services::livestream_viewers_history_service::{HaveLivestreamViewersHistoryService, LivestreamViewersHistoryService};
+use isupipe_core::services::livestream_viewers_history_service::{
+    HaveLivestreamViewersHistoryService, LivestreamViewersHistoryService,
+};
 use isupipe_core::services::ng_word_service::{HaveNgWordService, NgWordService};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
@@ -422,14 +424,13 @@ pub async fn enter_livestream_handler(
     let service = ServiceManagerInfra::new(pool.clone());
     let created_at = Utc::now().timestamp();
 
-    service.livestream_viewers_history_service()
-        .create(
-            &CreateLivestreamViewersHistory {
-                user_id: user_id.clone(),
-                livestream_id: livestream_id.clone(),
-                created_at: created_at.clone(),
-            },
-        )
+    service
+        .livestream_viewers_history_service()
+        .create(&CreateLivestreamViewersHistory {
+            user_id: user_id.clone(),
+            livestream_id: livestream_id.clone(),
+            created_at: created_at.clone(),
+        })
         .await?;
 
     Ok(())
@@ -450,10 +451,11 @@ pub async fn exit_livestream_handler(
     let user_id = UserId::new(user_id);
     let livestream_id = LivestreamId::new(livestream_id);
 
-    let history_repo = LivestreamViewersHistoryRepositoryInfra {};
-    let mut conn = pool.acquire().await?;
-    history_repo
-        .delete_by_livestream_id_and_user_id(&mut conn, &livestream_id, &user_id)
+    let service = ServiceManagerInfra::new(pool.clone());
+
+    service
+        .livestream_viewers_history_service()
+        .delete_by_livestream_id_and_user_id(&livestream_id, &user_id)
         .await?;
 
     Ok(())
