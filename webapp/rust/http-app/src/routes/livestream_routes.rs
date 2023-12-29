@@ -21,6 +21,7 @@ use isupipe_core::repos::reaction_repository::ReactionRepository;
 use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
 use isupipe_core::repos::tag_repository::TagRepository;
 use isupipe_core::services::livestream_service::{HaveLivestreamService, LivestreamService};
+use isupipe_core::services::livestream_viewers_history_service::{HaveLivestreamViewersHistoryService, LivestreamViewersHistoryService};
 use isupipe_core::services::ng_word_service::{HaveNgWordService, NgWordService};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
@@ -418,12 +419,11 @@ pub async fn enter_livestream_handler(
     let user_id = UserId::new(user_id);
     let livestream_id = LivestreamId::new(livestream_id);
 
+    let service = ServiceManagerInfra::new(pool.clone());
     let created_at = Utc::now().timestamp();
-    let mut conn = pool.acquire().await?;
-    let history_repo = LivestreamViewersHistoryRepositoryInfra {};
-    history_repo
+
+    service.livestream_viewers_history_service()
         .create(
-            &mut conn,
             &CreateLivestreamViewersHistory {
                 user_id: user_id.clone(),
                 livestream_id: livestream_id.clone(),
