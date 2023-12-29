@@ -19,6 +19,7 @@ use isupipe_core::repos::ng_word_repository::NgWordRepository;
 use isupipe_core::repos::reaction_repository::ReactionRepository;
 use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
 use isupipe_core::repos::tag_repository::TagRepository;
+use isupipe_core::services::livestream_service::{HaveLivestreamService, LivestreamService};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
@@ -31,6 +32,7 @@ use isupipe_infra::repos::ng_word_repository::NgWordRepositoryInfra;
 use isupipe_infra::repos::reaction_repository::ReactionRepositoryInfra;
 use isupipe_infra::repos::reservation_slot_repository::ReservationSlotRepositoryInfra;
 use isupipe_infra::repos::tag_repository::TagRepositoryInfra;
+use isupipe_infra::services::manager::ServiceManagerInfra;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct ReserveLivestreamRequest {
@@ -268,11 +270,9 @@ pub async fn get_livestream_handler(
 ) -> Result<axum::Json<LivestreamResponse>, Error> {
     verify_user_session(&jar).await?;
     let livestream_id = LivestreamId::new(livestream_id);
-    let livestream_repo = LivestreamRepositoryInfra {};
 
-    let mut tx = pool.begin().await?;
-
-    let livestream_model = livestream_repo.find(&mut tx, &livestream_id).await?;
+    let service = ServiceManagerInfra::new(pool.clone());
+    let livestream_model = service.livestream_service().find(&livestream_id).await?;
 
     if livestream_model.is_none() {
         return Err(Error::NotFound(
@@ -280,6 +280,8 @@ pub async fn get_livestream_handler(
         ));
     }
     let livestream_model = livestream_model.unwrap();
+
+    let mut tx = pool.begin().await?;
 
     let livestream = LivestreamResponse::build(&mut tx, livestream_model).await?;
 
