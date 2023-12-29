@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::LivestreamId;
+use isupipe_core::models::livestream_viewers_history::CreateLivestreamViewersHistory;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
@@ -10,21 +11,19 @@ pub struct LivestreamViewersHistoryRepositoryInfra {}
 
 #[async_trait]
 impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryInfra {
-    async fn insert(
+    async fn create(
         &self,
         conn: &mut DBConn,
-        livestream_id: &LivestreamId,
-        user_id: &UserId,
-        created_at: i64,
+        history: &CreateLivestreamViewersHistory,
     ) -> isupipe_core::repos::Result<()> {
         let mut tx = conn.begin().await?;
 
         sqlx::query(
             "INSERT INTO livestream_viewers_history (user_id, livestream_id, created_at) VALUES(?, ?, ?)",
         )
-            .bind(user_id)
-            .bind(livestream_id)
-            .bind(created_at)
+            .bind(&history.user_id)
+            .bind(&history.livestream_id)
+            .bind(&history.created_at)
             .execute(&mut *tx)
             .await?;
 

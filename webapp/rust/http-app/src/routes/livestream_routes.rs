@@ -7,6 +7,7 @@ use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use isupipe_core::models::livestream::{CreateLivestream, Livestream, LivestreamId};
 use isupipe_core::models::livestream_ranking_entry::LivestreamRankingEntry;
 use isupipe_core::models::livestream_statistics::LivestreamStatistics;
+use isupipe_core::models::livestream_viewers_history::CreateLivestreamViewersHistory;
 use isupipe_core::models::ng_word::{CreateNgWord, NgWord};
 use isupipe_core::models::tag::TagId;
 use isupipe_core::models::user::UserId;
@@ -421,7 +422,14 @@ pub async fn enter_livestream_handler(
     let mut conn = pool.acquire().await?;
     let history_repo = LivestreamViewersHistoryRepositoryInfra {};
     history_repo
-        .insert(&mut conn, &livestream_id, &user_id, created_at)
+        .create(
+            &mut conn,
+            &CreateLivestreamViewersHistory {
+                user_id: user_id.clone(),
+                livestream_id: livestream_id.clone(),
+                created_at: created_at.clone(),
+            },
+        )
         .await?;
 
     Ok(())
