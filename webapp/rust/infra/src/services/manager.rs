@@ -2,6 +2,7 @@ use crate::services::icon_service::IconServiceInfra;
 use crate::services::livestream_comment_report_service::LivestreamCommentReportServiceInfra;
 use crate::services::livestream_comment_service::LivestreamCommentServiceInfra;
 use crate::services::livestream_service::LivestreamServiceInfra;
+use crate::services::ng_word_service::NgWordServiceInfra;
 use crate::services::reaction_service::ReactionServiceInfra;
 use crate::services::tag_service::TagServiceInfra;
 use crate::services::theme_service::ThemeServiceInfra;
@@ -13,6 +14,7 @@ use isupipe_core::services::livestream_comment_report_service::HaveLivestreamCom
 use isupipe_core::services::livestream_comment_service::HaveLivestreamCommentService;
 use isupipe_core::services::livestream_service::HaveLivestreamService;
 use isupipe_core::services::manager::ServiceManager;
+use isupipe_core::services::ng_word_service::HaveNgWordService;
 use isupipe_core::services::reaction_service::HaveReactionService;
 use isupipe_core::services::tag_service::HaveTagService;
 use isupipe_core::services::theme_service::HaveThemeService;
@@ -26,6 +28,7 @@ pub struct ServiceManagerInfra {
     livestream_comment_service: LivestreamCommentServiceInfra,
     livestream_comment_report_service: LivestreamCommentReportServiceInfra,
     reaction_service: ReactionServiceInfra,
+    ng_word_service: NgWordServiceInfra,
     tag_service: TagServiceInfra,
     user_service: UserServiceInfra,
     user_statistics_service: UserStatisticsServiceInfra,
@@ -43,6 +46,7 @@ impl ServiceManagerInfra {
                 db_pool.clone(),
             ),
             reaction_service: ReactionServiceInfra::new(db_pool.clone()),
+            ng_word_service: NgWordServiceInfra::new(db_pool.clone()),
             tag_service: TagServiceInfra::new(db_pool.clone()),
             user_service: UserServiceInfra::new(db_pool.clone()),
             user_statistics_service: UserStatisticsServiceInfra::new(db_pool.clone()),
@@ -120,6 +124,14 @@ impl HaveThemeService for ServiceManagerInfra {
 
     fn theme_service(&self) -> &Self::Service {
         &self.theme_service
+    }
+}
+
+impl HaveNgWordService for ServiceManagerInfra {
+    type Service = NgWordServiceInfra;
+
+    fn ng_word_service(&self) -> &Self::Service {
+        &self.ng_word_service
     }
 }
 

@@ -3,6 +3,7 @@ pub mod livestream_comment_report_service;
 pub mod livestream_comment_service;
 pub mod livestream_service;
 pub mod manager;
+pub mod ng_word_service;
 pub mod reaction_service;
 pub mod tag_service;
 pub mod theme_service;

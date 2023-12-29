@@ -20,6 +20,7 @@ use isupipe_core::repos::reaction_repository::ReactionRepository;
 use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
 use isupipe_core::repos::tag_repository::TagRepository;
 use isupipe_core::services::livestream_service::{HaveLivestreamService, LivestreamService};
+use isupipe_core::services::ng_word_service::{HaveNgWordService, NgWordService};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
@@ -307,18 +308,11 @@ pub async fn get_ngwords(
     let user_id = UserId::new(user_id);
     let livestream_id = LivestreamId::new(livestream_id);
 
-    let mut tx = pool.begin().await?;
-
-    let ng_word_repo = NgWordRepositoryInfra {};
-    let ng_words = ng_word_repo
-        .find_all_by_livestream_id_and_user_id_order_by_created_at(
-            &mut tx,
-            &livestream_id,
-            &user_id,
-        )
+    let service = ServiceManagerInfra::new(pool.clone());
+    let ng_words = service
+        .ng_word_service()
+        .find_all_by_livestream_id_and_user_id(&livestream_id, &user_id)
         .await?;
-
-    tx.commit().await?;
 
     Ok(axum::Json(ng_words))
 }

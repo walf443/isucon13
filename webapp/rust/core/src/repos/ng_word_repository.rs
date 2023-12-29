@@ -35,3 +35,8 @@ pub trait NgWordRepository {
         user_id: &UserId,
     ) -> Result<Vec<NgWord>>;
 }
+
+pub trait HaveNgWordRepository {
+    type Repo: NgWordRepository;
+    fn ng_word_repo(&self) -> &Self::Repo;
+}
