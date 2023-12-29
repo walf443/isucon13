@@ -362,12 +362,15 @@ pub async fn moderate_handler(
     let created_at = Utc::now().timestamp();
     let ng_word_repo = NgWordRepositoryInfra {};
     let word_id = ng_word_repo
-        .create(&mut tx, &CreateNgWord {
-            user_id: user_id.clone(),
-            livestream_id: livestream_id.clone(),
-            word: req.ng_word,
-            created_at: created_at.clone(),
-        })
+        .create(
+            &mut tx,
+            &CreateNgWord {
+                user_id: user_id.clone(),
+                livestream_id: livestream_id.clone(),
+                word: req.ng_word,
+                created_at: created_at.clone(),
+            },
+        )
         .await?;
 
     let ng_words = ng_word_repo

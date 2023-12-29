@@ -7,11 +7,7 @@ use async_trait::async_trait;
 
 #[async_trait]
 pub trait NgWordRepository {
-    async fn create(
-        &self,
-        conn: &mut DBConn,
-        ng_word: &CreateNgWord,
-    ) -> Result<NgWordId>;
+    async fn create(&self, conn: &mut DBConn, ng_word: &CreateNgWord) -> Result<NgWordId>;
     async fn find_all_by_livestream_id(
         &self,
         conn: &mut DBConn,
