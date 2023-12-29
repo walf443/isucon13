@@ -246,12 +246,14 @@ pub async fn get_my_livestreams_handler(
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
     let user_id = UserId::new(user_id);
 
+    let service = ServiceManagerInfra::new(pool.clone());
+    let livestream_models = service
+        .livestream_service()
+        .find_all_by_user_id(&user_id)
+        .await?;
+
     let mut tx = pool.begin().await?;
 
-    let livestream_repo = LivestreamRepositoryInfra {};
-    let livestream_models = livestream_repo
-        .find_all_by_user_id(&mut tx, &user_id)
-        .await?;
     let mut livestreams = Vec::with_capacity(livestream_models.len());
     for livestream_model in livestream_models {
         let livestream = LivestreamResponse::build(&mut tx, livestream_model).await?;
