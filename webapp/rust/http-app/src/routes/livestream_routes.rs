@@ -7,7 +7,7 @@ use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use isupipe_core::models::livestream::{CreateLivestream, Livestream, LivestreamId};
 use isupipe_core::models::livestream_ranking_entry::LivestreamRankingEntry;
 use isupipe_core::models::livestream_statistics::LivestreamStatistics;
-use isupipe_core::models::ng_word::NgWord;
+use isupipe_core::models::ng_word::{CreateNgWord, NgWord};
 use isupipe_core::models::tag::TagId;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
@@ -362,7 +362,12 @@ pub async fn moderate_handler(
     let created_at = Utc::now().timestamp();
     let ng_word_repo = NgWordRepositoryInfra {};
     let word_id = ng_word_repo
-        .insert(&mut tx, &user_id, &livestream_id, &req.ng_word, created_at)
+        .create(&mut tx, &CreateNgWord {
+            user_id: user_id.clone(),
+            livestream_id: livestream_id.clone(),
+            word: req.ng_word,
+            created_at: created_at.clone(),
+        })
         .await?;
 
     let ng_words = ng_word_repo

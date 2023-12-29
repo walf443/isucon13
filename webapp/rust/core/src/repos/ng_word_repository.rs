@@ -1,19 +1,16 @@
 use crate::db::DBConn;
 use crate::models::livestream::LivestreamId;
-use crate::models::ng_word::{NgWord, NgWordId};
+use crate::models::ng_word::{CreateNgWord, NgWord, NgWordId};
 use crate::models::user::UserId;
 use crate::repos::Result;
 use async_trait::async_trait;
 
 #[async_trait]
 pub trait NgWordRepository {
-    async fn insert(
+    async fn create(
         &self,
         conn: &mut DBConn,
-        user_id: &UserId,
-        livestream_id: &LivestreamId,
-        word: &str,
-        created_at: i64,
+        ng_word: &CreateNgWord,
     ) -> Result<NgWordId>;
     async fn find_all_by_livestream_id(
         &self,

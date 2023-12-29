@@ -13,3 +13,10 @@ pub struct NgWord {
 }
 
 pub type NgWordId = Id<NgWord>;
+
+pub struct CreateNgWord {
+    pub user_id: UserId,
+    pub livestream_id: LivestreamId,
+    pub word: String,
+    pub created_at: i64,
+}

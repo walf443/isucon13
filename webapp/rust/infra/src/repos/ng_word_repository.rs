@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::LivestreamId;
-use isupipe_core::models::ng_word::{NgWord, NgWordId};
+use isupipe_core::models::ng_word::{CreateNgWord, NgWord, NgWordId};
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::ng_word_repository::NgWordRepository;
 
@@ -9,21 +9,18 @@ pub struct NgWordRepositoryInfra {}
 
 #[async_trait]
 impl NgWordRepository for NgWordRepositoryInfra {
-    async fn insert(
+    async fn create(
         &self,
         conn: &mut DBConn,
-        user_id: &UserId,
-        livestream_id: &LivestreamId,
-        word: &str,
-        created_at: i64,
+        ng_word: &CreateNgWord,
     ) -> isupipe_core::repos::Result<NgWordId> {
         let rs = sqlx::query(
             "INSERT INTO ng_words(user_id, livestream_id, word, created_at) VALUES (?, ?, ?, ?)",
         )
-        .bind(user_id)
-        .bind(livestream_id)
-        .bind(word)
-        .bind(created_at)
+        .bind(&ng_word.user_id)
+        .bind(&ng_word.livestream_id)
+        .bind(&ng_word.word)
+        .bind(&ng_word.created_at)
         .execute(conn)
         .await?;
 
