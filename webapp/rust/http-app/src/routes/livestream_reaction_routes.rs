@@ -39,11 +39,7 @@ pub async fn get_reactions_handler<S: ServiceManager>(
         .find_all_by_livestream_id_limit(&livestream_id, limit)
         .await?;
 
-    let mut reactions = Vec::with_capacity(reaction_models.len());
-    for reaction_model in reaction_models {
-        let reaction = ReactionResponse::build_by_service(&service, &reaction_model).await?;
-        reactions.push(reaction);
-    }
+    let reactions = ReactionResponse::bulk_build_by_service(&service, &reaction_models).await?;
 
     Ok(axum::Json(reactions))
 }

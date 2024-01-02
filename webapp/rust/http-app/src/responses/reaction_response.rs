@@ -16,6 +16,20 @@ pub struct ReactionResponse {
 }
 
 impl ReactionResponse {
+    pub async fn bulk_build_by_service<S: ServiceManager>(
+        service: &S,
+        reactions: &[Reaction],
+    ) -> ResponseResult<Vec<Self>> {
+        let mut result = Vec::with_capacity(reactions.len());
+
+        for reaction in reactions {
+            let res = Self::build_by_service(service, reaction).await?;
+            result.push(res)
+        }
+
+        Ok(result)
+    }
+
     pub async fn build_by_service<S: ServiceManager>(
         service: &S,
         reaction_model: &Reaction,
