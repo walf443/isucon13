@@ -4,6 +4,7 @@ use isupipe_core::repos::livestream_repository::HaveLivestreamRepository;
 use isupipe_core::services::livestream_service::LivestreamServiceImpl;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct LivestreamServiceInfra {
     db_pool: Arc<DBPool>,
     livestream_repo: LivestreamRepositoryInfra,

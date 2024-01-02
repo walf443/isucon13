@@ -7,6 +7,7 @@ use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
 use sqlx::Acquire;
 
+#[derive(Clone)]
 pub struct LivestreamViewersHistoryRepositoryInfra {}
 
 #[async_trait]

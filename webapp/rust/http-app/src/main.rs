@@ -20,6 +20,7 @@ use isupipe_http_app::routes::tag_routes::get_tag_handler;
 use isupipe_http_app::routes::user_icon_routes::post_icon_handler;
 use isupipe_http_app::routes::user_routes::user_routes;
 use isupipe_http_core::state::AppState;
+use isupipe_infra::services::manager::ServiceManagerInfra;
 use std::sync::Arc;
 
 fn build_mysql_options() -> sqlx::mysql::MySqlConnectOptions {
@@ -76,6 +77,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             POWERDNS_SUBDOMAIN_ADDRESS_ENV_KEY
         );
     };
+
+    let service = ServiceManagerInfra::new(pool.clone());
 
     let app = axum::Router::new()
         // 初期化
@@ -156,6 +159,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/payment", axum::routing::get(get_payment_result))
         .nest("/api/user/", user_routes())
         .with_state(AppState {
+            service,
             pool,
             key: axum_extra::extract::cookie::Key::derive_from(&secret),
             powerdns_subdomain_address: Arc::new(powerdns_subdomain_address),

@@ -4,6 +4,7 @@ use isupipe_core::repos::theme_repository::HaveThemeRepository;
 use isupipe_core::services::theme_service::ThemeServiceImpl;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct ThemeServiceInfra {
     db_pool: Arc<DBPool>,
     theme_repo: ThemeRepositoryInfra,

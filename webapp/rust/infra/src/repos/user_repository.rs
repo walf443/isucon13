@@ -3,6 +3,7 @@ use isupipe_core::db::DBConn;
 use isupipe_core::models::user::{User, UserId};
 use isupipe_core::repos::user_repository::UserRepository;
 
+#[derive(Clone)]
 pub struct UserRepositoryInfra {}
 
 #[async_trait]

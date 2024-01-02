@@ -4,6 +4,7 @@ use isupipe_core::models::icon::CreateIcon;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::icon_repository::IconRepository;
 
+#[derive(Clone)]
 pub struct IconRepositoryInfra {}
 
 #[async_trait]

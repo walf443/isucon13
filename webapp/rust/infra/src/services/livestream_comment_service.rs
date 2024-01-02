@@ -4,6 +4,7 @@ use isupipe_core::repos::livestream_comment_repository::HaveLivestreamCommentRep
 use isupipe_core::services::livestream_comment_service::LivestreamCommentServiceImpl;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct LivestreamCommentServiceInfra {
     db_pool: Arc<DBPool>,
     livestream_comment_repo: LivestreamCommentRepositoryInfra,

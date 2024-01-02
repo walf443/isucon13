@@ -10,6 +10,7 @@ use axum_extra::extract::SignedCookieJar;
 use isupipe_core::models::user::UserId;
 use isupipe_core::models::user_statistics::UserStatistics;
 use isupipe_core::services::livestream_service::{HaveLivestreamService, LivestreamService};
+use isupipe_core::services::manager::ServiceManager;
 use isupipe_core::services::theme_service::{HaveThemeService, ThemeService};
 use isupipe_core::services::user_service::{HaveUserService, UserService};
 use isupipe_core::services::user_statistics_service::{
@@ -20,24 +21,27 @@ use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
 use isupipe_infra::services::manager::ServiceManagerInfra;
 
-pub fn user_routes() -> Router<AppState> {
+pub fn user_routes<S: ServiceManager + 'static>() -> Router<AppState<S>> {
     Router::new()
-        .route("/me", axum::routing::get(get_me_handler))
+        .route("/me", axum::routing::get(get_me_handler::<S>))
         // フロントエンドで、配信予約のコラボレーターを指定する際に必要
-        .route("/:username", axum::routing::get(get_user_handler))
-        .route("/:username/theme", get(get_streamer_theme_handler))
-        .route("/:username/livestream", get(get_user_livestreams_handler))
+        .route("/:username", axum::routing::get(get_user_handler::<S>))
+        .route("/:username/theme", get(get_streamer_theme_handler::<S>))
+        .route(
+            "/:username/livestream",
+            get(get_user_livestreams_handler::<S>),
+        )
         .route(
             "/:username/statistics",
-            axum::routing::get(get_user_statistics_handler),
+            axum::routing::get(get_user_statistics_handler::<S>),
         )
-        .route("/:username/icon", axum::routing::get(get_icon_handler))
+        .route("/:username/icon", axum::routing::get(get_icon_handler::<S>))
 }
 
 // 配信者のテーマ取得API
 // GET /api/user/:username/theme
-pub async fn get_streamer_theme_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn get_streamer_theme_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((username,)): Path<(String,)>,
 ) -> Result<axum::Json<ThemeResponse>, Error> {
@@ -60,8 +64,8 @@ pub async fn get_streamer_theme_handler(
         dark_mode: theme_model.dark_mode,
     }))
 }
-pub async fn get_user_livestreams_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn get_user_livestreams_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((username,)): Path<(String,)>,
 ) -> Result<axum::Json<Vec<LivestreamResponse>>, Error> {
@@ -92,8 +96,8 @@ pub async fn get_user_livestreams_handler(
 
     Ok(axum::Json(livestreams))
 }
-pub async fn get_me_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn get_me_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
 ) -> Result<axum::Json<UserResponse>, Error> {
     verify_user_session(&jar).await?;
@@ -127,8 +131,8 @@ pub async fn get_me_handler(
 
 // ユーザ詳細API
 // GET /api/user/:username
-pub async fn get_user_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn get_user_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((username,)): Path<(String,)>,
 ) -> Result<axum::Json<UserResponse>, Error> {
@@ -152,8 +156,8 @@ pub async fn get_user_handler(
     Ok(axum::Json(user))
 }
 
-pub async fn get_user_statistics_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn get_user_statistics_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((username,)): Path<(String,)>,
 ) -> Result<axum::Json<UserStatistics>, Error> {

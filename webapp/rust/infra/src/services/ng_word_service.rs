@@ -4,6 +4,7 @@ use isupipe_core::repos::ng_word_repository::HaveNgWordRepository;
 use isupipe_core::services::ng_word_service::NgWordServiceImpl;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct NgWordServiceInfra {
     db_pool: Arc<DBPool>,
     ng_word_repo: NgWordRepositoryInfra,

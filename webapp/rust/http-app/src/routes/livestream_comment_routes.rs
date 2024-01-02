@@ -10,6 +10,7 @@ use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
 use isupipe_core::repos::ng_word_repository::NgWordRepository;
+use isupipe_core::services::manager::ServiceManager;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
@@ -23,8 +24,8 @@ pub struct GetLivecommentsQuery {
     limit: String,
 }
 
-pub async fn get_livecomments_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn get_livecomments_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
     Query(GetLivecommentsQuery { limit }): Query<GetLivecommentsQuery>,
@@ -64,8 +65,8 @@ pub struct PostLivecommentRequest {
     pub tip: i64,
 }
 
-pub async fn post_livecomment_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn post_livecomment_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
     axum::Json(req): axum::Json<PostLivecommentRequest>,

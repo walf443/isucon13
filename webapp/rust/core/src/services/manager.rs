@@ -11,7 +11,10 @@ use crate::services::user_service::HaveUserService;
 use crate::services::user_statistics_service::HaveUserStatisticsService;
 
 pub trait ServiceManager:
-    HaveLivestreamCommentReportService
+    Send
+    + Sync
+    + Clone
+    + HaveLivestreamCommentReportService
     + HaveLivestreamService
     + HaveReactionService
     + HaveLivestreamCommentService

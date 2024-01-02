@@ -4,6 +4,7 @@ use isupipe_core::repos::tag_repository::HaveTagRepository;
 use isupipe_core::services::tag_service::TagServiceImpl;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct TagServiceInfra {
     db_pool: Arc<DBPool>,
     tag_repo: TagRepositoryInfra,

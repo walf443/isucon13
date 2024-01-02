@@ -24,6 +24,7 @@ use isupipe_core::services::user_service::HaveUserService;
 use isupipe_core::services::user_statistics_service::HaveUserStatisticsService;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct ServiceManagerInfra {
     icon_service: IconServiceInfra,
     livestream_service: LivestreamServiceInfra,

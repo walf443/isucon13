@@ -10,6 +10,7 @@ use isupipe_core::services::livestream_comment_report_service::{
     HaveLivestreamCommentReportService, LivestreamCommentReportService,
 };
 use isupipe_core::services::livestream_service::{HaveLivestreamService, LivestreamService};
+use isupipe_core::services::manager::ServiceManager;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
@@ -17,8 +18,8 @@ use isupipe_infra::services::livestream_comment_report_service::LivestreamCommen
 use isupipe_infra::services::manager::ServiceManagerInfra;
 use std::sync::Arc;
 
-pub async fn get_livecomment_reports_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn get_livecomment_reports_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
 ) -> Result<axum::Json<Vec<LivestreamCommentReportResponse>>, Error> {
@@ -60,8 +61,8 @@ pub async fn get_livecomment_reports_handler(
 
     Ok(axum::Json(reports))
 }
-pub async fn report_livecomment_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn report_livecomment_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id, livecomment_id)): Path<(i64, i64)>,
 ) -> Result<(StatusCode, axum::Json<LivestreamCommentReportResponse>), Error> {

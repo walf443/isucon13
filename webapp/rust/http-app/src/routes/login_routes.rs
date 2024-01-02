@@ -3,6 +3,7 @@ use axum::extract::State;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
 use isupipe_core::repos::user_repository::UserRepository;
+use isupipe_core::services::manager::ServiceManager;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{
@@ -19,8 +20,8 @@ pub struct LoginRequest {
 }
 // ユーザログインAPI
 // POST /api/login
-pub async fn login_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn login_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     mut jar: SignedCookieJar,
     axum::Json(req): axum::Json<LoginRequest>,
 ) -> Result<(SignedCookieJar, ()), Error> {

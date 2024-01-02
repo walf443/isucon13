@@ -6,6 +6,7 @@ use isupipe_core::models::reaction::{CreateReaction, Reaction, ReactionId};
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::reaction_repository::ReactionRepository;
 
+#[derive(Clone)]
 pub struct ReactionRepositoryInfra {}
 
 #[async_trait]

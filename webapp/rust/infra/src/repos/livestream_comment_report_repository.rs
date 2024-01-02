@@ -8,6 +8,7 @@ use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::Result;
 
+#[derive(Clone)]
 pub struct LivestreamCommentReportRepositoryInfra {}
 
 #[async_trait]

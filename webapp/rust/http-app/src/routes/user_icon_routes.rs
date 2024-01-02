@@ -4,6 +4,7 @@ use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use isupipe_core::models::user::UserId;
 use isupipe_core::services::icon_service::{HaveIconService, IconService};
+use isupipe_core::services::manager::ServiceManager;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{
@@ -11,8 +12,8 @@ use isupipe_http_core::{
 };
 use isupipe_infra::services::manager::ServiceManagerInfra;
 
-pub async fn get_icon_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn get_icon_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     Path((username,)): Path<(String,)>,
 ) -> Result<axum::response::Response, Error> {
     use axum::response::IntoResponse as _;
@@ -57,8 +58,8 @@ pub struct PostIconResponse {
     id: i64,
 }
 
-pub async fn post_icon_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn post_icon_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     axum::Json(req): axum::Json<PostIconRequest>,
 ) -> Result<(StatusCode, axum::Json<PostIconResponse>), Error> {

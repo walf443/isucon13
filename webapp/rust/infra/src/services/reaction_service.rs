@@ -4,6 +4,7 @@ use isupipe_core::repos::reaction_repository::HaveReactionRepository;
 use isupipe_core::services::reaction_service::ReactionServiceImpl;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct ReactionServiceInfra {
     db_pool: Arc<DBPool>,
     reaction_repo: ReactionRepositoryInfra,

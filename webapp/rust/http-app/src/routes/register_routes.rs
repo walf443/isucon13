@@ -4,6 +4,7 @@ use axum::http::StatusCode;
 use isupipe_core::models::user::User;
 use isupipe_core::repos::theme_repository::ThemeRepository;
 use isupipe_core::repos::user_repository::UserRepository;
+use isupipe_core::services::manager::ServiceManager;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_infra::repos::theme_repository::ThemeRepositoryInfra;
@@ -26,12 +27,12 @@ pub struct PostUserRequestTheme {
 
 // ユーザ登録API
 // POST /api/register
-pub async fn register_handler(
+pub async fn register_handler<S: ServiceManager>(
     State(AppState {
         pool,
         powerdns_subdomain_address,
         ..
-    }): State<AppState>,
+    }): State<AppState<S>>,
     axum::Json(req): axum::Json<PostUserRequest>,
 ) -> Result<(StatusCode, axum::Json<UserResponse>), Error> {
     if req.name == "pipe" {

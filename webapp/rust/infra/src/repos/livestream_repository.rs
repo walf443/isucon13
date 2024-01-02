@@ -4,6 +4,7 @@ use isupipe_core::models::livestream::{CreateLivestream, Livestream, LivestreamI
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
 
+#[derive(Clone)]
 pub struct LivestreamRepositoryInfra {}
 
 #[async_trait]

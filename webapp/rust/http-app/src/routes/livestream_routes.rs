@@ -24,6 +24,7 @@ use isupipe_core::services::livestream_service::{HaveLivestreamService, Livestre
 use isupipe_core::services::livestream_viewers_history_service::{
     HaveLivestreamViewersHistoryService, LivestreamViewersHistoryService,
 };
+use isupipe_core::services::manager::ServiceManager;
 use isupipe_core::services::ng_word_service::{HaveNgWordService, NgWordService};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
@@ -50,8 +51,8 @@ pub struct ReserveLivestreamRequest {
     end_at: i64,
 }
 
-pub async fn reserve_livestream_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn reserve_livestream_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     axum::Json(req): axum::Json<ReserveLivestreamRequest>,
 ) -> Result<(StatusCode, axum::Json<LivestreamResponse>), Error> {
@@ -182,8 +183,8 @@ pub struct SearchLivestreamsQuery {
     pub limit: String,
 }
 
-pub async fn search_livestreams_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn search_livestreams_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     Query(SearchLivestreamsQuery {
         tag: key_tag_name,
         limit,
@@ -237,8 +238,8 @@ pub async fn search_livestreams_handler(
 
     Ok(axum::Json(livestreams))
 }
-pub async fn get_my_livestreams_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn get_my_livestreams_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
 ) -> Result<axum::Json<Vec<LivestreamResponse>>, Error> {
     verify_user_session(&jar).await?;
@@ -270,8 +271,8 @@ pub async fn get_my_livestreams_handler(
     Ok(axum::Json(livestreams))
 }
 
-pub async fn get_livestream_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn get_livestream_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
 ) -> Result<axum::Json<LivestreamResponse>, Error> {
@@ -296,8 +297,8 @@ pub async fn get_livestream_handler(
 
     Ok(axum::Json(livestream))
 }
-pub async fn get_ngwords(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn get_ngwords<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
 ) -> Result<axum::Json<Vec<NgWord>>, Error> {
@@ -331,8 +332,8 @@ pub struct ModerateResponse {
 }
 
 // NGワードを登録
-pub async fn moderate_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn moderate_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
     axum::Json(req): axum::Json<ModerateRequest>,
@@ -405,8 +406,8 @@ pub async fn moderate_handler(
 }
 
 // viewerテーブルの廃止
-pub async fn enter_livestream_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn enter_livestream_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
 ) -> Result<(), Error> {
@@ -435,8 +436,8 @@ pub async fn enter_livestream_handler(
 
     Ok(())
 }
-pub async fn exit_livestream_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn exit_livestream_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
 ) -> Result<(), Error> {
@@ -460,8 +461,8 @@ pub async fn exit_livestream_handler(
 
     Ok(())
 }
-pub async fn get_livestream_statistics_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn get_livestream_statistics_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
 ) -> Result<axum::Json<LivestreamStatistics>, Error> {

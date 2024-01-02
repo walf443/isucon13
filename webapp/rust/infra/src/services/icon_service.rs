@@ -6,6 +6,7 @@ use isupipe_core::repos::user_repository::HaveUserRepository;
 use isupipe_core::services::icon_service::IconServiceImpl;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct IconServiceInfra {
     db_pool: Arc<DBPool>,
     icon_repo: IconRepositoryInfra,

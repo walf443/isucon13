@@ -7,6 +7,7 @@ use chrono::Utc;
 use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::reaction::{CreateReaction, Reaction};
 use isupipe_core::models::user::UserId;
+use isupipe_core::services::manager::ServiceManager;
 use isupipe_core::services::reaction_service::{HaveReactionService, ReactionService};
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
@@ -19,8 +20,8 @@ pub struct GetReactionsQuery {
     pub limit: String,
 }
 
-pub async fn get_reactions_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn get_reactions_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
     Query(GetReactionsQuery { limit }): Query<GetReactionsQuery>,
@@ -58,8 +59,8 @@ pub struct PostReactionRequest {
     pub emoji_name: String,
 }
 
-pub async fn post_reaction_handler(
-    State(AppState { pool, .. }): State<AppState>,
+pub async fn post_reaction_handler<S: ServiceManager>(
+    State(AppState { pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
     axum::Json(req): axum::Json<PostReactionRequest>,

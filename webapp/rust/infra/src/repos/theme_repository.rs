@@ -4,6 +4,7 @@ use isupipe_core::models::theme::Theme;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::theme_repository::ThemeRepository;
 
+#[derive(Clone)]
 pub struct ThemeRepositoryInfra {}
 
 #[async_trait]

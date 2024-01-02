@@ -3,6 +3,7 @@ use isupipe_core::db::DBConn;
 use isupipe_core::models::tag::{Tag, TagId};
 use isupipe_core::repos::tag_repository::TagRepository;
 
+#[derive(Clone)]
 pub struct TagRepositoryInfra {}
 
 #[async_trait]

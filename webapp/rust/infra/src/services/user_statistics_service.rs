@@ -12,6 +12,7 @@ use isupipe_core::repos::user_repository::HaveUserRepository;
 use isupipe_core::services::user_statistics_service::UserStatisticsServiceImpl;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct UserStatisticsServiceInfra {
     db_pool: Arc<DBPool>,
     reaction_repo: ReactionRepositoryInfra,

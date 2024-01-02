@@ -4,6 +4,7 @@ use isupipe_core::repos::livestream_viewers_history_repository::HaveLivestreamVi
 use isupipe_core::services::livestream_viewers_history_service::LivestreamViewersHistoryServiceImpl;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct LivestreamViewersHistoryServiceInfra {
     db_pool: Arc<DBPool>,
     livestream_viewers_history_repo: LivestreamViewersHistoryRepositoryInfra,
