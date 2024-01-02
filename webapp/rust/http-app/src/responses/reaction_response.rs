@@ -18,14 +18,14 @@ pub struct ReactionResponse {
 impl ReactionResponse {
     pub async fn build_by_service<S: ServiceManager>(
         service: &S,
-        reaction_model: Reaction,
+        reaction_model: &Reaction,
     ) -> ResponseResult<Self> {
         let user_model = service
             .user_service()
             .find(&reaction_model.user_id)
             .await?
             .unwrap();
-        let user = UserResponse::build_by_service(service, user_model).await?;
+        let user = UserResponse::build_by_service(service, &user_model).await?;
 
         let livestream_model = service
             .livestream_service()
@@ -36,7 +36,7 @@ impl ReactionResponse {
 
         Ok(Self {
             id: reaction_model.id.get(),
-            emoji_name: reaction_model.emoji_name,
+            emoji_name: reaction_model.emoji_name.clone(),
             user,
             livestream,
             created_at: reaction_model.created_at,

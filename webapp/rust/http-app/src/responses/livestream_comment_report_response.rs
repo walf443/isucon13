@@ -18,14 +18,14 @@ pub struct LivestreamCommentReportResponse {
 impl LivestreamCommentReportResponse {
     pub async fn build_by_service<S: ServiceManager>(
         service: &S,
-        report_model: LivestreamCommentReport,
+        report_model: &LivestreamCommentReport,
     ) -> ResponseResult<Self> {
         let reporter_model = service
             .user_service()
             .find(&report_model.user_id)
             .await?
             .unwrap();
-        let reporter = UserResponse::build_by_service(service, reporter_model).await?;
+        let reporter = UserResponse::build_by_service(service, &reporter_model).await?;
 
         let comment_service = service.livestream_comment_service();
         let comment_model: LivestreamComment = comment_service
@@ -34,7 +34,7 @@ impl LivestreamCommentReportResponse {
             .unwrap();
 
         let livecomment =
-            LivestreamCommentResponse::build_by_service(service, comment_model).await?;
+            LivestreamCommentResponse::build_by_service(service, &comment_model).await?;
 
         Ok(Self {
             id: report_model.id.get(),

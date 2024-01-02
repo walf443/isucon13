@@ -37,7 +37,7 @@ impl LivestreamResponse {
             .find(&livestream_model.user_id)
             .await?
             .unwrap();
-        let owner = UserResponse::build_by_service(service, owner_model).await?;
+        let owner = UserResponse::build_by_service(service, &owner_model).await?;
 
         let livestream_tag_models = service
             .livestream_tag_service()

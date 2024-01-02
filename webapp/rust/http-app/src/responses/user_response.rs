@@ -26,7 +26,7 @@ pub struct UserResponse {
 impl UserResponse {
     pub async fn build_by_service<S: ServiceManager>(
         service: &S,
-        user: User,
+        user: &User,
     ) -> ResponseResult<Self> {
         let theme_model = service.theme_service().find_by_user_id(&user.id).await?;
 
@@ -46,9 +46,9 @@ impl UserResponse {
 
         Ok(Self {
             id: user.id.get(),
-            name: user.name,
-            display_name: user.display_name,
-            description: user.description,
+            name: user.name.clone(),
+            display_name: user.display_name.clone(),
+            description: user.description.clone(),
             theme: ThemeResponse {
                 id: theme_model.id.get(),
                 dark_mode: theme_model.dark_mode,

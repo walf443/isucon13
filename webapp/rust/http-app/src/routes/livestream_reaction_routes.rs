@@ -41,7 +41,7 @@ pub async fn get_reactions_handler<S: ServiceManager>(
 
     let mut reactions = Vec::with_capacity(reaction_models.len());
     for reaction_model in reaction_models {
-        let reaction = ReactionResponse::build_by_service(&service, reaction_model).await?;
+        let reaction = ReactionResponse::build_by_service(&service, &reaction_model).await?;
         reactions.push(reaction);
     }
 
@@ -84,7 +84,7 @@ pub async fn post_reaction_handler<S: ServiceManager>(
 
     let reaction = ReactionResponse::build_by_service(
         &service,
-        Reaction {
+        &Reaction {
             id: reaction_id,
             user_id: user_id.clone(),
             livestream_id: livestream_id.clone(),
