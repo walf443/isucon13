@@ -3,7 +3,7 @@ use isupipe_http_app::routes::livestream_comment_report_routes::{
     get_livecomment_reports_handler, report_livecomment_handler,
 };
 use isupipe_http_app::routes::livestream_comment_routes::{
-    get_livecomments_handler, post_livecomment_handler,
+    get_livestream_comments_handler, post_livecomment_handler,
 };
 use isupipe_http_app::routes::livestream_reaction_routes::{
     get_reactions_handler, post_reaction_handler,
@@ -109,7 +109,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // ライブコメント投稿
         .route(
             "/api/livestream/:livestream_id/livecomment",
-            axum::routing::get(get_livecomments_handler).post(post_livecomment_handler),
+            axum::routing::get(get_livestream_comments_handler).post(post_livecomment_handler),
         )
         .route(
             "/api/livestream/:livestream_id/reaction",

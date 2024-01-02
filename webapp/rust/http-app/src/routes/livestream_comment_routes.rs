@@ -19,16 +19,16 @@ use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
 use isupipe_infra::repos::ng_word_repository::NgWordRepositoryInfra;
 
 #[derive(Debug, serde::Deserialize)]
-pub struct GetLivecommentsQuery {
+pub struct GetLivestreamCommentsQuery {
     #[serde(default)]
     limit: String,
 }
 
-pub async fn get_livecomments_handler<S: ServiceManager>(
+pub async fn get_livestream_comments_handler<S: ServiceManager>(
     State(AppState { pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
-    Query(GetLivecommentsQuery { limit }): Query<GetLivecommentsQuery>,
+    Query(GetLivestreamCommentsQuery { limit }): Query<GetLivestreamCommentsQuery>,
 ) -> Result<axum::Json<Vec<LivestreamCommentResponse>>, Error> {
     verify_user_session(&jar).await?;
 
