@@ -2,6 +2,7 @@ use crate::services::icon_service::IconServiceInfra;
 use crate::services::livestream_comment_report_service::LivestreamCommentReportServiceInfra;
 use crate::services::livestream_comment_service::LivestreamCommentServiceInfra;
 use crate::services::livestream_service::LivestreamServiceInfra;
+use crate::services::livestream_tag_service::LivestreamTagServiceInfra;
 use crate::services::livestream_viewers_history_service::LivestreamViewersHistoryServiceInfra;
 use crate::services::ng_word_service::NgWordServiceInfra;
 use crate::services::reaction_service::ReactionServiceInfra;
@@ -14,6 +15,7 @@ use isupipe_core::services::icon_service::HaveIconService;
 use isupipe_core::services::livestream_comment_report_service::HaveLivestreamCommentReportService;
 use isupipe_core::services::livestream_comment_service::HaveLivestreamCommentService;
 use isupipe_core::services::livestream_service::HaveLivestreamService;
+use isupipe_core::services::livestream_tag_service::HaveLivestreamTagService;
 use isupipe_core::services::livestream_viewers_history_service::HaveLivestreamViewersHistoryService;
 use isupipe_core::services::manager::ServiceManager;
 use isupipe_core::services::ng_word_service::HaveNgWordService;
@@ -30,6 +32,7 @@ pub struct ServiceManagerInfra {
     livestream_comment_service: LivestreamCommentServiceInfra,
     livestream_comment_report_service: LivestreamCommentReportServiceInfra,
     livestream_viewers_history_service: LivestreamViewersHistoryServiceInfra,
+    livestream_tag_service: LivestreamTagServiceInfra,
     reaction_service: ReactionServiceInfra,
     ng_word_service: NgWordServiceInfra,
     tag_service: TagServiceInfra,
@@ -50,6 +53,7 @@ impl ServiceManagerInfra {
             livestream_viewers_history_service: LivestreamViewersHistoryServiceInfra::new(
                 db_pool.clone(),
             ),
+            livestream_tag_service: LivestreamTagServiceInfra::new(db_pool.clone()),
             reaction_service: ReactionServiceInfra::new(db_pool.clone()),
             ng_word_service: NgWordServiceInfra::new(db_pool.clone()),
             tag_service: TagServiceInfra::new(db_pool.clone()),
@@ -145,6 +149,14 @@ impl HaveLivestreamViewersHistoryService for ServiceManagerInfra {
 
     fn livestream_viewers_history_service(&self) -> &Self::Service {
         &self.livestream_viewers_history_service
+    }
+}
+
+impl HaveLivestreamTagService for ServiceManagerInfra {
+    type Service = LivestreamTagServiceInfra;
+
+    fn livestream_tag_service(&self) -> &Self::Service {
+        &self.livestream_tag_service
     }
 }
 

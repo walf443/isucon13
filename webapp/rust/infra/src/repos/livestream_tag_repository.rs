@@ -5,6 +5,7 @@ use isupipe_core::models::livestream_tag::LivestreamTag;
 use isupipe_core::models::tag::TagId;
 use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
 
+#[derive(Clone)]
 pub struct LivestreamTagRepositoryInfra {}
 
 #[async_trait]

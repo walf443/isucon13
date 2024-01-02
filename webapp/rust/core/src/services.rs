@@ -5,6 +5,7 @@ pub mod icon_service;
 pub mod livestream_comment_report_service;
 pub mod livestream_comment_service;
 pub mod livestream_service;
+pub mod livestream_tag_service;
 pub mod livestream_viewers_history_service;
 pub mod manager;
 pub mod ng_word_service;

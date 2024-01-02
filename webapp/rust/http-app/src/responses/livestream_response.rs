@@ -5,6 +5,10 @@ use isupipe_core::models::livestream::Livestream;
 use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
 use isupipe_core::repos::tag_repository::TagRepository;
 use isupipe_core::repos::user_repository::UserRepository;
+use isupipe_core::services::livestream_tag_service::LivestreamTagService;
+use isupipe_core::services::manager::ServiceManager;
+use isupipe_core::services::tag_service::TagService;
+use isupipe_core::services::user_service::UserService;
 use isupipe_http_core::responses::ResponseResult;
 use isupipe_infra::repos::livestream_tag_repository::LivestreamTagRepositoryInfra;
 use isupipe_infra::repos::tag_repository::TagRepositoryInfra;
@@ -24,6 +28,45 @@ pub struct LivestreamResponse {
 }
 
 impl LivestreamResponse {
+    pub async fn build_by_service<S: ServiceManager>(
+        service: &S,
+        livestream_model: Livestream,
+    ) -> ResponseResult<Self> {
+        let owner_model = service
+            .user_service()
+            .find(&livestream_model.user_id)
+            .await?
+            .unwrap();
+        let owner = UserResponse::build_by_service(service, owner_model).await?;
+
+        let livestream_tag_models = service
+            .livestream_tag_service()
+            .find_all_by_livestream_id(&livestream_model.id)
+            .await?;
+
+        let mut tags = Vec::with_capacity(livestream_tag_models.len());
+        let tag_service = service.tag_service();
+        for livestream_tag_model in livestream_tag_models {
+            let tag_model = tag_service.find(&livestream_tag_model.tag_id).await?;
+            tags.push(TagResponse {
+                id: tag_model.id.get(),
+                name: tag_model.name,
+            });
+        }
+
+        Ok(Self {
+            id: livestream_model.id.get(),
+            owner,
+            title: livestream_model.title,
+            tags,
+            description: livestream_model.description,
+            playlist_url: livestream_model.playlist_url,
+            thumbnail_url: livestream_model.thumbnail_url,
+            start_at: livestream_model.start_at,
+            end_at: livestream_model.end_at,
+        })
+    }
+
     pub async fn build(conn: &mut DBConn, livestream_model: Livestream) -> ResponseResult<Self> {
         let user_repo = UserRepositoryInfra {};
         let owner_model = user_repo

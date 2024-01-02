@@ -26,3 +26,9 @@ pub trait LivestreamTagRepository {
         tag_ids: &[TagId],
     ) -> Result<Vec<LivestreamTag>>;
 }
+
+pub trait HaveLivestreamTagRepository {
+    type Repo: LivestreamTagRepository;
+
+    fn livestream_tag_repo(&self) -> &Self::Repo;
+}
