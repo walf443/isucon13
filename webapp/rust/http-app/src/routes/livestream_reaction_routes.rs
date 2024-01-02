@@ -20,7 +20,7 @@ pub struct GetReactionsQuery {
 }
 
 pub async fn get_reactions_handler<S: ServiceManager>(
-    State(AppState { service, pool, .. }): State<AppState<S>>,
+    State(AppState { service, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
     Query(GetReactionsQuery { limit }): Query<GetReactionsQuery>,
@@ -39,14 +39,11 @@ pub async fn get_reactions_handler<S: ServiceManager>(
         .find_all_by_livestream_id_limit(&livestream_id, limit)
         .await?;
 
-    let mut tx = pool.begin().await?;
     let mut reactions = Vec::with_capacity(reaction_models.len());
     for reaction_model in reaction_models {
-        let reaction = ReactionResponse::build(&mut tx, reaction_model).await?;
+        let reaction = ReactionResponse::build_by_service(&service, reaction_model).await?;
         reactions.push(reaction);
     }
-
-    tx.commit().await?;
 
     Ok(axum::Json(reactions))
 }
@@ -57,7 +54,7 @@ pub struct PostReactionRequest {
 }
 
 pub async fn post_reaction_handler<S: ServiceManager>(
-    State(AppState { service, pool, .. }): State<AppState<S>>,
+    State(AppState { service, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
     axum::Json(req): axum::Json<PostReactionRequest>,
@@ -74,8 +71,6 @@ pub async fn post_reaction_handler<S: ServiceManager>(
 
     let livestream_id = LivestreamId::new(livestream_id);
 
-    let mut tx = pool.begin().await?;
-
     let created_at = Utc::now().timestamp();
     let reaction_id = service
         .reaction_service()
@@ -87,8 +82,8 @@ pub async fn post_reaction_handler<S: ServiceManager>(
         })
         .await?;
 
-    let reaction = ReactionResponse::build(
-        &mut tx,
+    let reaction = ReactionResponse::build_by_service(
+        &service,
         Reaction {
             id: reaction_id,
             user_id: user_id.clone(),
@@ -98,8 +93,6 @@ pub async fn post_reaction_handler<S: ServiceManager>(
         },
     )
     .await?;
-
-    tx.commit().await?;
 
     Ok((StatusCode::CREATED, axum::Json(reaction)))
 }
