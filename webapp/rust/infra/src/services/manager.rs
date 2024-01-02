@@ -22,7 +22,6 @@ use isupipe_core::services::tag_service::HaveTagService;
 use isupipe_core::services::theme_service::HaveThemeService;
 use isupipe_core::services::user_service::HaveUserService;
 use isupipe_core::services::user_statistics_service::HaveUserStatisticsService;
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct ServiceManagerInfra {
@@ -41,7 +40,6 @@ pub struct ServiceManagerInfra {
 
 impl ServiceManagerInfra {
     pub fn new(db_pool: DBPool) -> Self {
-        let db_pool = Arc::new(db_pool);
         Self {
             icon_service: IconServiceInfra::new(db_pool.clone()),
             livestream_service: LivestreamServiceInfra::new(db_pool.clone()),

@@ -2,16 +2,15 @@ use crate::repos::reaction_repository::ReactionRepositoryInfra;
 use isupipe_core::db::{DBPool, HaveDBPool};
 use isupipe_core::repos::reaction_repository::HaveReactionRepository;
 use isupipe_core::services::reaction_service::ReactionServiceImpl;
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct ReactionServiceInfra {
-    db_pool: Arc<DBPool>,
+    db_pool: DBPool,
     reaction_repo: ReactionRepositoryInfra,
 }
 
 impl ReactionServiceInfra {
-    pub fn new(db_pool: Arc<DBPool>) -> Self {
+    pub fn new(db_pool: DBPool) -> Self {
         Self {
             db_pool,
             reaction_repo: ReactionRepositoryInfra {},

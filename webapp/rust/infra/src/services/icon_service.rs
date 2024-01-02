@@ -4,17 +4,16 @@ use isupipe_core::db::{DBPool, HaveDBPool};
 use isupipe_core::repos::icon_repository::HaveIconRepository;
 use isupipe_core::repos::user_repository::HaveUserRepository;
 use isupipe_core::services::icon_service::IconServiceImpl;
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct IconServiceInfra {
-    db_pool: Arc<DBPool>,
+    db_pool: DBPool,
     icon_repo: IconRepositoryInfra,
     user_repo: UserRepositoryInfra,
 }
 
 impl IconServiceInfra {
-    pub fn new(db_pool: Arc<DBPool>) -> Self {
+    pub fn new(db_pool: DBPool) -> Self {
         Self {
             db_pool,
             icon_repo: IconRepositoryInfra {},

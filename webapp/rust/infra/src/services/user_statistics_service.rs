@@ -10,11 +10,10 @@ use isupipe_core::repos::livestream_viewers_history_repository::HaveLivestreamVi
 use isupipe_core::repos::reaction_repository::HaveReactionRepository;
 use isupipe_core::repos::user_repository::HaveUserRepository;
 use isupipe_core::services::user_statistics_service::UserStatisticsServiceImpl;
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct UserStatisticsServiceInfra {
-    db_pool: Arc<DBPool>,
+    db_pool: DBPool,
     reaction_repo: ReactionRepositoryInfra,
     livestream_repo: LivestreamRepositoryInfra,
     livestream_comment_repo: LivestreamCommentRepositoryInfra,
@@ -23,7 +22,7 @@ pub struct UserStatisticsServiceInfra {
 }
 
 impl UserStatisticsServiceInfra {
-    pub fn new(db_pool: Arc<DBPool>) -> Self {
+    pub fn new(db_pool: DBPool) -> Self {
         Self {
             db_pool,
             reaction_repo: ReactionRepositoryInfra {},

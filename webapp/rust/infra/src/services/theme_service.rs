@@ -2,16 +2,15 @@ use crate::repos::theme_repository::ThemeRepositoryInfra;
 use isupipe_core::db::{DBPool, HaveDBPool};
 use isupipe_core::repos::theme_repository::HaveThemeRepository;
 use isupipe_core::services::theme_service::ThemeServiceImpl;
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct ThemeServiceInfra {
-    db_pool: Arc<DBPool>,
+    db_pool: DBPool,
     theme_repo: ThemeRepositoryInfra,
 }
 
 impl ThemeServiceInfra {
-    pub fn new(db_pool: Arc<DBPool>) -> Self {
+    pub fn new(db_pool: DBPool) -> Self {
         Self {
             db_pool,
             theme_repo: ThemeRepositoryInfra {},

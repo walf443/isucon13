@@ -2,16 +2,15 @@ use crate::repos::tag_repository::TagRepositoryInfra;
 use isupipe_core::db::{DBPool, HaveDBPool};
 use isupipe_core::repos::tag_repository::HaveTagRepository;
 use isupipe_core::services::tag_service::TagServiceImpl;
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct TagServiceInfra {
-    db_pool: Arc<DBPool>,
+    db_pool: DBPool,
     tag_repo: TagRepositoryInfra,
 }
 
 impl TagServiceInfra {
-    pub fn new(db_pool: Arc<DBPool>) -> Self {
+    pub fn new(db_pool: DBPool) -> Self {
         Self {
             db_pool,
             tag_repo: TagRepositoryInfra {},
