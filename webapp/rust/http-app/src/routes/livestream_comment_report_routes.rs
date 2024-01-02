@@ -45,12 +45,8 @@ pub async fn get_livecomment_reports_handler<S: ServiceManager>(
         .find_all_by_livestream_id(&livestream_model.id)
         .await?;
 
-    let mut reports = Vec::with_capacity(report_models.len());
-    for report_model in report_models {
-        let report =
-            LivestreamCommentReportResponse::build_by_service(&service, &report_model).await?;
-        reports.push(report);
-    }
+    let reports =
+        LivestreamCommentReportResponse::bulk_build_by_service(&service, &report_models).await?;
 
     Ok(axum::Json(reports))
 }
