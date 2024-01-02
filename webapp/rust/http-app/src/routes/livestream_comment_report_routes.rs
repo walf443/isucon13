@@ -14,7 +14,7 @@ use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
 
 pub async fn get_livecomment_reports_handler<S: ServiceManager>(
-    State(AppState { service, pool, .. }): State<AppState<S>>,
+    State(AppState { service, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
 ) -> Result<axum::Json<Vec<LivestreamCommentReportResponse>>, Error> {
@@ -46,16 +46,16 @@ pub async fn get_livecomment_reports_handler<S: ServiceManager>(
         .await?;
 
     let mut reports = Vec::with_capacity(report_models.len());
-    let mut tx = pool.begin().await?;
     for report_model in report_models {
-        let report = LivestreamCommentReportResponse::build(&mut tx, report_model).await?;
+        let report =
+            LivestreamCommentReportResponse::build_by_service(&service, report_model).await?;
         reports.push(report);
     }
 
     Ok(axum::Json(reports))
 }
 pub async fn report_livecomment_handler<S: ServiceManager>(
-    State(AppState { service, pool, .. }): State<AppState<S>>,
+    State(AppState { service, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id, livecomment_id)): Path<(i64, i64)>,
 ) -> Result<(StatusCode, axum::Json<LivestreamCommentReportResponse>), Error> {
@@ -76,8 +76,7 @@ pub async fn report_livecomment_handler<S: ServiceManager>(
         .create(&user_id, &livestream_id, &comment_id)
         .await?;
 
-    let mut conn = pool.acquire().await?;
-    let report = LivestreamCommentReportResponse::build(&mut conn, report).await?;
+    let report = LivestreamCommentReportResponse::build_by_service(&service, report).await?;
 
     Ok((StatusCode::CREATED, axum::Json(report)))
 }
