@@ -29,6 +29,7 @@ pub struct PostUserRequestTheme {
 // POST /api/register
 pub async fn register_handler<S: ServiceManager>(
     State(AppState {
+        service,
         pool,
         powerdns_subdomain_address,
         ..
@@ -77,9 +78,9 @@ pub async fn register_handler<S: ServiceManager>(
         )));
     }
 
-    let user = UserResponse::build(
-        &mut tx,
-        User {
+    let user = UserResponse::build_by_service(
+        &service,
+        &User {
             id: user_id.clone(),
             name: req.name,
             display_name: Some(req.display_name),

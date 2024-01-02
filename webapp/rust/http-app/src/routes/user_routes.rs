@@ -90,7 +90,7 @@ pub async fn get_user_livestreams_handler<S: ServiceManager>(
     Ok(axum::Json(livestreams))
 }
 pub async fn get_me_handler<S: ServiceManager>(
-    State(AppState { service, pool, .. }): State<AppState<S>>,
+    State(AppState { service, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
 ) -> Result<axum::Json<UserResponse>, Error> {
     verify_user_session(&jar).await?;
@@ -111,11 +111,7 @@ pub async fn get_me_handler<S: ServiceManager>(
             "not found user that has the userid in session".into(),
         ))?;
 
-    let mut tx = pool.begin().await?;
-
-    let user = UserResponse::build(&mut tx, user_model).await?;
-
-    tx.commit().await?;
+    let user = UserResponse::build_by_service(&service, &user_model).await?;
 
     Ok(axum::Json(user))
 }
@@ -123,7 +119,7 @@ pub async fn get_me_handler<S: ServiceManager>(
 // ユーザ詳細API
 // GET /api/user/:username
 pub async fn get_user_handler<S: ServiceManager>(
-    State(AppState { service, pool, .. }): State<AppState<S>>,
+    State(AppState { service, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((username,)): Path<(String,)>,
 ) -> Result<axum::Json<UserResponse>, Error> {
@@ -137,11 +133,7 @@ pub async fn get_user_handler<S: ServiceManager>(
             "not found user that has the given username".into(),
         ))?;
 
-    let mut tx = pool.begin().await?;
-
-    let user = UserResponse::build(&mut tx, user_model).await?;
-
-    tx.commit().await?;
+    let user = UserResponse::build_by_service(&service, &user_model).await?;
 
     Ok(axum::Json(user))
 }
