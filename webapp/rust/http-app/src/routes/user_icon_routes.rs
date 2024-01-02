@@ -3,22 +3,20 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use isupipe_core::models::user::UserId;
-use isupipe_core::services::icon_service::{HaveIconService, IconService};
+use isupipe_core::services::icon_service::IconService;
 use isupipe_core::services::manager::ServiceManager;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{
     verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY, FALLBACK_IMAGE,
 };
-use isupipe_infra::services::manager::ServiceManagerInfra;
 
 pub async fn get_icon_handler<S: ServiceManager>(
-    State(AppState { pool, .. }): State<AppState<S>>,
+    State(AppState { service, .. }): State<AppState<S>>,
     Path((username,)): Path<(String,)>,
 ) -> Result<axum::response::Response, Error> {
     use axum::response::IntoResponse as _;
 
-    let service = ServiceManagerInfra::new(pool.clone());
     let image = service
         .icon_service()
         .find_image_by_user_name(&username)
@@ -59,7 +57,7 @@ pub struct PostIconResponse {
 }
 
 pub async fn post_icon_handler<S: ServiceManager>(
-    State(AppState { pool, .. }): State<AppState<S>>,
+    State(AppState { service, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     axum::Json(req): axum::Json<PostIconRequest>,
 ) -> Result<(StatusCode, axum::Json<PostIconResponse>), Error> {
@@ -73,7 +71,6 @@ pub async fn post_icon_handler<S: ServiceManager>(
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
     let user_id = UserId::new(user_id);
 
-    let service = ServiceManagerInfra::new(pool.clone());
     let icon_id = service
         .icon_service()
         .replace_new_image(&user_id, &req.image)

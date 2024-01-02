@@ -8,11 +8,10 @@ use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::reaction::{CreateReaction, Reaction};
 use isupipe_core::models::user::UserId;
 use isupipe_core::services::manager::ServiceManager;
-use isupipe_core::services::reaction_service::{HaveReactionService, ReactionService};
+use isupipe_core::services::reaction_service::ReactionService;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
-use isupipe_infra::services::manager::ServiceManagerInfra;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct GetReactionsQuery {
@@ -21,15 +20,13 @@ pub struct GetReactionsQuery {
 }
 
 pub async fn get_reactions_handler<S: ServiceManager>(
-    State(AppState { pool, .. }): State<AppState<S>>,
+    State(AppState { service, pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
     Query(GetReactionsQuery { limit }): Query<GetReactionsQuery>,
 ) -> Result<axum::Json<Vec<ReactionResponse>>, Error> {
     verify_user_session(&jar).await?;
     let livestream_id = LivestreamId::new(livestream_id);
-
-    let service = ServiceManagerInfra::new(pool.clone());
 
     let limit = if limit.is_empty() {
         None
@@ -60,7 +57,7 @@ pub struct PostReactionRequest {
 }
 
 pub async fn post_reaction_handler<S: ServiceManager>(
-    State(AppState { pool, .. }): State<AppState<S>>,
+    State(AppState { service, pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
     axum::Json(req): axum::Json<PostReactionRequest>,
@@ -78,8 +75,6 @@ pub async fn post_reaction_handler<S: ServiceManager>(
     let livestream_id = LivestreamId::new(livestream_id);
 
     let mut tx = pool.begin().await?;
-
-    let service = ServiceManagerInfra::new(pool.clone());
 
     let created_at = Utc::now().timestamp();
     let reaction_id = service

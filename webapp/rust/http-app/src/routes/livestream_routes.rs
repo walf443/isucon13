@@ -20,12 +20,10 @@ use isupipe_core::repos::ng_word_repository::NgWordRepository;
 use isupipe_core::repos::reaction_repository::ReactionRepository;
 use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
 use isupipe_core::repos::tag_repository::TagRepository;
-use isupipe_core::services::livestream_service::{HaveLivestreamService, LivestreamService};
-use isupipe_core::services::livestream_viewers_history_service::{
-    HaveLivestreamViewersHistoryService, LivestreamViewersHistoryService,
-};
+use isupipe_core::services::livestream_service::LivestreamService;
+use isupipe_core::services::livestream_viewers_history_service::LivestreamViewersHistoryService;
 use isupipe_core::services::manager::ServiceManager;
-use isupipe_core::services::ng_word_service::{HaveNgWordService, NgWordService};
+use isupipe_core::services::ng_word_service::NgWordService;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
@@ -38,7 +36,6 @@ use isupipe_infra::repos::ng_word_repository::NgWordRepositoryInfra;
 use isupipe_infra::repos::reaction_repository::ReactionRepositoryInfra;
 use isupipe_infra::repos::reservation_slot_repository::ReservationSlotRepositoryInfra;
 use isupipe_infra::repos::tag_repository::TagRepositoryInfra;
-use isupipe_infra::services::manager::ServiceManagerInfra;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct ReserveLivestreamRequest {
@@ -239,7 +236,7 @@ pub async fn search_livestreams_handler<S: ServiceManager>(
     Ok(axum::Json(livestreams))
 }
 pub async fn get_my_livestreams_handler<S: ServiceManager>(
-    State(AppState { pool, .. }): State<AppState<S>>,
+    State(AppState { service, pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
 ) -> Result<axum::Json<Vec<LivestreamResponse>>, Error> {
     verify_user_session(&jar).await?;
@@ -252,7 +249,6 @@ pub async fn get_my_livestreams_handler<S: ServiceManager>(
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
     let user_id = UserId::new(user_id);
 
-    let service = ServiceManagerInfra::new(pool.clone());
     let livestream_models = service
         .livestream_service()
         .find_all_by_user_id(&user_id)
@@ -272,14 +268,13 @@ pub async fn get_my_livestreams_handler<S: ServiceManager>(
 }
 
 pub async fn get_livestream_handler<S: ServiceManager>(
-    State(AppState { pool, .. }): State<AppState<S>>,
+    State(AppState { service, pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
 ) -> Result<axum::Json<LivestreamResponse>, Error> {
     verify_user_session(&jar).await?;
     let livestream_id = LivestreamId::new(livestream_id);
 
-    let service = ServiceManagerInfra::new(pool.clone());
     let livestream_model = service.livestream_service().find(&livestream_id).await?;
 
     if livestream_model.is_none() {
@@ -298,7 +293,7 @@ pub async fn get_livestream_handler<S: ServiceManager>(
     Ok(axum::Json(livestream))
 }
 pub async fn get_ngwords<S: ServiceManager>(
-    State(AppState { pool, .. }): State<AppState<S>>,
+    State(AppState { service, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
 ) -> Result<axum::Json<Vec<NgWord>>, Error> {
@@ -313,7 +308,6 @@ pub async fn get_ngwords<S: ServiceManager>(
     let user_id = UserId::new(user_id);
     let livestream_id = LivestreamId::new(livestream_id);
 
-    let service = ServiceManagerInfra::new(pool.clone());
     let ng_words = service
         .ng_word_service()
         .find_all_by_livestream_id_and_user_id(&livestream_id, &user_id)
@@ -407,7 +401,7 @@ pub async fn moderate_handler<S: ServiceManager>(
 
 // viewerテーブルの廃止
 pub async fn enter_livestream_handler<S: ServiceManager>(
-    State(AppState { pool, .. }): State<AppState<S>>,
+    State(AppState { service, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
 ) -> Result<(), Error> {
@@ -422,7 +416,6 @@ pub async fn enter_livestream_handler<S: ServiceManager>(
     let user_id = UserId::new(user_id);
     let livestream_id = LivestreamId::new(livestream_id);
 
-    let service = ServiceManagerInfra::new(pool.clone());
     let created_at = Utc::now().timestamp();
 
     service
@@ -437,7 +430,7 @@ pub async fn enter_livestream_handler<S: ServiceManager>(
     Ok(())
 }
 pub async fn exit_livestream_handler<S: ServiceManager>(
-    State(AppState { pool, .. }): State<AppState<S>>,
+    State(AppState { service, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
 ) -> Result<(), Error> {
@@ -451,8 +444,6 @@ pub async fn exit_livestream_handler<S: ServiceManager>(
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
     let user_id = UserId::new(user_id);
     let livestream_id = LivestreamId::new(livestream_id);
-
-    let service = ServiceManagerInfra::new(pool.clone());
 
     service
         .livestream_viewers_history_service()

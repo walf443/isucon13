@@ -9,17 +9,14 @@ use axum::Router;
 use axum_extra::extract::SignedCookieJar;
 use isupipe_core::models::user::UserId;
 use isupipe_core::models::user_statistics::UserStatistics;
-use isupipe_core::services::livestream_service::{HaveLivestreamService, LivestreamService};
+use isupipe_core::services::livestream_service::LivestreamService;
 use isupipe_core::services::manager::ServiceManager;
-use isupipe_core::services::theme_service::{HaveThemeService, ThemeService};
-use isupipe_core::services::user_service::{HaveUserService, UserService};
-use isupipe_core::services::user_statistics_service::{
-    HaveUserStatisticsService, UserStatisticsService,
-};
+use isupipe_core::services::theme_service::ThemeService;
+use isupipe_core::services::user_service::UserService;
+use isupipe_core::services::user_statistics_service::UserStatisticsService;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
-use isupipe_infra::services::manager::ServiceManagerInfra;
 
 pub fn user_routes<S: ServiceManager + 'static>() -> Router<AppState<S>> {
     Router::new()
@@ -41,13 +38,11 @@ pub fn user_routes<S: ServiceManager + 'static>() -> Router<AppState<S>> {
 // 配信者のテーマ取得API
 // GET /api/user/:username/theme
 pub async fn get_streamer_theme_handler<S: ServiceManager>(
-    State(AppState { pool, .. }): State<AppState<S>>,
+    State(AppState { service, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((username,)): Path<(String,)>,
 ) -> Result<axum::Json<ThemeResponse>, Error> {
     verify_user_session(&jar).await?;
-
-    let service = ServiceManagerInfra::new(pool.clone());
 
     let user = service
         .user_service()
@@ -65,13 +60,11 @@ pub async fn get_streamer_theme_handler<S: ServiceManager>(
     }))
 }
 pub async fn get_user_livestreams_handler<S: ServiceManager>(
-    State(AppState { pool, .. }): State<AppState<S>>,
+    State(AppState { service, pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((username,)): Path<(String,)>,
 ) -> Result<axum::Json<Vec<LivestreamResponse>>, Error> {
     verify_user_session(&jar).await?;
-
-    let service = ServiceManagerInfra::new(pool.clone());
 
     let mut tx = pool.begin().await?;
 
@@ -97,7 +90,7 @@ pub async fn get_user_livestreams_handler<S: ServiceManager>(
     Ok(axum::Json(livestreams))
 }
 pub async fn get_me_handler<S: ServiceManager>(
-    State(AppState { pool, .. }): State<AppState<S>>,
+    State(AppState { service, pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
 ) -> Result<axum::Json<UserResponse>, Error> {
     verify_user_session(&jar).await?;
@@ -109,8 +102,6 @@ pub async fn get_me_handler<S: ServiceManager>(
         .ok_or(Error::SessionError)?;
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
     let user_id = UserId::new(user_id);
-
-    let service = ServiceManagerInfra::new(pool.clone());
 
     let user_model = service
         .user_service()
@@ -132,13 +123,12 @@ pub async fn get_me_handler<S: ServiceManager>(
 // ユーザ詳細API
 // GET /api/user/:username
 pub async fn get_user_handler<S: ServiceManager>(
-    State(AppState { pool, .. }): State<AppState<S>>,
+    State(AppState { service, pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((username,)): Path<(String,)>,
 ) -> Result<axum::Json<UserResponse>, Error> {
     verify_user_session(&jar).await?;
 
-    let service = ServiceManagerInfra::new(pool.clone());
     let user_model = service
         .user_service()
         .find_by_name(&username)
@@ -157,13 +147,11 @@ pub async fn get_user_handler<S: ServiceManager>(
 }
 
 pub async fn get_user_statistics_handler<S: ServiceManager>(
-    State(AppState { pool, .. }): State<AppState<S>>,
+    State(AppState { service, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((username,)): Path<(String,)>,
 ) -> Result<axum::Json<UserStatistics>, Error> {
     verify_user_session(&jar).await?;
-
-    let service = ServiceManagerInfra::new(pool);
 
     let user = service
         .user_service()
