@@ -8,6 +8,7 @@ use async_trait::async_trait;
 
 #[async_trait]
 pub trait IconService {
+    async fn find_image_by_user_id(&self, user_id: &UserId) -> ServiceResult<Option<Vec<u8>>>;
     async fn find_image_by_user_name(&self, user_name: &str) -> ServiceResult<Option<Vec<u8>>>;
     async fn replace_new_image(&self, user_id: &UserId, image: &[u8]) -> ServiceResult<i64>;
 }
@@ -22,6 +23,17 @@ pub trait IconServiceImpl: Sync + HaveDBPool + HaveIconRepository + HaveUserRepo
 
 #[async_trait]
 impl<T: IconServiceImpl> IconService for T {
+    async fn find_image_by_user_id(&self, user_id: &UserId) -> ServiceResult<Option<Vec<u8>>> {
+        let mut conn = self.get_db_pool().begin().await?;
+
+        let image = self
+            .icon_repo()
+            .find_image_by_user_id(&mut conn, &user_id)
+            .await?;
+
+        Ok(image)
+    }
+
     async fn find_image_by_user_name(&self, user_name: &str) -> ServiceResult<Option<Vec<u8>>> {
         let mut conn = self.get_db_pool().begin().await?;
 

@@ -1,4 +1,5 @@
 use isupipe_core::repos;
+use isupipe_core::services::ServiceError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ResponseError {
@@ -8,6 +9,8 @@ pub enum ResponseError {
     Io(#[from] std::io::Error),
     #[error("Repos error: {0}")]
     Repos(#[from] repos::ReposError),
+    #[error("Service error: {0}")]
+    Service(#[from] ServiceError),
 }
 
 pub type ResponseResult<T> = Result<T, ResponseError>;
