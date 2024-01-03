@@ -1,5 +1,4 @@
 use crate::responses::livestream_response::LivestreamResponse;
-use crate::responses::theme_response::ThemeResponse;
 use crate::responses::user_response::UserResponse;
 use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, State};
@@ -14,6 +13,7 @@ use isupipe_core::services::theme_service::ThemeService;
 use isupipe_core::services::user_service::UserService;
 use isupipe_core::services::user_statistics_service::UserStatisticsService;
 use isupipe_http_core::error::Error;
+use isupipe_http_core::responses::theme_response::ThemeResponse;
 use isupipe_http_core::routes::user_icon_routes::get_icon_handler;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
