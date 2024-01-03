@@ -1,5 +1,7 @@
+use crate::commands::pdnsutil_command::PDNSUtilCommandInfra;
 use crate::repos::theme_repository::ThemeRepositoryInfra;
 use crate::repos::user_repository::UserRepositoryInfra;
+use isupipe_core::commands::pdnsutil_command::HavePDNSUtilCommand;
 use isupipe_core::db::{DBPool, HaveDBPool};
 use isupipe_core::repos::theme_repository::HaveThemeRepository;
 use isupipe_core::repos::user_repository::HaveUserRepository;
@@ -10,6 +12,7 @@ pub struct UserServiceInfra {
     db_pool: DBPool,
     user_repo: UserRepositoryInfra,
     theme_repo: ThemeRepositoryInfra,
+    pdnsutil_command: PDNSUtilCommandInfra,
 }
 
 impl UserServiceInfra {
@@ -18,6 +21,7 @@ impl UserServiceInfra {
             db_pool,
             user_repo: UserRepositoryInfra {},
             theme_repo: ThemeRepositoryInfra {},
+            pdnsutil_command: PDNSUtilCommandInfra {},
         }
     }
 }
@@ -41,6 +45,14 @@ impl HaveThemeRepository for UserServiceInfra {
 
     fn theme_repo(&self) -> &Self::Repo {
         &self.theme_repo
+    }
+}
+
+impl HavePDNSUtilCommand for UserServiceInfra {
+    type Command = PDNSUtilCommandInfra;
+
+    fn pdnsutil_command(&self) -> &Self::Command {
+        &self.pdnsutil_command
     }
 }
 

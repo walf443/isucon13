@@ -36,7 +36,7 @@ pub async fn register_handler<S: ServiceManager>(
         return Err(Error::BadRequest("the username 'pipe' is reserved".into()));
     }
 
-    let user = service
+    let (user, output) = service
         .user_service()
         .create(
             &CreateUser {
@@ -46,19 +46,11 @@ pub async fn register_handler<S: ServiceManager>(
                 password: req.password.clone(),
             },
             req.theme.dark_mode,
+            &*powerdns_subdomain_address,
         )
         .await?;
 
-    let output = tokio::process::Command::new("pdnsutil")
-        .arg("add-record")
-        .arg("u.isucon.dev")
-        .arg(&req.name)
-        .arg("A")
-        .arg("0")
-        .arg(&*powerdns_subdomain_address)
-        .output()
-        .await?;
-    if !output.status.success() {
+    if !output.success {
         return Err(Error::InternalServerError(format!(
             "pdnsutil failed with stdout={} stderr={}",
             String::from_utf8_lossy(&output.stdout),

@@ -2,6 +2,7 @@ use std::io;
 use thiserror::Error;
 
 pub mod initialize_command;
+pub mod pdnsutil_command;
 
 #[derive(Debug, Error)]
 pub enum CommandError {
