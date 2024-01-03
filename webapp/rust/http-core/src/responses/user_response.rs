@@ -1,10 +1,10 @@
+use crate::responses::theme_response::ThemeResponse;
+use crate::responses::ResponseResult;
+use crate::FALLBACK_IMAGE;
 use isupipe_core::models::user::User;
 use isupipe_core::services::icon_service::IconService;
 use isupipe_core::services::manager::ServiceManager;
 use isupipe_core::services::theme_service::ThemeService;
-use isupipe_http_core::responses::theme_response::ThemeResponse;
-use isupipe_http_core::responses::ResponseResult;
-use isupipe_http_core::FALLBACK_IMAGE;
 
 #[derive(Debug, serde::Serialize)]
 pub struct UserResponse {

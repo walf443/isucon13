@@ -1,10 +1,10 @@
-use crate::responses::user_response::UserResponse;
 use axum::extract::State;
 use axum::http::StatusCode;
 use isupipe_core::models::user::CreateUser;
 use isupipe_core::services::manager::ServiceManager;
 use isupipe_core::services::user_service::UserService;
 use isupipe_http_core::error::Error;
+use isupipe_http_core::responses::user_response::UserResponse;
 use isupipe_http_core::state::AppState;
 
 #[derive(Debug, serde::Deserialize)]
