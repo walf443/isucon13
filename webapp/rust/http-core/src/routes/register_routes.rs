@@ -3,9 +3,9 @@ use axum::http::StatusCode;
 use isupipe_core::models::user::CreateUser;
 use isupipe_core::services::manager::ServiceManager;
 use isupipe_core::services::user_service::UserService;
-use isupipe_http_core::error::Error;
-use isupipe_http_core::responses::user_response::UserResponse;
-use isupipe_http_core::state::AppState;
+use crate::error::Error;
+use crate::responses::user_response::UserResponse;
+use crate::state::AppState;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct PostUserRequest {
