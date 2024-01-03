@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::user::{User, UserId};
+use isupipe_core::models::user::{CreateUser, User, UserId};
 use isupipe_core::repos::user_repository::UserRepository;
 
 #[derive(Clone)]
@@ -8,22 +8,19 @@ pub struct UserRepositoryInfra {}
 
 #[async_trait]
 impl UserRepository for UserRepositoryInfra {
-    async fn insert(
+    async fn create(
         &self,
         conn: &mut DBConn,
-        name: &str,
-        display_name: &str,
-        description: &str,
-        password: &str,
+        user: &CreateUser,
     ) -> isupipe_core::repos::Result<UserId> {
-        let hashed_password = self.hash_password(password)?;
+        let hashed_password = self.hash_password(&user.password)?;
 
         let result = sqlx::query(
             "INSERT INTO users (name, display_name, description, password) VALUES(?, ?, ?, ?)",
         )
-        .bind(name)
-        .bind(display_name)
-        .bind(description)
+        .bind(&user.name)
+        .bind(&user.display_name)
+        .bind(&user.description)
         .bind(&hashed_password)
         .execute(conn)
         .await?;

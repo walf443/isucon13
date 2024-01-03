@@ -1,18 +1,11 @@
 use crate::db::DBConn;
-use crate::models::user::{User, UserId};
+use crate::models::user::{CreateUser, User, UserId};
 use crate::repos::Result;
 use async_trait::async_trait;
 
 #[async_trait]
 pub trait UserRepository {
-    async fn insert(
-        &self,
-        conn: &mut DBConn,
-        name: &str,
-        display_name: &str,
-        description: &str,
-        password: &str,
-    ) -> Result<UserId>;
+    async fn create(&self, conn: &mut DBConn, user: &CreateUser) -> Result<UserId>;
 
     fn hash_password(&self, password: &str) -> Result<String> {
         const BCRYPT_DEFAULT_COST: u32 = 4;

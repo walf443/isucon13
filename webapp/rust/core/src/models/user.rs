@@ -11,3 +11,11 @@ pub struct User {
 }
 
 pub type UserId = Id<User>;
+
+#[derive(Debug)]
+pub struct CreateUser {
+    pub name: String,
+    pub display_name: String,
+    pub description: String,
+    pub password: String,
+}

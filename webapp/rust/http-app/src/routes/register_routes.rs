@@ -1,7 +1,7 @@
 use crate::responses::user_response::UserResponse;
 use axum::extract::State;
 use axum::http::StatusCode;
-use isupipe_core::models::user::User;
+use isupipe_core::models::user::{CreateUser, User};
 use isupipe_core::repos::theme_repository::ThemeRepository;
 use isupipe_core::repos::user_repository::UserRepository;
 use isupipe_core::services::manager::ServiceManager;
@@ -47,12 +47,14 @@ pub async fn register_handler<S: ServiceManager>(
 
     let user_repo = UserRepositoryInfra {};
     let user_id = user_repo
-        .insert(
+        .create(
             &mut tx,
-            &req.name,
-            &req.display_name,
-            &req.description,
-            &req.password,
+            &CreateUser {
+                name: req.name.clone(),
+                display_name: req.display_name.clone(),
+                description: req.description.clone(),
+                password: req.password.clone(),
+            },
         )
         .await?;
 
