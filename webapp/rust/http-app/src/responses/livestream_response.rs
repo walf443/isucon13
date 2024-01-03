@@ -30,7 +30,7 @@ pub struct LivestreamResponse {
 impl LivestreamResponse {
     pub async fn build_by_service<S: ServiceManager>(
         service: &S,
-        livestream_model: Livestream,
+        livestream_model: &Livestream,
     ) -> ResponseResult<Self> {
         let owner_model = service
             .user_service()
@@ -57,11 +57,11 @@ impl LivestreamResponse {
         Ok(Self {
             id: livestream_model.id.get(),
             owner,
-            title: livestream_model.title,
+            title: livestream_model.title.clone(),
             tags,
-            description: livestream_model.description,
-            playlist_url: livestream_model.playlist_url,
-            thumbnail_url: livestream_model.thumbnail_url,
+            description: livestream_model.description.clone(),
+            playlist_url: livestream_model.playlist_url.clone(),
+            thumbnail_url: livestream_model.thumbnail_url.clone(),
             start_at: livestream_model.start_at,
             end_at: livestream_model.end_at,
         })

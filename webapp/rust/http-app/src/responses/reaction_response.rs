@@ -46,7 +46,7 @@ impl ReactionResponse {
             .find(&reaction_model.livestream_id)
             .await?
             .unwrap();
-        let livestream = LivestreamResponse::build_by_service(service, livestream_model).await?;
+        let livestream = LivestreamResponse::build_by_service(service, &livestream_model).await?;
 
         Ok(Self {
             id: reaction_model.id.get(),
