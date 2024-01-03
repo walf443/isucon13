@@ -5,6 +5,7 @@ use chrono::Utc;
 
 pub mod error;
 pub mod responses;
+pub mod routes;
 pub mod state;
 
 pub const DEFAULT_SESSION_ID_KEY: &str = "SESSIONID";

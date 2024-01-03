@@ -1,3 +1,6 @@
+use crate::error::Error;
+use crate::state::AppState;
+use crate::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY, FALLBACK_IMAGE};
 use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
@@ -5,11 +8,6 @@ use axum_extra::extract::SignedCookieJar;
 use isupipe_core::models::user::UserId;
 use isupipe_core::services::icon_service::IconService;
 use isupipe_core::services::manager::ServiceManager;
-use isupipe_http_core::error::Error;
-use isupipe_http_core::state::AppState;
-use isupipe_http_core::{
-    verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY, FALLBACK_IMAGE,
-};
 
 pub async fn get_icon_handler<S: ServiceManager>(
     State(AppState { service, .. }): State<AppState<S>>,

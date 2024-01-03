@@ -16,9 +16,9 @@ use isupipe_http_app::routes::livestream_routes::{
 use isupipe_http_app::routes::login_routes::login_handler;
 use isupipe_http_app::routes::payment_routes::get_payment_result;
 use isupipe_http_app::routes::register_routes::register_handler;
-use isupipe_http_app::routes::tag_routes::get_tag_handler;
-use isupipe_http_app::routes::user_icon_routes::post_icon_handler;
 use isupipe_http_app::routes::user_routes::user_routes;
+use isupipe_http_core::routes::tag_routes::get_tag_handler;
+use isupipe_http_core::routes::user_icon_routes::post_icon_handler;
 use isupipe_http_core::state::AppState;
 use isupipe_infra::services::manager::ServiceManagerInfra;
 use std::sync::Arc;

@@ -1,3 +1,5 @@
+pub mod tag_response;
+
 use isupipe_core::repos;
 use isupipe_core::services::ServiceError;
 
