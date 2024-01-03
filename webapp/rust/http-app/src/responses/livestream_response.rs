@@ -28,6 +28,20 @@ pub struct LivestreamResponse {
 }
 
 impl LivestreamResponse {
+    pub async fn bulk_build_by_service<S: ServiceManager>(
+        service: &S,
+        livestream_models: &[Livestream],
+    ) -> ResponseResult<Vec<Self>> {
+        let mut result = Vec::with_capacity(livestream_models.len());
+
+        for livestream in livestream_models {
+            let res = Self::build_by_service(service, livestream).await?;
+            result.push(res);
+        }
+
+        Ok(result)
+    }
+
     pub async fn build_by_service<S: ServiceManager>(
         service: &S,
         livestream_model: &Livestream,

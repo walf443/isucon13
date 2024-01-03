@@ -50,7 +50,8 @@ pub async fn get_livestream_comments_handler<S: ServiceManager>(
 
     let mut livecomments = Vec::with_capacity(livecomment_models.len());
     for livecomment_model in livecomment_models {
-        let livecomment = LivestreamCommentResponse::build_by_service(&service, &livecomment_model).await?;
+        let livecomment =
+            LivestreamCommentResponse::build_by_service(&service, &livecomment_model).await?;
         livecomments.push(livecomment);
     }
 

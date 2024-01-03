@@ -225,11 +225,8 @@ pub async fn search_livestreams_handler<S: ServiceManager>(
         livestream_models
     };
 
-    let mut livestreams = Vec::with_capacity(livestream_models.len());
-    for livestream_model in livestream_models {
-        let livestream = LivestreamResponse::build_by_service(&service, &livestream_model).await?;
-        livestreams.push(livestream);
-    }
+    let livestreams =
+        LivestreamResponse::bulk_build_by_service(&service, &livestream_models).await?;
 
     tx.commit().await?;
 
@@ -254,17 +251,14 @@ pub async fn get_my_livestreams_handler<S: ServiceManager>(
         .find_all_by_user_id(&user_id)
         .await?;
 
-    let mut livestreams = Vec::with_capacity(livestream_models.len());
-    for livestream_model in livestream_models {
-        let livestream = LivestreamResponse::build_by_service(&service, &livestream_model).await?;
-        livestreams.push(livestream);
-    }
+    let livestreams =
+        LivestreamResponse::bulk_build_by_service(&service, &livestream_models).await?;
 
     Ok(axum::Json(livestreams))
 }
 
 pub async fn get_livestream_handler<S: ServiceManager>(
-    State(AppState { service, pool, .. }): State<AppState<S>>,
+    State(AppState { service, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
 ) -> Result<axum::Json<LivestreamResponse>, Error> {
@@ -280,11 +274,7 @@ pub async fn get_livestream_handler<S: ServiceManager>(
     }
     let livestream_model = livestream_model.unwrap();
 
-    let mut tx = pool.begin().await?;
-
-    let livestream = LivestreamResponse::build(&mut tx, livestream_model).await?;
-
-    tx.commit().await?;
+    let livestream = LivestreamResponse::build_by_service(&service, &livestream_model).await?;
 
     Ok(axum::Json(livestream))
 }
