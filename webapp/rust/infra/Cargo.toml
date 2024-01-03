@@ -7,19 +7,9 @@ publish = false
 [dependencies]
 isupipe-core = { path = "../core" }
 
-async-session = "3"
-base64 = "0.21"
-bcrypt = "0.15"
-chrono = { version = "0.4", features = ["serde"] }
-num-traits = "0.2"
-serde = { version = "1", features = ["derive"] }
-sha2 = "0.10"
-sqlx = { version = "0.7", default-features = false, features = ["macros", "runtime-tokio", "mysql", "rust_decimal"] }
-thiserror = "1"
-time = "0.3"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "process", "fs"] }
-tokio-util = { version = "0.7", features = ["io"] }
-tracing = "0.1"
-tracing-subscriber = { version =  "0.3", features = ["env-filter"] }
-uuid = { version = "1", features = ["v4"] }
-async-trait = "0.1.74"
+async-trait.workspace = true
+serde.workspace = true
+sqlx.workspace = true
+thiserror.workspace = true
+time.workspace = true
+tokio.workspace = true
