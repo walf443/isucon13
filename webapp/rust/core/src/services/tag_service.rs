@@ -11,7 +11,7 @@ pub trait TagService {
 }
 
 pub trait HaveTagService {
-    type Service: TagService;
+    type Service: Sync + TagService;
 
     fn tag_service(&self) -> &Self::Service;
 }

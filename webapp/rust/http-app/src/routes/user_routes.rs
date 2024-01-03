@@ -26,7 +26,7 @@ pub fn user_routes<S: ServiceManager + 'static>() -> Router<AppState<S>> {
         .route("/:username/theme", get(get_streamer_theme_handler::<S>))
         .route(
             "/:username/livestream",
-            get(get_user_livestreams_handler::<S>),
+            get(get_user_livestreams_handler),
         )
         .route(
             "/:username/statistics",
@@ -60,13 +60,11 @@ pub async fn get_streamer_theme_handler<S: ServiceManager>(
     }))
 }
 pub async fn get_user_livestreams_handler<S: ServiceManager>(
-    State(AppState { service, pool, .. }): State<AppState<S>>,
+    State(AppState { service, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((username,)): Path<(String,)>,
 ) -> Result<axum::Json<Vec<LivestreamResponse>>, Error> {
     verify_user_session(&jar).await?;
-
-    let mut tx = pool.begin().await?;
 
     let user = service
         .user_service()
@@ -79,13 +77,7 @@ pub async fn get_user_livestreams_handler<S: ServiceManager>(
         .find_all_by_user_id(&user.id)
         .await?;
 
-    let mut livestreams = Vec::with_capacity(livestream_models.len());
-    for livestream_model in livestream_models {
-        let livestream = LivestreamResponse::build(&mut tx, livestream_model).await?;
-        livestreams.push(livestream);
-    }
-
-    tx.commit().await?;
+    let livestreams = LivestreamResponse::bulk_build_by_service(&service, &livestream_models).await?;
 
     Ok(axum::Json(livestreams))
 }
