@@ -10,13 +10,13 @@ use isupipe_core::services::manager::ServiceManager;
 use isupipe_core::services::theme_service::ThemeService;
 use isupipe_core::services::user_service::UserService;
 use isupipe_core::services::user_statistics_service::UserStatisticsService;
-use isupipe_http_core::error::Error;
-use isupipe_http_core::responses::livestream_response::LivestreamResponse;
-use isupipe_http_core::responses::theme_response::ThemeResponse;
-use isupipe_http_core::responses::user_response::UserResponse;
-use isupipe_http_core::routes::user_icon_routes::get_icon_handler;
-use isupipe_http_core::state::AppState;
-use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
+use crate::error::Error;
+use crate::responses::livestream_response::LivestreamResponse;
+use crate::responses::theme_response::ThemeResponse;
+use crate::responses::user_response::UserResponse;
+use crate::routes::user_icon_routes::get_icon_handler;
+use crate::state::AppState;
+use crate::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
 
 pub fn user_routes<S: ServiceManager + 'static>() -> Router<AppState<S>> {
     Router::new()
