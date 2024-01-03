@@ -5,3 +5,4 @@ pub mod tag_routes;
 pub mod user_icon_routes;
 pub mod user_routes;
 pub mod register_routes;
+pub mod livestream_comment_report_routes;
