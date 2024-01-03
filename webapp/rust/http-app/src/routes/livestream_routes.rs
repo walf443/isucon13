@@ -49,7 +49,7 @@ pub struct ReserveLivestreamRequest {
 }
 
 pub async fn reserve_livestream_handler<S: ServiceManager>(
-    State(AppState { pool, .. }): State<AppState<S>>,
+    State(AppState { service, pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     axum::Json(req): axum::Json<ReserveLivestreamRequest>,
 ) -> Result<(StatusCode, axum::Json<LivestreamResponse>), Error> {
@@ -152,9 +152,9 @@ pub async fn reserve_livestream_handler<S: ServiceManager>(
             .await?;
     }
 
-    let livestream = LivestreamResponse::build(
-        &mut tx,
-        Livestream {
+    let livestream = LivestreamResponse::build_by_service(
+        &service,
+        &Livestream {
             id: livestream_id.clone(),
             user_id: user_id.clone(),
             title: req.title,

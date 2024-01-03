@@ -24,10 +24,7 @@ pub fn user_routes<S: ServiceManager + 'static>() -> Router<AppState<S>> {
         // フロントエンドで、配信予約のコラボレーターを指定する際に必要
         .route("/:username", axum::routing::get(get_user_handler::<S>))
         .route("/:username/theme", get(get_streamer_theme_handler::<S>))
-        .route(
-            "/:username/livestream",
-            get(get_user_livestreams_handler),
-        )
+        .route("/:username/livestream", get(get_user_livestreams_handler))
         .route(
             "/:username/statistics",
             axum::routing::get(get_user_statistics_handler::<S>),
@@ -77,7 +74,8 @@ pub async fn get_user_livestreams_handler<S: ServiceManager>(
         .find_all_by_user_id(&user.id)
         .await?;
 
-    let livestreams = LivestreamResponse::bulk_build_by_service(&service, &livestream_models).await?;
+    let livestreams =
+        LivestreamResponse::bulk_build_by_service(&service, &livestream_models).await?;
 
     Ok(axum::Json(livestreams))
 }

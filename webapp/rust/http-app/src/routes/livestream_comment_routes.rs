@@ -67,7 +67,7 @@ pub struct PostLivecommentRequest {
 }
 
 pub async fn post_livecomment_handler<S: ServiceManager>(
-    State(AppState { pool, .. }): State<AppState<S>>,
+    State(AppState { service, pool, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
     axum::Json(req): axum::Json<PostLivecommentRequest>,
@@ -136,9 +136,9 @@ pub async fn post_livecomment_handler<S: ServiceManager>(
         )
         .await?;
 
-    let livecomment = LivestreamCommentResponse::build(
-        &mut tx,
-        LivestreamComment {
+    let livecomment = LivestreamCommentResponse::build_by_service(
+        &service,
+        &LivestreamComment {
             id: comment_id,
             user_id: user_id.clone(),
             livestream_id: livestream_id.clone(),
