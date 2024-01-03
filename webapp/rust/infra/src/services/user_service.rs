@@ -1,5 +1,7 @@
+use crate::repos::theme_repository::ThemeRepositoryInfra;
 use crate::repos::user_repository::UserRepositoryInfra;
 use isupipe_core::db::{DBPool, HaveDBPool};
+use isupipe_core::repos::theme_repository::HaveThemeRepository;
 use isupipe_core::repos::user_repository::HaveUserRepository;
 use isupipe_core::services::user_service::UserServiceImpl;
 
@@ -7,6 +9,7 @@ use isupipe_core::services::user_service::UserServiceImpl;
 pub struct UserServiceInfra {
     db_pool: DBPool,
     user_repo: UserRepositoryInfra,
+    theme_repo: ThemeRepositoryInfra,
 }
 
 impl UserServiceInfra {
@@ -14,6 +17,7 @@ impl UserServiceInfra {
         Self {
             db_pool,
             user_repo: UserRepositoryInfra {},
+            theme_repo: ThemeRepositoryInfra {},
         }
     }
 }
@@ -29,6 +33,14 @@ impl HaveUserRepository for UserServiceInfra {
 
     fn user_repo(&self) -> &Self::Repo {
         &self.user_repo
+    }
+}
+
+impl HaveThemeRepository for UserServiceInfra {
+    type Repo = ThemeRepositoryInfra;
+
+    fn theme_repo(&self) -> &Self::Repo {
+        &self.theme_repo
     }
 }
 

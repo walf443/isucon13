@@ -1,14 +1,11 @@
 use crate::responses::user_response::UserResponse;
 use axum::extract::State;
 use axum::http::StatusCode;
-use isupipe_core::models::user::{CreateUser, User};
-use isupipe_core::repos::theme_repository::ThemeRepository;
-use isupipe_core::repos::user_repository::UserRepository;
+use isupipe_core::models::user::CreateUser;
 use isupipe_core::services::manager::ServiceManager;
+use isupipe_core::services::user_service::UserService;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::state::AppState;
-use isupipe_infra::repos::theme_repository::ThemeRepositoryInfra;
-use isupipe_infra::repos::user_repository::UserRepositoryInfra;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct PostUserRequest {
@@ -30,7 +27,6 @@ pub struct PostUserRequestTheme {
 pub async fn register_handler<S: ServiceManager>(
     State(AppState {
         service,
-        pool,
         powerdns_subdomain_address,
         ..
     }): State<AppState<S>>,
@@ -40,27 +36,17 @@ pub async fn register_handler<S: ServiceManager>(
         return Err(Error::BadRequest("the username 'pipe' is reserved".into()));
     }
 
-    const BCRYPT_DEFAULT_COST: u32 = 4;
-    let hashed_password = bcrypt::hash(&req.password, BCRYPT_DEFAULT_COST)?;
-
-    let mut tx = pool.begin().await?;
-
-    let user_repo = UserRepositoryInfra {};
-    let user_id = user_repo
+    let user = service
+        .user_service()
         .create(
-            &mut tx,
             &CreateUser {
                 name: req.name.clone(),
                 display_name: req.display_name.clone(),
                 description: req.description.clone(),
                 password: req.password.clone(),
             },
+            req.theme.dark_mode,
         )
-        .await?;
-
-    let theme_repo = ThemeRepositoryInfra {};
-    theme_repo
-        .insert(&mut tx, &user_id, req.theme.dark_mode)
         .await?;
 
     let output = tokio::process::Command::new("pdnsutil")
@@ -80,19 +66,7 @@ pub async fn register_handler<S: ServiceManager>(
         )));
     }
 
-    let user = UserResponse::build_by_service(
-        &service,
-        &User {
-            id: user_id.clone(),
-            name: req.name,
-            display_name: Some(req.display_name),
-            description: Some(req.description),
-            hashed_password: Some(hashed_password),
-        },
-    )
-    .await?;
-
-    tx.commit().await?;
+    let user = UserResponse::build_by_service(&service, &user).await?;
 
     Ok((StatusCode::CREATED, axum::Json(user)))
 }

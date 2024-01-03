@@ -9,7 +9,7 @@ pub struct ThemeRepositoryInfra {}
 
 #[async_trait]
 impl ThemeRepository for ThemeRepositoryInfra {
-    async fn insert(
+    async fn create(
         &self,
         conn: &mut DBConn,
         user_id: &UserId,
