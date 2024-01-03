@@ -82,7 +82,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app = axum::Router::new()
         // 初期化
-        .route("/api/initialize", axum::routing::post(initialize_handler))
+        .route(
+            "/api/initialize",
+            axum::routing::post(initialize_handler::<ServiceManagerInfra>),
+        )
         // top
         .route("/api/tag", axum::routing::get(get_tag_handler))
         // livestream

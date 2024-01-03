@@ -1,4 +1,5 @@
 use crate::services::icon_service::IconServiceInfra;
+use crate::services::initialize_service::InitializeServiceInfra;
 use crate::services::livestream_comment_report_service::LivestreamCommentReportServiceInfra;
 use crate::services::livestream_comment_service::LivestreamCommentServiceInfra;
 use crate::services::livestream_service::LivestreamServiceInfra;
@@ -12,6 +13,7 @@ use crate::services::user_service::UserServiceInfra;
 use crate::services::user_statistics_service::UserStatisticsServiceInfra;
 use isupipe_core::db::DBPool;
 use isupipe_core::services::icon_service::HaveIconService;
+use isupipe_core::services::initialize_service::HaveInitializeService;
 use isupipe_core::services::livestream_comment_report_service::HaveLivestreamCommentReportService;
 use isupipe_core::services::livestream_comment_service::HaveLivestreamCommentService;
 use isupipe_core::services::livestream_service::HaveLivestreamService;
@@ -28,6 +30,7 @@ use isupipe_core::services::user_statistics_service::HaveUserStatisticsService;
 #[derive(Clone)]
 pub struct ServiceManagerInfra {
     icon_service: IconServiceInfra,
+    initialize_service: InitializeServiceInfra,
     livestream_service: LivestreamServiceInfra,
     livestream_comment_service: LivestreamCommentServiceInfra,
     livestream_comment_report_service: LivestreamCommentReportServiceInfra,
@@ -45,6 +48,7 @@ impl ServiceManagerInfra {
     pub fn new(db_pool: DBPool) -> Self {
         Self {
             icon_service: IconServiceInfra::new(db_pool.clone()),
+            initialize_service: InitializeServiceInfra::new(),
             livestream_service: LivestreamServiceInfra::new(db_pool.clone()),
             livestream_comment_service: LivestreamCommentServiceInfra::new(db_pool.clone()),
             livestream_comment_report_service: LivestreamCommentReportServiceInfra::new(
@@ -157,6 +161,14 @@ impl HaveLivestreamTagService for ServiceManagerInfra {
 
     fn livestream_tag_service(&self) -> &Self::Service {
         &self.livestream_tag_service
+    }
+}
+
+impl HaveInitializeService for ServiceManagerInfra {
+    type Service = InitializeServiceInfra;
+
+    fn initialize_service(&self) -> &Self::Service {
+        &self.initialize_service
     }
 }
 

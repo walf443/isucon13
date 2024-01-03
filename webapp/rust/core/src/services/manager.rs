@@ -1,4 +1,5 @@
 use crate::services::icon_service::HaveIconService;
+use crate::services::initialize_service::HaveInitializeService;
 use crate::services::livestream_comment_report_service::HaveLivestreamCommentReportService;
 use crate::services::livestream_comment_service::HaveLivestreamCommentService;
 use crate::services::livestream_service::HaveLivestreamService;
@@ -15,6 +16,7 @@ pub trait ServiceManager:
     Send
     + Sync
     + Clone
+    + HaveInitializeService
     + HaveLivestreamCommentReportService
     + HaveLivestreamService
     + HaveReactionService

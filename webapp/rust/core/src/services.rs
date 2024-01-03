@@ -1,7 +1,9 @@
+use crate::commands::CommandError;
 use crate::repos::ReposError;
 use thiserror::Error;
 
 pub mod icon_service;
+pub mod initialize_service;
 pub mod livestream_comment_report_service;
 pub mod livestream_comment_service;
 pub mod livestream_service;
@@ -25,6 +27,8 @@ pub enum ServiceError {
     ReposError(#[from] ReposError),
     #[error("sqlx error: #{0}")]
     SqlxError(#[from] sqlx::Error),
+    #[error("command error: #{0}")]
+    CommandError(#[from] CommandError),
 }
 
 pub type ServiceResult<T> = Result<T, ServiceError>;

@@ -1,4 +1,5 @@
 pub mod icon_service;
+pub mod initialize_service;
 pub mod livestream_comment_report_service;
 pub mod livestream_comment_service;
 pub mod livestream_service;
