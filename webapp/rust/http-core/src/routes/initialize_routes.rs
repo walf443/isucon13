@@ -1,4 +1,4 @@
-use isupipe_http_core::error::Error;
+use crate::error::Error;
 
 #[derive(Debug, serde::Serialize)]
 pub struct InitializeResponse {

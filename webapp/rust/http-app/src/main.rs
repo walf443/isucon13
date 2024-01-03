@@ -1,4 +1,3 @@
-use isupipe_http_app::routes::initialize_routes::initialize_handler;
 use isupipe_http_app::routes::livestream_comment_report_routes::{
     get_livecomment_reports_handler, report_livecomment_handler,
 };
@@ -16,6 +15,7 @@ use isupipe_http_app::routes::livestream_routes::{
 use isupipe_http_app::routes::login_routes::login_handler;
 use isupipe_http_app::routes::register_routes::register_handler;
 use isupipe_http_app::routes::user_routes::user_routes;
+use isupipe_http_core::routes::initialize_routes::initialize_handler;
 use isupipe_http_core::routes::payment_routes::get_payment_result;
 use isupipe_http_core::routes::tag_routes::get_tag_handler;
 use isupipe_http_core::routes::user_icon_routes::post_icon_handler;
