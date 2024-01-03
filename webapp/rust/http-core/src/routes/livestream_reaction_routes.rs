@@ -8,10 +8,10 @@ use isupipe_core::models::reaction::{CreateReaction, Reaction};
 use isupipe_core::models::user::UserId;
 use isupipe_core::services::manager::ServiceManager;
 use isupipe_core::services::reaction_service::ReactionService;
-use isupipe_http_core::error::Error;
-use isupipe_http_core::responses::reaction_response::ReactionResponse;
-use isupipe_http_core::state::AppState;
-use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
+use crate::error::Error;
+use crate::responses::reaction_response::ReactionResponse;
+use crate::state::AppState;
+use crate::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
 
 #[derive(Debug, serde::Deserialize)]
 pub struct GetReactionsQuery {
