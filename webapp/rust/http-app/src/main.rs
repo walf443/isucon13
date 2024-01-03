@@ -12,10 +12,10 @@ use isupipe_http_app::routes::livestream_routes::{
     get_livestream_statistics_handler, get_my_livestreams_handler, get_ngwords, moderate_handler,
     reserve_livestream_handler, search_livestreams_handler,
 };
-use isupipe_http_app::routes::login_routes::login_handler;
 use isupipe_http_app::routes::register_routes::register_handler;
 use isupipe_http_app::routes::user_routes::user_routes;
 use isupipe_http_core::routes::initialize_routes::initialize_handler;
+use isupipe_http_core::routes::login_routes::login_handler;
 use isupipe_http_core::routes::payment_routes::get_payment_result;
 use isupipe_http_core::routes::tag_routes::get_tag_handler;
 use isupipe_http_core::routes::user_icon_routes::post_icon_handler;
@@ -150,7 +150,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         // user
         .route("/api/register", axum::routing::post(register_handler))
-        .route("/api/login", axum::routing::post(login_handler))
+        .route(
+            "/api/login",
+            axum::routing::post(login_handler::<ServiceManagerInfra>),
+        )
         .route("/api/icon", axum::routing::post(post_icon_handler))
         // stats
         // ライブ配信統計情報
@@ -160,7 +163,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         // 課金情報
         .route("/api/payment", axum::routing::get(get_payment_result))
-        .nest("/api/user/", user_routes())
+        .nest("/api/user/", user_routes::<ServiceManagerInfra>())
         .with_state(AppState {
             service,
             pool,

@@ -1,15 +1,14 @@
+use crate::error::Error;
+use crate::state::AppState;
+use crate::{
+    DEFAULT_SESSION_ID_KEY, DEFAULT_USERNAME_KEY, DEFAULT_USER_ID_KEY, DEFUALT_SESSION_EXPIRES_KEY,
+};
 use async_session::{CookieStore, SessionStore};
 use axum::extract::State;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
-use isupipe_core::repos::user_repository::UserRepository;
 use isupipe_core::services::manager::ServiceManager;
-use isupipe_http_core::error::Error;
-use isupipe_http_core::state::AppState;
-use isupipe_http_core::{
-    DEFAULT_SESSION_ID_KEY, DEFAULT_USERNAME_KEY, DEFAULT_USER_ID_KEY, DEFUALT_SESSION_EXPIRES_KEY,
-};
-use isupipe_infra::repos::user_repository::UserRepositoryInfra;
+use isupipe_core::services::user_service::UserService;
 use uuid::Uuid;
 
 #[derive(Debug, serde::Deserialize)]
@@ -21,19 +20,15 @@ pub struct LoginRequest {
 // ユーザログインAPI
 // POST /api/login
 pub async fn login_handler<S: ServiceManager>(
-    State(AppState { pool, .. }): State<AppState<S>>,
+    State(AppState { service, .. }): State<AppState<S>>,
     mut jar: SignedCookieJar,
     axum::Json(req): axum::Json<LoginRequest>,
 ) -> Result<(SignedCookieJar, ()), Error> {
-    let mut tx = pool.begin().await?;
-
-    let user_repo = UserRepositoryInfra {};
-    let user_model = user_repo
-        .find_by_name(&mut tx, &req.username)
+    let user_model = service
+        .user_service()
+        .find_by_name(&req.username)
         .await?
         .ok_or(Error::Unauthorized("invalid username or password".into()))?;
-
-    tx.commit().await?;
 
     let hashed_password = user_model.hashed_password.unwrap();
     if !bcrypt::verify(&req.password, &hashed_password)? {
