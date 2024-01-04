@@ -1,6 +1,8 @@
 use crate::db::HaveDBPool;
 use crate::models::livestream::LivestreamId;
-use crate::models::livestream_comment::{LivestreamComment, LivestreamCommentId};
+use crate::models::livestream_comment::{
+    CreateLivestreamComment, LivestreamComment, LivestreamCommentId,
+};
 use crate::repos::livestream_comment_repository::{
     HaveLivestreamCommentRepository, LivestreamCommentRepository,
 };
@@ -20,6 +22,8 @@ pub trait LivestreamCommentService {
         limit: Option<i64>,
     ) -> ServiceResult<Vec<LivestreamComment>>;
     async fn get_sum_tip(&self) -> ServiceResult<i64>;
+
+    async fn create(&self, comment: &CreateLivestreamComment) -> ServiceResult<LivestreamComment>;
 }
 
 pub trait HaveLivestreamCommentService {
@@ -80,5 +84,25 @@ impl<T: LivestreamCommentServiceImpl> LivestreamCommentService for T {
             .get_sum_tip(&mut conn)
             .await?;
         Ok(sum_tip)
+    }
+
+    async fn create(&self, comment: &CreateLivestreamComment) -> ServiceResult<LivestreamComment> {
+        let mut tx = self.get_db_pool().begin().await?;
+
+        let comment_id = self
+            .livestream_comment_repo()
+            .create(&mut tx, comment)
+            .await?;
+
+        tx.commit().await?;
+
+        Ok(LivestreamComment {
+            id: comment_id,
+            user_id: comment.user_id.clone(),
+            livestream_id: comment.livestream_id.clone(),
+            comment: comment.comment.clone(),
+            tip: comment.tip,
+            created_at: comment.created_at,
+        })
     }
 }

@@ -4,9 +4,8 @@ use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
 use isupipe_core::models::livestream::LivestreamId;
-use isupipe_core::models::livestream_comment::{CreateLivestreamComment, LivestreamComment};
+use isupipe_core::models::livestream_comment::CreateLivestreamComment;
 use isupipe_core::models::user::UserId;
-use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 use isupipe_core::repos::ng_word_repository::NgWordRepository;
 use isupipe_core::services::livestream_comment_service::LivestreamCommentService;
 use isupipe_core::services::livestream_service::LivestreamService;
@@ -15,7 +14,6 @@ use isupipe_http_core::error::Error;
 use isupipe_http_core::responses::livestream_comment_response::LivestreamCommentResponse;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
-use isupipe_infra::repos::livestream_comment_repository::LivestreamCommentRepositoryInfra;
 use isupipe_infra::repos::ng_word_repository::NgWordRepositoryInfra;
 
 #[derive(Debug, serde::Deserialize)]
@@ -115,32 +113,18 @@ pub async fn post_livecomment_handler<S: ServiceManager>(
     }
 
     let now = Utc::now().timestamp();
-    let comment_repo = LivestreamCommentRepositoryInfra {};
-    let comment_id = comment_repo
-        .create(
-            &mut tx,
-            &CreateLivestreamComment {
-                user_id: user_id.clone(),
-                livestream_id: livestream_id.clone(),
-                comment: req.comment.clone(),
-                tip: req.tip,
-                created_at: now,
-            },
-        )
-        .await?;
-
-    let livecomment = LivestreamCommentResponse::build_by_service(
-        &service,
-        &LivestreamComment {
-            id: comment_id,
+    let comment = service
+        .livestream_comment_service()
+        .create(&CreateLivestreamComment {
             user_id: user_id.clone(),
             livestream_id: livestream_id.clone(),
-            comment: req.comment,
+            comment: req.comment.clone(),
             tip: req.tip,
             created_at: now,
-        },
-    )
-    .await?;
+        })
+        .await?;
+
+    let livecomment = LivestreamCommentResponse::build_by_service(&service, &comment).await?;
 
     tx.commit().await?;
 
