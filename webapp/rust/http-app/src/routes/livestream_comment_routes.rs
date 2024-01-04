@@ -4,19 +4,18 @@ use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
 use isupipe_core::models::livestream::LivestreamId;
-use isupipe_core::models::livestream_comment::LivestreamComment;
+use isupipe_core::models::livestream_comment::{CreateLivestreamComment, LivestreamComment};
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
-use isupipe_core::repos::livestream_repository::LivestreamRepository;
 use isupipe_core::repos::ng_word_repository::NgWordRepository;
 use isupipe_core::services::livestream_comment_service::LivestreamCommentService;
+use isupipe_core::services::livestream_service::LivestreamService;
 use isupipe_core::services::manager::ServiceManager;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::responses::livestream_comment_response::LivestreamCommentResponse;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
 use isupipe_infra::repos::livestream_comment_repository::LivestreamCommentRepositoryInfra;
-use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
 use isupipe_infra::repos::ng_word_repository::NgWordRepositoryInfra;
 
 #[derive(Debug, serde::Deserialize)]
@@ -77,9 +76,9 @@ pub async fn post_livecomment_handler<S: ServiceManager>(
 
     let mut tx = pool.begin().await?;
 
-    let livestream_repo = LivestreamRepositoryInfra {};
-    let livestream_model = livestream_repo
-        .find(&mut tx, &livestream_id)
+    let livestream_model = service
+        .livestream_service()
+        .find(&livestream_id)
         .await?
         .ok_or(Error::NotFound("livestream not found".into()))?;
 
@@ -118,13 +117,15 @@ pub async fn post_livecomment_handler<S: ServiceManager>(
     let now = Utc::now().timestamp();
     let comment_repo = LivestreamCommentRepositoryInfra {};
     let comment_id = comment_repo
-        .insert(
+        .create(
             &mut tx,
-            &user_id,
-            &livestream_model.id,
-            &req.comment,
-            req.tip,
-            now,
+            &CreateLivestreamComment {
+                user_id: user_id.clone(),
+                livestream_id: livestream_id.clone(),
+                comment: req.comment.clone(),
+                tip: req.tip,
+                created_at: now,
+            },
         )
         .await?;
 

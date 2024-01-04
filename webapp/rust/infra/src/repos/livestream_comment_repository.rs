@@ -1,7 +1,9 @@
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::LivestreamId;
-use isupipe_core::models::livestream_comment::{LivestreamComment, LivestreamCommentId};
+use isupipe_core::models::livestream_comment::{
+    CreateLivestreamComment, LivestreamComment, LivestreamCommentId,
+};
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
@@ -11,23 +13,19 @@ pub struct LivestreamCommentRepositoryInfra {}
 
 #[async_trait]
 impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
-    async fn insert(
+    async fn create(
         &self,
         conn: &mut DBConn,
-        user_id: &UserId,
-        livestream_id: &LivestreamId,
-        comment: &str,
-        tip: i64,
-        created_at: i64,
+        comment: &CreateLivestreamComment,
     ) -> isupipe_core::repos::Result<LivestreamCommentId> {
         let rs = sqlx::query(
             "INSERT INTO livecomments (user_id, livestream_id, comment, tip, created_at) VALUES (?, ?, ?, ?, ?)",
         )
-            .bind(user_id)
-            .bind(livestream_id)
-            .bind(comment)
-            .bind(tip)
-            .bind(created_at)
+            .bind(&comment.user_id)
+            .bind(&comment.livestream_id)
+            .bind(&comment.comment)
+            .bind(&comment.tip)
+            .bind(&comment.created_at)
             .execute(conn)
             .await?;
         let comment_id = rs.last_insert_id() as i64;

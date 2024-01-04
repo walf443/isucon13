@@ -13,3 +13,11 @@ pub struct LivestreamComment {
 }
 
 pub type LivestreamCommentId = Id<LivestreamComment>;
+
+pub struct CreateLivestreamComment {
+    pub user_id: UserId,
+    pub livestream_id: LivestreamId,
+    pub comment: String,
+    pub tip: i64,
+    pub created_at: i64,
+}
