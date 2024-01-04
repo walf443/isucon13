@@ -2,6 +2,10 @@ use crate::db::HaveDBPool;
 use crate::models::livestream::{Livestream, LivestreamId};
 use crate::models::user::UserId;
 use crate::repos::livestream_repository::{HaveLivestreamRepository, LivestreamRepository};
+use crate::repos::livestream_tag_repository::{
+    HaveLivestreamTagRepository, LivestreamTagRepository,
+};
+use crate::repos::tag_repository::{HaveTagRepository, TagRepository};
 use crate::services::ServiceResult;
 use async_trait::async_trait;
 
@@ -10,6 +14,7 @@ pub trait LivestreamService {
     async fn find(&self, livestream_id: &LivestreamId) -> ServiceResult<Option<Livestream>>;
 
     async fn find_recent_livestreams(&self, limit: Option<i64>) -> ServiceResult<Vec<Livestream>>;
+    async fn find_recent_by_tag_name(&self, tag_name: &str) -> ServiceResult<Vec<Livestream>>;
     async fn find_all_by_user_id(&self, user_id: &UserId) -> ServiceResult<Vec<Livestream>>;
 
     async fn exist_by_id_and_user_id(
@@ -25,7 +30,10 @@ pub trait HaveLivestreamService {
     fn livestream_service(&self) -> &Self::Service;
 }
 
-pub trait LivestreamServiceImpl: Sync + HaveDBPool + HaveLivestreamRepository {}
+pub trait LivestreamServiceImpl:
+    Sync + HaveDBPool + HaveLivestreamRepository + HaveLivestreamTagRepository + HaveTagRepository
+{
+}
 
 #[async_trait]
 impl<T: LivestreamServiceImpl> LivestreamService for T {
@@ -54,6 +62,29 @@ impl<T: LivestreamServiceImpl> LivestreamService for T {
         };
 
         Ok(livestreams)
+    }
+
+    async fn find_recent_by_tag_name(&self, tag_name: &str) -> ServiceResult<Vec<Livestream>> {
+        let mut tx = self.get_db_pool().acquire().await?;
+        let tag_id_list = self.tag_repo().find_ids_by_name(&mut tx, &tag_name).await?;
+
+        let key_tagged_livestreams = self
+            .livestream_tag_repo()
+            .find_all_by_tag_ids(&mut tx, &tag_id_list)
+            .await?;
+
+        let mut livestream_models = Vec::new();
+        let livestream_repo = self.livestream_repo();
+        for key_tagged_livestream in key_tagged_livestreams {
+            let ls = livestream_repo
+                .find(&mut tx, &key_tagged_livestream.livestream_id)
+                .await?
+                .unwrap();
+
+            livestream_models.push(ls);
+        }
+
+        Ok(livestream_models)
     }
 
     async fn find_all_by_user_id(&self, user_id: &UserId) -> ServiceResult<Vec<Livestream>> {

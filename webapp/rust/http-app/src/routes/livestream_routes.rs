@@ -17,7 +17,6 @@ use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
 use isupipe_core::repos::reaction_repository::ReactionRepository;
 use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
-use isupipe_core::repos::tag_repository::TagRepository;
 use isupipe_core::services::livestream_service::LivestreamService;
 use isupipe_core::services::livestream_viewers_history_service::LivestreamViewersHistoryService;
 use isupipe_core::services::manager::ServiceManager;
@@ -33,7 +32,6 @@ use isupipe_infra::repos::livestream_tag_repository::LivestreamTagRepositoryInfr
 use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepositoryInfra;
 use isupipe_infra::repos::reaction_repository::ReactionRepositoryInfra;
 use isupipe_infra::repos::reservation_slot_repository::ReservationSlotRepositoryInfra;
-use isupipe_infra::repos::tag_repository::TagRepositoryInfra;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct ReserveLivestreamRequest {
@@ -179,16 +177,12 @@ pub struct SearchLivestreamsQuery {
 }
 
 pub async fn search_livestreams_handler<S: ServiceManager>(
-    State(AppState { service, pool, .. }): State<AppState<S>>,
+    State(AppState { service, .. }): State<AppState<S>>,
     Query(SearchLivestreamsQuery {
         tag: key_tag_name,
         limit,
     }): Query<SearchLivestreamsQuery>,
 ) -> Result<axum::Json<Vec<LivestreamResponse>>, Error> {
-    let livestream_repo = LivestreamRepositoryInfra {};
-
-    let mut tx = pool.begin().await?;
-
     let livestream_models: Vec<Livestream> = if key_tag_name.is_empty() {
         let limit = if limit.is_empty() {
             None
@@ -206,30 +200,14 @@ pub async fn search_livestreams_handler<S: ServiceManager>(
             .await?
     } else {
         // タグによる取得
-        let tag_repo = TagRepositoryInfra {};
-        let tag_id_list = tag_repo.find_ids_by_name(&mut tx, &key_tag_name).await?;
-
-        let livestream_tag_repo = LivestreamTagRepositoryInfra {};
-        let key_tagged_livestreams = livestream_tag_repo
-            .find_all_by_tag_ids(&mut tx, &tag_id_list)
-            .await?;
-
-        let mut livestream_models = Vec::new();
-        for key_tagged_livestream in key_tagged_livestreams {
-            let ls = livestream_repo
-                .find(&mut tx, &key_tagged_livestream.livestream_id)
-                .await?
-                .unwrap();
-
-            livestream_models.push(ls);
-        }
-        livestream_models
+        service
+            .livestream_service()
+            .find_recent_by_tag_name(&key_tag_name)
+            .await?
     };
 
     let livestreams =
         LivestreamResponse::bulk_build_by_service(&service, &livestream_models).await?;
-
-    tx.commit().await?;
 
     Ok(axum::Json(livestreams))
 }
