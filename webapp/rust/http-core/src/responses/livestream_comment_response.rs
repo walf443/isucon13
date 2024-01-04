@@ -17,6 +17,20 @@ pub struct LivestreamCommentResponse {
 }
 
 impl LivestreamCommentResponse {
+    pub async fn bulk_build_by_service<S: ServiceManager>(
+        service: &S,
+        livestream_comments: &[LivestreamComment],
+    ) -> ResponseResult<Vec<Self>> {
+        let mut result = Vec::with_capacity(livestream_comments.len());
+
+        for comment in livestream_comments {
+            let res = Self::build_by_service(service, comment).await?;
+            result.push(res)
+        }
+
+        Ok(result)
+    }
+
     pub async fn build_by_service<S: ServiceManager>(
         service: &S,
         livecomment_model: &LivestreamComment,

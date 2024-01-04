@@ -46,14 +46,10 @@ pub async fn get_livestream_comments_handler<S: ServiceManager>(
         .find_all_by_livestream_id(&livestream_id, limit)
         .await?;
 
-    let mut livecomments = Vec::with_capacity(livecomment_models.len());
-    for livecomment_model in livecomment_models {
-        let livecomment =
-            LivestreamCommentResponse::build_by_service(&service, &livecomment_model).await?;
-        livecomments.push(livecomment);
-    }
+    let comments =
+        LivestreamCommentResponse::bulk_build_by_service(&service, &livecomment_models).await?;
 
-    Ok(axum::Json(livecomments))
+    Ok(axum::Json(comments))
 }
 
 #[derive(Debug, serde::Deserialize)]
