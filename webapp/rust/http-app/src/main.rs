@@ -1,18 +1,5 @@
-use isupipe_http_app::routes::livestream_routes::{
-    enter_livestream_handler, exit_livestream_handler, get_livestream_handler,
-    get_livestream_statistics_handler, get_my_livestreams_handler, get_ngwords, moderate_handler,
-    reserve_livestream_handler, search_livestreams_handler,
-};
+use isupipe_http_app::routes::livestream_routes::{get_my_livestreams_handler, livestreams_routes};
 use isupipe_http_core::routes::initialize_routes::initialize_handler;
-use isupipe_http_core::routes::livestream_comment_report_routes::{
-    get_livecomment_reports_handler, report_livecomment_handler,
-};
-use isupipe_http_core::routes::livestream_comment_routes::{
-    get_livestream_comments_handler, post_livecomment_handler,
-};
-use isupipe_http_core::routes::livestream_reaction_routes::{
-    get_reactions_handler, post_reaction_handler,
-};
 use isupipe_http_core::routes::login_routes::login_handler;
 use isupipe_http_core::routes::payment_routes::get_payment_result;
 use isupipe_http_core::routes::register_routes::register_handler;
@@ -88,82 +75,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         // top
         .route("/api/tag", axum::routing::get(get_tag_handler))
-        // livestream
-        // reserve livestream
-        .route(
-            "/api/livestream/reservation",
-            axum::routing::post(reserve_livestream_handler),
-        )
-        // list livestream
-        .route(
-            "/api/livestream/search",
-            axum::routing::get(search_livestreams_handler),
-        )
-        .route(
-            "/api/livestream",
-            axum::routing::get(get_my_livestreams_handler),
-        )
-        // get livestream
-        .route(
-            "/api/livestream/:livestream_id",
-            axum::routing::get(get_livestream_handler),
-        )
-        // get polling livecomment timeline
-        // ライブコメント投稿
-        .route(
-            "/api/livestream/:livestream_id/livecomment",
-            axum::routing::get(get_livestream_comments_handler).post(post_livecomment_handler),
-        )
-        .route(
-            "/api/livestream/:livestream_id/reaction",
-            axum::routing::get(get_reactions_handler).post(post_reaction_handler),
-        )
-        // (配信者向け)ライブコメントの報告一覧取得API
-        .route(
-            "/api/livestream/:livestream_id/report",
-            axum::routing::get(get_livecomment_reports_handler),
-        )
-        .route(
-            "/api/livestream/:livestream_id/ngwords",
-            axum::routing::get(get_ngwords),
-        )
-        // ライブコメント報告
-        .route(
-            "/api/livestream/:livestream_id/livecomment/:livecomment_id/report",
-            axum::routing::post(report_livecomment_handler),
-        )
-        // 配信者によるモデレーション (NGワード登録)
-        .route(
-            "/api/livestream/:livestream_id/moderate",
-            axum::routing::post(moderate_handler),
-        )
-        // livestream_viewersにINSERTするため必要
-        // ユーザ視聴開始 (viewer)
-        .route(
-            "/api/livestream/:livestream_id/enter",
-            axum::routing::post(enter_livestream_handler),
-        )
-        // ユーザ視聴終了 (viewer)
-        .route(
-            "/api/livestream/:livestream_id/exit",
-            axum::routing::delete(exit_livestream_handler),
-        )
-        // user
         .route("/api/register", axum::routing::post(register_handler))
         .route(
             "/api/login",
             axum::routing::post(login_handler::<ServiceManagerInfra>),
         )
         .route("/api/icon", axum::routing::post(post_icon_handler))
-        // stats
-        // ライブ配信統計情報
-        .route(
-            "/api/livestream/:livestream_id/statistics",
-            axum::routing::get(get_livestream_statistics_handler),
-        )
         // 課金情報
         .route("/api/payment", axum::routing::get(get_payment_result))
         .nest("/api/user/", user_routes::<ServiceManagerInfra>())
+        .route(
+            "/api/livestream",
+            axum::routing::get(get_my_livestreams_handler),
+        )
+        .nest("/api/livestream/", livestreams_routes())
         .with_state(AppState {
             service,
             pool,

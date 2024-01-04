@@ -1,6 +1,7 @@
 use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
+use axum::Router;
 use axum_extra::extract::SignedCookieJar;
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use isupipe_core::models::livestream::{CreateLivestream, Livestream, LivestreamId};
@@ -19,11 +20,62 @@ use isupipe_core::services::manager::ServiceManager;
 use isupipe_core::services::ng_word_service::NgWordService;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::responses::livestream_response::LivestreamResponse;
+use isupipe_http_core::routes::livestream_comment_report_routes::{
+    get_livecomment_reports_handler, report_livecomment_handler,
+};
+use isupipe_http_core::routes::livestream_comment_routes::post_livecomment_handler;
+use isupipe_http_core::routes::livestream_reaction_routes::{
+    get_reactions_handler, post_reaction_handler,
+};
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
 use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
 use isupipe_infra::repos::livestream_tag_repository::LivestreamTagRepositoryInfra;
 use isupipe_infra::repos::reservation_slot_repository::ReservationSlotRepositoryInfra;
+
+// handle /api/livestreams/
+pub fn livestreams_routes<S: ServiceManager + 'static>() -> Router<AppState<S>> {
+    Router::new()
+        .route(
+            "/reservation",
+            axum::routing::post(reserve_livestream_handler),
+        )
+        .route("/search", axum::routing::get(search_livestreams_handler))
+        .route(
+            "/:livestream_id",
+            axum::routing::get(get_livestream_handler),
+        )
+        .nest("/:livestream_id/", livestream_routes())
+}
+
+// handle /api/livestream/:livestream_id/ resources
+fn livestream_routes<S: ServiceManager + 'static>() -> Router<AppState<S>> {
+    Router::new()
+        .route(
+            "/livecomment",
+            axum::routing::get(get_livestream_handler).post(post_livecomment_handler),
+        )
+        .route(
+            "/livecomment/:livecomment_id/report",
+            axum::routing::post(report_livecomment_handler),
+        )
+        .route(
+            "/reaction",
+            axum::routing::get(get_reactions_handler).post(post_reaction_handler),
+        )
+        .route(
+            "/report",
+            axum::routing::get(get_livecomment_reports_handler),
+        )
+        .route("/ngwords", axum::routing::get(get_ngwords))
+        .route("/moderate", axum::routing::post(moderate_handler))
+        .route("/enter", axum::routing::post(enter_livestream_handler))
+        .route("/exit", axum::routing::post(exit_livestream_handler))
+        .route(
+            "/statistics",
+            axum::routing::get(get_livestream_statistics_handler),
+        )
+}
 
 #[derive(Debug, serde::Deserialize)]
 pub struct ReserveLivestreamRequest {
