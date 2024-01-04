@@ -15,7 +15,6 @@ use isupipe_core::repos::livestream_comment_repository::LivestreamCommentReposit
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
 use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
-use isupipe_core::repos::ng_word_repository::NgWordRepository;
 use isupipe_core::repos::reaction_repository::ReactionRepository;
 use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
 use isupipe_core::repos::tag_repository::TagRepository;
@@ -32,7 +31,6 @@ use isupipe_infra::repos::livestream_comment_repository::LivestreamCommentReposi
 use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
 use isupipe_infra::repos::livestream_tag_repository::LivestreamTagRepositoryInfra;
 use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepositoryInfra;
-use isupipe_infra::repos::ng_word_repository::NgWordRepositoryInfra;
 use isupipe_infra::repos::reaction_repository::ReactionRepositoryInfra;
 use isupipe_infra::repos::reservation_slot_repository::ReservationSlotRepositoryInfra;
 use isupipe_infra::repos::tag_repository::TagRepositoryInfra;
@@ -313,14 +311,12 @@ pub struct ModerateResponse {
 
 // NGワードを登録
 pub async fn moderate_handler<S: ServiceManager>(
-    State(AppState { pool, .. }): State<AppState<S>>,
+    State(AppState { service, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
     axum::Json(req): axum::Json<ModerateRequest>,
 ) -> Result<(StatusCode, axum::Json<ModerateResponse>), Error> {
     verify_user_session(&jar).await?;
-
-    let livestream_repo = LivestreamRepositoryInfra {};
 
     let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
     let sess = CookieStore::new()
@@ -332,11 +328,10 @@ pub async fn moderate_handler<S: ServiceManager>(
 
     let livestream_id = LivestreamId::new(livestream_id);
 
-    let mut tx = pool.begin().await?;
-
     // 配信者自身の配信に対するmoderateなのかを検証
-    let is_exist = livestream_repo
-        .exist_by_id_and_user_id(&mut tx, &livestream_id, &user_id)
+    let is_exist = service
+        .livestream_service()
+        .exist_by_id_and_user_id(&livestream_id, &user_id)
         .await?;
     if !is_exist {
         return Err(Error::BadRequest(
@@ -345,37 +340,15 @@ pub async fn moderate_handler<S: ServiceManager>(
     }
 
     let created_at = Utc::now().timestamp();
-    let ng_word_repo = NgWordRepositoryInfra {};
-    let word_id = ng_word_repo
-        .create(
-            &mut tx,
-            &CreateNgWord {
-                user_id: user_id.clone(),
-                livestream_id: livestream_id.clone(),
-                word: req.ng_word,
-                created_at: created_at.clone(),
-            },
-        )
+    let word_id = service
+        .ng_word_service()
+        .create(&CreateNgWord {
+            user_id: user_id.clone(),
+            livestream_id: livestream_id.clone(),
+            word: req.ng_word,
+            created_at: created_at.clone(),
+        })
         .await?;
-
-    let ng_words = ng_word_repo
-        .find_all_by_livestream_id(&mut tx, &livestream_id)
-        .await?;
-
-    let comment_repo = LivestreamCommentRepositoryInfra {};
-    // NGワードにヒットする過去の投稿も全削除する
-    for ngword in ng_words {
-        // ライブコメント一覧取得
-        let livecomments = comment_repo.find_all(&mut tx).await?;
-
-        for livecomment in livecomments {
-            comment_repo
-                .remove_if_match_ng_word(&mut tx, &livecomment, &ngword.word)
-                .await?;
-        }
-    }
-
-    tx.commit().await?;
 
     Ok((
         StatusCode::CREATED,

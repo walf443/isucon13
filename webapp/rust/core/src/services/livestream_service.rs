@@ -8,7 +8,14 @@ use async_trait::async_trait;
 #[async_trait]
 pub trait LivestreamService {
     async fn find(&self, livestream_id: &LivestreamId) -> ServiceResult<Option<Livestream>>;
+
     async fn find_all_by_user_id(&self, user_id: &UserId) -> ServiceResult<Vec<Livestream>>;
+
+    async fn exist_by_id_and_user_id(
+        &self,
+        livestream_id: &LivestreamId,
+        user_id: &UserId,
+    ) -> ServiceResult<bool>;
 }
 
 pub trait HaveLivestreamService {
@@ -38,5 +45,18 @@ impl<T: LivestreamServiceImpl> LivestreamService for T {
             .await?;
 
         Ok(livestreams)
+    }
+
+    async fn exist_by_id_and_user_id(
+        &self,
+        livestream_id: &LivestreamId,
+        user_id: &UserId,
+    ) -> ServiceResult<bool> {
+        let mut conn = self.get_db_pool().acquire().await?;
+        let is_exist = self
+            .livestream_repo()
+            .exist_by_id_and_user_id(&mut conn, livestream_id, user_id)
+            .await?;
+        Ok(is_exist)
     }
 }
