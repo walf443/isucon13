@@ -4,20 +4,16 @@ use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use isupipe_core::models::livestream::{CreateLivestream, Livestream, LivestreamId};
-use isupipe_core::models::livestream_ranking_entry::LivestreamRankingEntry;
 use isupipe_core::models::livestream_statistics::LivestreamStatistics;
 use isupipe_core::models::livestream_viewers_history::CreateLivestreamViewersHistory;
 use isupipe_core::models::ng_word::{CreateNgWord, NgWord};
 use isupipe_core::models::tag::TagId;
 use isupipe_core::models::user::UserId;
-use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
-use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
 use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
-use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
-use isupipe_core::repos::reaction_repository::ReactionRepository;
 use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
 use isupipe_core::services::livestream_service::LivestreamService;
+use isupipe_core::services::livestream_statistics_service::LivestreamStatisticsService;
 use isupipe_core::services::livestream_viewers_history_service::LivestreamViewersHistoryService;
 use isupipe_core::services::manager::ServiceManager;
 use isupipe_core::services::ng_word_service::NgWordService;
@@ -25,12 +21,8 @@ use isupipe_http_core::error::Error;
 use isupipe_http_core::responses::livestream_response::LivestreamResponse;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
-use isupipe_infra::repos::livestream_comment_report_repository::LivestreamCommentReportRepositoryInfra;
-use isupipe_infra::repos::livestream_comment_repository::LivestreamCommentRepositoryInfra;
 use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
 use isupipe_infra::repos::livestream_tag_repository::LivestreamTagRepositoryInfra;
-use isupipe_infra::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepositoryInfra;
-use isupipe_infra::repos::reaction_repository::ReactionRepositoryInfra;
 use isupipe_infra::repos::reservation_slot_repository::ReservationSlotRepositoryInfra;
 
 #[derive(Debug, serde::Deserialize)]
@@ -393,7 +385,7 @@ pub async fn exit_livestream_handler<S: ServiceManager>(
     Ok(())
 }
 pub async fn get_livestream_statistics_handler<S: ServiceManager>(
-    State(AppState { pool, .. }): State<AppState<S>>,
+    State(AppState { service, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
 ) -> Result<axum::Json<LivestreamStatistics>, Error> {
@@ -401,77 +393,16 @@ pub async fn get_livestream_statistics_handler<S: ServiceManager>(
 
     let livestream_id = LivestreamId::new(livestream_id);
 
-    let mut tx = pool.begin().await?;
-    let livestream_repo = LivestreamRepositoryInfra {};
-
-    let livestream = livestream_repo
-        .find(&mut tx, &livestream_id)
+    let livestream = service
+        .livestream_service()
+        .find(&livestream_id)
         .await?
         .ok_or(Error::BadRequest("".into()))?;
 
-    let livestreams = livestream_repo.find_all(&mut tx).await?;
-
-    // ランク算出
-    let mut ranking = Vec::new();
-    let reaction_repo = ReactionRepositoryInfra {};
-    let comment_repo = LivestreamCommentRepositoryInfra {};
-    for livestream in livestreams {
-        let reactions = reaction_repo
-            .count_by_livestream_id(&mut tx, &livestream.id)
-            .await?;
-
-        let total_tips = comment_repo
-            .get_sum_tip_of_livestream_id(&mut tx, &livestream.id)
-            .await?;
-
-        let score = reactions + total_tips;
-        ranking.push(LivestreamRankingEntry {
-            livestream_id: LivestreamId::new(livestream.id.get()),
-            score,
-        })
-    }
-    ranking.sort_by(|a, b| {
-        a.score
-            .cmp(&b.score)
-            .then_with(|| a.livestream_id.get().cmp(&b.livestream_id.get()))
-    });
-
-    let rpos = ranking
-        .iter()
-        .rposition(|entry| entry.livestream_id.get() == livestream_id.get())
-        .unwrap();
-    let rank = (ranking.len() - rpos) as i64;
-
-    // 視聴者数算出
-    let history_repo = LivestreamViewersHistoryRepositoryInfra {};
-    let viewers_count = history_repo
-        .count_by_livestream_id(&mut tx, &livestream_id)
+    let stats = service
+        .livestream_statistics_service()
+        .get_stats(&livestream)
         .await?;
 
-    // 最大チップ額
-    let max_tip = comment_repo
-        .get_max_tip_of_livestream_id(&mut tx, &livestream.id)
-        .await?;
-
-    // リアクション数
-    let reaction_repo = ReactionRepositoryInfra {};
-    let total_reactions = reaction_repo
-        .count_by_livestream_id(&mut tx, &livestream.id)
-        .await?;
-
-    // スパム報告数
-    let report_repo = LivestreamCommentReportRepositoryInfra {};
-    let total_reports = report_repo
-        .count_by_livestream_id(&mut tx, &livestream.id)
-        .await?;
-
-    tx.commit().await?;
-
-    Ok(axum::Json(LivestreamStatistics {
-        rank,
-        viewers_count,
-        max_tip,
-        total_reactions,
-        total_reports,
-    }))
+    Ok(axum::Json(stats))
 }

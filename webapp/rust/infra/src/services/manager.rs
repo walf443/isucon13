@@ -3,6 +3,7 @@ use crate::services::initialize_service::InitializeServiceInfra;
 use crate::services::livestream_comment_report_service::LivestreamCommentReportServiceInfra;
 use crate::services::livestream_comment_service::LivestreamCommentServiceInfra;
 use crate::services::livestream_service::LivestreamServiceInfra;
+use crate::services::livestream_statistics_service::LivestreamStatisticsServiceInfra;
 use crate::services::livestream_tag_service::LivestreamTagServiceInfra;
 use crate::services::livestream_viewers_history_service::LivestreamViewersHistoryServiceInfra;
 use crate::services::ng_word_service::NgWordServiceInfra;
@@ -17,6 +18,7 @@ use isupipe_core::services::initialize_service::HaveInitializeService;
 use isupipe_core::services::livestream_comment_report_service::HaveLivestreamCommentReportService;
 use isupipe_core::services::livestream_comment_service::HaveLivestreamCommentService;
 use isupipe_core::services::livestream_service::HaveLivestreamService;
+use isupipe_core::services::livestream_statistics_service::HaveLivestreamStatisticsService;
 use isupipe_core::services::livestream_tag_service::HaveLivestreamTagService;
 use isupipe_core::services::livestream_viewers_history_service::HaveLivestreamViewersHistoryService;
 use isupipe_core::services::manager::ServiceManager;
@@ -31,17 +33,18 @@ use isupipe_core::services::user_statistics_service::HaveUserStatisticsService;
 pub struct ServiceManagerInfra {
     icon_service: IconServiceInfra,
     initialize_service: InitializeServiceInfra,
-    livestream_service: LivestreamServiceInfra,
-    livestream_comment_service: LivestreamCommentServiceInfra,
     livestream_comment_report_service: LivestreamCommentReportServiceInfra,
-    livestream_viewers_history_service: LivestreamViewersHistoryServiceInfra,
+    livestream_comment_service: LivestreamCommentServiceInfra,
+    livestream_service: LivestreamServiceInfra,
+    livestream_statistics_service: LivestreamStatisticsServiceInfra,
     livestream_tag_service: LivestreamTagServiceInfra,
-    reaction_service: ReactionServiceInfra,
+    livestream_viewers_history_service: LivestreamViewersHistoryServiceInfra,
     ng_word_service: NgWordServiceInfra,
+    reaction_service: ReactionServiceInfra,
     tag_service: TagServiceInfra,
+    theme_service: ThemeServiceInfra,
     user_service: UserServiceInfra,
     user_statistics_service: UserStatisticsServiceInfra,
-    theme_service: ThemeServiceInfra,
 }
 
 impl ServiceManagerInfra {
@@ -49,21 +52,22 @@ impl ServiceManagerInfra {
         Self {
             icon_service: IconServiceInfra::new(db_pool.clone()),
             initialize_service: InitializeServiceInfra::new(),
-            livestream_service: LivestreamServiceInfra::new(db_pool.clone()),
             livestream_comment_service: LivestreamCommentServiceInfra::new(db_pool.clone()),
             livestream_comment_report_service: LivestreamCommentReportServiceInfra::new(
                 db_pool.clone(),
             ),
+            livestream_service: LivestreamServiceInfra::new(db_pool.clone()),
+            livestream_statistics_service: LivestreamStatisticsServiceInfra::new(db_pool.clone()),
+            livestream_tag_service: LivestreamTagServiceInfra::new(db_pool.clone()),
             livestream_viewers_history_service: LivestreamViewersHistoryServiceInfra::new(
                 db_pool.clone(),
             ),
-            livestream_tag_service: LivestreamTagServiceInfra::new(db_pool.clone()),
-            reaction_service: ReactionServiceInfra::new(db_pool.clone()),
             ng_word_service: NgWordServiceInfra::new(db_pool.clone()),
+            reaction_service: ReactionServiceInfra::new(db_pool.clone()),
             tag_service: TagServiceInfra::new(db_pool.clone()),
+            theme_service: ThemeServiceInfra::new(db_pool.clone()),
             user_service: UserServiceInfra::new(db_pool.clone()),
             user_statistics_service: UserStatisticsServiceInfra::new(db_pool.clone()),
-            theme_service: ThemeServiceInfra::new(db_pool.clone()),
         }
     }
 }
@@ -169,6 +173,14 @@ impl HaveInitializeService for ServiceManagerInfra {
 
     fn initialize_service(&self) -> &Self::Service {
         &self.initialize_service
+    }
+}
+
+impl HaveLivestreamStatisticsService for ServiceManagerInfra {
+    type Service = LivestreamStatisticsServiceInfra;
+
+    fn livestream_statistics_service(&self) -> &Self::Service {
+        &self.livestream_statistics_service
     }
 }
 

@@ -3,6 +3,7 @@ use crate::services::initialize_service::HaveInitializeService;
 use crate::services::livestream_comment_report_service::HaveLivestreamCommentReportService;
 use crate::services::livestream_comment_service::HaveLivestreamCommentService;
 use crate::services::livestream_service::HaveLivestreamService;
+use crate::services::livestream_statistics_service::HaveLivestreamStatisticsService;
 use crate::services::livestream_tag_service::HaveLivestreamTagService;
 use crate::services::livestream_viewers_history_service::HaveLivestreamViewersHistoryService;
 use crate::services::ng_word_service::HaveNgWordService;
@@ -29,5 +30,6 @@ pub trait ServiceManager:
     + HaveNgWordService
     + HaveLivestreamViewersHistoryService
     + HaveLivestreamTagService
+    + HaveLivestreamStatisticsService
 {
 }
