@@ -43,6 +43,29 @@ impl NgWordRepository for NgWordRepositoryInfra {
         Ok(ng_words)
     }
 
+    async fn count_by_ng_word_in_comment(
+        &self,
+        conn: &mut DBConn,
+        ng_word: &str,
+        comment: &str,
+    ) -> isupipe_core::repos::Result<i64> {
+        let query = r#"
+        SELECT COUNT(*)
+        FROM
+        (SELECT ? AS text) AS texts
+        INNER JOIN
+        (SELECT CONCAT('%', ?, '%')	AS pattern) AS patterns
+        ON texts.text LIKE patterns.pattern;
+        "#;
+        let hit_spam: i64 = sqlx::query_scalar(query)
+            .bind(comment)
+            .bind(ng_word)
+            .fetch_one(conn)
+            .await?;
+
+        Ok(hit_spam)
+    }
+
     async fn find_all_by_livestream_id_and_user_id(
         &self,
         conn: &mut DBConn,

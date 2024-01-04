@@ -14,6 +14,13 @@ pub trait NgWordRepository {
         livestream_id: &LivestreamId,
     ) -> Result<Vec<NgWord>>;
 
+    async fn count_by_ng_word_in_comment(
+        &self,
+        conn: &mut DBConn,
+        ng_word: &str,
+        comment: &str,
+    ) -> Result<i64>;
+
     async fn find_all_by_livestream_id_and_user_id(
         &self,
         conn: &mut DBConn,

@@ -91,18 +91,8 @@ pub async fn post_livecomment_handler<S: ServiceManager>(
         .await?;
 
     for ngword in &ng_words {
-        let query = r#"
-        SELECT COUNT(*)
-        FROM
-        (SELECT ? AS text) AS texts
-        INNER JOIN
-        (SELECT CONCAT('%', ?, '%')	AS pattern) AS patterns
-        ON texts.text LIKE patterns.pattern;
-        "#;
-        let hit_spam: i64 = sqlx::query_scalar(query)
-            .bind(&req.comment)
-            .bind(&ngword.word)
-            .fetch_one(&mut *tx)
+        let hit_spam = ng_word_repo
+            .count_by_ng_word_in_comment(&mut tx, &ngword.word, &req.comment)
             .await?;
         tracing::info!("[hit_spam={}] comment = {}", hit_spam, req.comment);
         if hit_spam >= 1 {
