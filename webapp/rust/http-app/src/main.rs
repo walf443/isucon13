@@ -7,17 +7,21 @@ use isupipe_http_app::routes::livestream_routes::{
     reserve_livestream_handler, search_livestreams_handler,
 };
 use isupipe_http_core::routes::initialize_routes::initialize_handler;
+use isupipe_http_core::routes::livestream_comment_report_routes::{
+    get_livecomment_reports_handler, report_livecomment_handler,
+};
+use isupipe_http_core::routes::livestream_reaction_routes::{
+    get_reactions_handler, post_reaction_handler,
+};
 use isupipe_http_core::routes::login_routes::login_handler;
 use isupipe_http_core::routes::payment_routes::get_payment_result;
+use isupipe_http_core::routes::register_routes::register_handler;
 use isupipe_http_core::routes::tag_routes::get_tag_handler;
 use isupipe_http_core::routes::user_icon_routes::post_icon_handler;
+use isupipe_http_core::routes::user_routes::user_routes;
 use isupipe_http_core::state::AppState;
 use isupipe_infra::services::manager::ServiceManagerInfra;
 use std::sync::Arc;
-use isupipe_http_core::routes::livestream_comment_report_routes::{get_livecomment_reports_handler, report_livecomment_handler};
-use isupipe_http_core::routes::livestream_reaction_routes::{get_reactions_handler, post_reaction_handler};
-use isupipe_http_core::routes::register_routes::register_handler;
-use isupipe_http_core::routes::user_routes::user_routes;
 
 fn build_mysql_options() -> sqlx::mysql::MySqlConnectOptions {
     let mut options = sqlx::mysql::MySqlConnectOptions::new()

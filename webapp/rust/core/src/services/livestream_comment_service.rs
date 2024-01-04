@@ -1,4 +1,5 @@
 use crate::db::HaveDBPool;
+use crate::models::livestream::LivestreamId;
 use crate::models::livestream_comment::{LivestreamComment, LivestreamCommentId};
 use crate::repos::livestream_comment_repository::{
     HaveLivestreamCommentRepository, LivestreamCommentRepository,
@@ -12,6 +13,12 @@ pub trait LivestreamCommentService {
         &self,
         livestream_comment_id: &LivestreamCommentId,
     ) -> ServiceResult<Option<LivestreamComment>>;
+
+    async fn find_all_by_livestream_id(
+        &self,
+        livestream_id: &LivestreamId,
+        limit: Option<i64>,
+    ) -> ServiceResult<Vec<LivestreamComment>>;
     async fn get_sum_tip(&self) -> ServiceResult<i64>;
 }
 
@@ -37,6 +44,33 @@ impl<T: LivestreamCommentServiceImpl> LivestreamCommentService for T {
             .find(&mut conn, livestream_comment_id)
             .await?;
         Ok(comment)
+    }
+
+    async fn find_all_by_livestream_id(
+        &self,
+        livestream_id: &LivestreamId,
+        limit: Option<i64>,
+    ) -> ServiceResult<Vec<LivestreamComment>> {
+        let mut conn = self.get_db_pool().acquire().await?;
+
+        let comments = match limit {
+            None => {
+                self.livestream_comment_repo()
+                    .find_all_by_livestream_id_order_by_created_at(&mut conn, livestream_id)
+                    .await?
+            }
+            Some(limit) => {
+                self.livestream_comment_repo()
+                    .find_all_by_livestream_id_order_by_created_at_limit(
+                        &mut conn,
+                        livestream_id,
+                        limit,
+                    )
+                    .await?
+            }
+        };
+
+        Ok(comments)
     }
 
     async fn get_sum_tip(&self) -> ServiceResult<i64> {

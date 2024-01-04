@@ -1,3 +1,10 @@
+use crate::error::Error;
+use crate::responses::livestream_response::LivestreamResponse;
+use crate::responses::theme_response::ThemeResponse;
+use crate::responses::user_response::UserResponse;
+use crate::routes::user_icon_routes::get_icon_handler;
+use crate::state::AppState;
+use crate::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
 use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, State};
 use axum::routing::get;
@@ -10,13 +17,6 @@ use isupipe_core::services::manager::ServiceManager;
 use isupipe_core::services::theme_service::ThemeService;
 use isupipe_core::services::user_service::UserService;
 use isupipe_core::services::user_statistics_service::UserStatisticsService;
-use crate::error::Error;
-use crate::responses::livestream_response::LivestreamResponse;
-use crate::responses::theme_response::ThemeResponse;
-use crate::responses::user_response::UserResponse;
-use crate::routes::user_icon_routes::get_icon_handler;
-use crate::state::AppState;
-use crate::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
 
 pub fn user_routes<S: ServiceManager + 'static>() -> Router<AppState<S>> {
     Router::new()
