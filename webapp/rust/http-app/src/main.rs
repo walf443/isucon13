@@ -1,6 +1,3 @@
-use isupipe_http_app::routes::livestream_comment_routes::{
-    get_livestream_comments_handler, post_livecomment_handler,
-};
 use isupipe_http_app::routes::livestream_routes::{
     enter_livestream_handler, exit_livestream_handler, get_livestream_handler,
     get_livestream_statistics_handler, get_my_livestreams_handler, get_ngwords, moderate_handler,
@@ -9,6 +6,9 @@ use isupipe_http_app::routes::livestream_routes::{
 use isupipe_http_core::routes::initialize_routes::initialize_handler;
 use isupipe_http_core::routes::livestream_comment_report_routes::{
     get_livecomment_reports_handler, report_livecomment_handler,
+};
+use isupipe_http_core::routes::livestream_comment_routes::{
+    get_livestream_comments_handler, post_livecomment_handler,
 };
 use isupipe_http_core::routes::livestream_reaction_routes::{
     get_reactions_handler, post_reaction_handler,
