@@ -190,17 +190,20 @@ pub async fn search_livestreams_handler<S: ServiceManager>(
     let mut tx = pool.begin().await?;
 
     let livestream_models: Vec<Livestream> = if key_tag_name.is_empty() {
-        if limit.is_empty() {
-            livestream_repo.find_all_order_by_id_desc(&mut tx).await?
+        let limit = if limit.is_empty() {
+            None
         } else {
             let limit: i64 = limit
                 .parse()
                 .map_err(|_| Error::BadRequest("failed to parse limit".into()))?;
 
-            livestream_repo
-                .find_all_order_by_id_desc_limit(&mut tx, limit)
-                .await?
-        }
+            Some(limit)
+        };
+
+        service
+            .livestream_service()
+            .find_recent_livestreams(limit)
+            .await?
     } else {
         // タグによる取得
         let tag_repo = TagRepositoryInfra {};

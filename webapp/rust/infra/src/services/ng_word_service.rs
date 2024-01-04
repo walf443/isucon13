@@ -1,9 +1,9 @@
+use crate::repos::livestream_comment_repository::LivestreamCommentRepositoryInfra;
 use crate::repos::ng_word_repository::NgWordRepositoryInfra;
 use isupipe_core::db::{DBPool, HaveDBPool};
 use isupipe_core::repos::livestream_comment_repository::HaveLivestreamCommentRepository;
 use isupipe_core::repos::ng_word_repository::HaveNgWordRepository;
 use isupipe_core::services::ng_word_service::NgWordServiceImpl;
-use crate::repos::livestream_comment_repository::LivestreamCommentRepositoryInfra;
 
 #[derive(Clone)]
 pub struct NgWordServiceInfra {

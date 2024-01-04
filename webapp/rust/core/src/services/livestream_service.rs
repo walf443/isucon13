@@ -9,6 +9,7 @@ use async_trait::async_trait;
 pub trait LivestreamService {
     async fn find(&self, livestream_id: &LivestreamId) -> ServiceResult<Option<Livestream>>;
 
+    async fn find_recent_livestreams(&self, limit: Option<i64>) -> ServiceResult<Vec<Livestream>>;
     async fn find_all_by_user_id(&self, user_id: &UserId) -> ServiceResult<Vec<Livestream>>;
 
     async fn exist_by_id_and_user_id(
@@ -35,6 +36,24 @@ impl<T: LivestreamServiceImpl> LivestreamService for T {
             .find(&mut conn, livestream_id)
             .await?;
         Ok(result)
+    }
+
+    async fn find_recent_livestreams(&self, limit: Option<i64>) -> ServiceResult<Vec<Livestream>> {
+        let mut conn = self.get_db_pool().acquire().await?;
+        let livestreams = match limit {
+            None => {
+                self.livestream_repo()
+                    .find_all_order_by_id_desc(&mut conn)
+                    .await?
+            }
+            Some(limit) => {
+                self.livestream_repo()
+                    .find_all_order_by_id_desc_limit(&mut conn, limit)
+                    .await?
+            }
+        };
+
+        Ok(livestreams)
     }
 
     async fn find_all_by_user_id(&self, user_id: &UserId) -> ServiceResult<Vec<Livestream>> {
