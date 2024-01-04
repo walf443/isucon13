@@ -6,6 +6,8 @@ use crate::models::livestream_comment::{
 use crate::repos::livestream_comment_repository::{
     HaveLivestreamCommentRepository, LivestreamCommentRepository,
 };
+use crate::repos::ng_word_repository::{HaveNgWordRepository, NgWordRepository};
+use crate::services::ServiceError::CommentMatchSpam;
 use crate::services::ServiceResult;
 use async_trait::async_trait;
 
@@ -32,7 +34,7 @@ pub trait HaveLivestreamCommentService {
 }
 
 pub trait LivestreamCommentServiceImpl:
-    Sync + HaveDBPool + HaveLivestreamCommentRepository
+    Sync + HaveDBPool + HaveLivestreamCommentRepository + HaveNgWordRepository
 {
 }
 
@@ -88,6 +90,25 @@ impl<T: LivestreamCommentServiceImpl> LivestreamCommentService for T {
 
     async fn create(&self, comment: &CreateLivestreamComment) -> ServiceResult<LivestreamComment> {
         let mut tx = self.get_db_pool().begin().await?;
+
+        let ng_word_repo = self.ng_word_repo();
+        let ng_words = ng_word_repo
+            .find_all_by_livestream_id_and_user_id(
+                &mut tx,
+                &comment.livestream_id,
+                &comment.user_id,
+            )
+            .await?;
+
+        for ngword in &ng_words {
+            let hit_spam = ng_word_repo
+                .count_by_ng_word_in_comment(&mut tx, &ngword.word, &comment.comment)
+                .await?;
+            tracing::info!("[hit_spam={}] comment = {}", hit_spam, &comment.comment);
+            if hit_spam >= 1 {
+                return Err(CommentMatchSpam);
+            }
+        }
 
         let comment_id = self
             .livestream_comment_repo()

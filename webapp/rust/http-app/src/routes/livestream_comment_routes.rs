@@ -6,15 +6,14 @@ use chrono::Utc;
 use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_comment::CreateLivestreamComment;
 use isupipe_core::models::user::UserId;
-use isupipe_core::repos::ng_word_repository::NgWordRepository;
 use isupipe_core::services::livestream_comment_service::LivestreamCommentService;
 use isupipe_core::services::livestream_service::LivestreamService;
 use isupipe_core::services::manager::ServiceManager;
+use isupipe_core::services::ServiceError;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::responses::livestream_comment_response::LivestreamCommentResponse;
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
-use isupipe_infra::repos::ng_word_repository::NgWordRepositoryInfra;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct GetLivestreamCommentsQuery {
@@ -56,7 +55,7 @@ pub struct PostLivecommentRequest {
 }
 
 pub async fn post_livecomment_handler<S: ServiceManager>(
-    State(AppState { service, pool, .. }): State<AppState<S>>,
+    State(AppState { service, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
     axum::Json(req): axum::Json<PostLivecommentRequest>,
@@ -72,51 +71,36 @@ pub async fn post_livecomment_handler<S: ServiceManager>(
     let user_id = UserId::new(user_id);
     let livestream_id = LivestreamId::new(livestream_id);
 
-    let mut tx = pool.begin().await?;
-
     let livestream_model = service
         .livestream_service()
         .find(&livestream_id)
         .await?
         .ok_or(Error::NotFound("livestream not found".into()))?;
 
-    let ng_word_repo = NgWordRepositoryInfra {};
-    // スパム判定
-    let ng_words = ng_word_repo
-        .find_all_by_livestream_id_and_user_id(
-            &mut tx,
-            &livestream_model.id,
-            &livestream_model.user_id,
-        )
-        .await?;
-
-    for ngword in &ng_words {
-        let hit_spam = ng_word_repo
-            .count_by_ng_word_in_comment(&mut tx, &ngword.word, &req.comment)
-            .await?;
-        tracing::info!("[hit_spam={}] comment = {}", hit_spam, req.comment);
-        if hit_spam >= 1 {
-            return Err(Error::BadRequest(
-                "このコメントがスパム判定されました".into(),
-            ));
-        }
-    }
-
     let now = Utc::now().timestamp();
-    let comment = service
+    let result = service
         .livestream_comment_service()
         .create(&CreateLivestreamComment {
             user_id: user_id.clone(),
-            livestream_id: livestream_id.clone(),
+            livestream_id: livestream_model.id.clone(),
             comment: req.comment.clone(),
             tip: req.tip,
             created_at: now,
         })
-        .await?;
+        .await;
 
-    let livecomment = LivestreamCommentResponse::build_by_service(&service, &comment).await?;
+    match result {
+        Ok(comment) => {
+            let livecomment =
+                LivestreamCommentResponse::build_by_service(&service, &comment).await?;
 
-    tx.commit().await?;
-
-    Ok((StatusCode::CREATED, axum::Json(livecomment)))
+            Ok((StatusCode::CREATED, axum::Json(livecomment)))
+        }
+        Err(e) => match e {
+            ServiceError::CommentMatchSpam => Err(Error::BadRequest(
+                "このコメントがスパム判定されました".into(),
+            )),
+            _ => Err(e.into()),
+        },
+    }
 }

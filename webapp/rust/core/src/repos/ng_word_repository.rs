@@ -37,6 +37,6 @@ pub trait NgWordRepository {
 }
 
 pub trait HaveNgWordRepository {
-    type Repo: NgWordRepository;
+    type Repo: Sync + NgWordRepository;
     fn ng_word_repo(&self) -> &Self::Repo;
 }

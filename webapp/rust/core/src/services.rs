@@ -23,6 +23,8 @@ pub enum ServiceError {
     NotFoundLivestream,
     #[error("livecomment not found")]
     NotFoundLivestreamComment,
+    #[error("this comment matched spam")]
+    CommentMatchSpam,
     #[error("repos error: #{0}")]
     ReposError(#[from] ReposError),
     #[error("sqlx error: #{0}")]

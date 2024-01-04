@@ -14,3 +14,4 @@ sqlx.workspace = true
 thiserror.workspace = true
 time.workspace = true
 tokio.workspace = true
+tracing = "0.1.40"
