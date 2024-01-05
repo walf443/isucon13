@@ -3,6 +3,7 @@ use isupipe_core::db::DBConn;
 use isupipe_core::models::reservation_slot::ReservationSlot;
 use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
 
+#[derive(Clone)]
 pub struct ReservationSlotRepositoryInfra {}
 
 #[async_trait]

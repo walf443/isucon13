@@ -10,14 +10,12 @@ use isupipe_core::models::livestream_viewers_history::CreateLivestreamViewersHis
 use isupipe_core::models::ng_word::{CreateNgWord, NgWord};
 use isupipe_core::models::tag::TagId;
 use isupipe_core::models::user::UserId;
-use isupipe_core::repos::livestream_repository::LivestreamRepository;
-use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
-use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
 use isupipe_core::services::livestream_service::LivestreamService;
 use isupipe_core::services::livestream_statistics_service::LivestreamStatisticsService;
 use isupipe_core::services::livestream_viewers_history_service::LivestreamViewersHistoryService;
 use isupipe_core::services::manager::ServiceManager;
 use isupipe_core::services::ng_word_service::NgWordService;
+use isupipe_core::services::ServiceError;
 use isupipe_http_core::error::Error;
 use isupipe_http_core::responses::livestream_response::LivestreamResponse;
 use isupipe_http_core::routes::livestream_comment_report_routes::{
@@ -29,9 +27,6 @@ use isupipe_http_core::routes::livestream_reaction_routes::{
 };
 use isupipe_http_core::state::AppState;
 use isupipe_http_core::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
-use isupipe_infra::repos::livestream_repository::LivestreamRepositoryInfra;
-use isupipe_infra::repos::livestream_tag_repository::LivestreamTagRepositoryInfra;
-use isupipe_infra::repos::reservation_slot_repository::ReservationSlotRepositoryInfra;
 
 // handle /api/livestreams/
 pub fn livestreams_routes<S: ServiceManager + 'static>() -> Router<AppState<S>> {
@@ -89,7 +84,7 @@ pub struct ReserveLivestreamRequest {
 }
 
 pub async fn reserve_livestream_handler<S: ServiceManager>(
-    State(AppState { service, pool, .. }): State<AppState<S>>,
+    State(AppState { service, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
     axum::Json(req): axum::Json<ReserveLivestreamRequest>,
 ) -> Result<(StatusCode, axum::Json<LivestreamResponse>), Error> {
@@ -106,8 +101,6 @@ pub async fn reserve_livestream_handler<S: ServiceManager>(
         .ok_or(Error::SessionError)?;
     let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
     let user_id = UserId::new(user_id);
-
-    let mut tx = pool.begin().await?;
 
     // 2023/11/25 10:00からの１年間の期間内であるかチェック
     let term_start_at = Utc.from_utc_datetime(
@@ -128,50 +121,14 @@ pub async fn reserve_livestream_handler<S: ServiceManager>(
         return Err(Error::BadRequest("bad reservation time range".into()));
     }
 
-    let reservation_slot_repo = ReservationSlotRepositoryInfra {};
-
-    // 予約枠をみて、予約が可能か調べる
-    // NOTE: 並列な予約のoverbooking防止にFOR UPDATEが必要
-    let slots = reservation_slot_repo
-        .find_all_between_for_update(&mut tx, req.start_at, req.end_at)
-        .await
-        .map_err(|e| {
-            tracing::warn!("予約枠一覧取得でエラー発生: {e:?}");
-            e
-        })?;
-
-    for slot in slots {
-        let count = reservation_slot_repo
-            .find_slot_between(&mut tx, slot.start_at, slot.end_at)
-            .await?;
-        tracing::info!(
-            "{} ~ {}予約枠の残数 = {}",
-            slot.start_at,
-            slot.end_at,
-            slot.slot
-        );
-        if count < 1 {
-            return Err(Error::BadRequest(
-                format!(
-                    "予約期間 {} ~ {}に対して、予約区間 {} ~ {}が予約できません",
-                    term_start_at.timestamp(),
-                    term_end_at.timestamp(),
-                    req.start_at,
-                    req.end_at
-                )
-                .into(),
-            ));
-        }
+    let mut tag_ids = Vec::with_capacity(req.tags.len());
+    for tag_id in req.tags {
+        tag_ids.push(TagId::new(tag_id));
     }
 
-    reservation_slot_repo
-        .decrement_slot_between(&mut tx, req.start_at, req.end_at)
-        .await?;
-
-    let livestream_repo = LivestreamRepositoryInfra {};
-    let livestream_id = livestream_repo
+    let result = service
+        .livestream_service()
         .create(
-            &mut tx,
             &CreateLivestream {
                 user_id: user_id.clone(),
                 title: req.title.clone(),
@@ -181,35 +138,32 @@ pub async fn reserve_livestream_handler<S: ServiceManager>(
                 start_at: req.start_at,
                 end_at: req.end_at,
             },
+            &tag_ids,
         )
-        .await?;
+        .await;
 
-    let livestream_tag_repo = LivestreamTagRepositoryInfra {};
-    // タグ追加
-    for tag_id in req.tags {
-        livestream_tag_repo
-            .insert(&mut tx, &livestream_id, &TagId::new(tag_id))
-            .await?;
-    }
+    match result {
+        Ok(livestream) => {
+            let livestream = LivestreamResponse::build_by_service(&service, &livestream).await?;
 
-    let livestream = LivestreamResponse::build_by_service(
-        &service,
-        &Livestream {
-            id: livestream_id.clone(),
-            user_id: user_id.clone(),
-            title: req.title,
-            description: req.description,
-            playlist_url: req.playlist_url,
-            thumbnail_url: req.thumbnail_url,
-            start_at: req.start_at,
-            end_at: req.end_at,
+            Ok((StatusCode::CREATED, axum::Json(livestream)))
+        }
+        Err(e) => match e {
+            ServiceError::InvalidReservationRange => {
+                return Err(Error::BadRequest(
+                    format!(
+                        "予約期間 {} ~ {}に対して、予約区間 {} ~ {}が予約できません",
+                        term_start_at.timestamp(),
+                        term_end_at.timestamp(),
+                        req.start_at,
+                        req.end_at
+                    )
+                    .into(),
+                ))
+            }
+            _ => Err(e.into()),
         },
-    )
-    .await?;
-
-    tx.commit().await?;
-
-    Ok((StatusCode::CREATED, axum::Json(livestream)))
+    }
 }
 
 #[derive(Debug, serde::Deserialize)]

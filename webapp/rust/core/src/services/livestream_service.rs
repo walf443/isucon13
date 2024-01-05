@@ -1,16 +1,26 @@
 use crate::db::HaveDBPool;
-use crate::models::livestream::{Livestream, LivestreamId};
+use crate::models::livestream::{CreateLivestream, Livestream, LivestreamId};
+use crate::models::tag::TagId;
 use crate::models::user::UserId;
 use crate::repos::livestream_repository::{HaveLivestreamRepository, LivestreamRepository};
 use crate::repos::livestream_tag_repository::{
     HaveLivestreamTagRepository, LivestreamTagRepository,
 };
+use crate::repos::reservation_slot_repository::{
+    HaveReservationSlotRepository, ReservationSlotRepository,
+};
 use crate::repos::tag_repository::{HaveTagRepository, TagRepository};
+use crate::services::ServiceError::InvalidReservationRange;
 use crate::services::ServiceResult;
 use async_trait::async_trait;
 
 #[async_trait]
 pub trait LivestreamService {
+    async fn create(
+        &self,
+        livestream: &CreateLivestream,
+        tag_ids: &[TagId],
+    ) -> ServiceResult<Livestream>;
     async fn find(&self, livestream_id: &LivestreamId) -> ServiceResult<Option<Livestream>>;
 
     async fn find_recent_livestreams(&self, limit: Option<i64>) -> ServiceResult<Vec<Livestream>>;
@@ -31,12 +41,74 @@ pub trait HaveLivestreamService {
 }
 
 pub trait LivestreamServiceImpl:
-    Sync + HaveDBPool + HaveLivestreamRepository + HaveLivestreamTagRepository + HaveTagRepository
+    Sync
+    + HaveDBPool
+    + HaveLivestreamRepository
+    + HaveLivestreamTagRepository
+    + HaveTagRepository
+    + HaveReservationSlotRepository
 {
 }
 
 #[async_trait]
 impl<T: LivestreamServiceImpl> LivestreamService for T {
+    async fn create(
+        &self,
+        livestream: &CreateLivestream,
+        tag_ids: &[TagId],
+    ) -> ServiceResult<Livestream> {
+        let mut tx = self.get_db_pool().begin().await?;
+
+        let reservation_slot_repo = self.reservation_slot_repo();
+
+        let slots = reservation_slot_repo
+            .find_all_between_for_update(&mut tx, livestream.start_at, livestream.end_at)
+            .await
+            .map_err(|e| {
+                tracing::warn!("予約枠一覧取得でエラー発生: {e:?}");
+                e
+            })?;
+
+        for slot in slots {
+            let count = reservation_slot_repo
+                .find_slot_between(&mut tx, slot.start_at, slot.end_at)
+                .await?;
+            tracing::info!(
+                "{} ~ {}予約枠の残数 = {}",
+                slot.start_at,
+                slot.end_at,
+                slot.slot
+            );
+            if count < 1 {
+                return Err(InvalidReservationRange);
+            }
+        }
+
+        reservation_slot_repo
+            .decrement_slot_between(&mut tx, livestream.start_at, livestream.end_at)
+            .await?;
+
+        let livestream_id = self.livestream_repo().create(&mut tx, livestream).await?;
+
+        let tag_repo = self.livestream_tag_repo();
+        for tag_id in tag_ids {
+            tag_repo.insert(&mut tx, &livestream_id, tag_id).await?;
+        }
+
+        tx.commit().await?;
+
+        Ok(Livestream {
+            id: livestream_id,
+            user_id: livestream.user_id.clone(),
+            title: livestream.title.clone(),
+            description: livestream.description.clone(),
+            playlist_url: livestream.playlist_url.clone(),
+            thumbnail_url: livestream.thumbnail_url.clone(),
+            start_at: livestream.start_at,
+            end_at: livestream.end_at,
+        })
+    }
+
     async fn find(&self, livestream_id: &LivestreamId) -> ServiceResult<Option<Livestream>> {
         let mut conn = self.get_db_pool().acquire().await?;
         let result = self

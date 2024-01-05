@@ -1,9 +1,11 @@
 use crate::repos::livestream_repository::LivestreamRepositoryInfra;
 use crate::repos::livestream_tag_repository::LivestreamTagRepositoryInfra;
+use crate::repos::reservation_slot_repository::ReservationSlotRepositoryInfra;
 use crate::repos::tag_repository::TagRepositoryInfra;
 use isupipe_core::db::{DBPool, HaveDBPool};
 use isupipe_core::repos::livestream_repository::HaveLivestreamRepository;
 use isupipe_core::repos::livestream_tag_repository::HaveLivestreamTagRepository;
+use isupipe_core::repos::reservation_slot_repository::HaveReservationSlotRepository;
 use isupipe_core::repos::tag_repository::HaveTagRepository;
 use isupipe_core::services::livestream_service::LivestreamServiceImpl;
 
@@ -12,6 +14,7 @@ pub struct LivestreamServiceInfra {
     db_pool: DBPool,
     livestream_repo: LivestreamRepositoryInfra,
     livestream_tag_repo: LivestreamTagRepositoryInfra,
+    reservation_slot_repo: ReservationSlotRepositoryInfra,
     tag_repo: TagRepositoryInfra,
 }
 
@@ -21,6 +24,7 @@ impl LivestreamServiceInfra {
             db_pool,
             livestream_repo: LivestreamRepositoryInfra {},
             livestream_tag_repo: LivestreamTagRepositoryInfra {},
+            reservation_slot_repo: ReservationSlotRepositoryInfra {},
             tag_repo: TagRepositoryInfra {},
         }
     }
@@ -53,6 +57,14 @@ impl HaveTagRepository for LivestreamServiceInfra {
 
     fn tag_repo(&self) -> &Self::Repo {
         &self.tag_repo
+    }
+}
+
+impl HaveReservationSlotRepository for LivestreamServiceInfra {
+    type Repo = ReservationSlotRepositoryInfra;
+
+    fn reservation_slot_repo(&self) -> &Self::Repo {
+        &self.reservation_slot_repo
     }
 }
 

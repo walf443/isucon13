@@ -28,7 +28,7 @@ pub trait LivestreamTagRepository {
 }
 
 pub trait HaveLivestreamTagRepository {
-    type Repo: LivestreamTagRepository;
+    type Repo: Sync + LivestreamTagRepository;
 
     fn livestream_tag_repo(&self) -> &Self::Repo;
 }

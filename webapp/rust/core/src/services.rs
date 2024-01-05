@@ -26,6 +26,8 @@ pub enum ServiceError {
     NotFoundLivestreamComment,
     #[error("this comment matched spam")]
     CommentMatchSpam,
+    #[error("invalid reservation range")]
+    InvalidReservationRange,
     #[error("repos error: #{0}")]
     ReposError(#[from] ReposError),
     #[error("sqlx error: #{0}")]

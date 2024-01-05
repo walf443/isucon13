@@ -22,3 +22,9 @@ pub trait ReservationSlotRepository {
         end_at: i64,
     ) -> Result<()>;
 }
+
+pub trait HaveReservationSlotRepository {
+    type Repo: Sync + ReservationSlotRepository;
+
+    fn reservation_slot_repo(&self) -> &Self::Repo;
+}
