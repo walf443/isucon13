@@ -1,5 +1,7 @@
-use isupipe_http_app::routes::livestream_routes::{get_my_livestreams_handler, livestreams_routes};
 use isupipe_http_core::routes::initialize_routes::initialize_handler;
+use isupipe_http_core::routes::livestream_routes::{
+    get_my_livestreams_handler, livestreams_routes,
+};
 use isupipe_http_core::routes::login_routes::login_handler;
 use isupipe_http_core::routes::payment_routes::get_payment_result;
 use isupipe_http_core::routes::register_routes::register_handler;
