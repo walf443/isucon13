@@ -138,7 +138,7 @@ impl<T: LivestreamServiceImpl> LivestreamService for T {
 
     async fn find_recent_by_tag_name(&self, tag_name: &str) -> ServiceResult<Vec<Livestream>> {
         let mut tx = self.get_db_pool().acquire().await?;
-        let tag_id_list = self.tag_repo().find_ids_by_name(&mut tx, &tag_name).await?;
+        let tag_id_list = self.tag_repo().find_ids_by_name(&mut tx, tag_name).await?;
 
         let key_tagged_livestreams = self
             .livestream_tag_repo()

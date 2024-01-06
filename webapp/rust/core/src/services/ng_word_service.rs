@@ -48,7 +48,7 @@ impl<T: NgWordServiceImpl> NgWordService for T {
         for ngword in &ng_words {
             for comment in &comments {
                 comment_repo
-                    .remove_if_match_ng_word(&mut tx, &comment, &ngword.word)
+                    .remove_if_match_ng_word(&mut tx, comment, &ngword.word)
                     .await?;
             }
         }

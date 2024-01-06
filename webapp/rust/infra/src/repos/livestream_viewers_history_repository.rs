@@ -24,7 +24,7 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
         )
             .bind(&history.user_id)
             .bind(&history.livestream_id)
-            .bind(&history.created_at)
+            .bind(history.created_at)
             .execute(&mut *tx)
             .await?;
 

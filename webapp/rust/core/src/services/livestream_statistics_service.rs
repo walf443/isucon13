@@ -47,11 +47,11 @@ pub trait LivestreamStatisticsServiceImpl:
 impl<T: LivestreamStatisticsServiceImpl> LivestreamStatisticsService for T {
     async fn get_stats(&self, livestream: &Livestream) -> ServiceResult<LivestreamStatistics> {
         let stat = LivestreamStatistics {
-            rank: self.get_rank(&livestream).await?,
-            viewers_count: self.get_viewers_count(&livestream).await?,
-            total_reactions: self.get_total_reactions(&livestream).await?,
-            total_reports: self.get_total_report(&livestream).await?,
-            max_tip: self.get_max_tip(&livestream).await?,
+            rank: self.get_rank(livestream).await?,
+            viewers_count: self.get_viewers_count(livestream).await?,
+            total_reactions: self.get_total_reactions(livestream).await?,
+            total_reports: self.get_total_report(livestream).await?,
+            max_tip: self.get_max_tip(livestream).await?,
         };
 
         Ok(stat)

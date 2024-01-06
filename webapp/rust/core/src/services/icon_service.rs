@@ -28,7 +28,7 @@ impl<T: IconServiceImpl> IconService for T {
 
         let image = self
             .icon_repo()
-            .find_image_by_user_id(&mut conn, &user_id)
+            .find_image_by_user_id(&mut conn, user_id)
             .await?;
 
         Ok(image)

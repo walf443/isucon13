@@ -46,7 +46,7 @@ pub async fn register_handler<S: ServiceManager>(
                 password: req.password.clone(),
             },
             req.theme.dark_mode,
-            &*powerdns_subdomain_address,
+            &powerdns_subdomain_address,
         )
         .await?;
 

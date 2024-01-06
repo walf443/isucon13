@@ -21,7 +21,7 @@ impl NgWordRepository for NgWordRepositoryInfra {
         .bind(&ng_word.user_id)
         .bind(&ng_word.livestream_id)
         .bind(&ng_word.word)
-        .bind(&ng_word.created_at)
+        .bind(ng_word.created_at)
         .execute(conn)
         .await?;
 

@@ -24,8 +24,8 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
             .bind(&comment.user_id)
             .bind(&comment.livestream_id)
             .bind(&comment.comment)
-            .bind(&comment.tip)
-            .bind(&comment.created_at)
+            .bind(comment.tip)
+            .bind(comment.created_at)
             .execute(conn)
             .await?;
         let comment_id = rs.last_insert_id() as i64;

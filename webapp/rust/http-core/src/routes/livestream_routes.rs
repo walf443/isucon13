@@ -147,18 +147,16 @@ pub async fn reserve_livestream_handler<S: ServiceManager>(
             Ok((StatusCode::CREATED, axum::Json(livestream)))
         }
         Err(e) => match e {
-            ServiceError::InvalidReservationRange => {
-                return Err(Error::BadRequest(
-                    format!(
-                        "予約期間 {} ~ {}に対して、予約区間 {} ~ {}が予約できません",
-                        term_start_at.timestamp(),
-                        term_end_at.timestamp(),
-                        req.start_at,
-                        req.end_at
-                    )
-                    .into(),
-                ))
-            }
+            ServiceError::InvalidReservationRange => Err(Error::BadRequest(
+                format!(
+                    "予約期間 {} ~ {}に対して、予約区間 {} ~ {}が予約できません",
+                    term_start_at.timestamp(),
+                    term_end_at.timestamp(),
+                    req.start_at,
+                    req.end_at
+                )
+                .into(),
+            )),
             _ => Err(e.into()),
         },
     }
@@ -323,7 +321,7 @@ pub async fn moderate_handler<S: ServiceManager>(
             user_id: user_id.clone(),
             livestream_id: livestream_id.clone(),
             word: req.ng_word,
-            created_at: created_at.clone(),
+            created_at,
         })
         .await?;
 
@@ -359,7 +357,7 @@ pub async fn enter_livestream_handler<S: ServiceManager>(
         .create(&CreateLivestreamViewersHistory {
             user_id: user_id.clone(),
             livestream_id: livestream_id.clone(),
-            created_at: created_at.clone(),
+            created_at,
         })
         .await?;
 
