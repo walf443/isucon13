@@ -1,8 +1,8 @@
+use isupipe_core::db::build_database_connection_options;
 use isupipe_http_core::routes::routes;
 use isupipe_http_core::state::AppState;
 use isupipe_infra::services::manager::ServiceManagerInfra;
 use std::sync::Arc;
-use isupipe_core::db::build_database_connection_options;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

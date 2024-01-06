@@ -1,5 +1,5 @@
-use sqlx::{MySqlConnection, MySqlPool};
 use sqlx::mysql::MySqlPoolOptions;
+use sqlx::{MySqlConnection, MySqlPool};
 
 pub type DBPool = MySqlPool;
 pub type DBConn = MySqlConnection;
@@ -17,8 +17,10 @@ fn build_database_connection_options_for_test() -> sqlx::mysql::MySqlConnectOpti
 }
 
 #[cfg(any(feature = "test", test))]
-pub async fn get_db_pool() -> Result<DBPool,sqlx::Error> {
-    let pool = MySqlPoolOptions::new().connect_with(build_database_connection_options_for_test()).await?;
+pub async fn get_db_pool() -> Result<DBPool, sqlx::Error> {
+    let pool = MySqlPoolOptions::new()
+        .connect_with(build_database_connection_options_for_test())
+        .await?;
 
     Ok(pool)
 }

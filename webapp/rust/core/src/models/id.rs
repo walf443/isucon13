@@ -1,3 +1,4 @@
+use fake::{Dummy, Fake, Faker, Rng};
 use serde::{Serialize, Serializer};
 use sqlx::database::{HasArguments, HasValueRef};
 use sqlx::encode::IsNull;
@@ -5,7 +6,6 @@ use sqlx::error::BoxDynError;
 use sqlx::mysql::MySqlTypeInfo;
 use sqlx::{Decode, Encode, MySql, Type};
 use std::marker::PhantomData;
-use fake::{Dummy, Fake, Faker, Rng};
 
 #[derive(Debug, sqlx::Type, PartialEq, Eq)]
 pub struct Id<T> {

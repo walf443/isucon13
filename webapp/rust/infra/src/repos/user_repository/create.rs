@@ -1,9 +1,9 @@
+use crate::repos::user_repository::UserRepositoryInfra;
 use fake::{Fake, Faker};
-use sqlx::Acquire;
-use isupipe_core::db::{get_db_pool};
+use isupipe_core::db::get_db_pool;
 use isupipe_core::models::user::{CreateUser, User};
 use isupipe_core::repos::user_repository::UserRepository;
-use crate::repos::user_repository::UserRepositoryInfra;
+use sqlx::Acquire;
 
 #[tokio::test]
 async fn success_case() {
@@ -16,7 +16,11 @@ async fn success_case() {
     let user_id = repo.create(&mut tx, &user).await.unwrap();
 
     let conn = tx.acquire().await.unwrap();
-    let got: User = sqlx::query_as("SELECT * FROM users where id = ?").bind(&user_id).fetch_one(conn).await.unwrap();
+    let got: User = sqlx::query_as("SELECT * FROM users where id = ?")
+        .bind(&user_id)
+        .fetch_one(conn)
+        .await
+        .unwrap();
     assert_eq!(got.id.get(), user_id.get());
     assert_eq!(got.name, user.name);
     assert_eq!(got.description, Some(user.description));
