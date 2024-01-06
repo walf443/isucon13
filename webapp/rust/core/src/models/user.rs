@@ -1,3 +1,4 @@
+use fake::Dummy;
 use crate::models::id::Id;
 
 #[derive(Debug, sqlx::FromRow)]
@@ -12,7 +13,7 @@ pub struct User {
 
 pub type UserId = Id<User>;
 
-#[derive(Debug)]
+#[derive(Debug, Dummy)]
 pub struct CreateUser {
     pub name: String,
     pub display_name: String,

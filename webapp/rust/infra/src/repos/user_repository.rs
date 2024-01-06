@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod create;
+
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::user::{CreateUser, User, UserId};

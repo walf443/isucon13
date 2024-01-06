@@ -2,7 +2,7 @@ use isupipe_http_core::routes::routes;
 use isupipe_http_core::state::AppState;
 use isupipe_infra::services::manager::ServiceManagerInfra;
 use std::sync::Arc;
-use isupipe_core::db::build_mysql_options;
+use isupipe_core::db::build_database_connection_options;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -12,7 +12,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
 
     let pool = sqlx::mysql::MySqlPoolOptions::new()
-        .connect_with(build_mysql_options())
+        .connect_with(build_database_connection_options())
         .await
         .expect("failed to connect db");
 

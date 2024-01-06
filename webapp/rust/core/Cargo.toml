@@ -4,10 +4,15 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
+[features]
+default = []
+test = []
+
 [dependencies]
 async-trait.workspace = true
 bcrypt.workspace = true
 chrono.workspace = true
+fake.workspace = true
 num-traits.workspace = true
 serde.workspace = true
 sqlx.workspace = true

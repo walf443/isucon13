@@ -13,3 +13,7 @@ sqlx.workspace = true
 thiserror.workspace = true
 time.workspace = true
 tokio.workspace = true
+fake.workspace = true
+
+[dev-dependencies]
+isupipe-core = { path = "../core", features = ["test"]}
