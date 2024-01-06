@@ -1,3 +1,4 @@
+#[cfg(any(feature = "test", test))]
 use sqlx::mysql::MySqlPoolOptions;
 use sqlx::{MySqlConnection, MySqlPool};
 
