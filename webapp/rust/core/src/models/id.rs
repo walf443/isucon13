@@ -5,6 +5,7 @@ use sqlx::error::BoxDynError;
 use sqlx::mysql::MySqlTypeInfo;
 use sqlx::{Decode, Encode, MySql, Type};
 use std::marker::PhantomData;
+use fake::{Dummy, Fake, Faker, Rng};
 
 #[derive(Debug, sqlx::Type, PartialEq, Eq)]
 pub struct Id<T> {
@@ -60,5 +61,12 @@ impl<T> Decode<'_, MySql> for Id<T> {
     fn decode(value: <MySql as HasValueRef<'_>>::ValueRef) -> Result<Self, BoxDynError> {
         let val = <i64 as Decode<MySql>>::decode(value)?;
         Ok(Self::new(val))
+    }
+}
+
+impl<T> Dummy<Faker> for Id<T> {
+    fn dummy_with_rng<R: Rng + ?Sized>(config: &Faker, rng: &mut R) -> Self {
+        let id = Fake::fake_with_rng::<i64, R>(config, rng);
+        Self::new(id)
     }
 }
