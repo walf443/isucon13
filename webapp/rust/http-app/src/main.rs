@@ -1,13 +1,4 @@
-use isupipe_http_core::routes::initialize_routes::initialize_handler;
-use isupipe_http_core::routes::livestream_routes::{
-    get_my_livestreams_handler, livestreams_routes,
-};
-use isupipe_http_core::routes::login_routes::login_handler;
-use isupipe_http_core::routes::payment_routes::get_payment_result;
-use isupipe_http_core::routes::register_routes::register_handler;
-use isupipe_http_core::routes::tag_routes::get_tag_handler;
-use isupipe_http_core::routes::user_icon_routes::post_icon_handler;
-use isupipe_http_core::routes::user_routes::user_routes;
+use isupipe_http_core::routes::routes;
 use isupipe_http_core::state::AppState;
 use isupipe_infra::services::manager::ServiceManagerInfra;
 use std::sync::Arc;
@@ -69,28 +60,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let service = ServiceManagerInfra::new(pool.clone());
 
-    let app = axum::Router::new()
-        // 初期化
-        .route(
-            "/api/initialize",
-            axum::routing::post(initialize_handler::<ServiceManagerInfra>),
-        )
-        // top
-        .route("/api/tag", axum::routing::get(get_tag_handler))
-        .route("/api/register", axum::routing::post(register_handler))
-        .route(
-            "/api/login",
-            axum::routing::post(login_handler::<ServiceManagerInfra>),
-        )
-        .route("/api/icon", axum::routing::post(post_icon_handler))
-        // 課金情報
-        .route("/api/payment", axum::routing::get(get_payment_result))
-        .nest("/api/user/", user_routes::<ServiceManagerInfra>())
-        .route(
-            "/api/livestream",
-            axum::routing::get(get_my_livestreams_handler),
-        )
-        .nest("/api/livestream/", livestreams_routes())
+    let app = routes()
         .with_state(AppState {
             service,
             key: axum_extra::extract::cookie::Key::derive_from(&secret),
