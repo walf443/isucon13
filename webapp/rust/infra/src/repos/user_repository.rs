@@ -4,6 +4,8 @@ mod create;
 mod find;
 #[cfg(test)]
 mod find_all;
+#[cfg(test)]
+mod find_id_by_name;
 
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
