@@ -13,6 +13,25 @@ pub struct Id<T> {
     _phantom: PhantomData<T>,
 }
 
+impl<T> Id<T> {
+    pub fn new(id: i64) -> Self {
+        Self {
+            id,
+            _phantom: PhantomData,
+        }
+    }
+
+    pub fn get(&self) -> i64 {
+        self.id
+    }
+}
+
+impl<T> From<i64> for Id<T> {
+    fn from(value: i64) -> Self {
+        Self::new(value)
+    }
+}
+
 impl<T> Serialize for Id<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -25,19 +44,6 @@ impl<T> Serialize for Id<T> {
 impl<T> Clone for Id<T> {
     fn clone(&self) -> Self {
         Self::new(self.get())
-    }
-}
-
-impl<T> Id<T> {
-    pub fn new(id: i64) -> Self {
-        Self {
-            id,
-            _phantom: PhantomData,
-        }
-    }
-
-    pub fn get(&self) -> i64 {
-        self.id
     }
 }
 

@@ -46,8 +46,7 @@ impl UserRepository for UserRepositoryInfra {
         conn: &mut DBConn,
         id: &UserId,
     ) -> isupipe_core::repos::Result<Option<User>> {
-        let user_model = sqlx::query_as("SELECT * FROM users WHERE id = ?")
-            .bind(id)
+        let user_model = sqlx::query_as!(User, "SELECT id, name, display_name, description, password as hashed_password FROM users WHERE id = ?", id)
             .fetch_optional(conn)
             .await?;
 
@@ -55,9 +54,12 @@ impl UserRepository for UserRepositoryInfra {
     }
 
     async fn find_all(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<Vec<User>> {
-        let users: Vec<User> = sqlx::query_as("SELECT * FROM users")
-            .fetch_all(conn)
-            .await?;
+        let users: Vec<User> = sqlx::query_as!(
+            User,
+            "SELECT id, name, display_name, description, password as hashed_password FROM users"
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(users)
     }
@@ -67,10 +69,10 @@ impl UserRepository for UserRepositoryInfra {
         conn: &mut DBConn,
         name: &str,
     ) -> isupipe_core::repos::Result<Option<UserId>> {
-        let user_id = sqlx::query_scalar("SELECT id FROM users WHERE name = ?")
-            .bind(name)
-            .fetch_optional(conn)
-            .await?;
+        let user_id: Option<UserId> =
+            sqlx::query_scalar!("SELECT id as `id:UserId` FROM users WHERE name = ?", name)
+                .fetch_optional(conn)
+                .await?;
 
         Ok(user_id)
     }
@@ -80,8 +82,7 @@ impl UserRepository for UserRepositoryInfra {
         conn: &mut DBConn,
         name: &str,
     ) -> isupipe_core::repos::Result<Option<User>> {
-        let user_model: Option<User> = sqlx::query_as("SELECT * FROM users WHERE name = ?")
-            .bind(name)
+        let user_model: Option<User> = sqlx::query_as!(User, "SELECT id, name, display_name, description, password as hashed_password FROM users WHERE name = ?", name)
             .fetch_optional(conn)
             .await?;
 
