@@ -1,0 +1,1 @@
+export DATABASE_URL=mysql://isucon:isucon@localhost:3306/isupipe-test
