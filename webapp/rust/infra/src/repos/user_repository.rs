@@ -5,6 +5,8 @@ mod find;
 #[cfg(test)]
 mod find_all;
 #[cfg(test)]
+mod find_by_name;
+#[cfg(test)]
 mod find_id_by_name;
 
 use async_trait::async_trait;
