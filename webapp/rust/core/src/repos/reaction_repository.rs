@@ -5,6 +5,7 @@ use crate::models::user::UserId;
 use crate::repos::Result;
 use async_trait::async_trait;
 
+#[cfg_attr(any(feature = "test", test), mockall::automock)]
 #[async_trait]
 pub trait ReactionRepository {
     async fn create(&self, conn: &mut DBConn, reaction: &CreateReaction) -> Result<ReactionId>;

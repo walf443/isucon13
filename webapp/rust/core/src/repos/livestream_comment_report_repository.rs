@@ -6,6 +6,7 @@ use crate::models::livestream_comment_report::{
 use crate::repos::Result;
 use async_trait::async_trait;
 
+#[cfg_attr(any(feature = "test", test), mockall::automock)]
 #[async_trait]
 pub trait LivestreamCommentReportRepository {
     async fn create(

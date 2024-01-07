@@ -3,6 +3,7 @@ use crate::models::tag::{Tag, TagId};
 use crate::repos::Result;
 use async_trait::async_trait;
 
+#[cfg_attr(any(feature = "test", test), mockall::automock)]
 #[async_trait]
 pub trait TagRepository {
     async fn find(&self, conn: &mut DBConn, id: &TagId) -> Result<Tag>;

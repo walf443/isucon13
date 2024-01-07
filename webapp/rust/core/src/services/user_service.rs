@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod create;
+
 use crate::commands::pdnsutil_command::{HavePDNSUtilCommand, PDNSUtilCommand};
 use crate::commands::CommandOutput;
 use crate::db::HaveDBPool;

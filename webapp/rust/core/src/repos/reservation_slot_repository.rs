@@ -3,6 +3,7 @@ use crate::models::reservation_slot::ReservationSlot;
 use crate::repos::Result;
 use async_trait::async_trait;
 
+#[cfg_attr(any(feature = "test", test), mockall::automock)]
 #[async_trait]
 pub trait ReservationSlotRepository {
     async fn find_all_between_for_update(
