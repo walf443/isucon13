@@ -21,6 +21,8 @@ pub enum ReposError {
     Sqlx(#[from] sqlx::Error),
     #[error("bcrypt error: {0}")]
     Bcrypt(#[from] BcryptError),
+    #[error("test error")]
+    TestError,
 }
 
 pub type Result<T> = std::result::Result<T, ReposError>;

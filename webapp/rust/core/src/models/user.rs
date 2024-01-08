@@ -13,7 +13,7 @@ pub struct User {
 
 pub type UserId = Id<User>;
 
-#[derive(Debug, Dummy)]
+#[derive(Debug, Dummy, PartialEq, Clone)]
 pub struct CreateUser {
     pub name: String,
     pub display_name: String,

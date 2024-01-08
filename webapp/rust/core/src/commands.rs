@@ -8,6 +8,8 @@ pub mod pdnsutil_command;
 pub enum CommandError {
     #[error("IO error: {0}")]
     IoError(#[from] io::Error),
+    #[error("test error")]
+    TestError,
 }
 
 pub type CommandResult<T> = Result<T, CommandError>;
