@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod find_by_user_id;
+
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::theme::Theme;
