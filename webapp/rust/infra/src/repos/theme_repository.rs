@@ -20,11 +20,13 @@ impl ThemeRepository for ThemeRepositoryInfra {
         user_id: &UserId,
         dark_mode: bool,
     ) -> isupipe_core::repos::Result<()> {
-        sqlx::query("INSERT INTO themes (user_id, dark_mode) VALUES(?, ?)")
-            .bind(user_id)
-            .bind(dark_mode)
-            .execute(conn)
-            .await?;
+        sqlx::query!(
+            "INSERT INTO themes (user_id, dark_mode) VALUES(?, ?)",
+            user_id,
+            dark_mode
+        )
+        .execute(conn)
+        .await?;
 
         Ok(())
     }
@@ -34,10 +36,13 @@ impl ThemeRepository for ThemeRepositoryInfra {
         conn: &mut DBConn,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Theme> {
-        let theme_model: Theme = sqlx::query_as("SELECT * FROM themes WHERE user_id = ?")
-            .bind(user_id)
-            .fetch_one(conn)
-            .await?;
+        let theme_model: Theme = sqlx::query_as!(
+            Theme,
+            "SELECT id, user_id, dark_mode as `dark_mode:bool` FROM themes WHERE user_id = ?",
+            user_id
+        )
+        .fetch_one(conn)
+        .await?;
 
         Ok(theme_model)
     }
