@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod find_slot_between;
+
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::reservation_slot::ReservationSlot;

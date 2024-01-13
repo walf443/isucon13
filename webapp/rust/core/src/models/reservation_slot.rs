@@ -1,6 +1,7 @@
 use crate::models::id::Id;
+use fake::Dummy;
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug, sqlx::FromRow, Dummy)]
 pub struct ReservationSlot {
     #[allow(unused)]
     pub id: Id<Self>,
