@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod find;
+#[cfg(test)]
+mod find_all;
 
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
