@@ -36,10 +36,10 @@ impl TagRepository for TagRepositoryInfra {
         conn: &mut DBConn,
         name: &str,
     ) -> isupipe_core::repos::Result<Vec<TagId>> {
-        let tag_id_list: Vec<TagId> = sqlx::query_scalar("SELECT id FROM tags WHERE name = ?")
-            .bind(name)
-            .fetch_all(conn)
-            .await?;
+        let tag_id_list =
+            sqlx::query_scalar!("SELECT id as `id:TagId` FROM tags WHERE name = ?", name)
+                .fetch_all(conn)
+                .await?;
 
         Ok(tag_id_list)
     }
