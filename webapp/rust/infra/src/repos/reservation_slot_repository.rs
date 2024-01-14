@@ -1,4 +1,6 @@
 #[cfg(test)]
+mod decrement_slot_between;
+#[cfg(test)]
 mod find_all_between_for_update;
 #[cfg(test)]
 mod find_slot_between;
