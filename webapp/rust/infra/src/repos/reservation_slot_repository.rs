@@ -21,11 +21,12 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         start_at: i64,
         end_at: i64,
     ) -> isupipe_core::repos::Result<Vec<ReservationSlot>> {
-        let slots: Vec<ReservationSlot> = sqlx::query_as(
+        let slots: Vec<ReservationSlot> = sqlx::query_as!(
+            ReservationSlot,
             "SELECT * FROM reservation_slots WHERE start_at >= ? AND end_at <= ? FOR UPDATE",
+            start_at,
+            end_at,
         )
-        .bind(start_at)
-        .bind(end_at)
         .fetch_all(conn)
         .await?;
 
@@ -38,11 +39,11 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         start_at: i64,
         end_at: i64,
     ) -> isupipe_core::repos::Result<i64> {
-        let count: i64 = sqlx::query_scalar(
+        let count: i64 = sqlx::query_scalar!(
             "SELECT slot FROM reservation_slots WHERE start_at = ? AND end_at = ?",
+            start_at,
+            end_at,
         )
-        .bind(start_at)
-        .bind(end_at)
         .fetch_one(conn)
         .await?;
 
@@ -55,11 +56,11 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         start_at: i64,
         end_at: i64,
     ) -> isupipe_core::repos::Result<()> {
-        sqlx::query(
+        sqlx::query!(
             "UPDATE reservation_slots SET slot = slot - 1 WHERE start_at >= ? AND end_at <= ?",
+            start_at,
+            end_at,
         )
-        .bind(start_at)
-        .bind(end_at)
         .execute(conn)
         .await?;
 
