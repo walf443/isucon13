@@ -19,7 +19,7 @@ async fn empty_case() {
 }
 
 #[tokio::test]
-async fn not_emptyp_case() {
+async fn not_empty_case() {
     let db_pool = get_db_pool().await.unwrap();
     let mut tx = db_pool.begin().await.unwrap();
 
