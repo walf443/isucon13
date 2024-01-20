@@ -5,9 +5,9 @@ use crate::models::tag::TagId;
 #[derive(Debug, sqlx::FromRow)]
 pub struct LivestreamTag {
     #[allow(unused)]
-    pub id: Id<Self>,
+    pub id: Id<Self, i64>,
     pub livestream_id: LivestreamId,
     pub tag_id: TagId,
 }
 
-pub type LivestreamTagId = Id<LivestreamTag>;
+pub type LivestreamTagId = Id<LivestreamTag, i64>;

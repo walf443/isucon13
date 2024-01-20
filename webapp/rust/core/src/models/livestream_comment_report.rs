@@ -5,7 +5,7 @@ use crate::models::user::UserId;
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct LivestreamCommentReport {
-    pub id: Id<Self>,
+    pub id: Id<Self, i64>,
     pub user_id: UserId,
     pub livestream_id: LivestreamId,
     pub livestream_comment_id: LivestreamCommentId,
@@ -19,4 +19,4 @@ pub struct CreateLivestreamCommentReport {
     pub created_at: i64,
 }
 
-pub type LivestreamCommentReportId = Id<LivestreamCommentReport>;
+pub type LivestreamCommentReportId = Id<LivestreamCommentReport, i64>;

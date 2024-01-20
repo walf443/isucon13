@@ -13,7 +13,7 @@ pub struct CreateLivestream {
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct Livestream {
-    pub id: Id<Self>,
+    pub id: Id<Self, i64>,
     pub user_id: UserId,
     pub title: String,
     pub description: String,
@@ -23,4 +23,4 @@ pub struct Livestream {
     pub end_at: i64,
 }
 
-pub type LivestreamId = Id<Livestream>;
+pub type LivestreamId = Id<Livestream, i64>;

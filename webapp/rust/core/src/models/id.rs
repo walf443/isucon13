@@ -8,31 +8,31 @@ use sqlx::{Decode, Encode, MySql, Type};
 use std::marker::PhantomData;
 
 #[derive(Debug, sqlx::Type, PartialEq, Eq)]
-pub struct Id<T> {
-    id: i64,
+pub struct Id<T, U: Clone> {
+    id: U,
     _phantom: PhantomData<T>,
 }
 
-impl<T> Id<T> {
-    pub fn new(id: i64) -> Self {
+impl<T, U: Clone> Id<T, U> {
+    pub fn new(id: U) -> Self {
         Self {
             id,
             _phantom: PhantomData,
         }
     }
 
-    pub fn get(&self) -> i64 {
-        self.id
+    pub fn get(&self) -> U {
+        self.id.clone()
     }
 }
 
-impl<T> From<i64> for Id<T> {
-    fn from(value: i64) -> Self {
+impl<T, U: Clone> From<U> for Id<T, U> {
+    fn from(value: U) -> Self {
         Self::new(value)
     }
 }
 
-impl<T> Serialize for Id<T> {
+impl<T> Serialize for Id<T, i64> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -41,38 +41,38 @@ impl<T> Serialize for Id<T> {
     }
 }
 
-impl<T> Clone for Id<T> {
+impl<T, U: Clone> Clone for Id<T, U> {
     fn clone(&self) -> Self {
         Self::new(self.get())
     }
 }
 
-impl<T> Type<MySql> for Id<T> {
+impl<T, U: Clone + sqlx::Type<sqlx::MySql>> Type<MySql> for Id<T, U> {
     fn type_info() -> MySqlTypeInfo {
-        <i64 as Type<MySql>>::type_info()
+        <U as Type<MySql>>::type_info()
     }
 
     fn compatible(ty: &MySqlTypeInfo) -> bool {
-        <i64 as Type<MySql>>::compatible(ty)
+        <U as Type<MySql>>::compatible(ty)
     }
 }
 
-impl<T> Encode<'_, MySql> for Id<T> {
+impl<T, U: Clone + for<'a> sqlx::Encode<'a, sqlx::MySql>> Encode<'_, MySql> for Id<T, U> {
     fn encode_by_ref(&self, buf: &mut <MySql as HasArguments<'_>>::ArgumentBuffer) -> IsNull {
-        <i64 as Encode<MySql>>::encode(self.get(), buf)
+        <U as Encode<MySql>>::encode(self.get(), buf)
     }
 }
 
-impl<T> Decode<'_, MySql> for Id<T> {
+impl<T, U: Clone + for<'a> sqlx::Decode<'a, sqlx::MySql>> Decode<'_, MySql> for Id<T, U> {
     fn decode(value: <MySql as HasValueRef<'_>>::ValueRef) -> Result<Self, BoxDynError> {
-        let val = <i64 as Decode<MySql>>::decode(value)?;
+        let val = <U as Decode<MySql>>::decode(value)?;
         Ok(Self::new(val))
     }
 }
 
-impl<T> Dummy<Faker> for Id<T> {
+impl<T, U: Clone + fake::Dummy<fake::Faker>> Dummy<Faker> for Id<T, U> {
     fn dummy_with_rng<R: Rng + ?Sized>(config: &Faker, rng: &mut R) -> Self {
-        let id = Fake::fake_with_rng::<i64, R>(config, rng);
+        let id = Fake::fake_with_rng::<U, R>(config, rng);
         Self::new(id)
     }
 }
