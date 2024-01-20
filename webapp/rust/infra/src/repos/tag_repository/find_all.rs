@@ -38,9 +38,9 @@ async fn exists_case() {
 
     let tid = tag1.id.get();
     let got = tags.iter().find(move |t| t.id.get() == tid).unwrap();
-    assert_eq!(got.name, tag1.name);
+    assert_eq!(got.name.get(), tag1.name.get());
 
     let tid = tag2.id.get();
     let got = tags.iter().find(move |t| t.id.get() == tid).unwrap();
-    assert_eq!(got.name, tag2.name);
+    assert_eq!(got.name.get(), tag2.name.get());
 }

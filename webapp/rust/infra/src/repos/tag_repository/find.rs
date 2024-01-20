@@ -32,5 +32,5 @@ async fn success_case() {
 
     let got = repo.find(&mut tx, &tag.id).await.unwrap();
     assert_eq!(got.id.get(), tag.id.get());
-    assert_eq!(got.name, tag.name);
+    assert_eq!(got.name.get(), tag.name.get());
 }

@@ -57,7 +57,7 @@ impl LivestreamResponse {
             let tag_model = tag_service.find(&livestream_tag_model.tag_id).await?;
             tags.push(TagResponse {
                 id: tag_model.id.get(),
-                name: tag_model.name,
+                name: tag_model.name.get(),
             });
         }
 

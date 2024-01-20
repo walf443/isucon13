@@ -17,7 +17,7 @@ use isupipe_core::models::livestream::{CreateLivestream, Livestream, LivestreamI
 use isupipe_core::models::livestream_statistics::LivestreamStatistics;
 use isupipe_core::models::livestream_viewers_history::CreateLivestreamViewersHistory;
 use isupipe_core::models::ng_word::{CreateNgWord, NgWord};
-use isupipe_core::models::tag::TagId;
+use isupipe_core::models::tag::{TagId, TagName};
 use isupipe_core::models::user::UserId;
 use isupipe_core::services::livestream_service::LivestreamService;
 use isupipe_core::services::livestream_statistics_service::LivestreamStatisticsService;
@@ -193,6 +193,7 @@ pub async fn search_livestreams_handler<S: ServiceManager>(
             .find_recent_livestreams(limit)
             .await?
     } else {
+        let key_tag_name = TagName::new(key_tag_name);
         // タグによる取得
         service
             .livestream_service()

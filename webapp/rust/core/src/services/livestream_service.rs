@@ -1,6 +1,6 @@
 use crate::db::HaveDBPool;
 use crate::models::livestream::{CreateLivestream, Livestream, LivestreamId};
-use crate::models::tag::TagId;
+use crate::models::tag::{TagId, TagName};
 use crate::models::user::UserId;
 use crate::repos::livestream_repository::{HaveLivestreamRepository, LivestreamRepository};
 use crate::repos::livestream_tag_repository::{
@@ -24,7 +24,7 @@ pub trait LivestreamService {
     async fn find(&self, livestream_id: &LivestreamId) -> ServiceResult<Option<Livestream>>;
 
     async fn find_recent_livestreams(&self, limit: Option<i64>) -> ServiceResult<Vec<Livestream>>;
-    async fn find_recent_by_tag_name(&self, tag_name: &str) -> ServiceResult<Vec<Livestream>>;
+    async fn find_recent_by_tag_name(&self, tag_name: &TagName) -> ServiceResult<Vec<Livestream>>;
     async fn find_all_by_user_id(&self, user_id: &UserId) -> ServiceResult<Vec<Livestream>>;
 
     async fn exist_by_id_and_user_id(
@@ -136,7 +136,7 @@ impl<T: LivestreamServiceImpl> LivestreamService for T {
         Ok(livestreams)
     }
 
-    async fn find_recent_by_tag_name(&self, tag_name: &str) -> ServiceResult<Vec<Livestream>> {
+    async fn find_recent_by_tag_name(&self, tag_name: &TagName) -> ServiceResult<Vec<Livestream>> {
         let mut tx = self.get_db_pool().acquire().await?;
         let tag_id_list = self.tag_repo().find_ids_by_name(&mut tx, tag_name).await?;
 

@@ -10,7 +10,7 @@ impl From<Tag> for TagResponse {
     fn from(tag: Tag) -> Self {
         Self {
             id: tag.id.get(),
-            name: tag.name,
+            name: tag.name.get(),
         }
     }
 }

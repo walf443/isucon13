@@ -7,7 +7,7 @@ mod find_ids_by_name;
 
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::tag::{Tag, TagId};
+use isupipe_core::models::tag::{Tag, TagId, TagName};
 use isupipe_core::repos::tag_repository::TagRepository;
 
 #[derive(Clone)]
@@ -34,7 +34,7 @@ impl TagRepository for TagRepositoryInfra {
     async fn find_ids_by_name(
         &self,
         conn: &mut DBConn,
-        name: &str,
+        name: &TagName,
     ) -> isupipe_core::repos::Result<Vec<TagId>> {
         let tag_id_list =
             sqlx::query_scalar!("SELECT id as `id:TagId` FROM tags WHERE name = ?", name)
