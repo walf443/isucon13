@@ -4,7 +4,7 @@ use fake::Dummy;
 #[derive(Debug, sqlx::FromRow, Dummy)]
 pub struct User {
     pub id: Id<Self, i64>,
-    pub name: String,
+    pub name: UserName,
     pub display_name: Option<String>,
     pub description: Option<String>,
     #[sqlx(default, rename = "password")]
@@ -12,6 +12,8 @@ pub struct User {
 }
 
 pub type UserId = Id<User, i64>;
+
+pub type UserName = Id<User, String>;
 
 #[derive(Debug, Dummy, PartialEq, Clone)]
 pub struct CreateUser {

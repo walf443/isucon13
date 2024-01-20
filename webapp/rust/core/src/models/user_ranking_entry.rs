@@ -1,5 +1,7 @@
+use crate::models::user::UserName;
+
 #[derive(Debug)]
 pub struct UserRankingEntry {
-    pub username: String,
+    pub username: UserName,
     pub score: i64,
 }

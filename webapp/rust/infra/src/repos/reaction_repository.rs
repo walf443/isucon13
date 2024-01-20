@@ -6,7 +6,7 @@ use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::reaction::{CreateReaction, Reaction, ReactionId};
-use isupipe_core::models::user::UserId;
+use isupipe_core::models::user::{UserId, UserName};
 use isupipe_core::repos::reaction_repository::ReactionRepository;
 
 #[derive(Clone)]
@@ -48,7 +48,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
     async fn most_favorite_emoji_by_livestream_user_name(
         &self,
         conn: &mut DBConn,
-        livestream_user_name: &str,
+        livestream_user_name: &UserName,
     ) -> isupipe_core::repos::Result<String> {
         let query = r#"
             SELECT r.emoji_name
@@ -91,7 +91,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
     async fn count_by_livestream_user_name(
         &self,
         conn: &mut DBConn,
-        livestream_user_name: &str,
+        livestream_user_name: &UserName,
     ) -> isupipe_core::repos::Result<i64> {
         let query = r"#
             SELECT COUNT(*) FROM users u

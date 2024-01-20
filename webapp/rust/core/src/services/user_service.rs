@@ -4,7 +4,7 @@ mod create;
 use crate::commands::pdnsutil_command::{HavePDNSUtilCommand, PDNSUtilCommand};
 use crate::commands::CommandOutput;
 use crate::db::HaveDBPool;
-use crate::models::user::{CreateUser, User, UserId};
+use crate::models::user::{CreateUser, User, UserId, UserName};
 use crate::repos::theme_repository::{HaveThemeRepository, ThemeRepository};
 use crate::repos::user_repository::{HaveUserRepository, UserRepository};
 use crate::services::ServiceResult;
@@ -63,7 +63,7 @@ impl<T: UserServiceImpl> UserService for T {
         Ok((
             User {
                 id: user_id,
-                name: user.name.clone(),
+                name: UserName::new(user.name.clone()),
                 display_name: Some(user.display_name.clone()),
                 description: Some(user.description.clone()),
                 hashed_password: Some(hashed_password),

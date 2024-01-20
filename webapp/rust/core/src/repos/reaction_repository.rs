@@ -1,7 +1,7 @@
 use crate::db::DBConn;
 use crate::models::livestream::LivestreamId;
 use crate::models::reaction::{CreateReaction, Reaction, ReactionId};
-use crate::models::user::UserId;
+use crate::models::user::{UserId, UserName};
 use crate::repos::Result;
 use async_trait::async_trait;
 
@@ -19,7 +19,7 @@ pub trait ReactionRepository {
     async fn most_favorite_emoji_by_livestream_user_name(
         &self,
         conn: &mut DBConn,
-        livestream_user_name: &str,
+        livestream_user_name: &UserName,
     ) -> Result<String>;
 
     async fn count_by_livestream_user_id(
@@ -31,7 +31,7 @@ pub trait ReactionRepository {
     async fn count_by_livestream_user_name(
         &self,
         conn: &mut DBConn,
-        livestream_user_name: &str,
+        livestream_user_name: &UserName,
     ) -> Result<i64>;
 
     async fn find_all_by_livestream_id(

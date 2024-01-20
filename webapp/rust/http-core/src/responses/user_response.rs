@@ -41,7 +41,7 @@ impl UserResponse {
 
         Ok(Self {
             id: user.id.get(),
-            name: user.name.clone(),
+            name: user.name.get(),
             display_name: user.display_name.clone(),
             description: user.description.clone(),
             theme: ThemeResponse {

@@ -1,6 +1,6 @@
 use crate::db::HaveDBPool;
 use crate::models::livestream::Livestream;
-use crate::models::user::User;
+use crate::models::user::{User, UserName};
 use crate::models::user_ranking_entry::UserRankingEntry;
 use crate::models::user_statistics::UserStatistics;
 use crate::repos::livestream_comment_repository::{
@@ -18,14 +18,14 @@ use async_trait::async_trait;
 #[async_trait]
 pub trait UserStatisticsService {
     async fn get_stats(&self, user: &User) -> ServiceResult<UserStatistics>;
-    async fn get_rank(&self, user_name: &str) -> ServiceResult<i64>;
+    async fn get_rank(&self, user_name: &UserName) -> ServiceResult<i64>;
     async fn get_viewers_count(&self, user_livestreams: &[Livestream]) -> ServiceResult<i64>;
-    async fn get_total_reactions(&self, user_name: &str) -> ServiceResult<i64>;
+    async fn get_total_reactions(&self, user_name: &UserName) -> ServiceResult<i64>;
     async fn get_total_comment_stats(
         &self,
         user_livestreams: &[Livestream],
     ) -> ServiceResult<(i64, i64)>;
-    async fn get_favorite_emoji(&self, user_name: &str) -> ServiceResult<String>;
+    async fn get_favorite_emoji(&self, user_name: &UserName) -> ServiceResult<String>;
 }
 
 pub trait HaveUserStatisticsService {
@@ -69,7 +69,7 @@ impl<T: UserStatisticsServiceImpl> UserStatisticsService for T {
         Ok(user_stats)
     }
 
-    async fn get_rank(&self, user_name: &str) -> ServiceResult<i64> {
+    async fn get_rank(&self, user_name: &UserName) -> ServiceResult<i64> {
         let mut tx = self.get_db_pool().begin().await?;
 
         // ランク算出
@@ -96,12 +96,12 @@ impl<T: UserStatisticsServiceImpl> UserStatisticsService for T {
         ranking.sort_by(|a, b| {
             a.score
                 .cmp(&b.score)
-                .then_with(|| a.username.cmp(&b.username))
+                .then_with(|| a.username.get().cmp(&b.username.get()))
         });
 
         let rpos = ranking
             .iter()
-            .rposition(|entry| entry.username == user_name)
+            .rposition(|entry| entry.username.get() == user_name.get())
             .unwrap();
         let rank = (ranking.len() - rpos) as i64;
 
@@ -124,7 +124,7 @@ impl<T: UserStatisticsServiceImpl> UserStatisticsService for T {
         Ok(viewers_count)
     }
 
-    async fn get_total_reactions(&self, user_name: &str) -> ServiceResult<i64> {
+    async fn get_total_reactions(&self, user_name: &UserName) -> ServiceResult<i64> {
         let mut conn = self.get_db_pool().acquire().await?;
 
         let total_reactions = self
@@ -159,7 +159,7 @@ impl<T: UserStatisticsServiceImpl> UserStatisticsService for T {
         Ok((total_livecomments, total_tip))
     }
 
-    async fn get_favorite_emoji(&self, user_name: &str) -> ServiceResult<String> {
+    async fn get_favorite_emoji(&self, user_name: &UserName) -> ServiceResult<String> {
         let mut conn = self.get_db_pool().acquire().await?;
 
         let favorite_emoji = self

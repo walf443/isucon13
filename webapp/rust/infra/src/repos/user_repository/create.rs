@@ -22,7 +22,7 @@ async fn success_case() {
         .await
         .unwrap();
     assert_eq!(got.id.get(), user_id.get());
-    assert_eq!(got.name, user.name);
+    assert_eq!(got.name.get(), user.name);
     assert_eq!(got.description, Some(user.description));
     assert_eq!(got.display_name, Some(user.display_name));
 }
