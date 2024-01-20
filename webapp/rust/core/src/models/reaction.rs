@@ -1,6 +1,7 @@
 use crate::models::id::Id;
 use crate::models::livestream::LivestreamId;
 use crate::models::user::UserId;
+use fake::Dummy;
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct Reaction {
@@ -11,6 +12,7 @@ pub struct Reaction {
     pub created_at: i64,
 }
 
+#[derive(Dummy)]
 pub struct CreateReaction {
     pub emoji_name: String,
     pub user_id: UserId,
