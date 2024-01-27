@@ -2,7 +2,6 @@ use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_viewers_history::CreateLivestreamViewersHistory;
-use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
 use sqlx::Acquire;
@@ -38,7 +37,7 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
-        let MysqlDecimal(viewers_count) = sqlx::query_scalar("SELECT COUNT(*) FROM livestreams l INNER JOIN livestream_viewers_history h ON h.livestream_id = l.id WHERE l.id = ?")
+        let viewers_count = sqlx::query_scalar("SELECT COUNT(*) FROM livestreams l INNER JOIN livestream_viewers_history h ON h.livestream_id = l.id WHERE l.id = ?")
             .bind(livestream_id)
             .fetch_one(&mut *conn)
             .await?;

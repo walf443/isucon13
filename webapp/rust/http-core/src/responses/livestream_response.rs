@@ -1,7 +1,7 @@
 use crate::responses::tag_response::TagResponse;
 use crate::responses::user_response::UserResponse;
 use crate::responses::ResponseResult;
-use isupipe_core::models::livestream::Livestream;
+use isupipe_core::models::livestream::{Livestream, LivestreamId};
 use isupipe_core::services::livestream_tag_service::LivestreamTagService;
 use isupipe_core::services::manager::ServiceManager;
 use isupipe_core::services::tag_service::TagService;
@@ -9,7 +9,7 @@ use isupipe_core::services::user_service::UserService;
 
 #[derive(Debug, serde::Serialize)]
 pub struct LivestreamResponse {
-    pub id: i64,
+    pub id: LivestreamId,
     pub owner: UserResponse,
     pub title: String,
     pub description: String,
@@ -56,13 +56,13 @@ impl LivestreamResponse {
         for livestream_tag_model in livestream_tag_models {
             let tag_model = tag_service.find(&livestream_tag_model.tag_id).await?;
             tags.push(TagResponse {
-                id: tag_model.id.get(),
-                name: tag_model.name.get(),
+                id: tag_model.id.clone(),
+                name: tag_model.name.clone(),
             });
         }
 
         Ok(Self {
-            id: livestream_model.id.get(),
+            id: livestream_model.id.clone(),
             owner,
             title: livestream_model.title.clone(),
             tags,

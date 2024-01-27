@@ -1,16 +1,16 @@
-use isupipe_core::models::tag::Tag;
+use isupipe_core::models::tag::{Tag, TagId, TagName};
 
 #[derive(Debug, serde::Serialize)]
 pub struct TagResponse {
-    pub id: i64,
-    pub name: String,
+    pub id: TagId,
+    pub name: TagName,
 }
 
 impl From<Tag> for TagResponse {
     fn from(tag: Tag) -> Self {
         Self {
-            id: tag.id.get(),
-            name: tag.name.get(),
+            id: tag.id.clone(),
+            name: tag.name.clone(),
         }
     }
 }

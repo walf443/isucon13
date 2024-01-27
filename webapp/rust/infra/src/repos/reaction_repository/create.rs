@@ -20,9 +20,9 @@ async fn success_case() {
         .await
         .unwrap();
 
-    assert_eq!(got.id.get(), reaction_id.get());
-    assert_eq!(got.user_id.get(), reaction.user_id.get());
+    assert_eq!(got.id, reaction_id);
+    assert_eq!(got.user_id, reaction.user_id);
     assert_eq!(got.emoji_name, reaction.emoji_name);
-    assert_eq!(got.livestream_id.get(), reaction.livestream_id.get());
+    assert_eq!(got.livestream_id, reaction.livestream_id);
     assert_eq!(got.created_at, reaction.created_at);
 }

@@ -34,5 +34,5 @@ async fn success_case() {
     let result = repo.find_ids_by_name(&mut tx, &tag1.name).await.unwrap();
     assert_eq!(result.len(), 1);
     let got = result.first().unwrap();
-    assert_eq!(got.get(), tag1.id.get())
+    assert_eq!(got, &tag1.id)
 }

@@ -1,14 +1,14 @@
 use crate::responses::livestream_response::LivestreamResponse;
 use crate::responses::user_response::UserResponse;
 use crate::responses::ResponseResult;
-use isupipe_core::models::reaction::Reaction;
+use isupipe_core::models::reaction::{Reaction, ReactionId};
 use isupipe_core::services::livestream_service::LivestreamService;
 use isupipe_core::services::manager::ServiceManager;
 use isupipe_core::services::user_service::UserService;
 
 #[derive(Debug, serde::Serialize)]
 pub struct ReactionResponse {
-    pub id: i64,
+    pub id: ReactionId,
     pub emoji_name: String,
     pub user: UserResponse,
     pub livestream: LivestreamResponse,
@@ -49,7 +49,7 @@ impl ReactionResponse {
         let livestream = LivestreamResponse::build_by_service(service, &livestream_model).await?;
 
         Ok(Self {
-            id: reaction_model.id.get(),
+            id: reaction_model.id.clone(),
             emoji_name: reaction_model.emoji_name.clone(),
             user,
             livestream,

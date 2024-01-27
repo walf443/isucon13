@@ -38,5 +38,5 @@ async fn found_case() {
     let repo = UserRepositoryInfra {};
     let got_user = repo.find_by_name(&mut tx, &user.name).await.unwrap();
     assert!(got_user.is_some());
-    assert_eq!(got_user.unwrap().id.get(), user_id.get())
+    assert_eq!(got_user.unwrap().id, user_id)
 }

@@ -4,7 +4,6 @@ use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_comment::{
     CreateLivestreamComment, LivestreamComment, LivestreamCommentId,
 };
-use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 
@@ -136,10 +135,9 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     }
 
     async fn get_sum_tip(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<i64> {
-        let MysqlDecimal(total_tip) =
-            sqlx::query_scalar("SELECT IFNULL(SUM(tip), 0) FROM livecomments")
-                .fetch_one(conn)
-                .await?;
+        let total_tip = sqlx::query_scalar("SELECT IFNULL(SUM(tip), 0) FROM livecomments")
+            .fetch_one(conn)
+            .await?;
 
         Ok(total_tip)
     }
@@ -149,7 +147,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
-        let MysqlDecimal(total_tips) = sqlx::query_scalar("SELECT IFNULL(SUM(l2.tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l.id = l2.livestream_id WHERE l.id = ?")
+        let total_tips = sqlx::query_scalar("SELECT IFNULL(SUM(l2.tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l.id = l2.livestream_id WHERE l.id = ?")
             .bind(livestream_id)
             .fetch_one(conn)
             .await?;
@@ -162,7 +160,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
-        let MysqlDecimal(max_tip) = sqlx::query_scalar("SELECT IFNULL(MAX(tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l2.livestream_id = l.id WHERE l.id = ?")
+        let max_tip = sqlx::query_scalar("SELECT IFNULL(MAX(tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l2.livestream_id = l.id WHERE l.id = ?")
             .bind(livestream_id)
             .fetch_one(conn)
             .await?;
@@ -181,7 +179,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         INNER JOIN livecomments l2 ON l2.livestream_id = l.id
         WHERE u.id = ?
         "#;
-        let MysqlDecimal(tips) = sqlx::query_scalar(query)
+        let tips = sqlx::query_scalar(query)
             .bind(user_id)
             .fetch_one(conn)
             .await?;

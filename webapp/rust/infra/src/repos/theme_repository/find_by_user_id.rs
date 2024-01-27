@@ -34,7 +34,7 @@ async fn success_case() {
         .unwrap();
 
     let got = repo.find_by_user_id(&mut tx, &theme.user_id).await.unwrap();
-    assert_eq!(theme.id.get(), got.id.get());
-    assert_eq!(theme.user_id.get(), got.user_id.get());
+    assert_eq!(theme.id, got.id);
+    assert_eq!(theme.user_id, got.user_id);
     assert_eq!(theme.dark_mode, got.dark_mode);
 }

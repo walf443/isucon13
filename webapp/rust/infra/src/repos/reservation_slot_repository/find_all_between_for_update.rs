@@ -47,14 +47,14 @@ async fn not_empty_case() {
         .await
         .unwrap();
     assert_eq!(result.len(), 2);
-    let sid = slot1.id.get();
-    let got1 = result.iter().find(|i| i.id.get() == sid).unwrap();
+    let sid = slot1.id.clone();
+    let got1 = result.iter().find(|i| i.id == sid).unwrap();
     assert_eq!(got1.slot, slot1.slot);
     assert_eq!(got1.start_at, slot1.start_at);
     assert_eq!(got1.end_at, slot1.end_at);
 
-    let sid = slot2.id.get();
-    let got2 = result.iter().find(|i| i.id.get() == sid).unwrap();
+    let sid = slot2.id.clone();
+    let got2 = result.iter().find(|i| i.id == sid).unwrap();
     assert_eq!(got2.slot, slot2.slot);
     assert_eq!(got2.start_at, slot2.start_at);
     assert_eq!(got2.end_at, slot2.end_at);

@@ -22,6 +22,6 @@ async fn success_case() {
         .await
         .unwrap();
 
-    assert_eq!(theme.user_id.get(), got.user_id.get());
+    assert_eq!(theme.user_id, got.user_id);
     assert_eq!(theme.dark_mode, got.dark_mode);
 }

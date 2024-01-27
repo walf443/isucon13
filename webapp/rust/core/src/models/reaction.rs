@@ -1,7 +1,7 @@
-use crate::models::id::Id;
 use crate::models::livestream::LivestreamId;
 use crate::models::user::UserId;
 use fake::Dummy;
+use kubetsu::Id;
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct Reaction {
