@@ -1,5 +1,5 @@
-use crate::models::id::Id;
 use crate::models::user::UserId;
+use kubetsu::Id;
 
 pub struct CreateLivestream {
     pub user_id: UserId,

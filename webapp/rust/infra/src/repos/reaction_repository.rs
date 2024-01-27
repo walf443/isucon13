@@ -4,7 +4,6 @@ mod create;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::LivestreamId;
-use isupipe_core::models::mysql_decimal::MysqlDecimal;
 use isupipe_core::models::reaction::{CreateReaction, Reaction, ReactionId};
 use isupipe_core::models::user::{UserId, UserName};
 use isupipe_core::repos::reaction_repository::ReactionRepository;
@@ -37,7 +36,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
-        let MysqlDecimal(reactions) = sqlx::query_scalar("SELECT COUNT(*) FROM livestreams l INNER JOIN reactions r ON l.id = r.livestream_id WHERE l.id = ?")
+        let reactions = sqlx::query_scalar("SELECT COUNT(*) FROM livestreams l INNER JOIN reactions r ON l.id = r.livestream_id WHERE l.id = ?")
             .bind(livestream_id)
             .fetch_one(conn)
             .await?;
@@ -80,7 +79,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
             INNER JOIN reactions r ON r.livestream_id = l.id
             WHERE u.id = ?
         "#;
-        let MysqlDecimal(reactions) = sqlx::query_scalar(query)
+        let reactions = sqlx::query_scalar(query)
             .bind(livestream_user_id)
             .fetch_one(conn)
             .await?;
@@ -99,7 +98,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
             INNER JOIN reactions r ON r.livestream_id = l.id
             WHERE u.name = ?
         #";
-        let MysqlDecimal(total_reactions) = sqlx::query_scalar(query)
+        let total_reactions = sqlx::query_scalar(query)
             .bind(livestream_user_name)
             .fetch_one(conn)
             .await?;

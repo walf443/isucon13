@@ -48,7 +48,7 @@ async fn theme_repo_create_fail() {
     service
         .mock_theme_repo
         .expect_create()
-        .withf(move |_, u, m| u.get() == uid.get() && m == &dark_mode)
+        .withf(move |_, u, m| u == &uid && m == &dark_mode)
         .returning(move |_, _, _| Err(TestError));
 
     let result = service.create(&user, dark_mode, &domain).await;
@@ -77,7 +77,7 @@ async fn pdnsutil_command_add_record_error() {
     service
         .mock_theme_repo
         .expect_create()
-        .withf(move |_, u, m| u.get() == uid.get() && m == &dark_mode)
+        .withf(move |_, u, m| u == &uid && m == &dark_mode)
         .returning(move |_, _, _| Ok(()));
 
     let got_user = user.clone();
@@ -114,7 +114,7 @@ async fn pdnsutil_command_add_record_fail() {
     service
         .mock_theme_repo
         .expect_create()
-        .withf(move |_, u, m| u.get() == uid.get() && m == &dark_mode)
+        .withf(move |_, u, m| u == &uid && m == &dark_mode)
         .returning(move |_, _, _| Ok(()));
 
     let got_user = user.clone();
@@ -138,7 +138,7 @@ async fn pdnsutil_command_add_record_fail() {
 
     let (u, out) = service.create(&user, dark_mode, &domain).await.unwrap();
     assert_eq!(out.success, false);
-    assert_eq!(u.id.get(), expect_user_id.get())
+    assert_eq!(u.id, expect_user_id)
 }
 
 #[tokio::test]
@@ -163,7 +163,7 @@ async fn success_case() {
     service
         .mock_theme_repo
         .expect_create()
-        .withf(move |_, u, m| u.get() == uid.get() && m == &dark_mode)
+        .withf(move |_, u, m| u == &uid && m == &dark_mode)
         .returning(move |_, _, _| Ok(()));
 
     let got_user = user.clone();
@@ -187,5 +187,5 @@ async fn success_case() {
 
     let (u, out) = service.create(&user, dark_mode, &domain).await.unwrap();
     assert_eq!(out.success, true);
-    assert_eq!(u.id.get(), expect_user_id.get())
+    assert_eq!(u.id, expect_user_id)
 }

@@ -40,7 +40,7 @@ pub async fn login_handler<S: ServiceManager>(
     let mut sess = async_session::Session::new();
     sess.insert(DEFAULT_SESSION_ID_KEY, session_id).unwrap();
     sess.insert(DEFAULT_USER_ID_KEY, user_model.id).unwrap();
-    sess.insert(DEFAULT_USERNAME_KEY, user_model.name.get())
+    sess.insert(DEFAULT_USERNAME_KEY, user_model.name.inner())
         .unwrap();
     sess.insert(DEFUALT_SESSION_EXPIRES_KEY, session_end_at.timestamp())
         .unwrap();

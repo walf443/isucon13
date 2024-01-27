@@ -1,5 +1,5 @@
-use crate::models::id::Id;
 use fake::Dummy;
+use kubetsu::Id;
 
 #[derive(Debug, sqlx::FromRow, Dummy)]
 pub struct ReservationSlot {

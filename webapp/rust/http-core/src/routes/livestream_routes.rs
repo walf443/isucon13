@@ -16,7 +16,7 @@ use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use isupipe_core::models::livestream::{CreateLivestream, Livestream, LivestreamId};
 use isupipe_core::models::livestream_statistics::LivestreamStatistics;
 use isupipe_core::models::livestream_viewers_history::CreateLivestreamViewersHistory;
-use isupipe_core::models::ng_word::{CreateNgWord, NgWord};
+use isupipe_core::models::ng_word::{CreateNgWord, NgWord, NgWordId};
 use isupipe_core::models::tag::{TagId, TagName};
 use isupipe_core::models::user::UserId;
 use isupipe_core::services::livestream_service::LivestreamService;
@@ -282,7 +282,7 @@ pub struct ModerateRequest {
 
 #[derive(Debug, serde::Serialize)]
 pub struct ModerateResponse {
-    word_id: i64,
+    word_id: NgWordId,
 }
 
 // NGワードを登録
@@ -329,7 +329,7 @@ pub async fn moderate_handler<S: ServiceManager>(
     Ok((
         StatusCode::CREATED,
         axum::Json(ModerateResponse {
-            word_id: word_id.get(),
+            word_id: word_id.clone(),
         }),
     ))
 }

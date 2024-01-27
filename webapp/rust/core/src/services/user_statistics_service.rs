@@ -96,12 +96,12 @@ impl<T: UserStatisticsServiceImpl> UserStatisticsService for T {
         ranking.sort_by(|a, b| {
             a.score
                 .cmp(&b.score)
-                .then_with(|| a.username.get().cmp(&b.username.get()))
+                .then_with(|| a.username.inner().cmp(&b.username.inner()))
         });
 
         let rpos = ranking
             .iter()
-            .rposition(|entry| entry.username.get() == user_name.get())
+            .rposition(|entry| entry.username.inner() == user_name.inner())
             .unwrap();
         let rank = (ranking.len() - rpos) as i64;
 

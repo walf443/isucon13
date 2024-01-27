@@ -52,7 +52,7 @@ pub async fn get_streamer_theme_handler<S: ServiceManager>(
     let theme_model = service.theme_service().find_by_user_id(&user.id).await?;
 
     Ok(axum::Json(ThemeResponse {
-        id: theme_model.id.get(),
+        id: theme_model.id.inner().clone(),
         dark_mode: theme_model.dark_mode,
     }))
 }

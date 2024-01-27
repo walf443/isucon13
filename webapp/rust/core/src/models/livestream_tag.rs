@@ -1,6 +1,6 @@
-use crate::models::id::Id;
 use crate::models::livestream::LivestreamId;
 use crate::models::tag::TagId;
+use kubetsu::Id;
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct LivestreamTag {

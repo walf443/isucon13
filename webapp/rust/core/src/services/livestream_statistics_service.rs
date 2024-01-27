@@ -1,5 +1,5 @@
 use crate::db::HaveDBPool;
-use crate::models::livestream::{Livestream, LivestreamId};
+use crate::models::livestream::Livestream;
 use crate::models::livestream_ranking_entry::LivestreamRankingEntry;
 use crate::models::livestream_statistics::LivestreamStatistics;
 use crate::repos::livestream_comment_report_repository::{
@@ -78,7 +78,7 @@ impl<T: LivestreamStatisticsServiceImpl> LivestreamStatisticsService for T {
 
             let score = reactions + total_tips;
             ranking.push(LivestreamRankingEntry {
-                livestream_id: LivestreamId::new(livestream.id.get()),
+                livestream_id: livestream.id.clone(),
                 score,
             })
         }
@@ -86,12 +86,12 @@ impl<T: LivestreamStatisticsServiceImpl> LivestreamStatisticsService for T {
         ranking.sort_by(|a, b| {
             a.score
                 .cmp(&b.score)
-                .then_with(|| a.livestream_id.get().cmp(&b.livestream_id.get()))
+                .then_with(|| a.livestream_id.inner().cmp(&b.livestream_id.inner()))
         });
 
         let rpos = ranking
             .iter()
-            .rposition(|entry| entry.livestream_id.get() == livestream.id.get())
+            .rposition(|entry| entry.livestream_id == livestream.id)
             .unwrap();
         let rank = (ranking.len() - rpos) as i64;
 
