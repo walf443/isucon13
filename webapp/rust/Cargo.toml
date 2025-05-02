@@ -7,7 +7,7 @@ kubetsu = { version = "0.2", features = ["serde", "fake", "sqlx-mysql"]}
 async-session = "3"
 axum = { version = "0.8", features = ["tracing"] }
 axum-extra = { version = "0.10", features = ["cookie-signed", "cookie-key-expansion", "typed-header"] }
-async-trait = "0.1.74"
+async-trait = "0.1"
 base64 = "0.21"
 bcrypt = "0.15"
 chrono = { version = "0.4", features = ["serde"] }
