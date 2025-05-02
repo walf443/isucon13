@@ -14,11 +14,11 @@ bcrypt.workspace = true
 chrono.workspace = true
 kubetsu.workspace = true
 fake.workspace = true
-mockall = { version = "0.12.1", optional = true }
+mockall = { version = "0.13", optional = true }
 num-traits.workspace = true
 serde.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
 time.workspace = true
 tokio.workspace = true
-tracing = "0.1.40"
+tracing = "0.1"
