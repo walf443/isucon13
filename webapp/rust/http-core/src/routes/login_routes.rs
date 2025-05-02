@@ -47,11 +47,10 @@ pub async fn login_handler<S: ServiceManager>(
     let cookie_store = CookieStore::new();
     if let Some(cookie_value) = cookie_store.store_session(sess).await? {
         let cookie =
-            axum_extra::extract::cookie::Cookie::build(DEFAULT_SESSION_ID_KEY, cookie_value)
+            axum_extra::extract::cookie::Cookie::build((DEFAULT_SESSION_ID_KEY, cookie_value))
                 .domain("u.isucon.dev")
                 .max_age(time::Duration::minutes(1000))
-                .path("/")
-                .finish();
+                .path("/");
         jar = jar.add(cookie);
     }
 

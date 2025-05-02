@@ -26,7 +26,7 @@ pub async fn get_icon_handler<S: ServiceManager>(
     } else {
         let file = tokio::fs::File::open(FALLBACK_IMAGE).await.unwrap();
         let stream = tokio_util::io::ReaderStream::new(file);
-        let body = axum::body::StreamBody::new(stream);
+        let body = axum::body::Body::from_stream(stream);
 
         Ok((headers, body).into_response())
     }

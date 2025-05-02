@@ -3,6 +3,7 @@ use isupipe_http_core::routes::routes;
 use isupipe_http_core::state::AppState;
 use isupipe_infra::services::manager::ServiceManagerInfra;
 use std::sync::Arc;
+use tokio::net::TcpListener;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -43,13 +44,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // HTTPサーバ起動
     if let Some(tcp_listener) = listenfd::ListenFd::from_env().take_tcp_listener(0)? {
-        axum::Server::from_tcp(tcp_listener)?
+        let listener = TcpListener::from_std(tcp_listener).unwrap();
+        axum::serve(listener, app.into_make_service()).await?;
     } else {
-        const LISTEN_PORT: u16 = 8080;
-        axum::Server::bind(&std::net::SocketAddr::from(([0, 0, 0, 0], LISTEN_PORT)))
+        let listener = TcpListener::bind("0.0.0.0:8080").await.unwrap();
+        axum::serve(listener, app.into_make_service()).await?;
     }
-    .serve(app.into_make_service())
-    .await?;
 
     Ok(())
 }

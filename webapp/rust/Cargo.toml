@@ -5,8 +5,8 @@ resolver = "2"
 [workspace.dependencies]
 kubetsu = { version = "0.2", features = ["serde", "fake", "sqlx-mysql"]}
 async-session = "3"
-axum = { version = "0.6", features = ["tracing", "headers"] }
-axum-extra = { version = "0.8", features = ["cookie-signed", "cookie-key-expansion"] }
+axum = { version = "0.8", features = ["tracing"] }
+axum-extra = { version = "0.10", features = ["cookie-signed", "cookie-key-expansion", "typed-header"] }
 async-trait = "0.1.74"
 base64 = "0.21"
 bcrypt = "0.15"
@@ -21,7 +21,7 @@ thiserror = "1"
 time = "0.3"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "process", "fs"] }
 tokio-util = { version = "0.7", features = ["io"] }
-tower-http = { version = "0.4", features = ["trace"] }
+tower-http = { version = "0.6", features = ["trace"] }
 tracing = "0.1"
 tracing-subscriber = { version =  "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4"] }
