@@ -7,6 +7,12 @@ pub struct InitializeServiceInfra {
     initialize_command: InitializeCommandInfra,
 }
 
+impl Default for InitializeServiceInfra {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl InitializeServiceInfra {
     pub fn new() -> Self {
         Self {

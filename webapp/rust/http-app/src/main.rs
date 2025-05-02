@@ -55,10 +55,3 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-
-#[derive(Debug, serde::Serialize)]
-struct Session {
-    id: String,
-    user_id: i64,
-    expires: i64,
-}

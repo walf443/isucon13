@@ -45,7 +45,7 @@ impl UserResponse {
             display_name: user.display_name.clone(),
             description: user.description.clone(),
             theme: ThemeResponse {
-                id: theme_model.id.inner().clone(),
+                id: *theme_model.id.inner(),
                 dark_mode: theme_model.dark_mode,
             },
             icon_hash: format!("{:x}", icon_hash),

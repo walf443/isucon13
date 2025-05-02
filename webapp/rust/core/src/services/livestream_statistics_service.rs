@@ -86,7 +86,7 @@ impl<T: LivestreamStatisticsServiceImpl> LivestreamStatisticsService for T {
         ranking.sort_by(|a, b| {
             a.score
                 .cmp(&b.score)
-                .then_with(|| a.livestream_id.inner().cmp(&b.livestream_id.inner()))
+                .then_with(|| a.livestream_id.inner().cmp(b.livestream_id.inner()))
         });
 
         let rpos = ranking

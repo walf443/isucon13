@@ -32,7 +32,7 @@ async fn found_case() {
     .await
     .unwrap();
 
-    let got = repo.find(&mut *tx, &user_id).await.unwrap();
+    let got = repo.find(&mut tx, &user_id).await.unwrap();
     assert!(got.is_some());
     let got = got.unwrap();
     assert_eq!(got.id, user_id);
@@ -49,6 +49,6 @@ async fn not_found_case() {
     let user_id: UserId = Faker.fake();
     let repo = UserRepositoryInfra {};
 
-    let user = repo.find(&mut *tx, &user_id).await.unwrap();
+    let user = repo.find(&mut tx, &user_id).await.unwrap();
     assert!(user.is_none());
 }

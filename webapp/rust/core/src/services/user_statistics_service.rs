@@ -96,7 +96,7 @@ impl<T: UserStatisticsServiceImpl> UserStatisticsService for T {
         ranking.sort_by(|a, b| {
             a.score
                 .cmp(&b.score)
-                .then_with(|| a.username.inner().cmp(&b.username.inner()))
+                .then_with(|| a.username.inner().cmp(b.username.inner()))
         });
 
         let rpos = ranking

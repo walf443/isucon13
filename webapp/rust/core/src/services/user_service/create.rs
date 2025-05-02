@@ -137,7 +137,7 @@ async fn pdnsutil_command_add_record_fail() {
         .returning(|_| Ok(Faker.fake()));
 
     let (u, out) = service.create(&user, dark_mode, &domain).await.unwrap();
-    assert_eq!(out.success, false);
+    assert!(!out.success);
     assert_eq!(u.id, expect_user_id)
 }
 
@@ -186,6 +186,6 @@ async fn success_case() {
         .returning(|_| Ok(Faker.fake()));
 
     let (u, out) = service.create(&user, dark_mode, &domain).await.unwrap();
-    assert_eq!(out.success, true);
+    assert!(out.success);
     assert_eq!(u.id, expect_user_id)
 }

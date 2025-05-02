@@ -12,7 +12,7 @@ async fn success_case() {
     let theme: Theme = Faker.fake();
 
     let repo = ThemeRepositoryInfra {};
-    repo.create(&mut *tx, &theme.user_id, theme.dark_mode)
+    repo.create(&mut tx, &theme.user_id, theme.dark_mode)
         .await
         .unwrap();
 
