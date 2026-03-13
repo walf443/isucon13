@@ -30,4 +30,4 @@ jobs:
           workspaces: webapp/rust
 
       - name: Run tests
-        run: cargo test -p isupipe-infra
+        run: cargo test -p isupipe-infra -- --test-threads=1
