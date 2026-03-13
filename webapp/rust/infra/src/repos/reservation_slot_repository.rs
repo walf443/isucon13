@@ -24,14 +24,15 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         start_at: i64,
         end_at: i64,
     ) -> isupipe_core::repos::Result<Vec<ReservationSlot>> {
-        // FOR UPDATE - not supported by squipe
-        let slots: Vec<ReservationSlot> = sqlx::query_as(
-            "SELECT * FROM reservation_slots WHERE start_at >= ? AND end_at <= ? FOR UPDATE",
-        )
-        .bind(start_at)
-        .bind(end_at)
-        .fetch_all(conn)
-        .await?;
+        let mut q = sqipe(reservation_slot::TABLE_NAME);
+        q.and_where(col("start_at").gte(start_at));
+        q.and_where(col("end_at").lte(end_at));
+        q.for_update();
+        let (sql, binds) = q.to_sql();
+        let slots =
+            bind_sqipe_values!(sqlx::query_as::<_, ReservationSlot>(&sql), binds)
+                .fetch_all(conn)
+                .await?;
 
         Ok(slots)
     }

@@ -62,3 +62,82 @@ async fn not_empty_case() {
     assert_eq!(got2.start_at, slot2.start_at);
     assert_eq!(got2.end_at, slot2.end_at);
 }
+
+#[tokio::test]
+async fn boundary_case() {
+    let db_pool = get_db_pool().await.unwrap();
+    let mut tx = db_pool.begin().await.unwrap();
+
+    let repo = ReservationSlotRepositoryInfra {};
+    let mut slot: ReservationSlot = Faker.fake();
+    slot.start_at = 1000;
+    slot.end_at = 2000;
+
+    sqlx::query(
+        "INSERT INTO reservation_slots (id, slot, start_at, end_at) VALUES (?, ?, ?, ?)",
+    )
+    .bind(&slot.id)
+    .bind(slot.slot)
+    .bind(slot.start_at)
+    .bind(slot.end_at)
+    .execute(&mut *tx)
+    .await
+    .unwrap();
+
+    // exact boundary match (start_at >= 1000 AND end_at <= 2000)
+    let result = repo
+        .find_all_between_for_update(&mut tx, 1000, 2000)
+        .await
+        .unwrap();
+    assert_eq!(result.len(), 1);
+
+    // start_at is after slot.start_at → excluded
+    let result = repo
+        .find_all_between_for_update(&mut tx, 1001, 2000)
+        .await
+        .unwrap();
+    assert_eq!(result.len(), 0);
+
+    // end_at is before slot.end_at → excluded
+    let result = repo
+        .find_all_between_for_update(&mut tx, 1000, 1999)
+        .await
+        .unwrap();
+    assert_eq!(result.len(), 0);
+}
+
+#[tokio::test]
+async fn filters_out_of_range() {
+    let db_pool = get_db_pool().await.unwrap();
+    let mut tx = db_pool.begin().await.unwrap();
+
+    let repo = ReservationSlotRepositoryInfra {};
+    let mut inside: ReservationSlot = Faker.fake();
+    inside.start_at = 1000;
+    inside.end_at = 2000;
+    let mut outside: ReservationSlot = Faker.fake();
+    outside.start_at = 3000;
+    outside.end_at = 4000;
+
+    sqlx::query(
+        "INSERT INTO reservation_slots (id, slot, start_at, end_at) VALUES (?, ?, ?, ?), (?, ?, ?, ?)",
+    )
+    .bind(&inside.id)
+    .bind(inside.slot)
+    .bind(inside.start_at)
+    .bind(inside.end_at)
+    .bind(&outside.id)
+    .bind(outside.slot)
+    .bind(outside.start_at)
+    .bind(outside.end_at)
+    .execute(&mut *tx)
+    .await
+    .unwrap();
+
+    let result = repo
+        .find_all_between_for_update(&mut tx, 1000, 2000)
+        .await
+        .unwrap();
+    assert_eq!(result.len(), 1);
+    assert_eq!(result[0].id, inside.id);
+}
