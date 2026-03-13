@@ -1,0 +1,33 @@
+name: Rust Tests
+
+on:
+  push:
+    branches: [main, reorganize_rust, sqipe]
+    paths:
+      - 'webapp/rust/**'
+      - '.github/workflows/rust-test.yml'
+  pull_request:
+    paths:
+      - 'webapp/rust/**'
+      - '.github/workflows/rust-test.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: webapp/rust
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: webapp/rust
+
+      - name: Run tests
+        run: cargo test -p isupipe-infra
