@@ -1,9 +1,12 @@
+use crate::sqipe_support::bind_sqipe_values;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_tag::LivestreamTag;
 use isupipe_core::models::tag::TagId;
 use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
+use sqipe::col;
+use sqipe_mysql::sqipe;
 
 #[derive(Clone)]
 pub struct LivestreamTagRepositoryInfra {}
@@ -30,9 +33,11 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamTag>> {
+        let mut q = sqipe("livestream_tags");
+        q.and_where(("livestream_id", *livestream_id.inner()));
+        let (sql, binds) = q.to_sql();
         let livestream_tag_models =
-            sqlx::query_as("SELECT * FROM livestream_tags WHERE livestream_id = ?")
-                .bind(livestream_id)
+            bind_sqipe_values!(sqlx::query_as::<_, LivestreamTag>(&sql), binds)
                 .fetch_all(conn)
                 .await?;
 
@@ -44,16 +49,16 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
         conn: &mut DBConn,
         tag_ids: &[TagId],
     ) -> isupipe_core::repos::Result<Vec<LivestreamTag>> {
-        let mut query_builder = sqlx::query_builder::QueryBuilder::new(
-            "SELECT * FROM livestream_tags WHERE tag_id IN (",
-        );
-        let mut separated = query_builder.separated(", ");
-        for tag_id in tag_ids {
-            separated.push_bind(tag_id);
-        }
-        separated.push_unseparated(") ORDER BY livestream_id DESC");
-        let livestreams: Vec<LivestreamTag> =
-            query_builder.build_query_as().fetch_all(conn).await?;
+        let mut q = sqipe("livestream_tags");
+        let id_values: Vec<sqipe::Value> =
+            tag_ids.iter().map(|id| sqipe::Value::Int(*id.inner())).collect();
+        q.and_where(col("tag_id").included(id_values.as_slice()));
+        q.order_by(col("livestream_id").desc());
+        let (sql, binds) = q.to_sql();
+        let livestreams =
+            bind_sqipe_values!(sqlx::query_as::<_, LivestreamTag>(&sql), binds)
+                .fetch_all(conn)
+                .await?;
 
         Ok(livestreams)
     }

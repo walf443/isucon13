@@ -1,3 +1,4 @@
+use crate::sqipe_support::bind_sqipe_values;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::LivestreamId;
@@ -6,6 +7,8 @@ use isupipe_core::models::livestream_comment_report::{
 };
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::Result;
+use sqipe::{aggregate, table};
+use sqipe_mysql::sqipe;
 
 #[derive(Clone)]
 pub struct LivestreamCommentReportRepositoryInfra {}
@@ -35,8 +38,16 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
-        let total_reports = sqlx::query_scalar("SELECT COUNT(*) FROM livestreams l INNER JOIN livecomment_reports r ON r.livestream_id = l.id WHERE l.id = ?")
-            .bind(livestream_id)
+        let mut q = sqipe("livestreams");
+        q.as_("l");
+        q.join(
+            "livecomment_reports",
+            table("livecomment_reports").col("livestream_id").eq_col(table("l").col("id")),
+        );
+        q.aggregate(&[aggregate::count_all()]);
+        q.and_where(("l.id", *livestream_id.inner()));
+        let (sql, binds) = q.to_sql();
+        let total_reports = bind_sqipe_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)
             .await?;
 
@@ -48,9 +59,11 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamCommentReport>> {
-        let report_models: Vec<LivestreamCommentReport> =
-            sqlx::query_as("SELECT * FROM livecomment_reports WHERE livestream_id = ?")
-                .bind(livestream_id)
+        let mut q = sqipe("livecomment_reports");
+        q.and_where(("livestream_id", *livestream_id.inner()));
+        let (sql, binds) = q.to_sql();
+        let report_models =
+            bind_sqipe_values!(sqlx::query_as::<_, LivestreamCommentReport>(&sql), binds)
                 .fetch_all(conn)
                 .await?;
 

@@ -1,9 +1,12 @@
+use crate::sqipe_support::bind_sqipe_values;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_viewers_history::CreateLivestreamViewersHistory;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
+use sqipe::{aggregate, table};
+use sqipe_mysql::sqipe;
 use sqlx::Acquire;
 
 #[derive(Clone)]
@@ -37,8 +40,16 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
-        let viewers_count = sqlx::query_scalar("SELECT COUNT(*) FROM livestreams l INNER JOIN livestream_viewers_history h ON h.livestream_id = l.id WHERE l.id = ?")
-            .bind(livestream_id)
+        let mut q = sqipe("livestreams");
+        q.as_("l");
+        q.join(
+            "livestream_viewers_history",
+            table("livestream_viewers_history").col("livestream_id").eq_col(table("l").col("id")),
+        );
+        q.aggregate(&[aggregate::count_all()]);
+        q.and_where(("l.id", *livestream_id.inner()));
+        let (sql, binds) = q.to_sql();
+        let viewers_count = bind_sqipe_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(&mut *conn)
             .await?;
 

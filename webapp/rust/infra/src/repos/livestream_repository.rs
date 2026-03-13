@@ -1,8 +1,11 @@
+use crate::sqipe_support::bind_sqipe_values;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::{CreateLivestream, Livestream, LivestreamId};
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
+use sqipe::col;
+use sqipe_mysql::sqipe;
 
 #[derive(Clone)]
 pub struct LivestreamRepositoryInfra {}
@@ -30,7 +33,9 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
     }
 
     async fn find_all(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<Vec<Livestream>> {
-        let livestreams: Vec<Livestream> = sqlx::query_as("SELECT * FROM livestreams")
+        let q = sqipe("livestreams");
+        let (sql, binds) = q.to_sql();
+        let livestreams = bind_sqipe_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
             .fetch_all(conn)
             .await?;
 
@@ -41,10 +46,12 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         &self,
         conn: &mut DBConn,
     ) -> isupipe_core::repos::Result<Vec<Livestream>> {
-        let livestreams: Vec<Livestream> =
-            sqlx::query_as("SELECT * FROM livestreams ORDER BY id DESC")
-                .fetch_all(conn)
-                .await?;
+        let mut q = sqipe("livestreams");
+        q.order_by(col("id").desc());
+        let (sql, binds) = q.to_sql();
+        let livestreams = bind_sqipe_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
+            .fetch_all(conn)
+            .await?;
 
         Ok(livestreams)
     }
@@ -54,11 +61,13 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         conn: &mut DBConn,
         limit: i64,
     ) -> isupipe_core::repos::Result<Vec<Livestream>> {
-        let livestreams: Vec<Livestream> =
-            sqlx::query_as("SELECT * FROM livestreams ORDER BY id DESC LIMIT ?")
-                .bind(limit)
-                .fetch_all(conn)
-                .await?;
+        let mut q = sqipe("livestreams");
+        q.order_by(col("id").desc());
+        q.limit(limit as u64);
+        let (sql, binds) = q.to_sql();
+        let livestreams = bind_sqipe_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
+            .fetch_all(conn)
+            .await?;
 
         Ok(livestreams)
     }
@@ -68,11 +77,12 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         conn: &mut DBConn,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Vec<Livestream>> {
-        let livestream_models: Vec<Livestream> =
-            sqlx::query_as("SELECT * FROM livestreams WHERE user_id = ?")
-                .bind(user_id)
-                .fetch_all(conn)
-                .await?;
+        let mut q = sqipe("livestreams");
+        q.and_where(("user_id", *user_id.inner()));
+        let (sql, binds) = q.to_sql();
+        let livestream_models = bind_sqipe_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
+            .fetch_all(conn)
+            .await?;
 
         Ok(livestream_models)
     }
@@ -82,8 +92,10 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         conn: &mut DBConn,
         id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Option<Livestream>> {
-        let livestream = sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
-            .bind(id)
+        let mut q = sqipe("livestreams");
+        q.and_where(("id", *id.inner()));
+        let (sql, binds) = q.to_sql();
+        let livestream = bind_sqipe_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
             .fetch_optional(conn)
             .await?;
 
@@ -96,10 +108,12 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         id: &LivestreamId,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<bool> {
+        let mut q = sqipe("livestreams");
+        q.and_where(("id", *id.inner()));
+        q.and_where(("user_id", *user_id.inner()));
+        let (sql, binds) = q.to_sql();
         let livestreams: Vec<Livestream> =
-            sqlx::query_as("SELECT * FROM livestreams WHERE id = ? AND user_id = ?")
-                .bind(id)
-                .bind(user_id)
+            bind_sqipe_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
                 .fetch_all(conn)
                 .await?;
 

@@ -9,10 +9,23 @@ mod find_by_name;
 #[cfg(test)]
 mod find_id_by_name;
 
+use crate::sqipe_support::bind_sqipe_values;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::user::{CreateUser, User, UserId};
 use isupipe_core::repos::user_repository::UserRepository;
+use sqipe::{IntoColRef, col};
+use sqipe_mysql::sqipe;
+
+fn user_select_cols() -> Vec<sqipe::ColRef> {
+    vec![
+        col("id").into_col_ref(),
+        col("name").into_col_ref(),
+        col("display_name").into_col_ref(),
+        col("description").into_col_ref(),
+        col("password").as_("hashed_password"),
+    ]
+}
 
 #[derive(Clone)]
 pub struct UserRepositoryInfra {}
@@ -26,13 +39,13 @@ impl UserRepository for UserRepositoryInfra {
     ) -> isupipe_core::repos::Result<UserId> {
         let hashed_password = self.hash_password(&user.password)?;
 
-        let result = sqlx::query!(
+        let result = sqlx::query(
             "INSERT INTO users (name, display_name, description, password) VALUES(?, ?, ?, ?)",
-            &user.name,
-            &user.display_name,
-            &user.description,
-            &hashed_password,
         )
+        .bind(&user.name)
+        .bind(&user.display_name)
+        .bind(&user.description)
+        .bind(&hashed_password)
         .execute(conn)
         .await?;
 
@@ -46,7 +59,11 @@ impl UserRepository for UserRepositoryInfra {
         conn: &mut DBConn,
         id: &UserId,
     ) -> isupipe_core::repos::Result<Option<User>> {
-        let user_model = sqlx::query_as!(User, "SELECT id, name, display_name, description, password as hashed_password FROM users WHERE id = ?", id)
+        let mut q = sqipe("users");
+        q.select_cols(&user_select_cols());
+        q.and_where(("id", *id.inner()));
+        let (sql, binds) = q.to_sql();
+        let user_model = bind_sqipe_values!(sqlx::query_as::<_, User>(&sql), binds)
             .fetch_optional(conn)
             .await?;
 
@@ -54,12 +71,12 @@ impl UserRepository for UserRepositoryInfra {
     }
 
     async fn find_all(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<Vec<User>> {
-        let users: Vec<User> = sqlx::query_as!(
-            User,
-            "SELECT id, name, display_name, description, password as hashed_password FROM users"
-        )
-        .fetch_all(conn)
-        .await?;
+        let mut q = sqipe("users");
+        q.select_cols(&user_select_cols());
+        let (sql, binds) = q.to_sql();
+        let users = bind_sqipe_values!(sqlx::query_as::<_, User>(&sql), binds)
+            .fetch_all(conn)
+            .await?;
 
         Ok(users)
     }
@@ -69,10 +86,13 @@ impl UserRepository for UserRepositoryInfra {
         conn: &mut DBConn,
         name: &str,
     ) -> isupipe_core::repos::Result<Option<UserId>> {
-        let user_id: Option<UserId> =
-            sqlx::query_scalar!("SELECT id as `id:UserId` FROM users WHERE name = ?", name)
-                .fetch_optional(conn)
-                .await?;
+        let mut q = sqipe("users");
+        q.select(&["id"]);
+        q.and_where(("name", name));
+        let (sql, binds) = q.to_sql();
+        let user_id = bind_sqipe_values!(sqlx::query_scalar::<_, UserId>(&sql), binds)
+            .fetch_optional(conn)
+            .await?;
 
         Ok(user_id)
     }
@@ -82,7 +102,11 @@ impl UserRepository for UserRepositoryInfra {
         conn: &mut DBConn,
         name: &str,
     ) -> isupipe_core::repos::Result<Option<User>> {
-        let user_model: Option<User> = sqlx::query_as!(User, "SELECT id, name, display_name, description, password as hashed_password FROM users WHERE name = ?", name)
+        let mut q = sqipe("users");
+        q.select_cols(&user_select_cols());
+        q.and_where(("name", name));
+        let (sql, binds) = q.to_sql();
+        let user_model = bind_sqipe_values!(sqlx::query_as::<_, User>(&sql), binds)
             .fetch_optional(conn)
             .await?;
 

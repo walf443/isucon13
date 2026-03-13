@@ -1,3 +1,4 @@
+use crate::sqipe_support::bind_sqipe_values;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::LivestreamId;
@@ -6,6 +7,8 @@ use isupipe_core::models::livestream_comment::{
 };
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
+use sqipe::col;
+use sqipe_mysql::sqipe;
 
 #[derive(Clone)]
 pub struct LivestreamCommentRepositoryInfra {}
@@ -38,6 +41,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         comment: &LivestreamComment,
         ng_word: &str,
     ) -> isupipe_core::repos::Result<()> {
+        // DELETE with complex subquery - not supported by squipe
         let query = r#"
         DELETE FROM livecomments
         WHERE
@@ -66,8 +70,10 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         comment_id: &LivestreamCommentId,
     ) -> isupipe_core::repos::Result<Option<LivestreamComment>> {
-        let comment = sqlx::query_as("SELECT * FROM livecomments WHERE id = ?")
-            .bind(comment_id)
+        let mut q = sqipe("livecomments");
+        q.and_where(("id", *comment_id.inner()));
+        let (sql, binds) = q.to_sql();
+        let comment = bind_sqipe_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
             .fetch_optional(conn)
             .await?;
 
@@ -78,9 +84,12 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         &self,
         conn: &mut DBConn,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
-        let livecomments: Vec<LivestreamComment> = sqlx::query_as("SELECT * FROM livecomments")
-            .fetch_all(conn)
-            .await?;
+        let q = sqipe("livecomments");
+        let (sql, binds) = q.to_sql();
+        let livecomments =
+            bind_sqipe_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
+                .fetch_all(conn)
+                .await?;
 
         Ok(livecomments)
     }
@@ -90,9 +99,11 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
-        let comments: Vec<LivestreamComment> =
-            sqlx::query_as("SELECT * FROM livecomments WHERE livestream_id = ?")
-                .bind(livestream_id)
+        let mut q = sqipe("livecomments");
+        q.and_where(("livestream_id", *livestream_id.inner()));
+        let (sql, binds) = q.to_sql();
+        let comments =
+            bind_sqipe_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
                 .fetch_all(conn)
                 .await?;
 
@@ -104,13 +115,14 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
-        let query = "SELECT * FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC"
-            .to_owned();
-
-        let comments: Vec<LivestreamComment> = sqlx::query_as(&query)
-            .bind(livestream_id)
-            .fetch_all(conn)
-            .await?;
+        let mut q = sqipe("livecomments");
+        q.and_where(("livestream_id", *livestream_id.inner()));
+        q.order_by(col("created_at").desc());
+        let (sql, binds) = q.to_sql();
+        let comments =
+            bind_sqipe_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
+                .fetch_all(conn)
+                .await?;
 
         Ok(comments)
     }
@@ -121,19 +133,20 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         livestream_id: &LivestreamId,
         limit: i64,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
-        let query =
-            "SELECT * FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC LIMIT ?"
-                .to_owned();
-
-        let comments: Vec<LivestreamComment> = sqlx::query_as(&query)
-            .bind(livestream_id)
-            .bind(limit)
-            .fetch_all(conn)
-            .await?;
+        let mut q = sqipe("livecomments");
+        q.and_where(("livestream_id", *livestream_id.inner()));
+        q.order_by(col("created_at").desc());
+        q.limit(limit as u64);
+        let (sql, binds) = q.to_sql();
+        let comments =
+            bind_sqipe_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
+                .fetch_all(conn)
+                .await?;
 
         Ok(comments)
     }
 
+    // IFNULL(SUM(...), 0) - not supported by squipe
     async fn get_sum_tip(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<i64> {
         let total_tip = sqlx::query_scalar("SELECT IFNULL(SUM(tip), 0) FROM livecomments")
             .fetch_one(conn)
@@ -142,6 +155,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         Ok(total_tip)
     }
 
+    // IFNULL(SUM(...), 0) with JOIN - not supported by squipe
     async fn get_sum_tip_of_livestream_id(
         &self,
         conn: &mut DBConn,
@@ -155,6 +169,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         Ok(total_tips)
     }
 
+    // IFNULL(MAX(...), 0) with JOIN - not supported by squipe
     async fn get_max_tip_of_livestream_id(
         &self,
         conn: &mut DBConn,
@@ -168,6 +183,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         Ok(max_tip)
     }
 
+    // IFNULL(SUM(...), 0) with 2 JOINs - not supported by squipe
     async fn get_sum_tip_of_livestream_user_id(
         &self,
         conn: &mut DBConn,
