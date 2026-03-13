@@ -47,6 +47,7 @@ async fn get_test_pool() -> MySqlPool {
             let url = format!("mysql://root@127.0.0.1:{}/test", host_port);
             let pool = MySqlPoolOptions::new()
                 .max_connections(30)
+                .acquire_timeout(std::time::Duration::from_secs(120))
                 .connect(&url)
                 .await
                 .unwrap();
