@@ -1,5 +1,15 @@
 #[cfg(test)]
+mod count_by_livestream_id;
+#[cfg(test)]
+mod count_by_livestream_user_id;
+#[cfg(test)]
+mod count_by_livestream_user_name;
+#[cfg(test)]
 mod create;
+#[cfg(test)]
+mod find_all_by_livestream_id;
+#[cfg(test)]
+mod find_all_by_livestream_id_limit;
 
 use crate::sqipe_support::bind_sqipe_values;
 use async_trait::async_trait;
@@ -42,8 +52,8 @@ impl ReactionRepository for ReactionRepositoryInfra {
         let mut q = sqipe(livestream::TABLE_NAME);
         q.as_("l");
         q.join(reaction::TABLE_NAME, table("l").col("id").eq_col("livestream_id"));
+        q.and_where(table("l").col("id").eq(*livestream_id.inner()));
         q.aggregate(&[aggregate::count_all()]);
-        q.and_where(("l.id", *livestream_id.inner()));
         let (sql, binds) = q.to_sql();
         let reactions = bind_sqipe_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)
@@ -86,8 +96,8 @@ impl ReactionRepository for ReactionRepositoryInfra {
         q.as_("u");
         q.join(livestream::TABLE_NAME, table("u").col("id").eq_col("user_id"));
         q.join(reaction::TABLE_NAME, table(livestream::TABLE_NAME).col("id").eq_col("livestream_id"));
+        q.and_where(table("u").col("id").eq(*livestream_user_id.inner()));
         q.aggregate(&[aggregate::count_all()]);
-        q.and_where(("u.id", *livestream_user_id.inner()));
         let (sql, binds) = q.to_sql();
         let reactions = bind_sqipe_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)
@@ -105,8 +115,8 @@ impl ReactionRepository for ReactionRepositoryInfra {
         q.as_("u");
         q.join(livestream::TABLE_NAME, table("u").col("id").eq_col("user_id"));
         q.join(reaction::TABLE_NAME, table(livestream::TABLE_NAME).col("id").eq_col("livestream_id"));
+        q.and_where(table("u").col("name").eq(livestream_user_name.inner().clone()));
         q.aggregate(&[aggregate::count_all()]);
-        q.and_where(("u.name", livestream_user_name.inner().clone()));
         let (sql, binds) = q.to_sql();
         let total_reactions = bind_sqipe_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)

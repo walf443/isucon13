@@ -10,6 +10,7 @@ pub struct LivestreamCommentReport {
     pub id: Id<Self, i64>,
     pub user_id: UserId,
     pub livestream_id: LivestreamId,
+    #[sqlx(rename = "livecomment_id")]
     pub livestream_comment_id: LivestreamCommentId,
     pub created_at: i64,
 }

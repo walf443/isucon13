@@ -1,3 +1,8 @@
+#[cfg(test)]
+mod count_by_livestream_id;
+#[cfg(test)]
+mod find_all_by_livestream_id;
+
 use crate::sqipe_support::bind_sqipe_values;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
@@ -44,8 +49,8 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
             livestream_comment_report::TABLE_NAME,
             table(livestream_comment_report::TABLE_NAME).col("livestream_id").eq_col(table("l").col("id")),
         );
+        q.and_where(table("l").col("id").eq(*livestream_id.inner()));
         q.aggregate(&[aggregate::count_all()]);
-        q.and_where(("l.id", *livestream_id.inner()));
         let (sql, binds) = q.to_sql();
         let total_reports = bind_sqipe_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)
