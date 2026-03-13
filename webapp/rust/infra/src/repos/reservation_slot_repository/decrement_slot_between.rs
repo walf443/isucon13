@@ -3,7 +3,6 @@ use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::reservation_slot::ReservationSlot;
 use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
-use sqlx::Row;
 
 #[tokio::test]
 async fn empty_case() {
@@ -54,17 +53,19 @@ async fn not_empty_case() {
         .await
         .unwrap();
 
-    let got1 = sqlx::query("SELECT * FROM reservation_slots WHERE id = ?")
-        .bind(&slot1.id)
-        .fetch_one(&mut *tx)
-        .await
-        .unwrap();
-    assert_eq!(slot1.slot - 1, got1.get::<i64, _>("slot"));
+    let got1: ReservationSlot =
+        sqlx::query_as("SELECT * FROM reservation_slots WHERE id = ?")
+            .bind(&slot1.id)
+            .fetch_one(&mut *tx)
+            .await
+            .unwrap();
+    assert_eq!(slot1.slot - 1, got1.slot);
 
-    let got2 = sqlx::query("SELECT * FROM reservation_slots WHERE id = ?")
-        .bind(&slot2.id)
-        .fetch_one(&mut *tx)
-        .await
-        .unwrap();
-    assert_eq!(slot2.slot - 1, got2.get::<i64, _>("slot"));
+    let got2: ReservationSlot =
+        sqlx::query_as("SELECT * FROM reservation_slots WHERE id = ?")
+            .bind(&slot2.id)
+            .fetch_one(&mut *tx)
+            .await
+            .unwrap();
+    assert_eq!(slot2.slot - 1, got2.slot);
 }
