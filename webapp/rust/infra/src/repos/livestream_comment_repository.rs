@@ -1,3 +1,12 @@
+#[cfg(test)]
+mod get_max_tip_of_livestream_id;
+#[cfg(test)]
+mod get_sum_tip;
+#[cfg(test)]
+mod get_sum_tip_of_livestream_id;
+#[cfg(test)]
+mod get_sum_tip_of_livestream_user_id;
+
 use crate::sqipe_support::bind_sqipe_values;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
@@ -7,7 +16,9 @@ use isupipe_core::models::livestream_comment::{
 };
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
-use sqipe::col;
+use isupipe_core::models::livestream::{self as livestream};
+use isupipe_core::models::user::{self as user};
+use sqipe::{aggregate, col, table};
 use sqipe_mysql::sqipe;
 
 #[derive(Clone)]
@@ -146,57 +157,80 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         Ok(comments)
     }
 
-    // IFNULL(SUM(...), 0) - not supported by squipe
     async fn get_sum_tip(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<i64> {
-        let total_tip = sqlx::query_scalar("SELECT IFNULL(SUM(tip), 0) FROM livecomments")
+        let mut q = sqipe(livestream_comment::TABLE_NAME);
+        q.aggregate(&[aggregate::expr("CAST(IFNULL(SUM(tip), 0) AS SIGNED)")]);
+        let (sql, binds) = q.to_sql();
+        let total_tip = bind_sqipe_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)
             .await?;
 
         Ok(total_tip)
     }
 
-    // IFNULL(SUM(...), 0) with JOIN - not supported by squipe
     async fn get_sum_tip_of_livestream_id(
         &self,
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
-        let total_tips = sqlx::query_scalar("SELECT IFNULL(SUM(l2.tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l.id = l2.livestream_id WHERE l.id = ?")
-            .bind(livestream_id)
+        let mut q = sqipe(livestream::TABLE_NAME);
+        q.as_("l");
+        q.join(
+            livestream_comment::TABLE_NAME,
+            table("l").col("id").eq_col("livestream_id"),
+        );
+        q.and_where(table("l").col("id").eq(*livestream_id.inner()));
+        q.aggregate(&[aggregate::expr("CAST(IFNULL(SUM(livecomments.tip), 0) AS SIGNED)")]);
+        let (sql, binds) = q.to_sql();
+        let total_tips = bind_sqipe_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)
             .await?;
 
         Ok(total_tips)
     }
 
-    // IFNULL(MAX(...), 0) with JOIN - not supported by squipe
     async fn get_max_tip_of_livestream_id(
         &self,
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
-        let max_tip = sqlx::query_scalar("SELECT IFNULL(MAX(tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l2.livestream_id = l.id WHERE l.id = ?")
-            .bind(livestream_id)
+        let mut q = sqipe(livestream::TABLE_NAME);
+        q.as_("l");
+        q.join(
+            livestream_comment::TABLE_NAME,
+            table("l").col("id").eq_col("livestream_id"),
+        );
+        q.and_where(table("l").col("id").eq(*livestream_id.inner()));
+        q.aggregate(&[aggregate::expr("CAST(IFNULL(MAX(livecomments.tip), 0) AS SIGNED)")]);
+
+        let (sql, binds) = q.to_sql();
+        let max_tip = bind_sqipe_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)
             .await?;
 
         Ok(max_tip)
     }
 
-    // IFNULL(SUM(...), 0) with 2 JOINs - not supported by squipe
     async fn get_sum_tip_of_livestream_user_id(
         &self,
         conn: &mut DBConn,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<i64> {
-        let query = r#"
-        SELECT IFNULL(SUM(l2.tip), 0) FROM users u
-        INNER JOIN livestreams l ON l.user_id = u.id
-        INNER JOIN livecomments l2 ON l2.livestream_id = l.id
-        WHERE u.id = ?
-        "#;
-        let tips = sqlx::query_scalar(query)
-            .bind(user_id)
+        let mut q = sqipe(user::TABLE_NAME);
+        q.as_("u");
+        q.join(
+            livestream::TABLE_NAME,
+            table("u").col("id").eq_col("user_id"),
+        );
+        q.join(
+            livestream_comment::TABLE_NAME,
+            table(livestream::TABLE_NAME).col("id").eq_col("livestream_id"),
+        );
+        q.and_where(table("u").col("id").eq(*user_id.inner()));
+        q.aggregate(&[aggregate::expr("CAST(IFNULL(SUM(livecomments.tip), 0) AS SIGNED)")]);
+
+        let (sql, binds) = q.to_sql();
+        let tips = bind_sqipe_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)
             .await?;
 
