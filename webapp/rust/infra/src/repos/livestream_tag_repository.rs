@@ -2,7 +2,7 @@ use crate::sqipe_support::bind_sqipe_values;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::LivestreamId;
-use isupipe_core::models::livestream_tag::LivestreamTag;
+use isupipe_core::models::livestream_tag::{self, LivestreamTag};
 use isupipe_core::models::tag::TagId;
 use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
 use sqipe::col;
@@ -33,7 +33,7 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamTag>> {
-        let mut q = sqipe("livestream_tags");
+        let mut q = sqipe(livestream_tag::TABLE_NAME);
         q.and_where(("livestream_id", *livestream_id.inner()));
         let (sql, binds) = q.to_sql();
         let livestream_tag_models =
@@ -49,7 +49,7 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
         conn: &mut DBConn,
         tag_ids: &[TagId],
     ) -> isupipe_core::repos::Result<Vec<LivestreamTag>> {
-        let mut q = sqipe("livestream_tags");
+        let mut q = sqipe(livestream_tag::TABLE_NAME);
         let id_values: Vec<sqipe::Value> =
             tag_ids.iter().map(|id| sqipe::Value::Int(*id.inner())).collect();
         q.and_where(col("tag_id").included(id_values.as_slice()));

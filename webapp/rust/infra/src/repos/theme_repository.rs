@@ -6,7 +6,7 @@ mod find_by_user_id;
 use crate::sqipe_support::bind_sqipe_values;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::theme::Theme;
+use isupipe_core::models::theme::{self, Theme};
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::theme_repository::ThemeRepository;
 use sqipe::{IntoColRef, col};
@@ -37,7 +37,7 @@ impl ThemeRepository for ThemeRepositoryInfra {
         conn: &mut DBConn,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Theme> {
-        let mut q = sqipe("themes");
+        let mut q = sqipe(theme::TABLE_NAME);
         q.select_cols(&[
             col("id").into_col_ref(),
             col("user_id").into_col_ref(),

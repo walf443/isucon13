@@ -2,6 +2,8 @@ use crate::models::livestream::LivestreamId;
 use crate::models::user::UserId;
 use kubetsu::Id;
 
+pub const TABLE_NAME: &str = "ng_words";
+
 #[derive(Debug, serde::Serialize, sqlx::FromRow)]
 pub struct NgWord {
     pub id: Id<Self, i64>,

@@ -2,6 +2,8 @@ use crate::models::livestream::LivestreamId;
 use crate::models::tag::TagId;
 use kubetsu::Id;
 
+pub const TABLE_NAME: &str = "livestream_tags";
+
 #[derive(Debug, sqlx::FromRow)]
 pub struct LivestreamTag {
     #[allow(unused)]

@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_comment::{
-    CreateLivestreamComment, LivestreamComment, LivestreamCommentId,
+    self, CreateLivestreamComment, LivestreamComment, LivestreamCommentId,
 };
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
@@ -70,7 +70,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         comment_id: &LivestreamCommentId,
     ) -> isupipe_core::repos::Result<Option<LivestreamComment>> {
-        let mut q = sqipe("livecomments");
+        let mut q = sqipe(livestream_comment::TABLE_NAME);
         q.and_where(("id", *comment_id.inner()));
         let (sql, binds) = q.to_sql();
         let comment = bind_sqipe_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
@@ -84,7 +84,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         &self,
         conn: &mut DBConn,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
-        let q = sqipe("livecomments");
+        let q = sqipe(livestream_comment::TABLE_NAME);
         let (sql, binds) = q.to_sql();
         let livecomments =
             bind_sqipe_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
@@ -99,7 +99,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
-        let mut q = sqipe("livecomments");
+        let mut q = sqipe(livestream_comment::TABLE_NAME);
         q.and_where(("livestream_id", *livestream_id.inner()));
         let (sql, binds) = q.to_sql();
         let comments =
@@ -115,7 +115,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
-        let mut q = sqipe("livecomments");
+        let mut q = sqipe(livestream_comment::TABLE_NAME);
         q.and_where(("livestream_id", *livestream_id.inner()));
         q.order_by(col("created_at").desc());
         let (sql, binds) = q.to_sql();
@@ -133,7 +133,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         livestream_id: &LivestreamId,
         limit: i64,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
-        let mut q = sqipe("livecomments");
+        let mut q = sqipe(livestream_comment::TABLE_NAME);
         q.and_where(("livestream_id", *livestream_id.inner()));
         q.order_by(col("created_at").desc());
         q.limit(limit as u64);

@@ -8,7 +8,7 @@ mod find_slot_between;
 use crate::sqipe_support::bind_sqipe_values;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::reservation_slot::ReservationSlot;
+use isupipe_core::models::reservation_slot::{self, ReservationSlot};
 use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
 use sqipe::col;
 use sqipe_mysql::sqipe;
@@ -42,7 +42,7 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         start_at: i64,
         end_at: i64,
     ) -> isupipe_core::repos::Result<i64> {
-        let mut q = sqipe("reservation_slots");
+        let mut q = sqipe(reservation_slot::TABLE_NAME);
         q.select(&["slot"]);
         q.and_where(col("start_at").eq(start_at));
         q.and_where(col("end_at").eq(end_at));

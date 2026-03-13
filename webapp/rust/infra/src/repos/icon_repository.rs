@@ -1,7 +1,7 @@
 use crate::sqipe_support::bind_sqipe_values;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::icon::CreateIcon;
+use isupipe_core::models::icon::{self, CreateIcon};
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::icon_repository::IconRepository;
 use sqipe_mysql::sqipe;
@@ -16,7 +16,7 @@ impl IconRepository for IconRepositoryInfra {
         conn: &mut DBConn,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Option<Vec<u8>>> {
-        let mut q = sqipe("icons");
+        let mut q = sqipe(icon::TABLE_NAME);
         q.select(&["image"]);
         q.and_where(("user_id", *user_id.inner()));
         let (sql, binds) = q.to_sql();

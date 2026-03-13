@@ -3,6 +3,8 @@ use crate::models::user::UserId;
 use fake::Dummy;
 use kubetsu::Id;
 
+pub const TABLE_NAME: &str = "reactions";
+
 #[derive(Debug, sqlx::FromRow)]
 pub struct Reaction {
     pub id: Id<Self, i64>,

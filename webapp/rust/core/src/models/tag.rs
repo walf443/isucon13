@@ -1,6 +1,8 @@
 use fake::Dummy;
 use kubetsu::Id;
 
+pub const TABLE_NAME: &str = "tags";
+
 #[derive(Debug, sqlx::FromRow, Dummy)]
 pub struct Tag {
     pub id: Id<Self, i64>,

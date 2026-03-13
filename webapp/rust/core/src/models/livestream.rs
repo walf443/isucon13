@@ -1,6 +1,8 @@
 use crate::models::user::UserId;
 use kubetsu::Id;
 
+pub const TABLE_NAME: &str = "livestreams";
+
 pub struct CreateLivestream {
     pub user_id: UserId,
     pub title: String,

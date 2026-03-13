@@ -1,7 +1,7 @@
 use crate::sqipe_support::bind_sqipe_values;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::livestream::{CreateLivestream, Livestream, LivestreamId};
+use isupipe_core::models::livestream::{self, CreateLivestream, Livestream, LivestreamId};
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
 use sqipe::col;
@@ -33,7 +33,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
     }
 
     async fn find_all(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<Vec<Livestream>> {
-        let q = sqipe("livestreams");
+        let q = sqipe(livestream::TABLE_NAME);
         let (sql, binds) = q.to_sql();
         let livestreams = bind_sqipe_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
             .fetch_all(conn)
@@ -46,7 +46,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         &self,
         conn: &mut DBConn,
     ) -> isupipe_core::repos::Result<Vec<Livestream>> {
-        let mut q = sqipe("livestreams");
+        let mut q = sqipe(livestream::TABLE_NAME);
         q.order_by(col("id").desc());
         let (sql, binds) = q.to_sql();
         let livestreams = bind_sqipe_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
@@ -61,7 +61,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         conn: &mut DBConn,
         limit: i64,
     ) -> isupipe_core::repos::Result<Vec<Livestream>> {
-        let mut q = sqipe("livestreams");
+        let mut q = sqipe(livestream::TABLE_NAME);
         q.order_by(col("id").desc());
         q.limit(limit as u64);
         let (sql, binds) = q.to_sql();
@@ -77,7 +77,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         conn: &mut DBConn,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Vec<Livestream>> {
-        let mut q = sqipe("livestreams");
+        let mut q = sqipe(livestream::TABLE_NAME);
         q.and_where(("user_id", *user_id.inner()));
         let (sql, binds) = q.to_sql();
         let livestream_models = bind_sqipe_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
@@ -92,7 +92,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         conn: &mut DBConn,
         id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Option<Livestream>> {
-        let mut q = sqipe("livestreams");
+        let mut q = sqipe(livestream::TABLE_NAME);
         q.and_where(("id", *id.inner()));
         let (sql, binds) = q.to_sql();
         let livestream = bind_sqipe_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
@@ -108,7 +108,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         id: &LivestreamId,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<bool> {
-        let mut q = sqipe("livestreams");
+        let mut q = sqipe(livestream::TABLE_NAME);
         q.and_where(("id", *id.inner()));
         q.and_where(("user_id", *user_id.inner()));
         let (sql, binds) = q.to_sql();

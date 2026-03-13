@@ -1,8 +1,8 @@
 use crate::sqipe_support::bind_sqipe_values;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::livestream::LivestreamId;
-use isupipe_core::models::livestream_viewers_history::CreateLivestreamViewersHistory;
+use isupipe_core::models::livestream::{self as livestream, LivestreamId};
+use isupipe_core::models::livestream_viewers_history::{self, CreateLivestreamViewersHistory};
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
 use sqipe::{aggregate, table};
@@ -40,11 +40,11 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
-        let mut q = sqipe("livestreams");
+        let mut q = sqipe(livestream::TABLE_NAME);
         q.as_("l");
         q.join(
-            "livestream_viewers_history",
-            table("livestream_viewers_history").col("livestream_id").eq_col(table("l").col("id")),
+            livestream_viewers_history::TABLE_NAME,
+            table(livestream_viewers_history::TABLE_NAME).col("livestream_id").eq_col(table("l").col("id")),
         );
         q.aggregate(&[aggregate::count_all()]);
         q.and_where(("l.id", *livestream_id.inner()));

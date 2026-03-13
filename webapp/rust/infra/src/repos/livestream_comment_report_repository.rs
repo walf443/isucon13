@@ -1,9 +1,9 @@
 use crate::sqipe_support::bind_sqipe_values;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::livestream::LivestreamId;
+use isupipe_core::models::livestream::{self as livestream, LivestreamId};
 use isupipe_core::models::livestream_comment_report::{
-    CreateLivestreamCommentReport, LivestreamCommentReport, LivestreamCommentReportId,
+    self, CreateLivestreamCommentReport, LivestreamCommentReport, LivestreamCommentReportId,
 };
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::Result;
@@ -38,11 +38,11 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
-        let mut q = sqipe("livestreams");
+        let mut q = sqipe(livestream::TABLE_NAME);
         q.as_("l");
         q.join(
-            "livecomment_reports",
-            table("livecomment_reports").col("livestream_id").eq_col(table("l").col("id")),
+            livestream_comment_report::TABLE_NAME,
+            table(livestream_comment_report::TABLE_NAME).col("livestream_id").eq_col(table("l").col("id")),
         );
         q.aggregate(&[aggregate::count_all()]);
         q.and_where(("l.id", *livestream_id.inner()));
@@ -59,7 +59,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamCommentReport>> {
-        let mut q = sqipe("livecomment_reports");
+        let mut q = sqipe(livestream_comment_report::TABLE_NAME);
         q.and_where(("livestream_id", *livestream_id.inner()));
         let (sql, binds) = q.to_sql();
         let report_models =

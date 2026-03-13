@@ -2,7 +2,7 @@ use crate::sqipe_support::bind_sqipe_values;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::LivestreamId;
-use isupipe_core::models::ng_word::{CreateNgWord, NgWord, NgWordId};
+use isupipe_core::models::ng_word::{self, CreateNgWord, NgWord, NgWordId};
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::ng_word_repository::NgWordRepository;
 use sqipe::col;
@@ -38,7 +38,7 @@ impl NgWordRepository for NgWordRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<NgWord>> {
-        let mut q = sqipe("ng_words");
+        let mut q = sqipe(ng_word::TABLE_NAME);
         q.and_where(("livestream_id", *livestream_id.inner()));
         let (sql, binds) = q.to_sql();
         let ng_words = bind_sqipe_values!(sqlx::query_as::<_, NgWord>(&sql), binds)
@@ -78,7 +78,7 @@ impl NgWordRepository for NgWordRepositoryInfra {
         livestream_id: &LivestreamId,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Vec<NgWord>> {
-        let mut q = sqipe("ng_words");
+        let mut q = sqipe(ng_word::TABLE_NAME);
         q.select(&["id", "user_id", "livestream_id", "word"]);
         q.and_where(("user_id", *user_id.inner()));
         q.and_where(("livestream_id", *livestream_id.inner()));
@@ -96,7 +96,7 @@ impl NgWordRepository for NgWordRepositoryInfra {
         livestream_id: &LivestreamId,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Vec<NgWord>> {
-        let mut q = sqipe("ng_words");
+        let mut q = sqipe(ng_word::TABLE_NAME);
         q.and_where(("user_id", *user_id.inner()));
         q.and_where(("livestream_id", *livestream_id.inner()));
         q.order_by(col("created_at").desc());
