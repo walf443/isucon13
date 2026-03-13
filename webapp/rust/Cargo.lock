@@ -1603,6 +1603,8 @@ dependencies = [
  "num-traits",
  "serde",
  "sqlx 0.7.3",
+ "testcontainers",
+ "testcontainers-modules",
  "thiserror 1.0.65",
  "time",
  "tokio",

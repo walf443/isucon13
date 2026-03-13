@@ -6,7 +6,6 @@ use isupipe_core::models::user::UserId;
 use isupipe_core::repos::theme_repository::ThemeRepository;
 
 #[tokio::test]
-#[should_panic(expected = "RowNotFound")]
 async fn not_found_case() {
     let db_pool = get_db_pool().await.unwrap();
     let mut tx = db_pool.begin().await.unwrap();
@@ -14,7 +13,10 @@ async fn not_found_case() {
     let repo = ThemeRepositoryInfra {};
     let user_id: UserId = Faker.fake();
 
-    repo.find_by_user_id(&mut tx, &user_id).await.unwrap();
+    let result = repo.find_by_user_id(&mut tx, &user_id).await;
+    assert!(result.is_err());
+    let err_msg = format!("{}", result.unwrap_err());
+    assert!(err_msg.contains("no rows returned"), "expected RowNotFound, got: {}", err_msg);
 }
 
 #[tokio::test]

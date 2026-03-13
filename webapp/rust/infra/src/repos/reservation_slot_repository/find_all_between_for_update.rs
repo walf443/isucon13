@@ -30,17 +30,20 @@ async fn not_empty_case() {
     slot2.start_at = slot1.end_at + 100;
     slot2.end_at = slot2.start_at + 100;
 
-    sqlx::query!(
-        "INSERT INTO reservation_slots (id,slot,start_at, end_at) VALUES (?, ?, ?, ?), (?, ?, ?, ?)",
-        &slot1.id,
-        slot1.slot,
-        slot1.start_at,
-        slot1.end_at,
-        &slot2.id,
-        slot2.slot,
-        slot2.start_at,
-        slot2.end_at,
-    ).execute(&mut *tx).await.unwrap();
+    sqlx::query(
+        "INSERT INTO reservation_slots (id, slot, start_at, end_at) VALUES (?, ?, ?, ?), (?, ?, ?, ?)",
+    )
+    .bind(&slot1.id)
+    .bind(slot1.slot)
+    .bind(slot1.start_at)
+    .bind(slot1.end_at)
+    .bind(&slot2.id)
+    .bind(slot2.slot)
+    .bind(slot2.start_at)
+    .bind(slot2.end_at)
+    .execute(&mut *tx)
+    .await
+    .unwrap();
 
     let result = repo
         .find_all_between_for_update(&mut tx, slot1.start_at, slot2.end_at)

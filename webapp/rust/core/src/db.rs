@@ -13,17 +13,71 @@ pub fn build_database_connection_options() -> sqlx::mysql::MySqlConnectOptions {
 }
 
 #[cfg(any(feature = "test", test))]
-fn build_database_connection_options_for_test() -> sqlx::mysql::MySqlConnectOptions {
-    _build_database_connection_options(true)
+pub async fn get_db_pool() -> Result<DBPool, sqlx::Error> {
+    let pool = get_test_pool().await;
+    Ok(pool)
 }
 
 #[cfg(any(feature = "test", test))]
-pub async fn get_db_pool() -> Result<DBPool, sqlx::Error> {
-    let pool = MySqlPoolOptions::new()
-        .connect_with(build_database_connection_options_for_test())
-        .await?;
+static TEST_POOL: tokio::sync::OnceCell<TestContainer> = tokio::sync::OnceCell::const_new();
 
-    Ok(pool)
+#[cfg(any(feature = "test", test))]
+struct TestContainer {
+    pool: MySqlPool,
+    // Keep container alive for the lifetime of the test suite
+    _container: testcontainers::ContainerAsync<testcontainers_modules::mysql::Mysql>,
+}
+
+// Safety: TestContainer is only accessed through OnceCell which provides synchronization
+#[cfg(any(feature = "test", test))]
+unsafe impl Send for TestContainer {}
+#[cfg(any(feature = "test", test))]
+unsafe impl Sync for TestContainer {}
+
+#[cfg(any(feature = "test", test))]
+async fn get_test_pool() -> MySqlPool {
+    let tc = TEST_POOL
+        .get_or_init(|| async {
+            use testcontainers::runners::AsyncRunner;
+            use testcontainers_modules::mysql::Mysql;
+
+            let container = Mysql::default().start().await.unwrap();
+            let host_port = container.get_host_port_ipv4(3306).await.unwrap();
+
+            let url = format!("mysql://root@127.0.0.1:{}/test", host_port);
+            let pool = MySqlPoolOptions::new()
+                .max_connections(30)
+                .connect(&url)
+                .await
+                .unwrap();
+
+            // Create schema
+            init_schema(&pool).await;
+
+            TestContainer {
+                pool,
+                _container: container,
+            }
+        })
+        .await;
+
+    tc.pool.clone()
+}
+
+#[cfg(any(feature = "test", test))]
+async fn init_schema(pool: &MySqlPool) {
+    let schema = include_str!("../../../sql/initdb.d/10_schema.sql");
+    for statement in schema.split(';') {
+        let trimmed = statement.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        // Skip USE statement since we're already connected to the test db
+        if trimmed.to_uppercase().starts_with("USE ") {
+            continue;
+        }
+        sqlx::query(trimmed).execute(pool).await.unwrap();
+    }
 }
 
 fn _build_database_connection_options(is_test_mode: bool) -> sqlx::mysql::MySqlConnectOptions {

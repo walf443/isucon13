@@ -3,6 +3,7 @@ use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::reservation_slot::ReservationSlot;
 use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
+use sqlx::Row;
 
 #[tokio::test]
 async fn empty_case() {
@@ -22,7 +23,7 @@ async fn not_empty_case() {
     let mut tx = db_pool.begin().await.unwrap();
 
     // deadlock対策
-    sqlx::query!("SELECT id FROM reservation_slots FOR UPDATE")
+    sqlx::query("SELECT id FROM reservation_slots FOR UPDATE")
         .fetch_all(&mut *tx)
         .await
         .unwrap();
@@ -34,31 +35,36 @@ async fn not_empty_case() {
     slot2.start_at = slot1.end_at + 100;
     slot2.end_at = slot2.start_at + 100;
 
-    sqlx::query!(
-        "INSERT INTO reservation_slots (id,slot,start_at, end_at) VALUES (?, ?, ?, ?), (?, ?, ?, ?)",
-        &slot1.id,
-        slot1.slot,
-        slot1.start_at,
-        slot1.end_at,
-        &slot2.id,
-        slot2.slot,
-        slot2.start_at,
-        slot2.end_at,
-    ).execute(&mut *tx).await.unwrap();
+    sqlx::query(
+        "INSERT INTO reservation_slots (id, slot, start_at, end_at) VALUES (?, ?, ?, ?), (?, ?, ?, ?)",
+    )
+    .bind(&slot1.id)
+    .bind(slot1.slot)
+    .bind(slot1.start_at)
+    .bind(slot1.end_at)
+    .bind(&slot2.id)
+    .bind(slot2.slot)
+    .bind(slot2.start_at)
+    .bind(slot2.end_at)
+    .execute(&mut *tx)
+    .await
+    .unwrap();
 
     repo.decrement_slot_between(&mut tx, slot1.start_at, slot2.end_at)
         .await
         .unwrap();
 
-    let got1 = sqlx::query!("SELECT * FROM reservation_slots WHERE id = ?", slot1.id)
+    let got1 = sqlx::query("SELECT * FROM reservation_slots WHERE id = ?")
+        .bind(&slot1.id)
         .fetch_one(&mut *tx)
         .await
         .unwrap();
-    assert_eq!(slot1.slot - 1, got1.slot);
+    assert_eq!(slot1.slot - 1, got1.get::<i64, _>("slot"));
 
-    let got2 = sqlx::query!("SELECT * FROM reservation_slots WHERE id = ?", slot2.id)
+    let got2 = sqlx::query("SELECT * FROM reservation_slots WHERE id = ?")
+        .bind(&slot2.id)
         .fetch_one(&mut *tx)
         .await
         .unwrap();
-    assert_eq!(slot2.slot - 1, got2.slot);
+    assert_eq!(slot2.slot - 1, got2.get::<i64, _>("slot"));
 }
