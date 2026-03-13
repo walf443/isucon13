@@ -1,0 +1,3 @@
+[submodule "webapp/rust/squipe"]
+	path = webapp/rust/squipe
+	url = git@github.com:walf443/sqipe.git
