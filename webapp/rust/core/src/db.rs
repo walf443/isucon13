@@ -14,16 +14,21 @@ pub fn build_database_connection_options() -> sqlx::mysql::MySqlConnectOptions {
 
 #[cfg(any(feature = "test", test))]
 pub async fn get_db_pool() -> Result<DBPool, sqlx::Error> {
-    let pool = get_test_pool().await;
+    let url = get_test_db_url().await;
+    let pool = MySqlPoolOptions::new()
+        .max_connections(2)
+        .connect(&url)
+        .await?;
     Ok(pool)
 }
 
 #[cfg(any(feature = "test", test))]
-static TEST_POOL: tokio::sync::OnceCell<TestContainer> = tokio::sync::OnceCell::const_new();
+static TEST_CONTAINER: tokio::sync::OnceCell<TestContainer> =
+    tokio::sync::OnceCell::const_new();
 
 #[cfg(any(feature = "test", test))]
 struct TestContainer {
-    pool: MySqlPool,
+    url: String,
     // Keep container alive for the lifetime of the test suite
     _container: testcontainers::ContainerAsync<testcontainers_modules::mysql::Mysql>,
 }
@@ -35,8 +40,8 @@ unsafe impl Send for TestContainer {}
 unsafe impl Sync for TestContainer {}
 
 #[cfg(any(feature = "test", test))]
-async fn get_test_pool() -> MySqlPool {
-    let tc = TEST_POOL
+async fn get_test_db_url() -> String {
+    let tc = TEST_CONTAINER
         .get_or_init(|| async {
             use testcontainers::runners::AsyncRunner;
             use testcontainers_modules::mysql::Mysql;
@@ -45,24 +50,24 @@ async fn get_test_pool() -> MySqlPool {
             let host_port = container.get_host_port_ipv4(3306).await.unwrap();
 
             let url = format!("mysql://root@127.0.0.1:{}/test", host_port);
+
+            // Create schema using a temporary pool
             let pool = MySqlPoolOptions::new()
-                .max_connections(30)
-                .acquire_timeout(std::time::Duration::from_secs(120))
+                .max_connections(1)
                 .connect(&url)
                 .await
                 .unwrap();
-
-            // Create schema
             init_schema(&pool).await;
+            pool.close().await;
 
             TestContainer {
-                pool,
+                url,
                 _container: container,
             }
         })
         .await;
 
-    tc.pool.clone()
+    tc.url.clone()
 }
 
 #[cfg(any(feature = "test", test))]
