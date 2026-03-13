@@ -1,3 +1,10 @@
+#[cfg(test)]
+mod find_all_by_livestream_id;
+#[cfg(test)]
+mod find_all_by_livestream_id_and_user_id;
+#[cfg(test)]
+mod find_all_by_livestream_id_and_user_id_order_by_created_at;
+
 use crate::sqipe_support::bind_sqipe_values;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;

@@ -1,4 +1,14 @@
 #[cfg(test)]
+mod find;
+#[cfg(test)]
+mod find_all;
+#[cfg(test)]
+mod find_all_by_livestream_id;
+#[cfg(test)]
+mod find_all_by_livestream_id_order_by_created_at;
+#[cfg(test)]
+mod find_all_by_livestream_id_order_by_created_at_limit;
+#[cfg(test)]
 mod get_max_tip_of_livestream_id;
 #[cfg(test)]
 mod get_sum_tip;

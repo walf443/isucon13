@@ -120,3 +120,16 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         Ok(!livestreams.is_empty())
     }
 }
+
+#[cfg(test)]
+mod find;
+#[cfg(test)]
+mod find_all;
+#[cfg(test)]
+mod find_all_by_user_id;
+#[cfg(test)]
+mod find_all_order_by_id_desc;
+#[cfg(test)]
+mod find_all_order_by_id_desc_limit;
+#[cfg(test)]
+mod exist_by_id_and_user_id;
