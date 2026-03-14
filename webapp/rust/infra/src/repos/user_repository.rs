@@ -15,19 +15,7 @@ use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::user::{CreateUser, User, UserId};
 use isupipe_core::repos::user_repository::UserRepository;
-use sqipe::IntoColRef;
 use sqipe_mysql::sqipe;
-
-fn user_select_cols() -> Vec<sqipe::ColRef> {
-    let t = &TABLE_USERS;
-    vec![
-        t.id().into_col_ref(),
-        t.name().into_col_ref(),
-        t.display_name().into_col_ref(),
-        t.description().into_col_ref(),
-        t.password().as_("hashed_password"),
-    ]
-}
 
 #[derive(Clone)]
 pub struct UserRepositoryInfra {}
@@ -63,7 +51,7 @@ impl UserRepository for UserRepositoryInfra {
     ) -> isupipe_core::repos::Result<Option<User>> {
         let t = &TABLE_USERS;
         let mut q = sqipe(t.table_name());
-        q.select_cols(&user_select_cols());
+        q.select_cols(&TABLE_USERS.default_cols());
         q.and_where(t.id().eq(*id.inner()));
         let (sql, binds) = q.to_sql();
         let user_model = bind_sqipe_values!(sqlx::query_as::<_, User>(&sql), binds)
@@ -76,7 +64,7 @@ impl UserRepository for UserRepositoryInfra {
     async fn find_all(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<Vec<User>> {
         let t = &TABLE_USERS;
         let mut q = sqipe(t.table_name());
-        q.select_cols(&user_select_cols());
+        q.select_cols(&TABLE_USERS.default_cols());
         let (sql, binds) = q.to_sql();
         let users = bind_sqipe_values!(sqlx::query_as::<_, User>(&sql), binds)
             .fetch_all(conn)
@@ -109,7 +97,7 @@ impl UserRepository for UserRepositoryInfra {
     ) -> isupipe_core::repos::Result<Option<User>> {
         let t = &TABLE_USERS;
         let mut q = sqipe(t.table_name());
-        q.select_cols(&user_select_cols());
+        q.select_cols(&TABLE_USERS.default_cols());
         q.and_where(t.name().eq(name));
         let (sql, binds) = q.to_sql();
         let user_model = bind_sqipe_values!(sqlx::query_as::<_, User>(&sql), binds)
