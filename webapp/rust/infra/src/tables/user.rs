@@ -1,4 +1,4 @@
-use sqipe::{col, table, Col, TableRef};
+use sqipe::{table, Col, TableRef};
 
 pub struct UserTable;
 
@@ -14,22 +14,22 @@ impl UserTable {
     }
 
     pub fn id(&self) -> Col {
-        col("id")
+        self.table().col("id")
     }
 
     pub fn name(&self) -> Col {
-        col("name")
+        self.table().col("name")
     }
 
     pub fn display_name(&self) -> Col {
-        col("display_name")
+        self.table().col("display_name")
     }
 
     pub fn description(&self) -> Col {
-        col("description")
+        self.table().col("description")
     }
 
     pub fn password(&self) -> Col {
-        col("password")
+        self.table().col("password")
     }
 }

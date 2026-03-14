@@ -51,7 +51,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         q.as_("l");
         q.join(
             report.table_name(),
-            report.table().col("livestream_id").eq_col(table("l").col("id")),
+            report.livestream_id().eq_col(table("l").col("id")),
         );
         q.and_where(table("l").col("id").eq(*livestream_id.inner()));
         q.aggregate(&[aggregate::count_all()]);

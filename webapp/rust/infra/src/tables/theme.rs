@@ -1,4 +1,4 @@
-use sqipe::{col, table, Col, TableRef};
+use sqipe::{table, Col, TableRef};
 
 pub struct ThemeTable;
 
@@ -14,14 +14,14 @@ impl ThemeTable {
     }
 
     pub fn id(&self) -> Col {
-        col("id")
+        self.table().col("id")
     }
 
     pub fn user_id(&self) -> Col {
-        col("user_id")
+        self.table().col("user_id")
     }
 
     pub fn dark_mode(&self) -> Col {
-        col("dark_mode")
+        self.table().col("dark_mode")
     }
 }

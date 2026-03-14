@@ -1,4 +1,4 @@
-use sqipe::{col, table, Col, TableRef};
+use sqipe::{table, Col, TableRef};
 
 pub struct ReservationSlotTable;
 
@@ -14,18 +14,18 @@ impl ReservationSlotTable {
     }
 
     pub fn id(&self) -> Col {
-        col("id")
+        self.table().col("id")
     }
 
     pub fn slot(&self) -> Col {
-        col("slot")
+        self.table().col("slot")
     }
 
     pub fn start_at(&self) -> Col {
-        col("start_at")
+        self.table().col("start_at")
     }
 
     pub fn end_at(&self) -> Col {
-        col("end_at")
+        self.table().col("end_at")
     }
 }

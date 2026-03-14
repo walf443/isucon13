@@ -103,7 +103,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
         let mut q = sqipe(user.table_name());
         q.as_("u");
         q.join(livestream.table_name(), table("u").col("id").eq_col("user_id"));
-        q.join(reaction.table_name(), livestream.table().col("id").eq_col("livestream_id"));
+        q.join(reaction.table_name(), livestream.id().eq_col(reaction.livestream_id()));
         q.and_where(table("u").col("id").eq(*livestream_user_id.inner()));
         q.aggregate(&[aggregate::count_all()]);
         let (sql, binds) = q.to_sql();
@@ -125,7 +125,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
         let mut q = sqipe(user.table_name());
         q.as_("u");
         q.join(livestream.table_name(), table("u").col("id").eq_col("user_id"));
-        q.join(reaction.table_name(), livestream.table().col("id").eq_col("livestream_id"));
+        q.join(reaction.table_name(), livestream.id().eq_col(reaction.livestream_id()));
         q.and_where(table("u").col("name").eq(livestream_user_name.inner().clone()));
         q.aggregate(&[aggregate::count_all()]);
         let (sql, binds) = q.to_sql();

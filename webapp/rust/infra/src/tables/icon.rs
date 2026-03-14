@@ -1,4 +1,4 @@
-use sqipe::{col, table, Col, TableRef};
+use sqipe::{table, Col, TableRef};
 
 pub struct IconTable;
 
@@ -14,10 +14,10 @@ impl IconTable {
     }
 
     pub fn image(&self) -> Col {
-        col("image")
+        self.table().col("image")
     }
 
     pub fn user_id(&self) -> Col {
-        col("user_id")
+        self.table().col("user_id")
     }
 }

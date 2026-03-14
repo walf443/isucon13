@@ -1,4 +1,4 @@
-use sqipe::{col, table, Col, TableRef};
+use sqipe::{table, Col, TableRef};
 
 pub struct LivestreamTagTable;
 
@@ -14,10 +14,10 @@ impl LivestreamTagTable {
     }
 
     pub fn livestream_id(&self) -> Col {
-        col("livestream_id")
+        self.table().col("livestream_id")
     }
 
     pub fn tag_id(&self) -> Col {
-        col("tag_id")
+        self.table().col("tag_id")
     }
 }

@@ -1,4 +1,4 @@
-use sqipe::{col, table, Col, TableRef};
+use sqipe::{table, Col, TableRef};
 
 pub struct LivestreamCommentTable;
 
@@ -14,18 +14,18 @@ impl LivestreamCommentTable {
     }
 
     pub fn id(&self) -> Col {
-        col("id")
+        self.table().col("id")
     }
 
     pub fn user_id(&self) -> Col {
-        col("user_id")
+        self.table().col("user_id")
     }
 
     pub fn livestream_id(&self) -> Col {
-        col("livestream_id")
+        self.table().col("livestream_id")
     }
 
     pub fn created_at(&self) -> Col {
-        col("created_at")
+        self.table().col("created_at")
     }
 }

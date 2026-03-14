@@ -1,4 +1,4 @@
-use sqipe::{col, table, Col, TableRef};
+use sqipe::{table, Col, TableRef};
 
 pub struct TagTable;
 
@@ -14,10 +14,10 @@ impl TagTable {
     }
 
     pub fn id(&self) -> Col {
-        col("id")
+        self.table().col("id")
     }
 
     pub fn name(&self) -> Col {
-        col("name")
+        self.table().col("name")
     }
 }
