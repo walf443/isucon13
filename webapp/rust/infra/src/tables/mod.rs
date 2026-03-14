@@ -1,3 +1,35 @@
+macro_rules! sqipe_schema {
+    ($struct_name:ident, $const_name:ident, $table_name:expr, [$($col:ident),* $(,)?]) => {
+        use sqipe::{table, Col, TableRef};
+
+        pub struct $struct_name {
+            alias: Option<&'static str>,
+        }
+
+        pub const $const_name: $struct_name = $struct_name { alias: None };
+
+        impl $struct_name {
+            pub fn table_name(&self) -> &'static str {
+                $table_name
+            }
+
+            pub fn table(&self) -> TableRef {
+                table(self.alias.unwrap_or(self.table_name()))
+            }
+
+            pub fn as_(&self, alias: &'static str) -> Self {
+                $struct_name { alias: Some(alias) }
+            }
+
+            $(
+                pub fn $col(&self) -> Col {
+                    self.table().col(stringify!($col))
+                }
+            )*
+        }
+    };
+}
+
 pub mod icon;
 pub mod livestream;
 pub mod livestream_comment;

@@ -1,19 +1,3 @@
-use sqipe::{table, Col, TableRef};
-
-pub struct LivestreamCommentReportTable;
-
-pub const TABLE_LIVECOMMENT_REPORTS: LivestreamCommentReportTable = LivestreamCommentReportTable;
-
-impl LivestreamCommentReportTable {
-    pub fn table_name(&self) -> &'static str {
-        "livecomment_reports"
-    }
-
-    pub fn table(&self) -> TableRef {
-        table(self.table_name())
-    }
-
-    pub fn livestream_id(&self) -> Col {
-        self.table().col("livestream_id")
-    }
-}
+sqipe_schema!(LivestreamCommentReportTable, TABLE_LIVECOMMENT_REPORTS, "livecomment_reports", [
+    livestream_id,
+]);

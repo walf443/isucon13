@@ -1,35 +1,7 @@
-use sqipe::{table, Col, TableRef};
-
-pub struct NgWordTable;
-
-pub const TABLE_NG_WORDS: NgWordTable = NgWordTable;
-
-impl NgWordTable {
-    pub fn table_name(&self) -> &'static str {
-        "ng_words"
-    }
-
-    pub fn table(&self) -> TableRef {
-        table(self.table_name())
-    }
-
-    pub fn id(&self) -> Col {
-        self.table().col("id")
-    }
-
-    pub fn user_id(&self) -> Col {
-        self.table().col("user_id")
-    }
-
-    pub fn livestream_id(&self) -> Col {
-        self.table().col("livestream_id")
-    }
-
-    pub fn word(&self) -> Col {
-        self.table().col("word")
-    }
-
-    pub fn created_at(&self) -> Col {
-        self.table().col("created_at")
-    }
-}
+sqipe_schema!(NgWordTable, TABLE_NG_WORDS, "ng_words", [
+    id,
+    user_id,
+    livestream_id,
+    word,
+    created_at,
+]);
