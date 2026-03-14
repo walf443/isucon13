@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod count_by_livestream_id;
+#[cfg(test)]
+mod delete_by_livestream_id_and_user_id;
 
 use crate::sqipe_support::bind_sqipe_values;
 use async_trait::async_trait;
@@ -67,13 +69,13 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
     ) -> isupipe_core::repos::Result<()> {
         let mut tx = conn.begin().await?;
 
-        sqlx::query(
-            "DELETE FROM livestream_viewers_history WHERE user_id = ? AND livestream_id = ?",
-        )
-        .bind(user_id)
-        .bind(livestream_id)
-        .execute(&mut *tx)
-        .await?;
+        let mut d = sqipe(livestream_viewers_history::TABLE_NAME).delete();
+        d.and_where(("user_id", *user_id.inner()));
+        d.and_where(("livestream_id", *livestream_id.inner()));
+        let (sql, binds) = d.to_sql();
+        bind_sqipe_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await?;
 
         tx.commit().await?;
 

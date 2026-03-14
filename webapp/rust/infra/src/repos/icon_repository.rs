@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod delete_by_user_id;
+
 use crate::sqipe_support::bind_sqipe_values;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
@@ -47,8 +50,10 @@ impl IconRepository for IconRepositoryInfra {
         conn: &mut DBConn,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<()> {
-        sqlx::query("DELETE FROM icons WHERE user_id = ?")
-            .bind(user_id)
+        let mut d = sqipe(icon::TABLE_NAME).delete();
+        d.and_where(("user_id", *user_id.inner()));
+        let (sql, binds) = d.to_sql();
+        bind_sqipe_values!(sqlx::query(&sql), binds)
             .execute(conn)
             .await?;
 

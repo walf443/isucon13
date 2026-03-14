@@ -61,14 +61,14 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         start_at: i64,
         end_at: i64,
     ) -> isupipe_core::repos::Result<()> {
-        // UPDATE - not supported by squipe
-        sqlx::query(
-            "UPDATE reservation_slots SET slot = slot - 1 WHERE start_at >= ? AND end_at <= ?",
-        )
-        .bind(start_at)
-        .bind(end_at)
-        .execute(conn)
-        .await?;
+        let mut u = sqipe(reservation_slot::TABLE_NAME).update();
+        u.set_expr(sqipe::SetExpression::new("`slot` = `slot` - 1"));
+        u.and_where(col("start_at").gte(start_at));
+        u.and_where(col("end_at").lte(end_at));
+        let (sql, binds) = u.to_sql();
+        bind_sqipe_values!(sqlx::query(&sql), binds)
+            .execute(conn)
+            .await?;
 
         Ok(())
     }
