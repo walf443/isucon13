@@ -88,7 +88,7 @@ impl NgWordRepository for NgWordRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<NgWord>> {
         let t = &TABLE_NG_WORDS;
         let mut q = sqipe(t.table_name());
-        q.select(&["id", "user_id", "livestream_id", "word"]);
+        q.select(&[t.id(), t.user_id(), t.livestream_id(), t.word()]);
         q.and_where(t.user_id().eq(*user_id.inner()));
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         let (sql, binds) = q.to_sql();

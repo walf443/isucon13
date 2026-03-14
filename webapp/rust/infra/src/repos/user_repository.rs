@@ -80,7 +80,7 @@ impl UserRepository for UserRepositoryInfra {
     ) -> isupipe_core::repos::Result<Option<UserId>> {
         let t = &TABLE_USERS;
         let mut q = sqipe(t.table_name());
-        q.select(&["id"]);
+        q.select(&[t.id()]);
         q.and_where(t.name().eq(name));
         let (sql, binds) = q.to_sql();
         let user_id = bind_sqipe_values!(sqlx::query_scalar::<_, UserId>(&sql), binds)

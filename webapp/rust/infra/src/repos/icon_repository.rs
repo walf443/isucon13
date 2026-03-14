@@ -22,7 +22,7 @@ impl IconRepository for IconRepositoryInfra {
     ) -> isupipe_core::repos::Result<Option<Vec<u8>>> {
         let t = &TABLE_ICONS;
         let mut q = sqipe(t.table_name());
-        q.select(&["image"]);
+        q.select(&[t.image()]);
         q.and_where(t.user_id().eq(*user_id.inner()));
         let (sql, binds) = q.to_sql();
         let image = bind_sqipe_values!(sqlx::query_scalar::<_, Vec<u8>>(&sql), binds)

@@ -50,7 +50,7 @@ impl TagRepository for TagRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<TagId>> {
         let t = &TABLE_TAGS;
         let mut q = sqipe(t.table_name());
-        q.select(&["id"]);
+        q.select(&[t.id()]);
         q.and_where(t.name().eq(name.inner().clone()));
 
         let (sql, binds) = q.to_sql();

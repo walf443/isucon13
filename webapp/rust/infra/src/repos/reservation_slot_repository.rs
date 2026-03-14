@@ -46,7 +46,7 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
     ) -> isupipe_core::repos::Result<i64> {
         let t = &TABLE_RESERVATION_SLOTS;
         let mut q = sqipe(t.table_name());
-        q.select(&["slot"]);
+        q.select(&[t.slot()]);
         q.and_where(t.start_at().eq(start_at));
         q.and_where(t.end_at().eq(end_at));
         let (sql, binds) = q.to_sql();
