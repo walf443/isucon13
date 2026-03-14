@@ -1,1 +1,3 @@
-sqipe_schema!(IconTable, TABLE_ICONS, "icons", [image, user_id]);
+sqipe_schema!(IconTable, "icons", [image, user_id]);
+
+pub const TABLE_ICONS: IconTable = IconTable::new();

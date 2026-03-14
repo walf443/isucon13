@@ -1,1 +1,3 @@
-sqipe_schema!(ThemeTable, TABLE_THEMES, "themes", [id, user_id, dark_mode]);
+sqipe_schema!(ThemeTable, "themes", [id, user_id, dark_mode]);
+
+pub const TABLE_THEMES: ThemeTable = ThemeTable::new();

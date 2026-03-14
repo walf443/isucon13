@@ -1,14 +1,16 @@
 macro_rules! sqipe_schema {
-    ($struct_name:ident, $const_name:ident, $table_name:expr, [$($col:ident),* $(,)?]) => {
+    ($struct_name:ident, $table_name:expr, [$($col:ident),* $(,)?]) => {
         use sqipe::{table, Col, TableRef};
 
         pub struct $struct_name {
             alias: Option<&'static str>,
         }
 
-        pub const $const_name: $struct_name = $struct_name { alias: None };
-
         impl $struct_name {
+            pub const fn new() -> Self {
+                $struct_name { alias: None }
+            }
+
             pub fn table_name(&self) -> &'static str {
                 $table_name
             }

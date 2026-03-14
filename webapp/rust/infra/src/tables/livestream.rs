@@ -1,1 +1,3 @@
-sqipe_schema!(LivestreamTable, TABLE_LIVESTREAMS, "livestreams", [id, user_id]);
+sqipe_schema!(LivestreamTable, "livestreams", [id, user_id]);
+
+pub const TABLE_LIVESTREAMS: LivestreamTable = LivestreamTable::new();

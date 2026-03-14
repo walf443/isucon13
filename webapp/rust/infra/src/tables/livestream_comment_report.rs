@@ -1,3 +1,5 @@
-sqipe_schema!(LivestreamCommentReportTable, TABLE_LIVECOMMENT_REPORTS, "livecomment_reports", [
+sqipe_schema!(LivestreamCommentReportTable, "livecomment_reports", [
     livestream_id,
 ]);
+
+pub const TABLE_LIVECOMMENT_REPORTS: LivestreamCommentReportTable = LivestreamCommentReportTable::new();
