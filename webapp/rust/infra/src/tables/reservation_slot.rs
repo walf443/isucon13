@@ -1,4 +1,4 @@
-use sqipe::{col, Col};
+use sqipe::{col, table, Col, TableRef};
 
 pub struct ReservationSlotTable;
 
@@ -7,6 +7,10 @@ pub const TABLE_RESERVATION_SLOTS: ReservationSlotTable = ReservationSlotTable;
 impl ReservationSlotTable {
     pub fn table_name(&self) -> &'static str {
         "reservation_slots"
+    }
+
+    pub fn table(&self) -> TableRef {
+        table(self.table_name())
     }
 
     pub fn id(&self) -> Col {

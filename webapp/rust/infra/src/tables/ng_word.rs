@@ -1,4 +1,4 @@
-use sqipe::{col, Col};
+use sqipe::{col, table, Col, TableRef};
 
 pub struct NgWordTable;
 
@@ -7,6 +7,10 @@ pub const TABLE_NG_WORDS: NgWordTable = NgWordTable;
 impl NgWordTable {
     pub fn table_name(&self) -> &'static str {
         "ng_words"
+    }
+
+    pub fn table(&self) -> TableRef {
+        table(self.table_name())
     }
 
     pub fn id(&self) -> Col {

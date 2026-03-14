@@ -1,4 +1,4 @@
-use sqipe::{col, Col};
+use sqipe::{col, table, Col, TableRef};
 
 pub struct LivestreamCommentTable;
 
@@ -7,6 +7,10 @@ pub const TABLE_LIVECOMMENTS: LivestreamCommentTable = LivestreamCommentTable;
 impl LivestreamCommentTable {
     pub fn table_name(&self) -> &'static str {
         "livecomments"
+    }
+
+    pub fn table(&self) -> TableRef {
+        table(self.table_name())
     }
 
     pub fn id(&self) -> Col {

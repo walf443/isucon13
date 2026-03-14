@@ -1,4 +1,4 @@
-use sqipe::{col, Col};
+use sqipe::{col, table, Col, TableRef};
 
 pub struct UserTable;
 
@@ -7,6 +7,10 @@ pub const TABLE_USERS: UserTable = UserTable;
 impl UserTable {
     pub fn table_name(&self) -> &'static str {
         "users"
+    }
+
+    pub fn table(&self) -> TableRef {
+        table(self.table_name())
     }
 
     pub fn id(&self) -> Col {

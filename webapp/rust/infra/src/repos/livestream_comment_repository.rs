@@ -248,7 +248,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         );
         q.join(
             comment.table_name(),
-            table(livestream.table_name()).col("id").eq_col("livestream_id"),
+            livestream.table().col("id").eq_col("livestream_id"),
         );
         q.and_where(table("u").col("id").eq(*user_id.inner()));
         q.aggregate(&[aggregate::expr("CAST(IFNULL(SUM(livecomments.tip), 0) AS SIGNED)")]);
