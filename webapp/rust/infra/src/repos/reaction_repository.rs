@@ -21,7 +21,7 @@ use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::reaction::{CreateReaction, Reaction, ReactionId};
 use isupipe_core::models::user::{UserId, UserName};
 use isupipe_core::repos::reaction_repository::ReactionRepository;
-use sqipe::{aggregate, table};
+use sqipe::aggregate;
 use sqipe_mysql::sqipe;
 
 #[derive(Clone)]
@@ -56,8 +56,9 @@ impl ReactionRepository for ReactionRepositoryInfra {
         let reaction = &TABLE_REACTIONS;
         let mut q = sqipe(livestream.table_name());
         q.as_("l");
-        q.join(reaction.table_name(), table("l").col("id").eq_col("livestream_id"));
-        q.and_where(table("l").col("id").eq(*livestream_id.inner()));
+        let l = livestream.as_("l");
+        q.join(reaction.table_name(), l.id().eq_col(reaction.livestream_id()));
+        q.and_where(l.id().eq(*livestream_id.inner()));
         q.aggregate(&[aggregate::count_all()]);
         let (sql, binds) = q.to_sql();
         let reactions = bind_sqipe_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
@@ -102,9 +103,10 @@ impl ReactionRepository for ReactionRepositoryInfra {
         let reaction = &TABLE_REACTIONS;
         let mut q = sqipe(user.table_name());
         q.as_("u");
-        q.join(livestream.table_name(), table("u").col("id").eq_col("user_id"));
+        let u = user.as_("u");
+        q.join(livestream.table_name(), u.id().eq_col(livestream.user_id()));
         q.join(reaction.table_name(), livestream.id().eq_col(reaction.livestream_id()));
-        q.and_where(table("u").col("id").eq(*livestream_user_id.inner()));
+        q.and_where(u.id().eq(*livestream_user_id.inner()));
         q.aggregate(&[aggregate::count_all()]);
         let (sql, binds) = q.to_sql();
         let reactions = bind_sqipe_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
@@ -124,9 +126,10 @@ impl ReactionRepository for ReactionRepositoryInfra {
         let reaction = &TABLE_REACTIONS;
         let mut q = sqipe(user.table_name());
         q.as_("u");
-        q.join(livestream.table_name(), table("u").col("id").eq_col("user_id"));
+        let u = user.as_("u");
+        q.join(livestream.table_name(), u.id().eq_col(livestream.user_id()));
         q.join(reaction.table_name(), livestream.id().eq_col(reaction.livestream_id()));
-        q.and_where(table("u").col("name").eq(livestream_user_name.inner().clone()));
+        q.and_where(u.name().eq(livestream_user_name.inner().clone()));
         q.aggregate(&[aggregate::count_all()]);
         let (sql, binds) = q.to_sql();
         let total_reactions = bind_sqipe_values!(sqlx::query_scalar::<_, i64>(&sql), binds)

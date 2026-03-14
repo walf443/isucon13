@@ -14,7 +14,7 @@ use isupipe_core::models::livestream_comment_report::{
 };
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::Result;
-use sqipe::{aggregate, table};
+use sqipe::aggregate;
 use sqipe_mysql::sqipe;
 
 #[derive(Clone)]
@@ -49,11 +49,12 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         let report = &TABLE_LIVECOMMENT_REPORTS;
         let mut q = sqipe(livestream.table_name());
         q.as_("l");
+        let l = livestream.as_("l");
         q.join(
             report.table_name(),
-            report.livestream_id().eq_col(table("l").col("id")),
+            report.livestream_id().eq_col(l.id()),
         );
-        q.and_where(table("l").col("id").eq(*livestream_id.inner()));
+        q.and_where(l.id().eq(*livestream_id.inner()));
         q.aggregate(&[aggregate::count_all()]);
         let (sql, binds) = q.to_sql();
         let total_reports = bind_sqipe_values!(sqlx::query_scalar::<_, i64>(&sql), binds)

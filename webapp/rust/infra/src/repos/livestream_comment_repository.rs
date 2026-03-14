@@ -29,7 +29,7 @@ use isupipe_core::models::livestream_comment::{
 };
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
-use sqipe::{aggregate, table};
+use sqipe::aggregate;
 use sqipe_mysql::sqipe;
 
 #[derive(Clone)]
@@ -194,11 +194,12 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let comment = &TABLE_LIVECOMMENTS;
         let mut q = sqipe(livestream.table_name());
         q.as_("l");
+        let l = livestream.as_("l");
         q.join(
             comment.table_name(),
-            table("l").col("id").eq_col("livestream_id"),
+            l.id().eq_col(comment.livestream_id()),
         );
-        q.and_where(table("l").col("id").eq(*livestream_id.inner()));
+        q.and_where(l.id().eq(*livestream_id.inner()));
         q.aggregate(&[aggregate::expr("CAST(IFNULL(SUM(livecomments.tip), 0) AS SIGNED)")]);
         let (sql, binds) = q.to_sql();
         let total_tips = bind_sqipe_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
@@ -217,11 +218,12 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let comment = &TABLE_LIVECOMMENTS;
         let mut q = sqipe(livestream.table_name());
         q.as_("l");
+        let l = livestream.as_("l");
         q.join(
             comment.table_name(),
-            table("l").col("id").eq_col("livestream_id"),
+            l.id().eq_col(comment.livestream_id()),
         );
-        q.and_where(table("l").col("id").eq(*livestream_id.inner()));
+        q.and_where(l.id().eq(*livestream_id.inner()));
         q.aggregate(&[aggregate::expr("CAST(IFNULL(MAX(livecomments.tip), 0) AS SIGNED)")]);
 
         let (sql, binds) = q.to_sql();
@@ -242,15 +244,16 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let comment = &TABLE_LIVECOMMENTS;
         let mut q = sqipe(user.table_name());
         q.as_("u");
+        let u = user.as_("u");
         q.join(
             livestream.table_name(),
-            table("u").col("id").eq_col("user_id"),
+            u.id().eq_col(livestream.user_id()),
         );
         q.join(
             comment.table_name(),
             livestream.id().eq_col(comment.livestream_id()),
         );
-        q.and_where(table("u").col("id").eq(*user_id.inner()));
+        q.and_where(u.id().eq(*user_id.inner()));
         q.aggregate(&[aggregate::expr("CAST(IFNULL(SUM(livecomments.tip), 0) AS SIGNED)")]);
 
         let (sql, binds) = q.to_sql();
