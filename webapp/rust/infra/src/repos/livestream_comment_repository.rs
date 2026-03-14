@@ -94,7 +94,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     ) -> isupipe_core::repos::Result<Option<LivestreamComment>> {
         let t = &TABLE_LIVECOMMENTS;
         let mut q = sqipe(t.table_name());
-        q.and_where(("id", *comment_id.inner()));
+        q.and_where(t.id().eq(*comment_id.inner()));
         let (sql, binds) = q.to_sql();
         let comment = bind_sqipe_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
             .fetch_optional(conn)
@@ -125,7 +125,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
         let t = &TABLE_LIVECOMMENTS;
         let mut q = sqipe(t.table_name());
-        q.and_where(("livestream_id", *livestream_id.inner()));
+        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         let (sql, binds) = q.to_sql();
         let comments =
             bind_sqipe_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
@@ -142,7 +142,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
         let t = &TABLE_LIVECOMMENTS;
         let mut q = sqipe(t.table_name());
-        q.and_where(("livestream_id", *livestream_id.inner()));
+        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         q.order_by(t.created_at().desc());
         let (sql, binds) = q.to_sql();
         let comments =
@@ -161,7 +161,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
         let t = &TABLE_LIVECOMMENTS;
         let mut q = sqipe(t.table_name());
-        q.and_where(("livestream_id", *livestream_id.inner()));
+        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         q.order_by(t.created_at().desc());
         q.limit(limit as u64);
         let (sql, binds) = q.to_sql();

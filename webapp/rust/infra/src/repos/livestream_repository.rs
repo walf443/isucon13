@@ -82,7 +82,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<Livestream>> {
         let t = &TABLE_LIVESTREAMS;
         let mut q = sqipe(t.table_name());
-        q.and_where(("user_id", *user_id.inner()));
+        q.and_where(t.user_id().eq(*user_id.inner()));
         let (sql, binds) = q.to_sql();
         let livestream_models = bind_sqipe_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
             .fetch_all(conn)
@@ -98,7 +98,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
     ) -> isupipe_core::repos::Result<Option<Livestream>> {
         let t = &TABLE_LIVESTREAMS;
         let mut q = sqipe(t.table_name());
-        q.and_where(("id", *id.inner()));
+        q.and_where(t.id().eq(*id.inner()));
         let (sql, binds) = q.to_sql();
         let livestream = bind_sqipe_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
             .fetch_optional(conn)
@@ -115,8 +115,8 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
     ) -> isupipe_core::repos::Result<bool> {
         let t = &TABLE_LIVESTREAMS;
         let mut q = sqipe(t.table_name());
-        q.and_where(("id", *id.inner()));
-        q.and_where(("user_id", *user_id.inner()));
+        q.and_where(t.id().eq(*id.inner()));
+        q.and_where(t.user_id().eq(*user_id.inner()));
         let (sql, binds) = q.to_sql();
         let livestreams: Vec<Livestream> =
             bind_sqipe_values!(sqlx::query_as::<_, Livestream>(&sql), binds)

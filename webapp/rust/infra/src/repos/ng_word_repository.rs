@@ -47,7 +47,7 @@ impl NgWordRepository for NgWordRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<NgWord>> {
         let t = &TABLE_NG_WORDS;
         let mut q = sqipe(t.table_name());
-        q.and_where(("livestream_id", *livestream_id.inner()));
+        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         let (sql, binds) = q.to_sql();
         let ng_words = bind_sqipe_values!(sqlx::query_as::<_, NgWord>(&sql), binds)
             .fetch_all(conn)
@@ -89,8 +89,8 @@ impl NgWordRepository for NgWordRepositoryInfra {
         let t = &TABLE_NG_WORDS;
         let mut q = sqipe(t.table_name());
         q.select(&["id", "user_id", "livestream_id", "word"]);
-        q.and_where(("user_id", *user_id.inner()));
-        q.and_where(("livestream_id", *livestream_id.inner()));
+        q.and_where(t.user_id().eq(*user_id.inner()));
+        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         let (sql, binds) = q.to_sql();
         let ng_words = bind_sqipe_values!(sqlx::query_as::<_, NgWord>(&sql), binds)
             .fetch_all(conn)
@@ -107,8 +107,8 @@ impl NgWordRepository for NgWordRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<NgWord>> {
         let t = &TABLE_NG_WORDS;
         let mut q = sqipe(t.table_name());
-        q.and_where(("user_id", *user_id.inner()));
-        q.and_where(("livestream_id", *livestream_id.inner()));
+        q.and_where(t.user_id().eq(*user_id.inner()));
+        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         q.order_by(t.created_at().desc());
         let (sql, binds) = q.to_sql();
         let ng_words = bind_sqipe_values!(sqlx::query_as::<_, NgWord>(&sql), binds)

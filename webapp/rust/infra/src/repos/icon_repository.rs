@@ -23,7 +23,7 @@ impl IconRepository for IconRepositoryInfra {
         let t = &TABLE_ICONS;
         let mut q = sqipe(t.table_name());
         q.select(&["image"]);
-        q.and_where(("user_id", *user_id.inner()));
+        q.and_where(t.user_id().eq(*user_id.inner()));
         let (sql, binds) = q.to_sql();
         let image = bind_sqipe_values!(sqlx::query_scalar::<_, Vec<u8>>(&sql), binds)
             .fetch_optional(conn)
@@ -54,7 +54,7 @@ impl IconRepository for IconRepositoryInfra {
     ) -> isupipe_core::repos::Result<()> {
         let t = &TABLE_ICONS;
         let mut d = sqipe(t.table_name()).delete();
-        d.and_where(("user_id", *user_id.inner()));
+        d.and_where(t.user_id().eq(*user_id.inner()));
         let (sql, binds) = d.to_sql();
         bind_sqipe_values!(sqlx::query(&sql), binds)
             .execute(conn)

@@ -45,7 +45,7 @@ impl ThemeRepository for ThemeRepositoryInfra {
             t.user_id().into_col_ref(),
             t.dark_mode().into_col_ref(),
         ]);
-        q.and_where(("user_id", *user_id.inner()));
+        q.and_where(t.user_id().eq(*user_id.inner()));
         let (sql, binds) = q.to_sql();
         let theme_model = bind_sqipe_values!(sqlx::query_as::<_, Theme>(&sql), binds)
             .fetch_one(conn)

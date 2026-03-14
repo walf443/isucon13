@@ -21,7 +21,7 @@ impl TagRepository for TagRepositoryInfra {
     async fn find(&self, conn: &mut DBConn, id: &TagId) -> isupipe_core::repos::Result<Tag> {
         let t = &TABLE_TAGS;
         let mut q = sqipe(t.table_name());
-        q.and_where(("id", *id.inner()));
+        q.and_where(t.id().eq(*id.inner()));
 
         let (sql, binds) = q.to_sql();
         let tag_model = bind_sqipe_values!(sqlx::query_as::<_, Tag>(&sql), binds)
@@ -51,7 +51,7 @@ impl TagRepository for TagRepositoryInfra {
         let t = &TABLE_TAGS;
         let mut q = sqipe(t.table_name());
         q.select(&["id"]);
-        q.and_where(("name", name.inner().clone()));
+        q.and_where(t.name().eq(name.inner().clone()));
 
         let (sql, binds) = q.to_sql();
         let tag_id_list = bind_sqipe_values!(sqlx::query_scalar::<_, TagId>(&sql), binds)

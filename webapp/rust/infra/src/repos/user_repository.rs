@@ -64,7 +64,7 @@ impl UserRepository for UserRepositoryInfra {
         let t = &TABLE_USERS;
         let mut q = sqipe(t.table_name());
         q.select_cols(&user_select_cols());
-        q.and_where(("id", *id.inner()));
+        q.and_where(t.id().eq(*id.inner()));
         let (sql, binds) = q.to_sql();
         let user_model = bind_sqipe_values!(sqlx::query_as::<_, User>(&sql), binds)
             .fetch_optional(conn)
@@ -93,7 +93,7 @@ impl UserRepository for UserRepositoryInfra {
         let t = &TABLE_USERS;
         let mut q = sqipe(t.table_name());
         q.select(&["id"]);
-        q.and_where(("name", name));
+        q.and_where(t.name().eq(name));
         let (sql, binds) = q.to_sql();
         let user_id = bind_sqipe_values!(sqlx::query_scalar::<_, UserId>(&sql), binds)
             .fetch_optional(conn)
@@ -110,7 +110,7 @@ impl UserRepository for UserRepositoryInfra {
         let t = &TABLE_USERS;
         let mut q = sqipe(t.table_name());
         q.select_cols(&user_select_cols());
-        q.and_where(("name", name));
+        q.and_where(t.name().eq(name));
         let (sql, binds) = q.to_sql();
         let user_model = bind_sqipe_values!(sqlx::query_as::<_, User>(&sql), binds)
             .fetch_optional(conn)

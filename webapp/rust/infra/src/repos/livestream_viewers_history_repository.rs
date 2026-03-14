@@ -75,8 +75,8 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
 
         let viewers_history = &TABLE_LIVESTREAM_VIEWERS_HISTORY;
         let mut d = sqipe(viewers_history.table_name()).delete();
-        d.and_where(("user_id", *user_id.inner()));
-        d.and_where(("livestream_id", *livestream_id.inner()));
+        d.and_where(viewers_history.user_id().eq(*user_id.inner()));
+        d.and_where(viewers_history.livestream_id().eq(*livestream_id.inner()));
         let (sql, binds) = d.to_sql();
         bind_sqipe_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)

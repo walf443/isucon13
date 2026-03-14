@@ -143,7 +143,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<Reaction>> {
         let t = &TABLE_REACTIONS;
         let mut q = sqipe(t.table_name());
-        q.and_where(("livestream_id", *livestream_id.inner()));
+        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         q.order_by(t.created_at().desc());
         let (sql, binds) = q.to_sql();
         let reaction_models = bind_sqipe_values!(sqlx::query_as::<_, Reaction>(&sql), binds)
@@ -161,7 +161,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<Reaction>> {
         let t = &TABLE_REACTIONS;
         let mut q = sqipe(t.table_name());
-        q.and_where(("livestream_id", *livestream_id.inner()));
+        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         q.order_by(t.created_at().desc());
         q.limit(limit as u64);
         let (sql, binds) = q.to_sql();

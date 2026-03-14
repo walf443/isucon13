@@ -70,7 +70,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
     ) -> isupipe_core::repos::Result<Vec<LivestreamCommentReport>> {
         let t = &TABLE_LIVECOMMENT_REPORTS;
         let mut q = sqipe(t.table_name());
-        q.and_where(("livestream_id", *livestream_id.inner()));
+        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         let (sql, binds) = q.to_sql();
         let report_models =
             bind_sqipe_values!(sqlx::query_as::<_, LivestreamCommentReport>(&sql), binds)
