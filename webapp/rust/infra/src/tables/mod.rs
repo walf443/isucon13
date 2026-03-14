@@ -28,6 +28,10 @@ macro_rules! sqipe_schema {
                     self.table().col(stringify!($col))
                 }
             )*
+
+            pub fn all_columns(&self) -> Vec<Col> {
+                vec![$(self.$col()),*]
+            }
         }
     };
 }
