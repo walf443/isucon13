@@ -10,7 +10,6 @@ use isupipe_core::db::DBConn;
 use isupipe_core::models::theme::Theme;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::theme_repository::ThemeRepository;
-use sqipe::IntoColRef;
 use sqipe_mysql::sqipe;
 
 #[derive(Clone)]
@@ -40,11 +39,7 @@ impl ThemeRepository for ThemeRepositoryInfra {
     ) -> isupipe_core::repos::Result<Theme> {
         let t = &TABLE_THEMES;
         let mut q = sqipe(t.table_name());
-        q.select_cols(&[
-            t.id().into_col_ref(),
-            t.user_id().into_col_ref(),
-            t.dark_mode().into_col_ref(),
-        ]);
+        q.select(&t.all_columns());
         q.and_where(t.user_id().eq(*user_id.inner()));
         let (sql, binds) = q.to_sql();
         let theme_model = bind_sqipe_values!(sqlx::query_as::<_, Theme>(&sql), binds)

@@ -51,7 +51,7 @@ impl UserRepository for UserRepositoryInfra {
     ) -> isupipe_core::repos::Result<Option<User>> {
         let t = &TABLE_USERS;
         let mut q = sqipe(t.table_name());
-        q.select_cols(&TABLE_USERS.default_cols());
+        q.select(&TABLE_USERS.default_cols());
         q.and_where(t.id().eq(*id.inner()));
         let (sql, binds) = q.to_sql();
         let user_model = bind_sqipe_values!(sqlx::query_as::<_, User>(&sql), binds)
@@ -64,7 +64,7 @@ impl UserRepository for UserRepositoryInfra {
     async fn find_all(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<Vec<User>> {
         let t = &TABLE_USERS;
         let mut q = sqipe(t.table_name());
-        q.select_cols(&TABLE_USERS.default_cols());
+        q.select(&TABLE_USERS.default_cols());
         let (sql, binds) = q.to_sql();
         let users = bind_sqipe_values!(sqlx::query_as::<_, User>(&sql), binds)
             .fetch_all(conn)
@@ -97,7 +97,7 @@ impl UserRepository for UserRepositoryInfra {
     ) -> isupipe_core::repos::Result<Option<User>> {
         let t = &TABLE_USERS;
         let mut q = sqipe(t.table_name());
-        q.select_cols(&TABLE_USERS.default_cols());
+        q.select(&TABLE_USERS.default_cols());
         q.and_where(t.name().eq(name));
         let (sql, binds) = q.to_sql();
         let user_model = bind_sqipe_values!(sqlx::query_as::<_, User>(&sql), binds)

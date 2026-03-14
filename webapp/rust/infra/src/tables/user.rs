@@ -7,13 +7,12 @@ sqipe_schema!(UserTable, "users", [
 ]);
 
 impl UserTable {
-    pub fn default_cols(&self) -> Vec<sqipe::ColRef> {
-        use sqipe::IntoColRef;
+    pub fn default_cols(&self) -> Vec<sqipe::Col> {
         vec![
-            self.id().into_col_ref(),
-            self.name().into_col_ref(),
-            self.display_name().into_col_ref(),
-            self.description().into_col_ref(),
+            self.id(),
+            self.name(),
+            self.display_name(),
+            self.description(),
             self.password().as_("hashed_password"),
         ]
     }
