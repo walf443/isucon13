@@ -53,7 +53,7 @@ impl IconRepository for IconRepositoryInfra {
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<()> {
         let t = &TABLE_ICONS;
-        let mut d = sqipe(t.table_name()).delete();
+        let mut d = sqipe(t.table_name()).into_delete();
         d.and_where(t.user_id().eq(*user_id.inner()));
         let (sql, binds) = d.to_sql();
         bind_sqipe_values!(sqlx::query(&sql), binds)

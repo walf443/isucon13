@@ -64,7 +64,7 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         end_at: i64,
     ) -> isupipe_core::repos::Result<()> {
         let t = &TABLE_RESERVATION_SLOTS;
-        let mut u = sqipe(t.table_name()).update();
+        let mut u = sqipe(t.table_name()).into_update();
         u.set_expr(sqipe::SetExpression::new("`slot` = `slot` - 1"));
         u.and_where(t.start_at().gte(start_at));
         u.and_where(t.end_at().lte(end_at));
