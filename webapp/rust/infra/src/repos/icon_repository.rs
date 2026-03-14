@@ -2,9 +2,10 @@
 mod delete_by_user_id;
 
 use crate::sqipe_support::bind_sqipe_values;
+use crate::tables::icon::TABLE_ICONS;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::icon::{self, CreateIcon};
+use isupipe_core::models::icon::CreateIcon;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::icon_repository::IconRepository;
 use sqipe_mysql::sqipe;
@@ -19,7 +20,8 @@ impl IconRepository for IconRepositoryInfra {
         conn: &mut DBConn,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Option<Vec<u8>>> {
-        let mut q = sqipe(icon::TABLE_NAME);
+        let t = &TABLE_ICONS;
+        let mut q = sqipe(t.table_name());
         q.select(&["image"]);
         q.and_where(("user_id", *user_id.inner()));
         let (sql, binds) = q.to_sql();
@@ -50,7 +52,8 @@ impl IconRepository for IconRepositoryInfra {
         conn: &mut DBConn,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<()> {
-        let mut d = sqipe(icon::TABLE_NAME).delete();
+        let t = &TABLE_ICONS;
+        let mut d = sqipe(t.table_name()).delete();
         d.and_where(("user_id", *user_id.inner()));
         let (sql, binds) = d.to_sql();
         bind_sqipe_values!(sqlx::query(&sql), binds)

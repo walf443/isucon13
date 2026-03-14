@@ -4,11 +4,13 @@ mod count_by_livestream_id;
 mod find_all_by_livestream_id;
 
 use crate::sqipe_support::bind_sqipe_values;
+use crate::tables::livestream::TABLE_LIVESTREAMS;
+use crate::tables::livestream_comment_report::TABLE_LIVECOMMENT_REPORTS;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::livestream::{self as livestream, LivestreamId};
+use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_comment_report::{
-    self, CreateLivestreamCommentReport, LivestreamCommentReport, LivestreamCommentReportId,
+    CreateLivestreamCommentReport, LivestreamCommentReport, LivestreamCommentReportId,
 };
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::Result;
@@ -43,11 +45,13 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
-        let mut q = sqipe(livestream::TABLE_NAME);
+        let livestream = &TABLE_LIVESTREAMS;
+        let report = &TABLE_LIVECOMMENT_REPORTS;
+        let mut q = sqipe(livestream.table_name());
         q.as_("l");
         q.join(
-            livestream_comment_report::TABLE_NAME,
-            table(livestream_comment_report::TABLE_NAME).col("livestream_id").eq_col(table("l").col("id")),
+            report.table_name(),
+            table(report.table_name()).col("livestream_id").eq_col(table("l").col("id")),
         );
         q.and_where(table("l").col("id").eq(*livestream_id.inner()));
         q.aggregate(&[aggregate::count_all()]);
@@ -64,7 +68,8 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamCommentReport>> {
-        let mut q = sqipe(livestream_comment_report::TABLE_NAME);
+        let t = &TABLE_LIVECOMMENT_REPORTS;
+        let mut q = sqipe(t.table_name());
         q.and_where(("livestream_id", *livestream_id.inner()));
         let (sql, binds) = q.to_sql();
         let report_models =

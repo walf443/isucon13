@@ -12,13 +12,16 @@ mod find_all_by_livestream_id;
 mod find_all_by_livestream_id_limit;
 
 use crate::sqipe_support::bind_sqipe_values;
+use crate::tables::livestream::TABLE_LIVESTREAMS;
+use crate::tables::reaction::TABLE_REACTIONS;
+use crate::tables::user::TABLE_USERS;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::livestream::{self as livestream, LivestreamId};
-use isupipe_core::models::reaction::{self, CreateReaction, Reaction, ReactionId};
-use isupipe_core::models::user::{self as user, UserId, UserName};
+use isupipe_core::models::livestream::LivestreamId;
+use isupipe_core::models::reaction::{CreateReaction, Reaction, ReactionId};
+use isupipe_core::models::user::{UserId, UserName};
 use isupipe_core::repos::reaction_repository::ReactionRepository;
-use sqipe::{aggregate, col, table};
+use sqipe::{aggregate, table};
 use sqipe_mysql::sqipe;
 
 #[derive(Clone)]
@@ -49,9 +52,11 @@ impl ReactionRepository for ReactionRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
-        let mut q = sqipe(livestream::TABLE_NAME);
+        let livestream = &TABLE_LIVESTREAMS;
+        let reaction = &TABLE_REACTIONS;
+        let mut q = sqipe(livestream.table_name());
         q.as_("l");
-        q.join(reaction::TABLE_NAME, table("l").col("id").eq_col("livestream_id"));
+        q.join(reaction.table_name(), table("l").col("id").eq_col("livestream_id"));
         q.and_where(table("l").col("id").eq(*livestream_id.inner()));
         q.aggregate(&[aggregate::count_all()]);
         let (sql, binds) = q.to_sql();
@@ -92,10 +97,13 @@ impl ReactionRepository for ReactionRepositoryInfra {
         conn: &mut DBConn,
         livestream_user_id: &UserId,
     ) -> isupipe_core::repos::Result<i64> {
-        let mut q = sqipe(user::TABLE_NAME);
+        let user = &TABLE_USERS;
+        let livestream = &TABLE_LIVESTREAMS;
+        let reaction = &TABLE_REACTIONS;
+        let mut q = sqipe(user.table_name());
         q.as_("u");
-        q.join(livestream::TABLE_NAME, table("u").col("id").eq_col("user_id"));
-        q.join(reaction::TABLE_NAME, table(livestream::TABLE_NAME).col("id").eq_col("livestream_id"));
+        q.join(livestream.table_name(), table("u").col("id").eq_col("user_id"));
+        q.join(reaction.table_name(), table(livestream.table_name()).col("id").eq_col("livestream_id"));
         q.and_where(table("u").col("id").eq(*livestream_user_id.inner()));
         q.aggregate(&[aggregate::count_all()]);
         let (sql, binds) = q.to_sql();
@@ -111,10 +119,13 @@ impl ReactionRepository for ReactionRepositoryInfra {
         conn: &mut DBConn,
         livestream_user_name: &UserName,
     ) -> isupipe_core::repos::Result<i64> {
-        let mut q = sqipe(user::TABLE_NAME);
+        let user = &TABLE_USERS;
+        let livestream = &TABLE_LIVESTREAMS;
+        let reaction = &TABLE_REACTIONS;
+        let mut q = sqipe(user.table_name());
         q.as_("u");
-        q.join(livestream::TABLE_NAME, table("u").col("id").eq_col("user_id"));
-        q.join(reaction::TABLE_NAME, table(livestream::TABLE_NAME).col("id").eq_col("livestream_id"));
+        q.join(livestream.table_name(), table("u").col("id").eq_col("user_id"));
+        q.join(reaction.table_name(), table(livestream.table_name()).col("id").eq_col("livestream_id"));
         q.and_where(table("u").col("name").eq(livestream_user_name.inner().clone()));
         q.aggregate(&[aggregate::count_all()]);
         let (sql, binds) = q.to_sql();
@@ -130,9 +141,10 @@ impl ReactionRepository for ReactionRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<Reaction>> {
-        let mut q = sqipe(reaction::TABLE_NAME);
+        let t = &TABLE_REACTIONS;
+        let mut q = sqipe(t.table_name());
         q.and_where(("livestream_id", *livestream_id.inner()));
-        q.order_by(col("created_at").desc());
+        q.order_by(t.created_at().desc());
         let (sql, binds) = q.to_sql();
         let reaction_models = bind_sqipe_values!(sqlx::query_as::<_, Reaction>(&sql), binds)
             .fetch_all(conn)
@@ -147,9 +159,10 @@ impl ReactionRepository for ReactionRepositoryInfra {
         livestream_id: &LivestreamId,
         limit: i64,
     ) -> isupipe_core::repos::Result<Vec<Reaction>> {
-        let mut q = sqipe(reaction::TABLE_NAME);
+        let t = &TABLE_REACTIONS;
+        let mut q = sqipe(t.table_name());
         q.and_where(("livestream_id", *livestream_id.inner()));
-        q.order_by(col("created_at").desc());
+        q.order_by(t.created_at().desc());
         q.limit(limit as u64);
         let (sql, binds) = q.to_sql();
         let reaction_models = bind_sqipe_values!(sqlx::query_as::<_, Reaction>(&sql), binds)

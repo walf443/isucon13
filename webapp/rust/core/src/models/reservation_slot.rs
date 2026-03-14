@@ -1,8 +1,6 @@
 use fake::Dummy;
 use kubetsu::Id;
 
-pub const TABLE_NAME: &str = "reservation_slots";
-
 #[derive(Debug, sqlx::FromRow, Dummy)]
 pub struct ReservationSlot {
     #[allow(unused)]

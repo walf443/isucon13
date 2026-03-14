@@ -4,12 +4,13 @@ mod create;
 mod find_by_user_id;
 
 use crate::sqipe_support::bind_sqipe_values;
+use crate::tables::theme::TABLE_THEMES;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::theme::{self, Theme};
+use isupipe_core::models::theme::Theme;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::theme_repository::ThemeRepository;
-use sqipe::{IntoColRef, col};
+use sqipe::IntoColRef;
 use sqipe_mysql::sqipe;
 
 #[derive(Clone)]
@@ -37,11 +38,12 @@ impl ThemeRepository for ThemeRepositoryInfra {
         conn: &mut DBConn,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Theme> {
-        let mut q = sqipe(theme::TABLE_NAME);
+        let t = &TABLE_THEMES;
+        let mut q = sqipe(t.table_name());
         q.select_cols(&[
-            col("id").into_col_ref(),
-            col("user_id").into_col_ref(),
-            col("dark_mode").into_col_ref(),
+            t.id().into_col_ref(),
+            t.user_id().into_col_ref(),
+            t.dark_mode().into_col_ref(),
         ]);
         q.and_where(("user_id", *user_id.inner()));
         let (sql, binds) = q.to_sql();

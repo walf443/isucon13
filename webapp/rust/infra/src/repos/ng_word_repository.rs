@@ -6,13 +6,13 @@ mod find_all_by_livestream_id_and_user_id;
 mod find_all_by_livestream_id_and_user_id_order_by_created_at;
 
 use crate::sqipe_support::bind_sqipe_values;
+use crate::tables::ng_word::TABLE_NG_WORDS;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::LivestreamId;
-use isupipe_core::models::ng_word::{self, CreateNgWord, NgWord, NgWordId};
+use isupipe_core::models::ng_word::{CreateNgWord, NgWord, NgWordId};
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::ng_word_repository::NgWordRepository;
-use sqipe::col;
 use sqipe_mysql::sqipe;
 
 #[derive(Clone)]
@@ -45,7 +45,8 @@ impl NgWordRepository for NgWordRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<NgWord>> {
-        let mut q = sqipe(ng_word::TABLE_NAME);
+        let t = &TABLE_NG_WORDS;
+        let mut q = sqipe(t.table_name());
         q.and_where(("livestream_id", *livestream_id.inner()));
         let (sql, binds) = q.to_sql();
         let ng_words = bind_sqipe_values!(sqlx::query_as::<_, NgWord>(&sql), binds)
@@ -85,7 +86,8 @@ impl NgWordRepository for NgWordRepositoryInfra {
         livestream_id: &LivestreamId,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Vec<NgWord>> {
-        let mut q = sqipe(ng_word::TABLE_NAME);
+        let t = &TABLE_NG_WORDS;
+        let mut q = sqipe(t.table_name());
         q.select(&["id", "user_id", "livestream_id", "word"]);
         q.and_where(("user_id", *user_id.inner()));
         q.and_where(("livestream_id", *livestream_id.inner()));
@@ -103,10 +105,11 @@ impl NgWordRepository for NgWordRepositoryInfra {
         livestream_id: &LivestreamId,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Vec<NgWord>> {
-        let mut q = sqipe(ng_word::TABLE_NAME);
+        let t = &TABLE_NG_WORDS;
+        let mut q = sqipe(t.table_name());
         q.and_where(("user_id", *user_id.inner()));
         q.and_where(("livestream_id", *livestream_id.inner()));
-        q.order_by(col("created_at").desc());
+        q.order_by(t.created_at().desc());
         let (sql, binds) = q.to_sql();
         let ng_words = bind_sqipe_values!(sqlx::query_as::<_, NgWord>(&sql), binds)
             .fetch_all(conn)

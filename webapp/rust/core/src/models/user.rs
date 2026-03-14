@@ -1,8 +1,6 @@
 use fake::Dummy;
 use kubetsu::Id;
 
-pub const TABLE_NAME: &str = "users";
-
 #[derive(Debug, sqlx::FromRow, Dummy)]
 pub struct User {
     pub id: Id<Self, i64>,

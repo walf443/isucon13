@@ -10,20 +10,22 @@ mod find_by_name;
 mod find_id_by_name;
 
 use crate::sqipe_support::bind_sqipe_values;
+use crate::tables::user::TABLE_USERS;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::user::{self, CreateUser, User, UserId};
+use isupipe_core::models::user::{CreateUser, User, UserId};
 use isupipe_core::repos::user_repository::UserRepository;
-use sqipe::{IntoColRef, col};
+use sqipe::IntoColRef;
 use sqipe_mysql::sqipe;
 
 fn user_select_cols() -> Vec<sqipe::ColRef> {
+    let t = &TABLE_USERS;
     vec![
-        col("id").into_col_ref(),
-        col("name").into_col_ref(),
-        col("display_name").into_col_ref(),
-        col("description").into_col_ref(),
-        col("password").as_("hashed_password"),
+        t.id().into_col_ref(),
+        t.name().into_col_ref(),
+        t.display_name().into_col_ref(),
+        t.description().into_col_ref(),
+        t.password().as_("hashed_password"),
     ]
 }
 
@@ -59,7 +61,8 @@ impl UserRepository for UserRepositoryInfra {
         conn: &mut DBConn,
         id: &UserId,
     ) -> isupipe_core::repos::Result<Option<User>> {
-        let mut q = sqipe(user::TABLE_NAME);
+        let t = &TABLE_USERS;
+        let mut q = sqipe(t.table_name());
         q.select_cols(&user_select_cols());
         q.and_where(("id", *id.inner()));
         let (sql, binds) = q.to_sql();
@@ -71,7 +74,8 @@ impl UserRepository for UserRepositoryInfra {
     }
 
     async fn find_all(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<Vec<User>> {
-        let mut q = sqipe(user::TABLE_NAME);
+        let t = &TABLE_USERS;
+        let mut q = sqipe(t.table_name());
         q.select_cols(&user_select_cols());
         let (sql, binds) = q.to_sql();
         let users = bind_sqipe_values!(sqlx::query_as::<_, User>(&sql), binds)
@@ -86,7 +90,8 @@ impl UserRepository for UserRepositoryInfra {
         conn: &mut DBConn,
         name: &str,
     ) -> isupipe_core::repos::Result<Option<UserId>> {
-        let mut q = sqipe(user::TABLE_NAME);
+        let t = &TABLE_USERS;
+        let mut q = sqipe(t.table_name());
         q.select(&["id"]);
         q.and_where(("name", name));
         let (sql, binds) = q.to_sql();
@@ -102,7 +107,8 @@ impl UserRepository for UserRepositoryInfra {
         conn: &mut DBConn,
         name: &str,
     ) -> isupipe_core::repos::Result<Option<User>> {
-        let mut q = sqipe(user::TABLE_NAME);
+        let t = &TABLE_USERS;
+        let mut q = sqipe(t.table_name());
         q.select_cols(&user_select_cols());
         q.and_where(("name", name));
         let (sql, binds) = q.to_sql();

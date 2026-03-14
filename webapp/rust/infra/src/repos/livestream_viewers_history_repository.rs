@@ -4,10 +4,12 @@ mod count_by_livestream_id;
 mod delete_by_livestream_id_and_user_id;
 
 use crate::sqipe_support::bind_sqipe_values;
+use crate::tables::livestream::TABLE_LIVESTREAMS;
+use crate::tables::livestream_viewers_history::TABLE_LIVESTREAM_VIEWERS_HISTORY;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::livestream::{self as livestream, LivestreamId};
-use isupipe_core::models::livestream_viewers_history::{self, CreateLivestreamViewersHistory};
+use isupipe_core::models::livestream::LivestreamId;
+use isupipe_core::models::livestream_viewers_history::CreateLivestreamViewersHistory;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
 use sqipe::{aggregate, table};
@@ -45,11 +47,13 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
-        let mut q = sqipe(livestream::TABLE_NAME);
+        let livestream = &TABLE_LIVESTREAMS;
+        let viewers_history = &TABLE_LIVESTREAM_VIEWERS_HISTORY;
+        let mut q = sqipe(livestream.table_name());
         q.as_("l");
         q.join(
-            livestream_viewers_history::TABLE_NAME,
-            table(livestream_viewers_history::TABLE_NAME).col("livestream_id").eq_col(table("l").col("id")),
+            viewers_history.table_name(),
+            table(viewers_history.table_name()).col("livestream_id").eq_col(table("l").col("id")),
         );
         q.and_where(table("l").col("id").eq(*livestream_id.inner()));
         q.aggregate(&[aggregate::count_all()]);
@@ -69,7 +73,8 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
     ) -> isupipe_core::repos::Result<()> {
         let mut tx = conn.begin().await?;
 
-        let mut d = sqipe(livestream_viewers_history::TABLE_NAME).delete();
+        let viewers_history = &TABLE_LIVESTREAM_VIEWERS_HISTORY;
+        let mut d = sqipe(viewers_history.table_name()).delete();
         d.and_where(("user_id", *user_id.inner()));
         d.and_where(("livestream_id", *livestream_id.inner()));
         let (sql, binds) = d.to_sql();

@@ -18,17 +18,18 @@ mod get_sum_tip_of_livestream_id;
 mod get_sum_tip_of_livestream_user_id;
 
 use crate::sqipe_support::bind_sqipe_values;
+use crate::tables::livestream::TABLE_LIVESTREAMS;
+use crate::tables::livestream_comment::TABLE_LIVECOMMENTS;
+use crate::tables::user::TABLE_USERS;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_comment::{
-    self, CreateLivestreamComment, LivestreamComment, LivestreamCommentId,
+    CreateLivestreamComment, LivestreamComment, LivestreamCommentId,
 };
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
-use isupipe_core::models::livestream::{self as livestream};
-use isupipe_core::models::user::{self as user};
-use sqipe::{aggregate, col, table};
+use sqipe::{aggregate, table};
 use sqipe_mysql::sqipe;
 
 #[derive(Clone)]
@@ -91,7 +92,8 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         comment_id: &LivestreamCommentId,
     ) -> isupipe_core::repos::Result<Option<LivestreamComment>> {
-        let mut q = sqipe(livestream_comment::TABLE_NAME);
+        let t = &TABLE_LIVECOMMENTS;
+        let mut q = sqipe(t.table_name());
         q.and_where(("id", *comment_id.inner()));
         let (sql, binds) = q.to_sql();
         let comment = bind_sqipe_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
@@ -105,7 +107,8 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         &self,
         conn: &mut DBConn,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
-        let q = sqipe(livestream_comment::TABLE_NAME);
+        let t = &TABLE_LIVECOMMENTS;
+        let q = sqipe(t.table_name());
         let (sql, binds) = q.to_sql();
         let livecomments =
             bind_sqipe_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
@@ -120,7 +123,8 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
-        let mut q = sqipe(livestream_comment::TABLE_NAME);
+        let t = &TABLE_LIVECOMMENTS;
+        let mut q = sqipe(t.table_name());
         q.and_where(("livestream_id", *livestream_id.inner()));
         let (sql, binds) = q.to_sql();
         let comments =
@@ -136,9 +140,10 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
-        let mut q = sqipe(livestream_comment::TABLE_NAME);
+        let t = &TABLE_LIVECOMMENTS;
+        let mut q = sqipe(t.table_name());
         q.and_where(("livestream_id", *livestream_id.inner()));
-        q.order_by(col("created_at").desc());
+        q.order_by(t.created_at().desc());
         let (sql, binds) = q.to_sql();
         let comments =
             bind_sqipe_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
@@ -154,9 +159,10 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         livestream_id: &LivestreamId,
         limit: i64,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
-        let mut q = sqipe(livestream_comment::TABLE_NAME);
+        let t = &TABLE_LIVECOMMENTS;
+        let mut q = sqipe(t.table_name());
         q.and_where(("livestream_id", *livestream_id.inner()));
-        q.order_by(col("created_at").desc());
+        q.order_by(t.created_at().desc());
         q.limit(limit as u64);
         let (sql, binds) = q.to_sql();
         let comments =
@@ -168,7 +174,8 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     }
 
     async fn get_sum_tip(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<i64> {
-        let mut q = sqipe(livestream_comment::TABLE_NAME);
+        let t = &TABLE_LIVECOMMENTS;
+        let mut q = sqipe(t.table_name());
         q.aggregate(&[aggregate::expr("CAST(IFNULL(SUM(tip), 0) AS SIGNED)")]);
         let (sql, binds) = q.to_sql();
         let total_tip = bind_sqipe_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
@@ -183,10 +190,12 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
-        let mut q = sqipe(livestream::TABLE_NAME);
+        let livestream = &TABLE_LIVESTREAMS;
+        let comment = &TABLE_LIVECOMMENTS;
+        let mut q = sqipe(livestream.table_name());
         q.as_("l");
         q.join(
-            livestream_comment::TABLE_NAME,
+            comment.table_name(),
             table("l").col("id").eq_col("livestream_id"),
         );
         q.and_where(table("l").col("id").eq(*livestream_id.inner()));
@@ -204,10 +213,12 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
-        let mut q = sqipe(livestream::TABLE_NAME);
+        let livestream = &TABLE_LIVESTREAMS;
+        let comment = &TABLE_LIVECOMMENTS;
+        let mut q = sqipe(livestream.table_name());
         q.as_("l");
         q.join(
-            livestream_comment::TABLE_NAME,
+            comment.table_name(),
             table("l").col("id").eq_col("livestream_id"),
         );
         q.and_where(table("l").col("id").eq(*livestream_id.inner()));
@@ -226,15 +237,18 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<i64> {
-        let mut q = sqipe(user::TABLE_NAME);
+        let user = &TABLE_USERS;
+        let livestream = &TABLE_LIVESTREAMS;
+        let comment = &TABLE_LIVECOMMENTS;
+        let mut q = sqipe(user.table_name());
         q.as_("u");
         q.join(
-            livestream::TABLE_NAME,
+            livestream.table_name(),
             table("u").col("id").eq_col("user_id"),
         );
         q.join(
-            livestream_comment::TABLE_NAME,
-            table(livestream::TABLE_NAME).col("id").eq_col("livestream_id"),
+            comment.table_name(),
+            table(livestream.table_name()).col("id").eq_col("livestream_id"),
         );
         q.and_where(table("u").col("id").eq(*user_id.inner()));
         q.aggregate(&[aggregate::expr("CAST(IFNULL(SUM(livecomments.tip), 0) AS SIGNED)")]);

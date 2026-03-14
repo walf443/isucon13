@@ -3,8 +3,6 @@ use crate::models::livestream_comment::LivestreamCommentId;
 use crate::models::user::UserId;
 use kubetsu::Id;
 
-pub const TABLE_NAME: &str = "livecomment_reports";
-
 #[derive(Debug, sqlx::FromRow)]
 pub struct LivestreamCommentReport {
     pub id: Id<Self, i64>,

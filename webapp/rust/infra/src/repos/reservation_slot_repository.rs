@@ -6,11 +6,11 @@ mod find_all_between_for_update;
 mod find_slot_between;
 
 use crate::sqipe_support::bind_sqipe_values;
+use crate::tables::reservation_slot::TABLE_RESERVATION_SLOTS;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::reservation_slot::{self, ReservationSlot};
+use isupipe_core::models::reservation_slot::ReservationSlot;
 use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
-use sqipe::col;
 use sqipe_mysql::sqipe;
 
 #[derive(Clone)]
@@ -24,9 +24,10 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         start_at: i64,
         end_at: i64,
     ) -> isupipe_core::repos::Result<Vec<ReservationSlot>> {
-        let mut q = sqipe(reservation_slot::TABLE_NAME);
-        q.and_where(col("start_at").gte(start_at));
-        q.and_where(col("end_at").lte(end_at));
+        let t = &TABLE_RESERVATION_SLOTS;
+        let mut q = sqipe(t.table_name());
+        q.and_where(t.start_at().gte(start_at));
+        q.and_where(t.end_at().lte(end_at));
         q.for_update();
         let (sql, binds) = q.to_sql();
         let slots =
@@ -43,10 +44,11 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         start_at: i64,
         end_at: i64,
     ) -> isupipe_core::repos::Result<i64> {
-        let mut q = sqipe(reservation_slot::TABLE_NAME);
+        let t = &TABLE_RESERVATION_SLOTS;
+        let mut q = sqipe(t.table_name());
         q.select(&["slot"]);
-        q.and_where(col("start_at").eq(start_at));
-        q.and_where(col("end_at").eq(end_at));
+        q.and_where(t.start_at().eq(start_at));
+        q.and_where(t.end_at().eq(end_at));
         let (sql, binds) = q.to_sql();
         let count = bind_sqipe_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)
@@ -61,10 +63,11 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         start_at: i64,
         end_at: i64,
     ) -> isupipe_core::repos::Result<()> {
-        let mut u = sqipe(reservation_slot::TABLE_NAME).update();
+        let t = &TABLE_RESERVATION_SLOTS;
+        let mut u = sqipe(t.table_name()).update();
         u.set_expr(sqipe::SetExpression::new("`slot` = `slot` - 1"));
-        u.and_where(col("start_at").gte(start_at));
-        u.and_where(col("end_at").lte(end_at));
+        u.and_where(t.start_at().gte(start_at));
+        u.and_where(t.end_at().lte(end_at));
         let (sql, binds) = u.to_sql();
         bind_sqipe_values!(sqlx::query(&sql), binds)
             .execute(conn)
