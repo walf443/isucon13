@@ -1,4 +1,4 @@
-sqipe_schema!(LivestreamTagTable, "livestream_tags", [
+qbey_schema!(LivestreamTagTable, "livestream_tags", [
     livestream_id,
     tag_id,
 ]);

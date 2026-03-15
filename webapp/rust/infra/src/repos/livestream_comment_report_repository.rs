@@ -3,7 +3,7 @@ mod count_by_livestream_id;
 #[cfg(test)]
 mod find_all_by_livestream_id;
 
-use crate::sqipe_support::bind_sqipe_values;
+use crate::qbey_support::bind_qbey_values;
 use crate::tables::livestream::TABLE_LIVESTREAMS;
 use crate::tables::livestream_comment_report::TABLE_LIVECOMMENT_REPORTS;
 use async_trait::async_trait;
@@ -14,8 +14,8 @@ use isupipe_core::models::livestream_comment_report::{
 };
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::Result;
-use sqipe::aggregate;
-use sqipe_mysql::sqipe;
+use qbey::RawSql;
+use qbey_mysql::qbey;
 
 #[derive(Clone)]
 pub struct LivestreamCommentReportRepositoryInfra {}
@@ -47,7 +47,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
     ) -> isupipe_core::repos::Result<i64> {
         let livestream = &TABLE_LIVESTREAMS;
         let report = &TABLE_LIVECOMMENT_REPORTS;
-        let mut q = sqipe(livestream.table_name());
+        let mut q = qbey(livestream.table_name());
         q.as_("l");
         let l = livestream.as_("l");
         q.join(
@@ -55,9 +55,9 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
             report.livestream_id().eq_col(l.id()),
         );
         q.and_where(l.id().eq(*livestream_id.inner()));
-        q.aggregate(&[aggregate::count_all()]);
+        q.add_select_expr(RawSql::new("COUNT(*)"), None);
         let (sql, binds) = q.to_sql();
-        let total_reports = bind_sqipe_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
+        let total_reports = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)
             .await?;
 
@@ -70,11 +70,11 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamCommentReport>> {
         let t = &TABLE_LIVECOMMENT_REPORTS;
-        let mut q = sqipe(t.table_name());
+        let mut q = qbey(t.table_name());
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         let (sql, binds) = q.to_sql();
         let report_models =
-            bind_sqipe_values!(sqlx::query_as::<_, LivestreamCommentReport>(&sql), binds)
+            bind_qbey_values!(sqlx::query_as::<_, LivestreamCommentReport>(&sql), binds)
                 .fetch_all(conn)
                 .await?;
 

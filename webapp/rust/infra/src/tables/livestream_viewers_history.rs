@@ -1,4 +1,4 @@
-sqipe_schema!(LivestreamViewersHistoryTable, "livestream_viewers_history", [
+qbey_schema!(LivestreamViewersHistoryTable, "livestream_viewers_history", [
     user_id,
     livestream_id,
 ]);

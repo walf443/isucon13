@@ -1671,9 +1671,9 @@ dependencies = [
  "async-trait",
  "fake",
  "isupipe-core",
+ "qbey",
+ "qbey-mysql",
  "serde",
- "sqipe",
- "sqipe-mysql",
  "sqlx 0.7.3",
  "thiserror 1.0.65",
  "time",
@@ -2380,6 +2380,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "qbey"
+version = "0.1.0"
+dependencies = [
+ "postgres",
+ "rusqlite",
+ "sqlx 0.8.6",
+ "testcontainers",
+ "testcontainers-modules",
+ "tokio",
+ "tokio-postgres",
+]
+
+[[package]]
+name = "qbey-mysql"
+version = "0.1.0"
+dependencies = [
+ "qbey",
+ "sqlx 0.8.6",
+ "testcontainers",
+ "testcontainers-modules",
+ "tokio",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3051,30 +3075,6 @@ checksum = "d91ed6c858b01f942cd56b37a94b3e0a1798290327d1236e4d9cf4eaca44d29d"
 dependencies = [
  "base64ct",
  "der",
-]
-
-[[package]]
-name = "sqipe"
-version = "0.1.0"
-dependencies = [
- "postgres",
- "rusqlite",
- "sqlx 0.8.6",
- "testcontainers",
- "testcontainers-modules",
- "tokio",
- "tokio-postgres",
-]
-
-[[package]]
-name = "sqipe-mysql"
-version = "0.1.0"
-dependencies = [
- "sqipe",
- "sqlx 0.8.6",
- "testcontainers",
- "testcontainers-modules",
- "tokio",
 ]
 
 [[package]]

@@ -1,4 +1,4 @@
-mod sqipe_support;
+mod qbey_support;
 mod tables;
 
 pub mod commands;

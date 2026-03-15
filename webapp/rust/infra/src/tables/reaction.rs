@@ -1,4 +1,4 @@
-sqipe_schema!(ReactionTable, "reactions", [
+qbey_schema!(ReactionTable, "reactions", [
     id,
     user_id,
     livestream_id,

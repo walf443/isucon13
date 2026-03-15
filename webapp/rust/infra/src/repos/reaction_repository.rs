@@ -11,7 +11,7 @@ mod find_all_by_livestream_id;
 #[cfg(test)]
 mod find_all_by_livestream_id_limit;
 
-use crate::sqipe_support::bind_sqipe_values;
+use crate::qbey_support::bind_qbey_values;
 use crate::tables::livestream::TABLE_LIVESTREAMS;
 use crate::tables::reaction::TABLE_REACTIONS;
 use crate::tables::user::TABLE_USERS;
@@ -21,8 +21,8 @@ use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::reaction::{CreateReaction, Reaction, ReactionId};
 use isupipe_core::models::user::{UserId, UserName};
 use isupipe_core::repos::reaction_repository::ReactionRepository;
-use sqipe::aggregate;
-use sqipe_mysql::sqipe;
+use qbey::RawSql;
+use qbey_mysql::qbey;
 
 #[derive(Clone)]
 pub struct ReactionRepositoryInfra {}
@@ -54,14 +54,14 @@ impl ReactionRepository for ReactionRepositoryInfra {
     ) -> isupipe_core::repos::Result<i64> {
         let livestream = &TABLE_LIVESTREAMS;
         let reaction = &TABLE_REACTIONS;
-        let mut q = sqipe(livestream.table_name());
+        let mut q = qbey(livestream.table_name());
         q.as_("l");
         let l = livestream.as_("l");
         q.join(reaction.table_name(), l.id().eq_col(reaction.livestream_id()));
         q.and_where(l.id().eq(*livestream_id.inner()));
-        q.aggregate(&[aggregate::count_all()]);
+        q.add_select_expr(RawSql::new("COUNT(*)"), None);
         let (sql, binds) = q.to_sql();
-        let reactions = bind_sqipe_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
+        let reactions = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)
             .await?;
 
@@ -73,7 +73,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
         conn: &mut DBConn,
         livestream_user_name: &UserName,
     ) -> isupipe_core::repos::Result<String> {
-        // ORDER BY COUNT(*) DESC - not supported by squipe
+        // ORDER BY COUNT(*) DESC - not supported by qbey
         let query = r#"
             SELECT r.emoji_name
             FROM users u
@@ -101,15 +101,15 @@ impl ReactionRepository for ReactionRepositoryInfra {
         let user = &TABLE_USERS;
         let livestream = &TABLE_LIVESTREAMS;
         let reaction = &TABLE_REACTIONS;
-        let mut q = sqipe(user.table_name());
+        let mut q = qbey(user.table_name());
         q.as_("u");
         let u = user.as_("u");
         q.join(livestream.table_name(), u.id().eq_col(livestream.user_id()));
         q.join(reaction.table_name(), livestream.id().eq_col(reaction.livestream_id()));
         q.and_where(u.id().eq(*livestream_user_id.inner()));
-        q.aggregate(&[aggregate::count_all()]);
+        q.add_select_expr(RawSql::new("COUNT(*)"), None);
         let (sql, binds) = q.to_sql();
-        let reactions = bind_sqipe_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
+        let reactions = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)
             .await?;
 
@@ -124,15 +124,15 @@ impl ReactionRepository for ReactionRepositoryInfra {
         let user = &TABLE_USERS;
         let livestream = &TABLE_LIVESTREAMS;
         let reaction = &TABLE_REACTIONS;
-        let mut q = sqipe(user.table_name());
+        let mut q = qbey(user.table_name());
         q.as_("u");
         let u = user.as_("u");
         q.join(livestream.table_name(), u.id().eq_col(livestream.user_id()));
         q.join(reaction.table_name(), livestream.id().eq_col(reaction.livestream_id()));
         q.and_where(u.name().eq(livestream_user_name.inner().clone()));
-        q.aggregate(&[aggregate::count_all()]);
+        q.add_select_expr(RawSql::new("COUNT(*)"), None);
         let (sql, binds) = q.to_sql();
-        let total_reactions = bind_sqipe_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
+        let total_reactions = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)
             .await?;
 
@@ -145,11 +145,11 @@ impl ReactionRepository for ReactionRepositoryInfra {
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<Reaction>> {
         let t = &TABLE_REACTIONS;
-        let mut q = sqipe(t.table_name());
+        let mut q = qbey(t.table_name());
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         q.order_by(t.created_at().desc());
         let (sql, binds) = q.to_sql();
-        let reaction_models = bind_sqipe_values!(sqlx::query_as::<_, Reaction>(&sql), binds)
+        let reaction_models = bind_qbey_values!(sqlx::query_as::<_, Reaction>(&sql), binds)
             .fetch_all(conn)
             .await?;
 
@@ -163,12 +163,12 @@ impl ReactionRepository for ReactionRepositoryInfra {
         limit: i64,
     ) -> isupipe_core::repos::Result<Vec<Reaction>> {
         let t = &TABLE_REACTIONS;
-        let mut q = sqipe(t.table_name());
+        let mut q = qbey(t.table_name());
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         q.order_by(t.created_at().desc());
         q.limit(limit as u64);
         let (sql, binds) = q.to_sql();
-        let reaction_models = bind_sqipe_values!(sqlx::query_as::<_, Reaction>(&sql), binds)
+        let reaction_models = bind_qbey_values!(sqlx::query_as::<_, Reaction>(&sql), binds)
             .fetch_all(conn)
             .await?;
 

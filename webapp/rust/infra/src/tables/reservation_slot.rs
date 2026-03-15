@@ -1,4 +1,4 @@
-sqipe_schema!(ReservationSlotTable, "reservation_slots", [
+qbey_schema!(ReservationSlotTable, "reservation_slots", [
     id,
     slot,
     start_at,

@@ -1,3 +1,3 @@
-sqipe_schema!(ThemeTable, "themes", [id, user_id, dark_mode]);
+qbey_schema!(ThemeTable, "themes", [id, user_id, dark_mode]);
 
 pub const TABLE_THEMES: ThemeTable = ThemeTable::new();

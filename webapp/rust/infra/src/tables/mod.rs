@@ -1,6 +1,6 @@
-macro_rules! sqipe_schema {
+macro_rules! qbey_schema {
     ($struct_name:ident, $table_name:expr, [$($col:ident),* $(,)?]) => {
-        use sqipe::{table, Col, TableRef};
+        use qbey::{table, Col, TableRef};
 
         pub struct $struct_name {
             alias: Option<&'static str>,

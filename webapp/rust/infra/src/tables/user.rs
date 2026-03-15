@@ -1,4 +1,4 @@
-sqipe_schema!(UserTable, "users", [
+qbey_schema!(UserTable, "users", [
     id,
     name,
     display_name,
@@ -7,7 +7,7 @@ sqipe_schema!(UserTable, "users", [
 ]);
 
 impl UserTable {
-    pub fn default_cols(&self) -> Vec<sqipe::Col> {
+    pub fn default_cols(&self) -> Vec<qbey::Col> {
         vec![
             self.id(),
             self.name(),

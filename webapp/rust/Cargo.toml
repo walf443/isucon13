@@ -26,5 +26,5 @@ tracing = "0.1"
 tracing-subscriber = { version =  "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4"] }
 fake = { version = "2", features=["derive"] }
-sqipe = { path = "sqipe/sqipe" }
-sqipe-mysql = { path = "sqipe/sqipe-mysql" }
+qbey = { path = "qbey/qbey" }
+qbey-mysql = { path = "qbey/qbey-mysql" }

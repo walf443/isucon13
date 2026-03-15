@@ -1,4 +1,4 @@
-sqipe_schema!(LivestreamCommentReportTable, "livecomment_reports", [
+qbey_schema!(LivestreamCommentReportTable, "livecomment_reports", [
     livestream_id,
 ]);
 

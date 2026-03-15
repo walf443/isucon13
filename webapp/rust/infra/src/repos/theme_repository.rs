@@ -3,14 +3,14 @@ mod create;
 #[cfg(test)]
 mod find_by_user_id;
 
-use crate::sqipe_support::bind_sqipe_values;
+use crate::qbey_support::bind_qbey_values;
 use crate::tables::theme::TABLE_THEMES;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::theme::Theme;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::theme_repository::ThemeRepository;
-use sqipe_mysql::sqipe;
+use qbey_mysql::qbey;
 
 #[derive(Clone)]
 pub struct ThemeRepositoryInfra {}
@@ -38,11 +38,11 @@ impl ThemeRepository for ThemeRepositoryInfra {
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Theme> {
         let t = &TABLE_THEMES;
-        let mut q = sqipe(t.table_name());
+        let mut q = qbey(t.table_name());
         q.select(&t.all_columns());
         q.and_where(t.user_id().eq(*user_id.inner()));
         let (sql, binds) = q.to_sql();
-        let theme_model = bind_sqipe_values!(sqlx::query_as::<_, Theme>(&sql), binds)
+        let theme_model = bind_qbey_values!(sqlx::query_as::<_, Theme>(&sql), binds)
             .fetch_one(conn)
             .await?;
 
