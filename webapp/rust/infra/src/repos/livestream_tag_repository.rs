@@ -39,7 +39,7 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamTag>> {
         let t = &TABLE_LIVESTREAM_TAGS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         let (sql, binds) = q.to_sql();
         let livestream_tag_models =
@@ -56,7 +56,7 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
         tag_ids: &[TagId],
     ) -> isupipe_core::repos::Result<Vec<LivestreamTag>> {
         let t = &TABLE_LIVESTREAM_TAGS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         let id_values: Vec<qbey::Value> =
             tag_ids.iter().map(|id| qbey::Value::Int(*id.inner())).collect();
         q.and_where(t.tag_id().included(id_values.as_slice()));

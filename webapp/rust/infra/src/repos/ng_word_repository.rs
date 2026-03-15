@@ -46,7 +46,7 @@ impl NgWordRepository for NgWordRepositoryInfra {
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<NgWord>> {
         let t = &TABLE_NG_WORDS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         let (sql, binds) = q.to_sql();
         let ng_words = bind_qbey_values!(sqlx::query_as::<_, NgWord>(&sql), binds)
@@ -87,7 +87,7 @@ impl NgWordRepository for NgWordRepositoryInfra {
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Vec<NgWord>> {
         let t = &TABLE_NG_WORDS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.select(&[t.id(), t.user_id(), t.livestream_id(), t.word()]);
         q.and_where(t.user_id().eq(*user_id.inner()));
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
@@ -106,7 +106,7 @@ impl NgWordRepository for NgWordRepositoryInfra {
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Vec<NgWord>> {
         let t = &TABLE_NG_WORDS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.and_where(t.user_id().eq(*user_id.inner()));
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         q.order_by(t.created_at().desc());

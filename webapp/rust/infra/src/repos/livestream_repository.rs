@@ -34,7 +34,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
 
     async fn find_all(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<Vec<Livestream>> {
         let t = &TABLE_LIVESTREAMS;
-        let q = qbey(t.table_name());
+        let q = qbey(t.table());
         let (sql, binds) = q.to_sql();
         let livestreams = bind_qbey_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
             .fetch_all(conn)
@@ -48,7 +48,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         conn: &mut DBConn,
     ) -> isupipe_core::repos::Result<Vec<Livestream>> {
         let t = &TABLE_LIVESTREAMS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.order_by(t.id().desc());
         let (sql, binds) = q.to_sql();
         let livestreams = bind_qbey_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
@@ -64,7 +64,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         limit: i64,
     ) -> isupipe_core::repos::Result<Vec<Livestream>> {
         let t = &TABLE_LIVESTREAMS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.order_by(t.id().desc());
         q.limit(limit as u64);
         let (sql, binds) = q.to_sql();
@@ -81,7 +81,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Vec<Livestream>> {
         let t = &TABLE_LIVESTREAMS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.and_where(t.user_id().eq(*user_id.inner()));
         let (sql, binds) = q.to_sql();
         let livestream_models = bind_qbey_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
@@ -97,7 +97,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Option<Livestream>> {
         let t = &TABLE_LIVESTREAMS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.and_where(t.id().eq(*id.inner()));
         let (sql, binds) = q.to_sql();
         let livestream = bind_qbey_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
@@ -114,7 +114,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<bool> {
         let t = &TABLE_LIVESTREAMS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.and_where(t.id().eq(*id.inner()));
         q.and_where(t.user_id().eq(*user_id.inner()));
         let (sql, binds) = q.to_sql();

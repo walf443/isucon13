@@ -47,11 +47,11 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
     ) -> isupipe_core::repos::Result<i64> {
         let livestream = &TABLE_LIVESTREAMS;
         let report = &TABLE_LIVECOMMENT_REPORTS;
-        let mut q = qbey(livestream.table_name());
+        let mut q = qbey(livestream.table());
         q.as_("l");
         let l = livestream.as_("l");
         q.join(
-            report.table_name(),
+            report.table(),
             report.livestream_id().eq_col(l.id()),
         );
         q.and_where(l.id().eq(*livestream_id.inner()));
@@ -70,7 +70,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamCommentReport>> {
         let t = &TABLE_LIVECOMMENT_REPORTS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         let (sql, binds) = q.to_sql();
         let report_models =

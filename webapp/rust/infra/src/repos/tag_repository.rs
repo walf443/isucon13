@@ -20,7 +20,7 @@ pub struct TagRepositoryInfra {}
 impl TagRepository for TagRepositoryInfra {
     async fn find(&self, conn: &mut DBConn, id: &TagId) -> isupipe_core::repos::Result<Tag> {
         let t = &TABLE_TAGS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.and_where(t.id().eq(*id.inner()));
 
         let (sql, binds) = q.to_sql();
@@ -33,7 +33,7 @@ impl TagRepository for TagRepositoryInfra {
 
     async fn find_all(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<Vec<Tag>> {
         let t = &TABLE_TAGS;
-        let q = qbey(t.table_name());
+        let q = qbey(t.table());
 
         let (sql, binds) = q.to_sql();
         let tag_models = bind_qbey_values!(sqlx::query_as::<_, Tag>(&sql), binds)
@@ -49,7 +49,7 @@ impl TagRepository for TagRepositoryInfra {
         name: &TagName,
     ) -> isupipe_core::repos::Result<Vec<TagId>> {
         let t = &TABLE_TAGS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.select(&[t.id()]);
         q.and_where(t.name().eq(name.inner().clone()));
 

@@ -49,11 +49,11 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
     ) -> isupipe_core::repos::Result<i64> {
         let livestream = &TABLE_LIVESTREAMS;
         let viewers_history = &TABLE_LIVESTREAM_VIEWERS_HISTORY;
-        let mut q = qbey(livestream.table_name());
+        let mut q = qbey(livestream.table());
         q.as_("l");
         let l = livestream.as_("l");
         q.join(
-            viewers_history.table_name(),
+            viewers_history.table(),
             viewers_history.livestream_id().eq_col(l.id()),
         );
         q.and_where(l.id().eq(*livestream_id.inner()));
@@ -75,7 +75,7 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
         let mut tx = conn.begin().await?;
 
         let viewers_history = &TABLE_LIVESTREAM_VIEWERS_HISTORY;
-        let mut d = qbey(viewers_history.table_name()).into_delete();
+        let mut d = qbey(viewers_history.table()).into_delete();
         d.and_where(viewers_history.user_id().eq(*user_id.inner()));
         d.and_where(viewers_history.livestream_id().eq(*livestream_id.inner()));
         let (sql, binds) = d.to_sql();

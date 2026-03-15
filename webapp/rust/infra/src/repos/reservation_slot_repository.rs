@@ -25,7 +25,7 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         end_at: i64,
     ) -> isupipe_core::repos::Result<Vec<ReservationSlot>> {
         let t = &TABLE_RESERVATION_SLOTS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.and_where(t.start_at().gte(start_at));
         q.and_where(t.end_at().lte(end_at));
         q.for_update();
@@ -45,7 +45,7 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         end_at: i64,
     ) -> isupipe_core::repos::Result<i64> {
         let t = &TABLE_RESERVATION_SLOTS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.select(&[t.slot()]);
         q.and_where(t.start_at().eq(start_at));
         q.and_where(t.end_at().eq(end_at));
@@ -64,7 +64,7 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         end_at: i64,
     ) -> isupipe_core::repos::Result<()> {
         let t = &TABLE_RESERVATION_SLOTS;
-        let mut u = qbey(t.table_name()).into_update();
+        let mut u = qbey(t.table()).into_update();
         u.set_expr(qbey::RawSql::new("`slot` = `slot` - 1"));
         u.and_where(t.start_at().gte(start_at));
         u.and_where(t.end_at().lte(end_at));

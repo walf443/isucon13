@@ -93,7 +93,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         comment_id: &LivestreamCommentId,
     ) -> isupipe_core::repos::Result<Option<LivestreamComment>> {
         let t = &TABLE_LIVECOMMENTS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.and_where(t.id().eq(*comment_id.inner()));
         let (sql, binds) = q.to_sql();
         let comment = bind_qbey_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
@@ -108,7 +108,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
         let t = &TABLE_LIVECOMMENTS;
-        let q = qbey(t.table_name());
+        let q = qbey(t.table());
         let (sql, binds) = q.to_sql();
         let livecomments =
             bind_qbey_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
@@ -124,7 +124,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
         let t = &TABLE_LIVECOMMENTS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         let (sql, binds) = q.to_sql();
         let comments =
@@ -141,7 +141,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
         let t = &TABLE_LIVECOMMENTS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         q.order_by(t.created_at().desc());
         let (sql, binds) = q.to_sql();
@@ -160,7 +160,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         limit: i64,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
         let t = &TABLE_LIVECOMMENTS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         q.order_by(t.created_at().desc());
         q.limit(limit as u64);
@@ -175,7 +175,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
 
     async fn get_sum_tip(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<i64> {
         let t = &TABLE_LIVECOMMENTS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.add_select_expr(RawSql::new("CAST(IFNULL(SUM(tip), 0) AS SIGNED)"), None);
         let (sql, binds) = q.to_sql();
         let total_tip = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
@@ -192,11 +192,11 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     ) -> isupipe_core::repos::Result<i64> {
         let livestream = &TABLE_LIVESTREAMS;
         let comment = &TABLE_LIVECOMMENTS;
-        let mut q = qbey(livestream.table_name());
+        let mut q = qbey(livestream.table());
         q.as_("l");
         let l = livestream.as_("l");
         q.join(
-            comment.table_name(),
+            comment.table(),
             l.id().eq_col(comment.livestream_id()),
         );
         q.and_where(l.id().eq(*livestream_id.inner()));
@@ -216,11 +216,11 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     ) -> isupipe_core::repos::Result<i64> {
         let livestream = &TABLE_LIVESTREAMS;
         let comment = &TABLE_LIVECOMMENTS;
-        let mut q = qbey(livestream.table_name());
+        let mut q = qbey(livestream.table());
         q.as_("l");
         let l = livestream.as_("l");
         q.join(
-            comment.table_name(),
+            comment.table(),
             l.id().eq_col(comment.livestream_id()),
         );
         q.and_where(l.id().eq(*livestream_id.inner()));
@@ -242,15 +242,15 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let user = &TABLE_USERS;
         let livestream = &TABLE_LIVESTREAMS;
         let comment = &TABLE_LIVECOMMENTS;
-        let mut q = qbey(user.table_name());
+        let mut q = qbey(user.table());
         q.as_("u");
         let u = user.as_("u");
         q.join(
-            livestream.table_name(),
+            livestream.table(),
             u.id().eq_col(livestream.user_id()),
         );
         q.join(
-            comment.table_name(),
+            comment.table(),
             livestream.id().eq_col(comment.livestream_id()),
         );
         q.and_where(u.id().eq(*user_id.inner()));

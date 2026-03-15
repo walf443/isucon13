@@ -54,10 +54,10 @@ impl ReactionRepository for ReactionRepositoryInfra {
     ) -> isupipe_core::repos::Result<i64> {
         let livestream = &TABLE_LIVESTREAMS;
         let reaction = &TABLE_REACTIONS;
-        let mut q = qbey(livestream.table_name());
+        let mut q = qbey(livestream.table());
         q.as_("l");
         let l = livestream.as_("l");
-        q.join(reaction.table_name(), l.id().eq_col(reaction.livestream_id()));
+        q.join(reaction.table(), l.id().eq_col(reaction.livestream_id()));
         q.and_where(l.id().eq(*livestream_id.inner()));
         q.add_select_expr(RawSql::new("COUNT(*)"), None);
         let (sql, binds) = q.to_sql();
@@ -101,11 +101,11 @@ impl ReactionRepository for ReactionRepositoryInfra {
         let user = &TABLE_USERS;
         let livestream = &TABLE_LIVESTREAMS;
         let reaction = &TABLE_REACTIONS;
-        let mut q = qbey(user.table_name());
+        let mut q = qbey(user.table());
         q.as_("u");
         let u = user.as_("u");
-        q.join(livestream.table_name(), u.id().eq_col(livestream.user_id()));
-        q.join(reaction.table_name(), livestream.id().eq_col(reaction.livestream_id()));
+        q.join(livestream.table(), u.id().eq_col(livestream.user_id()));
+        q.join(reaction.table(), livestream.id().eq_col(reaction.livestream_id()));
         q.and_where(u.id().eq(*livestream_user_id.inner()));
         q.add_select_expr(RawSql::new("COUNT(*)"), None);
         let (sql, binds) = q.to_sql();
@@ -124,11 +124,11 @@ impl ReactionRepository for ReactionRepositoryInfra {
         let user = &TABLE_USERS;
         let livestream = &TABLE_LIVESTREAMS;
         let reaction = &TABLE_REACTIONS;
-        let mut q = qbey(user.table_name());
+        let mut q = qbey(user.table());
         q.as_("u");
         let u = user.as_("u");
-        q.join(livestream.table_name(), u.id().eq_col(livestream.user_id()));
-        q.join(reaction.table_name(), livestream.id().eq_col(reaction.livestream_id()));
+        q.join(livestream.table(), u.id().eq_col(livestream.user_id()));
+        q.join(reaction.table(), livestream.id().eq_col(reaction.livestream_id()));
         q.and_where(u.name().eq(livestream_user_name.inner().clone()));
         q.add_select_expr(RawSql::new("COUNT(*)"), None);
         let (sql, binds) = q.to_sql();
@@ -145,7 +145,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<Reaction>> {
         let t = &TABLE_REACTIONS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         q.order_by(t.created_at().desc());
         let (sql, binds) = q.to_sql();
@@ -163,7 +163,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
         limit: i64,
     ) -> isupipe_core::repos::Result<Vec<Reaction>> {
         let t = &TABLE_REACTIONS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         q.order_by(t.created_at().desc());
         q.limit(limit as u64);

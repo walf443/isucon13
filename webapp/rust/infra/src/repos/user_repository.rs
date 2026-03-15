@@ -50,7 +50,7 @@ impl UserRepository for UserRepositoryInfra {
         id: &UserId,
     ) -> isupipe_core::repos::Result<Option<User>> {
         let t = &TABLE_USERS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.select(&TABLE_USERS.default_cols());
         q.and_where(t.id().eq(*id.inner()));
         let (sql, binds) = q.to_sql();
@@ -63,7 +63,7 @@ impl UserRepository for UserRepositoryInfra {
 
     async fn find_all(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<Vec<User>> {
         let t = &TABLE_USERS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.select(&TABLE_USERS.default_cols());
         let (sql, binds) = q.to_sql();
         let users = bind_qbey_values!(sqlx::query_as::<_, User>(&sql), binds)
@@ -79,7 +79,7 @@ impl UserRepository for UserRepositoryInfra {
         name: &str,
     ) -> isupipe_core::repos::Result<Option<UserId>> {
         let t = &TABLE_USERS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.select(&[t.id()]);
         q.and_where(t.name().eq(name));
         let (sql, binds) = q.to_sql();
@@ -96,7 +96,7 @@ impl UserRepository for UserRepositoryInfra {
         name: &str,
     ) -> isupipe_core::repos::Result<Option<User>> {
         let t = &TABLE_USERS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.select(&TABLE_USERS.default_cols());
         q.and_where(t.name().eq(name));
         let (sql, binds) = q.to_sql();

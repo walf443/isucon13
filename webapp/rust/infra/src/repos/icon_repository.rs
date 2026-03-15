@@ -21,7 +21,7 @@ impl IconRepository for IconRepositoryInfra {
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Option<Vec<u8>>> {
         let t = &TABLE_ICONS;
-        let mut q = qbey(t.table_name());
+        let mut q = qbey(t.table());
         q.select(&[t.image()]);
         q.and_where(t.user_id().eq(*user_id.inner()));
         let (sql, binds) = q.to_sql();
@@ -53,7 +53,7 @@ impl IconRepository for IconRepositoryInfra {
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<()> {
         let t = &TABLE_ICONS;
-        let mut d = qbey(t.table_name()).into_delete();
+        let mut d = qbey(t.table()).into_delete();
         d.and_where(t.user_id().eq(*user_id.inner()));
         let (sql, binds) = d.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
