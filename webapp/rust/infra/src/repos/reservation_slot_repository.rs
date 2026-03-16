@@ -46,9 +46,9 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
     ) -> isupipe_core::repos::Result<i64> {
         let t = &TABLE_RESERVATION_SLOTS;
         let mut q = qbey(t.table());
-        q.select(&[t.slot()]);
         q.and_where(t.start_at().eq(start_at));
         q.and_where(t.end_at().eq(end_at));
+        q.select(&[t.slot()]);
         let (sql, binds) = q.to_sql();
         let count = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)

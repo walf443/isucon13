@@ -24,8 +24,8 @@ impl IconRepository for IconRepositoryInfra {
     ) -> isupipe_core::repos::Result<Option<Vec<u8>>> {
         let t = &TABLE_ICONS;
         let mut q = qbey(t.table());
-        q.select(&[t.image()]);
         q.and_where(t.user_id().eq(*user_id.inner()));
+        q.select(&[t.image()]);
         let (sql, binds) = q.to_sql();
         let image = bind_qbey_values!(sqlx::query_scalar::<_, Vec<u8>>(&sql), binds)
             .fetch_optional(conn)

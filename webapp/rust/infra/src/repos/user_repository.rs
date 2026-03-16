@@ -65,8 +65,8 @@ impl UserRepository for UserRepositoryInfra {
     ) -> isupipe_core::repos::Result<Option<User>> {
         let t = &TABLE_USERS;
         let mut q = qbey(t.table());
-        q.select(&TABLE_USERS.default_cols());
         q.and_where(t.id().eq(*id.inner()));
+        q.select(&TABLE_USERS.default_cols());
         let (sql, binds) = q.to_sql();
         let user_model = bind_qbey_values!(sqlx::query_as::<_, User>(&sql), binds)
             .fetch_optional(conn)
@@ -94,8 +94,8 @@ impl UserRepository for UserRepositoryInfra {
     ) -> isupipe_core::repos::Result<Option<UserId>> {
         let t = &TABLE_USERS;
         let mut q = qbey(t.table());
-        q.select(&[t.id()]);
         q.and_where(t.name().eq(name));
+        q.select(&[t.id()]);
         let (sql, binds) = q.to_sql();
         let user_id = bind_qbey_values!(sqlx::query_scalar::<_, UserId>(&sql), binds)
             .fetch_optional(conn)
@@ -111,8 +111,8 @@ impl UserRepository for UserRepositoryInfra {
     ) -> isupipe_core::repos::Result<Option<User>> {
         let t = &TABLE_USERS;
         let mut q = qbey(t.table());
-        q.select(&TABLE_USERS.default_cols());
         q.and_where(t.name().eq(name));
+        q.select(&TABLE_USERS.default_cols());
         let (sql, binds) = q.to_sql();
         let user_model = bind_qbey_values!(sqlx::query_as::<_, User>(&sql), binds)
             .fetch_optional(conn)
