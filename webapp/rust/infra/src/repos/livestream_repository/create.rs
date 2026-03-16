@@ -1,9 +1,10 @@
 use crate::qbey_support::bind_qbey_values;
 use crate::repos::livestream_repository::LivestreamRepositoryInfra;
 use crate::tables::user::TABLE_USERS;
+use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::livestream::{CreateLivestream, Livestream};
-use isupipe_core::models::user::UserId;
+use isupipe_core::models::user::{CreateUser, UserId};
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
 use qbey_mysql::qbey;
 
@@ -12,14 +13,15 @@ async fn success_case() {
     let db_pool = get_db_pool().await.unwrap();
     let mut tx = db_pool.begin().await.unwrap();
 
+    let user: CreateUser = Faker.fake();
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
         ins.add_value(&[
             ("id", 1i64.into()),
-            ("name", "test".into()),
-            ("display_name", "Test".into()),
-            ("password", "pw".into()),
-            ("description", "desc".into()),
+            ("name", user.name.as_str().into()),
+            ("display_name", user.display_name.as_str().into()),
+            ("password", user.password.as_str().into()),
+            ("description", user.description.as_str().into()),
         ]);
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
@@ -28,15 +30,8 @@ async fn success_case() {
             .unwrap();
     }
 
-    let input = CreateLivestream {
-        user_id: UserId::new(1),
-        title: "my stream".to_string(),
-        description: "a description".to_string(),
-        playlist_url: "http://playlist".to_string(),
-        thumbnail_url: "http://thumb".to_string(),
-        start_at: 1000,
-        end_at: 2000,
-    };
+    let mut input: CreateLivestream = Faker.fake();
+    input.user_id = UserId::new(1);
 
     let repo = LivestreamRepositoryInfra {};
     let livestream_id = repo.create(&mut tx, &input).await.unwrap();

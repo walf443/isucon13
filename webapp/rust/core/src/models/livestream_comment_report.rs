@@ -13,6 +13,7 @@ pub struct LivestreamCommentReport {
     pub created_at: i64,
 }
 
+#[derive(fake::Dummy)]
 pub struct CreateLivestreamCommentReport {
     pub user_id: UserId,
     pub livestream_id: LivestreamId,

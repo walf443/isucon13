@@ -14,6 +14,7 @@ pub struct NgWord {
 
 pub type NgWordId = Id<NgWord, i64>;
 
+#[derive(fake::Dummy)]
 pub struct CreateNgWord {
     pub user_id: UserId,
     pub livestream_id: LivestreamId,

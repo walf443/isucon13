@@ -4,8 +4,9 @@ use crate::qbey_support::SQLValue;
 use crate::repos::icon_repository::IconRepositoryInfra;
 use crate::tables::icon::TABLE_ICONS;
 use crate::tables::user::TABLE_USERS;
+use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
-use isupipe_core::models::user::UserId;
+use isupipe_core::models::user::{CreateUser, UserId};
 use isupipe_core::repos::icon_repository::IconRepository;
 use qbey_mysql::qbey;
 use qbey_mysql::qbey_with;
@@ -15,10 +16,24 @@ async fn deletes_icon() {
     let db_pool = get_db_pool().await.unwrap();
     let mut tx = db_pool.begin().await.unwrap();
 
+    let user1: CreateUser = Faker.fake();
+    let user2: CreateUser = Faker.fake();
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
-        ins.add_value(&[("id", 1i64.into()), ("name", "alice".into()), ("display_name", "Alice".into()), ("password", "pw".into()), ("description", "desc".into())]);
-        ins.add_value(&[("id", 2i64.into()), ("name", "bob".into()), ("display_name", "Bob".into()), ("password", "pw".into()), ("description", "desc".into())]);
+        ins.add_value(&[
+            ("id", 1i64.into()),
+            ("name", user1.name.as_str().into()),
+            ("display_name", user1.display_name.as_str().into()),
+            ("password", user1.password.as_str().into()),
+            ("description", user1.description.as_str().into()),
+        ]);
+        ins.add_value(&[
+            ("id", 2i64.into()),
+            ("name", user2.name.as_str().into()),
+            ("display_name", user2.display_name.as_str().into()),
+            ("password", user2.password.as_str().into()),
+            ("description", user2.description.as_str().into()),
+        ]);
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
     }
@@ -56,9 +71,16 @@ async fn noop_when_no_icon() {
     let db_pool = get_db_pool().await.unwrap();
     let mut tx = db_pool.begin().await.unwrap();
 
+    let user: CreateUser = Faker.fake();
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
-        ins.add_value(&[("id", 1i64.into()), ("name", "test".into()), ("display_name", "Test".into()), ("password", "pw".into()), ("description", "desc".into())]);
+        ins.add_value(&[
+            ("id", 1i64.into()),
+            ("name", user.name.as_str().into()),
+            ("display_name", user.display_name.as_str().into()),
+            ("password", user.password.as_str().into()),
+            ("description", user.description.as_str().into()),
+        ]);
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
     }

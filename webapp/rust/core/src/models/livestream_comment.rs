@@ -14,6 +14,7 @@ pub struct LivestreamComment {
 
 pub type LivestreamCommentId = Id<LivestreamComment, i64>;
 
+#[derive(fake::Dummy)]
 pub struct CreateLivestreamComment {
     pub user_id: UserId,
     pub livestream_id: LivestreamId,

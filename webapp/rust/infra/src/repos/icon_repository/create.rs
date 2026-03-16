@@ -1,9 +1,10 @@
 use crate::qbey_support::bind_qbey_values;
 use crate::repos::icon_repository::IconRepositoryInfra;
 use crate::tables::user::TABLE_USERS;
+use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::icon::CreateIcon;
-use isupipe_core::models::user::UserId;
+use isupipe_core::models::user::{CreateUser, UserId};
 use isupipe_core::repos::icon_repository::IconRepository;
 use qbey_mysql::qbey;
 
@@ -12,18 +13,25 @@ async fn success_case() {
     let db_pool = get_db_pool().await.unwrap();
     let mut tx = db_pool.begin().await.unwrap();
 
+    let user: CreateUser = Faker.fake();
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
-        ins.add_value(&[("id", 1i64.into()), ("name", "test".into()), ("display_name", "Test".into()), ("password", "pw".into()), ("description", "desc".into())]);
+        ins.add_value(&[
+            ("id", 1i64.into()),
+            ("name", user.name.as_str().into()),
+            ("display_name", user.display_name.as_str().into()),
+            ("password", user.password.as_str().into()),
+            ("description", user.description.as_str().into()),
+        ]);
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
-    let image_data = vec![0x89, 0x50, 0x4E, 0x47]; // PNG magic bytes
-    let icon = CreateIcon {
-        user_id: UserId::new(1),
-        image: image_data.clone(),
-    };
+    let mut icon: CreateIcon = Faker.fake();
+    icon.user_id = UserId::new(1);
 
     let repo = IconRepositoryInfra {};
     let icon_id = repo.create(&mut tx, &icon).await.unwrap();
@@ -33,5 +41,5 @@ async fn success_case() {
         .find_image_by_user_id(&mut tx, &UserId::new(1))
         .await
         .unwrap();
-    assert_eq!(got, Some(image_data));
+    assert_eq!(got, Some(icon.image));
 }
