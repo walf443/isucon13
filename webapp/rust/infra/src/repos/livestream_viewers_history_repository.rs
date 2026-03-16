@@ -17,6 +17,18 @@ use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewer
 use qbey_mysql::qbey;
 use sqlx::Acquire;
 
+struct InsertViewersHistory<'a>(&'a CreateLivestreamViewersHistory);
+
+impl qbey::ToInsertRow<qbey::Value> for InsertViewersHistory<'_> {
+    fn to_insert_row(&self) -> Vec<(&'static str, qbey::Value)> {
+        vec![
+            ("user_id", (*self.0.user_id.inner()).into()),
+            ("livestream_id", (*self.0.livestream_id.inner()).into()),
+            ("created_at", self.0.created_at.into()),
+        ]
+    }
+}
+
 #[derive(Clone)]
 pub struct LivestreamViewersHistoryRepositoryInfra {}
 
@@ -31,11 +43,7 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
 
         let t = &TABLE_LIVESTREAM_VIEWERS_HISTORY;
         let mut ins = qbey(t.table()).into_insert();
-        ins.add_value(&[
-            ("user_id", (*history.user_id.inner()).into()),
-            ("livestream_id", (*history.livestream_id.inner()).into()),
-            ("created_at", history.created_at.into()),
-        ]);
+        ins.add_value(&InsertViewersHistory(history));
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)

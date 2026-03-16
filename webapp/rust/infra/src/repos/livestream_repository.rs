@@ -7,6 +7,22 @@ use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
 use qbey_mysql::qbey;
 
+struct InsertLivestream<'a>(&'a CreateLivestream);
+
+impl qbey::ToInsertRow<qbey::Value> for InsertLivestream<'_> {
+    fn to_insert_row(&self) -> Vec<(&'static str, qbey::Value)> {
+        vec![
+            ("user_id", (*self.0.user_id.inner()).into()),
+            ("title", self.0.title.as_str().into()),
+            ("description", self.0.description.as_str().into()),
+            ("playlist_url", self.0.playlist_url.as_str().into()),
+            ("thumbnail_url", self.0.thumbnail_url.as_str().into()),
+            ("start_at", self.0.start_at.into()),
+            ("end_at", self.0.end_at.into()),
+        ]
+    }
+}
+
 #[derive(Clone)]
 pub struct LivestreamRepositoryInfra {}
 
@@ -19,15 +35,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
     ) -> isupipe_core::repos::Result<LivestreamId> {
         let t = &TABLE_LIVESTREAMS;
         let mut ins = qbey(t.table()).into_insert();
-        ins.add_value(&[
-            ("user_id", (*stream.user_id.inner()).into()),
-            ("title", stream.title.as_str().into()),
-            ("description", stream.description.as_str().into()),
-            ("playlist_url", stream.playlist_url.as_str().into()),
-            ("thumbnail_url", stream.thumbnail_url.as_str().into()),
-            ("start_at", stream.start_at.into()),
-            ("end_at", stream.end_at.into()),
-        ]);
+        ins.add_value(&InsertLivestream(stream));
         let (sql, binds) = ins.to_sql();
         let rs = bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(conn)

@@ -17,6 +17,19 @@ use isupipe_core::models::user::UserId;
 use isupipe_core::repos::ng_word_repository::NgWordRepository;
 use qbey_mysql::qbey;
 
+struct InsertNgWord<'a>(&'a CreateNgWord);
+
+impl qbey::ToInsertRow<qbey::Value> for InsertNgWord<'_> {
+    fn to_insert_row(&self) -> Vec<(&'static str, qbey::Value)> {
+        vec![
+            ("user_id", (*self.0.user_id.inner()).into()),
+            ("livestream_id", (*self.0.livestream_id.inner()).into()),
+            ("word", self.0.word.as_str().into()),
+            ("created_at", self.0.created_at.into()),
+        ]
+    }
+}
+
 #[derive(Clone)]
 pub struct NgWordRepositoryInfra {}
 
@@ -29,12 +42,7 @@ impl NgWordRepository for NgWordRepositoryInfra {
     ) -> isupipe_core::repos::Result<NgWordId> {
         let t = &TABLE_NG_WORDS;
         let mut ins = qbey(t.table()).into_insert();
-        ins.add_value(&[
-            ("user_id", (*ng_word.user_id.inner()).into()),
-            ("livestream_id", (*ng_word.livestream_id.inner()).into()),
-            ("word", ng_word.word.as_str().into()),
-            ("created_at", ng_word.created_at.into()),
-        ]);
+        ins.add_value(&InsertNgWord(ng_word));
         let (sql, binds) = ins.to_sql();
         let rs = bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(conn)
