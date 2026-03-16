@@ -1,9 +1,12 @@
+use crate::qbey_support::bind_qbey_values;
 use crate::repos::theme_repository::ThemeRepositoryInfra;
+use crate::tables::theme::TABLE_THEMES;
 use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::theme::Theme;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::theme_repository::ThemeRepository;
+use qbey_mysql::qbey;
 
 #[tokio::test]
 async fn not_found_case() {
@@ -27,13 +30,12 @@ async fn success_case() {
     let repo = ThemeRepositoryInfra {};
     let theme: Theme = Faker.fake();
 
-    sqlx::query("INSERT INTO themes (id, user_id, dark_mode) VALUES (?, ?, ?)")
-        .bind(&theme.id)
-        .bind(&theme.user_id)
-        .bind(theme.dark_mode)
-        .execute(&mut *tx)
-        .await
-        .unwrap();
+    {
+        let mut ins = qbey(TABLE_THEMES.table()).into_insert();
+        ins.add_value(&[("id", (*theme.id.inner()).into()), ("user_id", (*theme.user_id.inner()).into()), ("dark_mode", theme.dark_mode.into())]);
+        let (sql, binds) = ins.to_sql();
+        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+    }
 
     let got = repo.find_by_user_id(&mut tx, &theme.user_id).await.unwrap();
     assert_eq!(theme.id, got.id);

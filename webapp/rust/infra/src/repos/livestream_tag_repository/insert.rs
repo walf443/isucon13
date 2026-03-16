@@ -1,33 +1,40 @@
+use crate::qbey_support::bind_qbey_values;
 use crate::repos::livestream_tag_repository::LivestreamTagRepositoryInfra;
+use crate::tables::livestream::TABLE_LIVESTREAMS;
+use crate::tables::tag::TABLE_TAGS;
+use crate::tables::user::TABLE_USERS;
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_tag::LivestreamTag;
 use isupipe_core::models::tag::TagId;
 use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
+use qbey_mysql::qbey;
 
 #[tokio::test]
 async fn success_case() {
     let db_pool = get_db_pool().await.unwrap();
     let mut tx = db_pool.begin().await.unwrap();
 
-    sqlx::query(
-        "INSERT INTO users (id, name, display_name, password, description) VALUES (1, 'test', 'Test', 'pw', 'desc')",
-    )
-    .execute(&mut *tx)
-    .await
-    .unwrap();
+    {
+        let mut ins = qbey(TABLE_USERS.table()).into_insert();
+        ins.add_value(&[("id", 1i64.into()), ("name", "test".into()), ("display_name", "Test".into()), ("password", "pw".into()), ("description", "desc".into())]);
+        let (sql, binds) = ins.to_sql();
+        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+    }
 
-    sqlx::query(
-        "INSERT INTO livestreams (id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at) VALUES (1, 1, 't1', 'd1', 'http://p', 'http://t', 1000, 2000)",
-    )
-    .execute(&mut *tx)
-    .await
-    .unwrap();
+    {
+        let mut ins = qbey(TABLE_LIVESTREAMS.table()).into_insert();
+        ins.add_value(&[("id", 1i64.into()), ("user_id", 1i64.into()), ("title", "t1".into()), ("description", "d1".into()), ("playlist_url", "http://p".into()), ("thumbnail_url", "http://t".into()), ("start_at", 1000i64.into()), ("end_at", 2000i64.into())]);
+        let (sql, binds) = ins.to_sql();
+        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+    }
 
-    sqlx::query("INSERT INTO tags (id, name) VALUES (1, 'tag1')")
-        .execute(&mut *tx)
-        .await
-        .unwrap();
+    {
+        let mut ins = qbey(TABLE_TAGS.table()).into_insert();
+        ins.add_value(&[("id", 1i64.into()), ("name", "tag1".into())]);
+        let (sql, binds) = ins.to_sql();
+        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+    }
 
     let repo = LivestreamTagRepositoryInfra {};
     repo.insert(&mut tx, &LivestreamId::new(1), &TagId::new(1))

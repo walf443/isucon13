@@ -1,20 +1,23 @@
+use crate::qbey_support::bind_qbey_values;
 use crate::repos::icon_repository::IconRepositoryInfra;
+use crate::tables::user::TABLE_USERS;
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::icon::CreateIcon;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::icon_repository::IconRepository;
+use qbey_mysql::qbey;
 
 #[tokio::test]
 async fn success_case() {
     let db_pool = get_db_pool().await.unwrap();
     let mut tx = db_pool.begin().await.unwrap();
 
-    sqlx::query(
-        "INSERT INTO users (id, name, display_name, password, description) VALUES (1, 'test', 'Test', 'pw', 'desc')",
-    )
-    .execute(&mut *tx)
-    .await
-    .unwrap();
+    {
+        let mut ins = qbey(TABLE_USERS.table()).into_insert();
+        ins.add_value(&[("id", 1i64.into()), ("name", "test".into()), ("display_name", "Test".into()), ("password", "pw".into()), ("description", "desc".into())]);
+        let (sql, binds) = ins.to_sql();
+        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+    }
 
     let image_data = vec![0x89, 0x50, 0x4E, 0x47]; // PNG magic bytes
     let icon = CreateIcon {

@@ -1,6 +1,11 @@
 use crate::repos::livestream_comment_repository::LivestreamCommentRepositoryInfra;
 use isupipe_core::db::get_db_pool;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
+use crate::qbey_support::bind_qbey_values;
+use crate::tables::livestream::TABLE_LIVESTREAMS;
+use crate::tables::livestream_comment::TABLE_LIVECOMMENTS;
+use crate::tables::user::TABLE_USERS;
+use qbey_mysql::qbey;
 
 #[tokio::test]
 async fn empty_case() {
@@ -17,26 +22,27 @@ async fn not_empty_case() {
     let db_pool = get_db_pool().await.unwrap();
     let mut tx = db_pool.begin().await.unwrap();
 
-    sqlx::query(
-        "INSERT INTO users (id, name, display_name, password, description) VALUES (1, 'test', 'Test', 'pw', 'desc')",
-    )
-    .execute(&mut *tx)
-    .await
-    .unwrap();
+    {
+        let mut ins = qbey(TABLE_USERS.table()).into_insert();
+        ins.add_value(&[("id", 1i64.into()), ("name", "test".into()), ("display_name", "Test".into()), ("password", "pw".into()), ("description", "desc".into())]);
+        let (sql, binds) = ins.to_sql();
+        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+    }
 
-    sqlx::query(
-        "INSERT INTO livestreams (id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at) VALUES (1, 1, 't', 'd', 'http://p', 'http://t', 1000, 2000)",
-    )
-    .execute(&mut *tx)
-    .await
-    .unwrap();
+    {
+        let mut ins = qbey(TABLE_LIVESTREAMS.table()).into_insert();
+        ins.add_value(&[("id", 1i64.into()), ("user_id", 1i64.into()), ("title", "t".into()), ("description", "d".into()), ("playlist_url", "http://p".into()), ("thumbnail_url", "http://t".into()), ("start_at", 1000i64.into()), ("end_at", 2000i64.into())]);
+        let (sql, binds) = ins.to_sql();
+        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+    }
 
-    sqlx::query(
-        "INSERT INTO livecomments (user_id, livestream_id, comment, tip, created_at) VALUES (1, 1, 'a', 100, 1), (1, 1, 'b', 200, 2)",
-    )
-    .execute(&mut *tx)
-    .await
-    .unwrap();
+    {
+        let mut ins = qbey(TABLE_LIVECOMMENTS.table()).into_insert();
+        ins.add_value(&[("user_id", 1i64.into()), ("livestream_id", 1i64.into()), ("comment", "a".into()), ("tip", 100i64.into()), ("created_at", 1i64.into())]);
+        ins.add_value(&[("user_id", 1i64.into()), ("livestream_id", 1i64.into()), ("comment", "b".into()), ("tip", 200i64.into()), ("created_at", 2i64.into())]);
+        let (sql, binds) = ins.to_sql();
+        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+    }
 
     let repo = LivestreamCommentRepositoryInfra {};
     let total = repo.get_sum_tip(&mut tx).await.unwrap();

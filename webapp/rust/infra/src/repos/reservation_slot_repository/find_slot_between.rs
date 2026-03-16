@@ -1,8 +1,11 @@
+use crate::qbey_support::bind_qbey_values;
 use crate::repos::reservation_slot_repository::ReservationSlotRepositoryInfra;
+use crate::tables::reservation_slot::TABLE_RESERVATION_SLOTS;
 use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::reservation_slot::ReservationSlot;
 use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
+use qbey_mysql::qbey;
 
 #[tokio::test]
 async fn empty_case() {
@@ -27,14 +30,12 @@ async fn success_case() {
     let repo = ReservationSlotRepositoryInfra {};
 
     let slot: ReservationSlot = Faker.fake();
-    sqlx::query("INSERT INTO reservation_slots (id, slot, start_at, end_at) VALUES (?, ?, ?, ?)")
-        .bind(&slot.id)
-        .bind(slot.slot)
-        .bind(slot.start_at)
-        .bind(slot.end_at)
-        .execute(&mut *tx)
-        .await
-        .unwrap();
+    {
+        let mut ins = qbey(TABLE_RESERVATION_SLOTS.table()).into_insert();
+        ins.add_value(&[("id", (*slot.id.inner()).into()), ("slot", slot.slot.into()), ("start_at", slot.start_at.into()), ("end_at", slot.end_at.into())]);
+        let (sql, binds) = ins.to_sql();
+        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+    }
 
     let result = repo
         .find_slot_between(&mut tx, slot.start_at, slot.end_at)

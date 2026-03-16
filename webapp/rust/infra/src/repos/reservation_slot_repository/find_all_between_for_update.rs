@@ -1,8 +1,11 @@
+use crate::qbey_support::bind_qbey_values;
 use crate::repos::reservation_slot_repository::ReservationSlotRepositoryInfra;
+use crate::tables::reservation_slot::TABLE_RESERVATION_SLOTS;
 use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::reservation_slot::ReservationSlot;
 use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
+use qbey_mysql::qbey;
 
 #[tokio::test]
 async fn empty_case() {
@@ -30,20 +33,13 @@ async fn not_empty_case() {
     slot2.start_at = slot1.end_at + 100;
     slot2.end_at = slot2.start_at + 100;
 
-    sqlx::query(
-        "INSERT INTO reservation_slots (id, slot, start_at, end_at) VALUES (?, ?, ?, ?), (?, ?, ?, ?)",
-    )
-    .bind(&slot1.id)
-    .bind(slot1.slot)
-    .bind(slot1.start_at)
-    .bind(slot1.end_at)
-    .bind(&slot2.id)
-    .bind(slot2.slot)
-    .bind(slot2.start_at)
-    .bind(slot2.end_at)
-    .execute(&mut *tx)
-    .await
-    .unwrap();
+    {
+        let mut ins = qbey(TABLE_RESERVATION_SLOTS.table()).into_insert();
+        ins.add_value(&[("id", (*slot1.id.inner()).into()), ("slot", slot1.slot.into()), ("start_at", slot1.start_at.into()), ("end_at", slot1.end_at.into())]);
+        ins.add_value(&[("id", (*slot2.id.inner()).into()), ("slot", slot2.slot.into()), ("start_at", slot2.start_at.into()), ("end_at", slot2.end_at.into())]);
+        let (sql, binds) = ins.to_sql();
+        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+    }
 
     let result = repo
         .find_all_between_for_update(&mut tx, slot1.start_at, slot2.end_at)
@@ -73,16 +69,12 @@ async fn boundary_case() {
     slot.start_at = 1000;
     slot.end_at = 2000;
 
-    sqlx::query(
-        "INSERT INTO reservation_slots (id, slot, start_at, end_at) VALUES (?, ?, ?, ?)",
-    )
-    .bind(&slot.id)
-    .bind(slot.slot)
-    .bind(slot.start_at)
-    .bind(slot.end_at)
-    .execute(&mut *tx)
-    .await
-    .unwrap();
+    {
+        let mut ins = qbey(TABLE_RESERVATION_SLOTS.table()).into_insert();
+        ins.add_value(&[("id", (*slot.id.inner()).into()), ("slot", slot.slot.into()), ("start_at", slot.start_at.into()), ("end_at", slot.end_at.into())]);
+        let (sql, binds) = ins.to_sql();
+        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+    }
 
     // exact boundary match (start_at >= 1000 AND end_at <= 2000)
     let result = repo
@@ -119,20 +111,13 @@ async fn filters_out_of_range() {
     outside.start_at = 3000;
     outside.end_at = 4000;
 
-    sqlx::query(
-        "INSERT INTO reservation_slots (id, slot, start_at, end_at) VALUES (?, ?, ?, ?), (?, ?, ?, ?)",
-    )
-    .bind(&inside.id)
-    .bind(inside.slot)
-    .bind(inside.start_at)
-    .bind(inside.end_at)
-    .bind(&outside.id)
-    .bind(outside.slot)
-    .bind(outside.start_at)
-    .bind(outside.end_at)
-    .execute(&mut *tx)
-    .await
-    .unwrap();
+    {
+        let mut ins = qbey(TABLE_RESERVATION_SLOTS.table()).into_insert();
+        ins.add_value(&[("id", (*inside.id.inner()).into()), ("slot", inside.slot.into()), ("start_at", inside.start_at.into()), ("end_at", inside.end_at.into())]);
+        ins.add_value(&[("id", (*outside.id.inner()).into()), ("slot", outside.slot.into()), ("start_at", outside.start_at.into()), ("end_at", outside.end_at.into())]);
+        let (sql, binds) = ins.to_sql();
+        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+    }
 
     let result = repo
         .find_all_between_for_update(&mut tx, 1000, 2000)
