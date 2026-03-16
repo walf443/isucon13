@@ -2,6 +2,7 @@ qbey_schema!(ReactionTable, "reactions", [
     id,
     user_id,
     livestream_id,
+    emoji_name,
     created_at,
 ]);
 

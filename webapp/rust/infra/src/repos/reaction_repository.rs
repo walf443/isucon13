@@ -10,6 +10,8 @@ mod create;
 mod find_all_by_livestream_id;
 #[cfg(test)]
 mod find_all_by_livestream_id_limit;
+#[cfg(test)]
+mod most_favorite_emoji_by_livestream_user_name;
 
 use crate::qbey_support::bind_qbey_values;
 use crate::tables::livestream::TABLE_LIVESTREAMS;
@@ -73,19 +75,23 @@ impl ReactionRepository for ReactionRepositoryInfra {
         conn: &mut DBConn,
         livestream_user_name: &UserName,
     ) -> isupipe_core::repos::Result<String> {
-        // ORDER BY COUNT(*) DESC - not supported by qbey
-        let query = r#"
-            SELECT r.emoji_name
-            FROM users u
-            INNER JOIN livestreams l ON l.user_id = u.id
-            INNER JOIN reactions r ON r.livestream_id = l.id
-            WHERE u.name = ?
-            GROUP BY emoji_name
-            ORDER BY COUNT(*) DESC, emoji_name DESC
-            LIMIT 1
-        "#;
-        let favorite_emoji: String = sqlx::query_scalar(query)
-            .bind(livestream_user_name)
+        let user = &TABLE_USERS;
+        let livestream = &TABLE_LIVESTREAMS;
+        let reaction = &TABLE_REACTIONS;
+        let mut q = qbey(user.table());
+        q.as_("u");
+        let u = user.as_("u");
+        q.join(livestream.table(), u.id().eq_col(livestream.user_id()));
+        q.join(reaction.table(), livestream.id().eq_col(reaction.livestream_id()));
+        q.and_where(u.name().eq(livestream_user_name.inner().clone()));
+        q.select(&[reaction.emoji_name()]);
+        q.add_select_expr(RawSql::new("COUNT(*)"), Some("cnt"));
+        q.group_by(&["emoji_name"]);
+        q.order_by(qbey::col("cnt").desc());
+        q.order_by(qbey::col("emoji_name").desc());
+        q.limit(1);
+        let (sql, binds) = q.to_sql();
+        let favorite_emoji: String = bind_qbey_values!(sqlx::query_scalar::<_, String>(&sql), binds)
             .fetch_optional(conn)
             .await?
             .unwrap_or_default();
