@@ -1,6 +1,7 @@
 use crate::qbey_support::bind_qbey_values;
 use crate::repos::tag_repository::TagRepositoryInfra;
 use crate::tables::tag::TABLE_TAGS;
+use crate::test_support::InsertTagSetup;
 use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::tag::Tag;
@@ -27,8 +28,8 @@ async fn exists_case() {
 
     {
         let mut ins = qbey(TABLE_TAGS.table()).into_insert();
-        ins.add_value(&[("id", (*tag1.id.inner()).into()), ("name", tag1.name.inner().as_str().into())]);
-        ins.add_value(&[("id", (*tag2.id.inner()).into()), ("name", tag2.name.inner().as_str().into())]);
+        ins.add_value(&InsertTagSetup { id: *tag1.id.inner(), tag: &tag1 });
+        ins.add_value(&InsertTagSetup { id: *tag2.id.inner(), tag: &tag2 });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
     }

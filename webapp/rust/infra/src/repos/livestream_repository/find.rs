@@ -2,6 +2,7 @@ use crate::qbey_support::bind_qbey_values;
 use crate::repos::livestream_repository::LivestreamRepositoryInfra;
 use crate::tables::livestream::TABLE_LIVESTREAMS;
 use crate::tables::user::TABLE_USERS;
+use crate::test_support::{InsertLivestreamSetup, InsertUserSetup};
 use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::livestream::{CreateLivestream, LivestreamId};
@@ -17,13 +18,7 @@ async fn found_case() {
     let user: CreateUser = Faker.fake();
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
-        ins.add_value(&[
-            ("id", 1i64.into()),
-            ("name", user.name.as_str().into()),
-            ("display_name", user.display_name.as_str().into()),
-            ("password", user.password.as_str().into()),
-            ("description", user.description.as_str().into()),
-        ]);
+        ins.add_value(&InsertUserSetup { id: 1, user: &user });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
@@ -34,16 +29,7 @@ async fn found_case() {
     let stream: CreateLivestream = Faker.fake();
     {
         let mut ins = qbey(TABLE_LIVESTREAMS.table()).into_insert();
-        ins.add_value(&[
-            ("id", 1i64.into()),
-            ("user_id", 1i64.into()),
-            ("title", stream.title.as_str().into()),
-            ("description", stream.description.as_str().into()),
-            ("playlist_url", stream.playlist_url.as_str().into()),
-            ("thumbnail_url", stream.thumbnail_url.as_str().into()),
-            ("start_at", stream.start_at.into()),
-            ("end_at", stream.end_at.into()),
-        ]);
+        ins.add_value(&InsertLivestreamSetup { id: 1, user_id: 1, stream: &stream });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)

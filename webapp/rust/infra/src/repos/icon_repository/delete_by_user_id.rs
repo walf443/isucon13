@@ -1,9 +1,9 @@
 use crate::qbey_support::bind_qbey_values;
 use crate::qbey_support::bind_sql_values;
-use crate::qbey_support::SQLValue;
 use crate::repos::icon_repository::IconRepositoryInfra;
 use crate::tables::icon::TABLE_ICONS;
 use crate::tables::user::TABLE_USERS;
+use crate::test_support::{InsertIconSetup, InsertUserSetup};
 use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::user::{CreateUser, UserId};
@@ -20,28 +20,16 @@ async fn deletes_icon() {
     let user2: CreateUser = Faker.fake();
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
-        ins.add_value(&[
-            ("id", 1i64.into()),
-            ("name", user1.name.as_str().into()),
-            ("display_name", user1.display_name.as_str().into()),
-            ("password", user1.password.as_str().into()),
-            ("description", user1.description.as_str().into()),
-        ]);
-        ins.add_value(&[
-            ("id", 2i64.into()),
-            ("name", user2.name.as_str().into()),
-            ("display_name", user2.display_name.as_str().into()),
-            ("password", user2.password.as_str().into()),
-            ("description", user2.description.as_str().into()),
-        ]);
+        ins.add_value(&InsertUserSetup { id: 1, user: &user1 });
+        ins.add_value(&InsertUserSetup { id: 2, user: &user2 });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
     }
 
     {
-        let mut ins = qbey_with::<SQLValue>(TABLE_ICONS.table()).into_insert();
-        ins.add_value(&[("id", 1i64.into()), ("user_id", 1i64.into()), ("image", vec![0x89u8, 0x50, 0x4E, 0x47].into())]);
-        ins.add_value(&[("id", 2i64.into()), ("user_id", 2i64.into()), ("image", vec![0x89u8, 0x50, 0x4E, 0x47].into())]);
+        let mut ins = qbey_with::<crate::qbey_support::SQLValue>(TABLE_ICONS.table()).into_insert();
+        ins.add_value(&InsertIconSetup { id: 1, user_id: 1, image: vec![0x89u8, 0x50, 0x4E, 0x47] });
+        ins.add_value(&InsertIconSetup { id: 2, user_id: 2, image: vec![0x89u8, 0x50, 0x4E, 0x47] });
         let (sql, binds) = ins.to_sql();
         bind_sql_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
     }
@@ -74,13 +62,7 @@ async fn noop_when_no_icon() {
     let user: CreateUser = Faker.fake();
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
-        ins.add_value(&[
-            ("id", 1i64.into()),
-            ("name", user.name.as_str().into()),
-            ("display_name", user.display_name.as_str().into()),
-            ("password", user.password.as_str().into()),
-            ("description", user.description.as_str().into()),
-        ]);
+        ins.add_value(&InsertUserSetup { id: 1, user: &user });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
     }

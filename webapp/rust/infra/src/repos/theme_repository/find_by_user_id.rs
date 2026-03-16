@@ -1,6 +1,7 @@
 use crate::qbey_support::bind_qbey_values;
 use crate::repos::theme_repository::ThemeRepositoryInfra;
 use crate::tables::theme::TABLE_THEMES;
+use crate::test_support::InsertThemeSetup;
 use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::theme::Theme;
@@ -32,7 +33,7 @@ async fn success_case() {
 
     {
         let mut ins = qbey(TABLE_THEMES.table()).into_insert();
-        ins.add_value(&[("id", (*theme.id.inner()).into()), ("user_id", (*theme.user_id.inner()).into()), ("dark_mode", theme.dark_mode.into())]);
+        ins.add_value(&InsertThemeSetup { theme: &theme });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
     }

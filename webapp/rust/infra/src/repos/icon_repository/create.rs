@@ -1,6 +1,7 @@
 use crate::qbey_support::bind_qbey_values;
 use crate::repos::icon_repository::IconRepositoryInfra;
 use crate::tables::user::TABLE_USERS;
+use crate::test_support::InsertUserSetup;
 use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::icon::CreateIcon;
@@ -16,13 +17,7 @@ async fn success_case() {
     let user: CreateUser = Faker.fake();
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
-        ins.add_value(&[
-            ("id", 1i64.into()),
-            ("name", user.name.as_str().into()),
-            ("display_name", user.display_name.as_str().into()),
-            ("password", user.password.as_str().into()),
-            ("description", user.description.as_str().into()),
-        ]);
+        ins.add_value(&InsertUserSetup { id: 1, user: &user });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)

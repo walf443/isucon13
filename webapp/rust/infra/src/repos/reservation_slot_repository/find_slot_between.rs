@@ -1,6 +1,7 @@
 use crate::qbey_support::bind_qbey_values;
 use crate::repos::reservation_slot_repository::ReservationSlotRepositoryInfra;
 use crate::tables::reservation_slot::TABLE_RESERVATION_SLOTS;
+use crate::test_support::InsertReservationSlotSetup;
 use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::reservation_slot::ReservationSlot;
@@ -32,7 +33,7 @@ async fn success_case() {
     let slot: ReservationSlot = Faker.fake();
     {
         let mut ins = qbey(TABLE_RESERVATION_SLOTS.table()).into_insert();
-        ins.add_value(&[("id", (*slot.id.inner()).into()), ("slot", slot.slot.into()), ("start_at", slot.start_at.into()), ("end_at", slot.end_at.into())]);
+        ins.add_value(&InsertReservationSlotSetup { slot: &slot });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
     }

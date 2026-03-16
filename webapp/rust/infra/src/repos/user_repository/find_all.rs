@@ -1,6 +1,7 @@
 use crate::qbey_support::bind_qbey_values;
 use crate::repos::user_repository::UserRepositoryInfra;
 use crate::tables::user::TABLE_USERS;
+use crate::test_support::InsertUserSetup;
 use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::user::CreateUser;
@@ -33,18 +34,8 @@ async fn not_empty_case() {
 
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
-        ins.add_value(&[
-            ("name", users[0].name.as_str().into()),
-            ("display_name", users[0].display_name.as_str().into()),
-            ("description", users[0].description.as_str().into()),
-            ("password", users[0].password.as_str().into()),
-        ]);
-        ins.add_value(&[
-            ("name", users[1].name.as_str().into()),
-            ("display_name", users[1].display_name.as_str().into()),
-            ("description", users[1].description.as_str().into()),
-            ("password", users[1].password.as_str().into()),
-        ]);
+        ins.add_value(&InsertUserSetup { id: 1, user: &users[0] });
+        ins.add_value(&InsertUserSetup { id: 2, user: &users[1] });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)

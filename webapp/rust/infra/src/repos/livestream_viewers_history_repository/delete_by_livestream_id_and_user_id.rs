@@ -3,6 +3,7 @@ use crate::repos::livestream_viewers_history_repository::LivestreamViewersHistor
 use crate::tables::livestream::TABLE_LIVESTREAMS;
 use crate::tables::livestream_viewers_history::TABLE_LIVESTREAM_VIEWERS_HISTORY;
 use crate::tables::user::TABLE_USERS;
+use crate::test_support::{InsertLivestreamSetup, InsertUserSetup, InsertViewersHistorySetup};
 use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::livestream::{CreateLivestream, LivestreamId};
@@ -19,20 +20,8 @@ async fn deletes_matching_entry() {
     let user2: CreateUser = Faker.fake();
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
-        ins.add_value(&[
-            ("id", 1i64.into()),
-            ("name", user1.name.as_str().into()),
-            ("display_name", user1.display_name.as_str().into()),
-            ("password", user1.password.as_str().into()),
-            ("description", user1.description.as_str().into()),
-        ]);
-        ins.add_value(&[
-            ("id", 2i64.into()),
-            ("name", user2.name.as_str().into()),
-            ("display_name", user2.display_name.as_str().into()),
-            ("password", user2.password.as_str().into()),
-            ("description", user2.description.as_str().into()),
-        ]);
+        ins.add_value(&InsertUserSetup { id: 1, user: &user1 });
+        ins.add_value(&InsertUserSetup { id: 2, user: &user2 });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
     }
@@ -40,24 +29,15 @@ async fn deletes_matching_entry() {
     let stream: CreateLivestream = Faker.fake();
     {
         let mut ins = qbey(TABLE_LIVESTREAMS.table()).into_insert();
-        ins.add_value(&[
-            ("id", 1i64.into()),
-            ("user_id", 1i64.into()),
-            ("title", stream.title.as_str().into()),
-            ("description", stream.description.as_str().into()),
-            ("playlist_url", stream.playlist_url.as_str().into()),
-            ("thumbnail_url", stream.thumbnail_url.as_str().into()),
-            ("start_at", stream.start_at.into()),
-            ("end_at", stream.end_at.into()),
-        ]);
+        ins.add_value(&InsertLivestreamSetup { id: 1, user_id: 1, stream: &stream });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
     }
 
     {
         let mut ins = qbey(TABLE_LIVESTREAM_VIEWERS_HISTORY.table()).into_insert();
-        ins.add_value(&[("user_id", 1i64.into()), ("livestream_id", 1i64.into()), ("created_at", 100i64.into())]);
-        ins.add_value(&[("user_id", 2i64.into()), ("livestream_id", 1i64.into()), ("created_at", 200i64.into())]);
+        ins.add_value(&InsertViewersHistorySetup { user_id: 1, livestream_id: 1, created_at: 100 });
+        ins.add_value(&InsertViewersHistorySetup { user_id: 2, livestream_id: 1, created_at: 200 });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
     }
@@ -83,13 +63,7 @@ async fn noop_when_no_match() {
     let user: CreateUser = Faker.fake();
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
-        ins.add_value(&[
-            ("id", 1i64.into()),
-            ("name", user.name.as_str().into()),
-            ("display_name", user.display_name.as_str().into()),
-            ("password", user.password.as_str().into()),
-            ("description", user.description.as_str().into()),
-        ]);
+        ins.add_value(&InsertUserSetup { id: 1, user: &user });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
     }
@@ -97,16 +71,7 @@ async fn noop_when_no_match() {
     let stream: CreateLivestream = Faker.fake();
     {
         let mut ins = qbey(TABLE_LIVESTREAMS.table()).into_insert();
-        ins.add_value(&[
-            ("id", 1i64.into()),
-            ("user_id", 1i64.into()),
-            ("title", stream.title.as_str().into()),
-            ("description", stream.description.as_str().into()),
-            ("playlist_url", stream.playlist_url.as_str().into()),
-            ("thumbnail_url", stream.thumbnail_url.as_str().into()),
-            ("start_at", stream.start_at.into()),
-            ("end_at", stream.end_at.into()),
-        ]);
+        ins.add_value(&InsertLivestreamSetup { id: 1, user_id: 1, stream: &stream });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
     }
