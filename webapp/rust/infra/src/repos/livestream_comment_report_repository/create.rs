@@ -2,6 +2,7 @@ use crate::qbey_support::bind_qbey_values;
 use crate::repos::livestream_comment_report_repository::LivestreamCommentReportRepositoryInfra;
 use crate::tables::livestream::TABLE_LIVESTREAMS;
 use crate::tables::livestream_comment::TABLE_LIVECOMMENTS;
+use crate::tables::livestream_comment_report::TABLE_LIVECOMMENT_REPORTS;
 use crate::tables::user::TABLE_USERS;
 use crate::test_support::{InsertCommentSetup, InsertLivestreamSetup, InsertUserSetup};
 use fake::{Fake, Faker};
@@ -61,9 +62,12 @@ async fn success_case() {
     let repo = LivestreamCommentReportRepositoryInfra {};
     let report_id = repo.create(&mut tx, &input).await.unwrap();
 
+    let t = &TABLE_LIVECOMMENT_REPORTS;
+    let mut q = qbey(t.table());
+    q.and_where(t.id().eq(*report_id.inner()));
+    let (sql, binds) = q.to_sql();
     let got: LivestreamCommentReport =
-        sqlx::query_as("SELECT * FROM livecomment_reports WHERE id = ?")
-            .bind(&report_id)
+        bind_qbey_values!(sqlx::query_as::<_, LivestreamCommentReport>(&sql), binds)
             .fetch_one(&mut *tx)
             .await
             .unwrap();

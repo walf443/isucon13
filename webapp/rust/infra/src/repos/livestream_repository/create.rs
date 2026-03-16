@@ -1,5 +1,6 @@
 use crate::qbey_support::bind_qbey_values;
 use crate::repos::livestream_repository::LivestreamRepositoryInfra;
+use crate::tables::livestream::TABLE_LIVESTREAMS;
 use crate::tables::user::TABLE_USERS;
 use crate::test_support::InsertUserSetup;
 use fake::{Fake, Faker};
@@ -31,8 +32,11 @@ async fn success_case() {
     let repo = LivestreamRepositoryInfra {};
     let livestream_id = repo.create(&mut tx, &input).await.unwrap();
 
-    let got: Livestream = sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
-        .bind(&livestream_id)
+    let t = &TABLE_LIVESTREAMS;
+    let mut q = qbey(t.table());
+    q.and_where(t.id().eq(*livestream_id.inner()));
+    let (sql, binds) = q.to_sql();
+    let got: Livestream = bind_qbey_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
         .fetch_one(&mut *tx)
         .await
         .unwrap();

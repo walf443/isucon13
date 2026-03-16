@@ -26,7 +26,12 @@ async fn not_empty_case() {
     let mut tx = db_pool.begin().await.unwrap();
 
     // deadlock対策
-    sqlx::query("SELECT id FROM reservation_slots FOR UPDATE")
+    let t = &TABLE_RESERVATION_SLOTS;
+    let mut q = qbey(t.table());
+    q.for_update();
+    q.select(&[t.id()]);
+    let (sql, binds) = q.to_sql();
+    bind_qbey_values!(sqlx::query(&sql), binds)
         .fetch_all(&mut *tx)
         .await
         .unwrap();
@@ -50,17 +55,21 @@ async fn not_empty_case() {
         .await
         .unwrap();
 
+    let mut q = qbey(t.table());
+    q.and_where(t.id().eq(*slot1.id.inner()));
+    let (sql, binds) = q.to_sql();
     let got1: ReservationSlot =
-        sqlx::query_as("SELECT * FROM reservation_slots WHERE id = ?")
-            .bind(&slot1.id)
+        bind_qbey_values!(sqlx::query_as::<_, ReservationSlot>(&sql), binds)
             .fetch_one(&mut *tx)
             .await
             .unwrap();
     assert_eq!(slot1.slot - 1, got1.slot);
 
+    let mut q = qbey(t.table());
+    q.and_where(t.id().eq(*slot2.id.inner()));
+    let (sql, binds) = q.to_sql();
     let got2: ReservationSlot =
-        sqlx::query_as("SELECT * FROM reservation_slots WHERE id = ?")
-            .bind(&slot2.id)
+        bind_qbey_values!(sqlx::query_as::<_, ReservationSlot>(&sql), binds)
             .fetch_one(&mut *tx)
             .await
             .unwrap();

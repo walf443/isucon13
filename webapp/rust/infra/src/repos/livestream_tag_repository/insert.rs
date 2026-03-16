@@ -1,6 +1,7 @@
 use crate::qbey_support::bind_qbey_values;
 use crate::repos::livestream_tag_repository::LivestreamTagRepositoryInfra;
 use crate::tables::livestream::TABLE_LIVESTREAMS;
+use crate::tables::livestream_tag::TABLE_LIVESTREAM_TAGS;
 use crate::tables::tag::TABLE_TAGS;
 use crate::tables::user::TABLE_USERS;
 use crate::test_support::{InsertLivestreamSetup, InsertTagSetup, InsertUserSetup};
@@ -56,10 +57,13 @@ async fn success_case() {
         .await
         .unwrap();
 
+    let t = &TABLE_LIVESTREAM_TAGS;
+    let mut q = qbey(t.table());
+    q.and_where(t.livestream_id().eq(1_i64));
+    q.and_where(t.tag_id().eq(1_i64));
+    let (sql, binds) = q.to_sql();
     let got: LivestreamTag =
-        sqlx::query_as("SELECT * FROM livestream_tags WHERE livestream_id = ? AND tag_id = ?")
-            .bind(1_i64)
-            .bind(1_i64)
+        bind_qbey_values!(sqlx::query_as::<_, LivestreamTag>(&sql), binds)
             .fetch_one(&mut *tx)
             .await
             .unwrap();

@@ -1,4 +1,5 @@
 use crate::repos::ng_word_repository::NgWordRepositoryInfra;
+use crate::tables::ng_word::TABLE_NG_WORDS;
 use crate::test_support::{InsertLivestreamSetup, InsertUserSetup};
 use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
@@ -45,8 +46,11 @@ async fn success_case() {
     let repo = NgWordRepositoryInfra {};
     let word_id = repo.create(&mut tx, &input).await.unwrap();
 
-    let got: NgWord = sqlx::query_as("SELECT * FROM ng_words WHERE id = ?")
-        .bind(&word_id)
+    let t = &TABLE_NG_WORDS;
+    let mut q = qbey(t.table());
+    q.and_where(t.id().eq(*word_id.inner()));
+    let (sql, binds) = q.to_sql();
+    let got: NgWord = bind_qbey_values!(sqlx::query_as::<_, NgWord>(&sql), binds)
         .fetch_one(&mut *tx)
         .await
         .unwrap();

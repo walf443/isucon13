@@ -1,6 +1,7 @@
 use crate::qbey_support::bind_qbey_values;
 use crate::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepositoryInfra;
 use crate::tables::livestream::TABLE_LIVESTREAMS;
+use crate::tables::livestream_viewers_history::TABLE_LIVESTREAM_VIEWERS_HISTORY;
 use crate::tables::user::TABLE_USERS;
 use crate::test_support::{InsertLivestreamSetup, InsertUserSetup};
 use fake::{Fake, Faker};
@@ -45,14 +46,16 @@ async fn success_case() {
     let repo = LivestreamViewersHistoryRepositoryInfra {};
     repo.create(&mut tx, &input).await.unwrap();
 
-    let count: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM livestream_viewers_history WHERE user_id = ? AND livestream_id = ?",
-    )
-    .bind(*input.user_id.inner())
-    .bind(*input.livestream_id.inner())
-    .fetch_one(&mut *tx)
-    .await
-    .unwrap();
+    let t = &TABLE_LIVESTREAM_VIEWERS_HISTORY;
+    let mut q = qbey(t.table());
+    q.add_select(qbey::count_all());
+    q.and_where(t.user_id().eq(*input.user_id.inner()));
+    q.and_where(t.livestream_id().eq(*input.livestream_id.inner()));
+    let (sql, binds) = q.to_sql();
+    let count: i64 = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
+        .fetch_one(&mut *tx)
+        .await
+        .unwrap();
 
     assert_eq!(count, 1);
 }
