@@ -14,7 +14,6 @@ use isupipe_core::models::livestream_comment_report::{
 };
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::Result;
-use qbey::RawSql;
 use qbey_mysql::qbey;
 
 #[derive(Clone)]
@@ -55,7 +54,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
             report.livestream_id().eq_col(l.id()),
         );
         q.and_where(l.id().eq(*livestream_id.inner()));
-        q.add_select_expr(RawSql::new("COUNT(*)"), None);
+        q.add_select(qbey::count_all());
         let (sql, binds) = q.to_sql();
         let total_reports = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)

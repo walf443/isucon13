@@ -23,7 +23,6 @@ use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::reaction::{CreateReaction, Reaction, ReactionId};
 use isupipe_core::models::user::{UserId, UserName};
 use isupipe_core::repos::reaction_repository::ReactionRepository;
-use qbey::RawSql;
 use qbey_mysql::qbey;
 
 #[derive(Clone)]
@@ -61,7 +60,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
         let l = livestream.as_("l");
         q.join(reaction.table(), l.id().eq_col(reaction.livestream_id()));
         q.and_where(l.id().eq(*livestream_id.inner()));
-        q.add_select_expr(RawSql::new("COUNT(*)"), None);
+        q.add_select(qbey::count_all());
         let (sql, binds) = q.to_sql();
         let reactions = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)
@@ -85,7 +84,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
         q.join(reaction.table(), livestream.id().eq_col(reaction.livestream_id()));
         q.and_where(u.name().eq(livestream_user_name.inner().clone()));
         q.select(&[reaction.emoji_name()]);
-        q.add_select_expr(RawSql::new("COUNT(*)"), Some("cnt"));
+        q.add_select(qbey::count_all().as_("cnt"));
         q.group_by(&["emoji_name"]);
         q.order_by(qbey::col("cnt").desc());
         q.order_by(qbey::col("emoji_name").desc());
@@ -113,7 +112,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
         q.join(livestream.table(), u.id().eq_col(livestream.user_id()));
         q.join(reaction.table(), livestream.id().eq_col(reaction.livestream_id()));
         q.and_where(u.id().eq(*livestream_user_id.inner()));
-        q.add_select_expr(RawSql::new("COUNT(*)"), None);
+        q.add_select(qbey::count_all());
         let (sql, binds) = q.to_sql();
         let reactions = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)
@@ -136,7 +135,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
         q.join(livestream.table(), u.id().eq_col(livestream.user_id()));
         q.join(reaction.table(), livestream.id().eq_col(reaction.livestream_id()));
         q.and_where(u.name().eq(livestream_user_name.inner().clone()));
-        q.add_select_expr(RawSql::new("COUNT(*)"), None);
+        q.add_select(qbey::count_all());
         let (sql, binds) = q.to_sql();
         let total_reactions = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)

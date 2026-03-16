@@ -12,7 +12,6 @@ use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_viewers_history::CreateLivestreamViewersHistory;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
-use qbey::RawSql;
 use qbey_mysql::qbey;
 use sqlx::Acquire;
 
@@ -57,7 +56,7 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
             viewers_history.livestream_id().eq_col(l.id()),
         );
         q.and_where(l.id().eq(*livestream_id.inner()));
-        q.add_select_expr(RawSql::new("COUNT(*)"), None);
+        q.add_select(qbey::count_all());
         let (sql, binds) = q.to_sql();
         let viewers_count = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(&mut *conn)
