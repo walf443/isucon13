@@ -133,6 +133,8 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
 }
 
 #[cfg(test)]
+mod create;
+#[cfg(test)]
 mod find;
 #[cfg(test)]
 mod find_all;

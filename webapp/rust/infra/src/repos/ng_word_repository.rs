@@ -1,4 +1,6 @@
 #[cfg(test)]
+mod create;
+#[cfg(test)]
 mod find_all_by_livestream_id;
 #[cfg(test)]
 mod find_all_by_livestream_id_and_user_id;
