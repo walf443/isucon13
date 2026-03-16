@@ -42,14 +42,17 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         comment: &CreateLivestreamComment,
     ) -> isupipe_core::repos::Result<LivestreamCommentId> {
-        let rs = sqlx::query(
-            "INSERT INTO livecomments (user_id, livestream_id, comment, tip, created_at) VALUES (?, ?, ?, ?, ?)",
-        )
-            .bind(&comment.user_id)
-            .bind(&comment.livestream_id)
-            .bind(&comment.comment)
-            .bind(comment.tip)
-            .bind(comment.created_at)
+        let t = &TABLE_LIVECOMMENTS;
+        let mut ins = qbey(t.table()).into_insert();
+        ins.add_value(&[
+            ("user_id", (*comment.user_id.inner()).into()),
+            ("livestream_id", (*comment.livestream_id.inner()).into()),
+            ("comment", comment.comment.as_str().into()),
+            ("tip", comment.tip.into()),
+            ("created_at", comment.created_at.into()),
+        ]);
+        let (sql, binds) = ins.to_sql();
+        let rs = bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(conn)
             .await?;
         let comment_id = rs.last_insert_id() as i64;

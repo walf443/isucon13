@@ -27,12 +27,15 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
     ) -> isupipe_core::repos::Result<()> {
         let mut tx = conn.begin().await?;
 
-        sqlx::query(
-            "INSERT INTO livestream_viewers_history (user_id, livestream_id, created_at) VALUES(?, ?, ?)",
-        )
-            .bind(&history.user_id)
-            .bind(&history.livestream_id)
-            .bind(history.created_at)
+        let t = &TABLE_LIVESTREAM_VIEWERS_HISTORY;
+        let mut ins = qbey(t.table()).into_insert();
+        ins.add_value(&[
+            ("user_id", (*history.user_id.inner()).into()),
+            ("livestream_id", (*history.livestream_id.inner()).into()),
+            ("created_at", history.created_at.into()),
+        ]);
+        let (sql, binds) = ins.to_sql();
+        bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await?;
 

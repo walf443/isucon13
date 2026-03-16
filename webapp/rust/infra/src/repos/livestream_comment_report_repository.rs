@@ -26,13 +26,16 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         conn: &mut DBConn,
         report: &CreateLivestreamCommentReport,
     ) -> Result<LivestreamCommentReportId> {
-        let rs = sqlx::query(
-            "INSERT INTO livecomment_reports(user_id, livestream_id, livecomment_id, created_at) VALUES (?, ?, ?, ?)",
-        )
-            .bind(&report.user_id)
-            .bind(&report.livestream_id)
-            .bind(&report.livestream_comment_id)
-            .bind(report.created_at)
+        let t = &TABLE_LIVECOMMENT_REPORTS;
+        let mut ins = qbey(t.table()).into_insert();
+        ins.add_value(&[
+            ("user_id", (*report.user_id.inner()).into()),
+            ("livestream_id", (*report.livestream_id.inner()).into()),
+            ("livecomment_id", (*report.livestream_comment_id.inner()).into()),
+            ("created_at", report.created_at.into()),
+        ]);
+        let (sql, binds) = ins.to_sql();
+        let rs = bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(conn)
             .await?;
         let report_id = rs.last_insert_id() as i64;

@@ -29,15 +29,18 @@ impl UserRepository for UserRepositoryInfra {
     ) -> isupipe_core::repos::Result<UserId> {
         let hashed_password = self.hash_password(&user.password)?;
 
-        let result = sqlx::query(
-            "INSERT INTO users (name, display_name, description, password) VALUES(?, ?, ?, ?)",
-        )
-        .bind(&user.name)
-        .bind(&user.display_name)
-        .bind(&user.description)
-        .bind(&hashed_password)
-        .execute(conn)
-        .await?;
+        let t = &TABLE_USERS;
+        let mut ins = qbey(t.table()).into_insert();
+        ins.add_value(&[
+            ("name", user.name.as_str().into()),
+            ("display_name", user.display_name.as_str().into()),
+            ("description", user.description.as_str().into()),
+            ("password", hashed_password.as_str().into()),
+        ]);
+        let (sql, binds) = ins.to_sql();
+        let result = bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(conn)
+            .await?;
 
         let user_id = result.last_insert_id() as i64;
 

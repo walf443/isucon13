@@ -17,14 +17,19 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         conn: &mut DBConn,
         stream: &CreateLivestream,
     ) -> isupipe_core::repos::Result<LivestreamId> {
-        let rs = sqlx::query("INSERT INTO livestreams (user_id, title, description, playlist_url, thumbnail_url, start_at, end_at) VALUES(?, ?, ?, ?, ?, ?, ?)")
-            .bind(&stream.user_id)
-            .bind(&stream.title)
-            .bind(&stream.description)
-            .bind(&stream.playlist_url)
-            .bind(&stream.thumbnail_url)
-            .bind(stream.start_at)
-            .bind(stream.end_at)
+        let t = &TABLE_LIVESTREAMS;
+        let mut ins = qbey(t.table()).into_insert();
+        ins.add_value(&[
+            ("user_id", (*stream.user_id.inner()).into()),
+            ("title", stream.title.as_str().into()),
+            ("description", stream.description.as_str().into()),
+            ("playlist_url", stream.playlist_url.as_str().into()),
+            ("thumbnail_url", stream.thumbnail_url.as_str().into()),
+            ("start_at", stream.start_at.into()),
+            ("end_at", stream.end_at.into()),
+        ]);
+        let (sql, binds) = ins.to_sql();
+        let rs = bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(conn)
             .await?;
 

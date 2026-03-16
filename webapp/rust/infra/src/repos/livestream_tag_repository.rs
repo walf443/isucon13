@@ -24,9 +24,14 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
         livestream_id: &LivestreamId,
         tag_id: &TagId,
     ) -> isupipe_core::repos::Result<()> {
-        sqlx::query("INSERT INTO livestream_tags (livestream_id, tag_id) VALUES (?, ?)")
-            .bind(livestream_id)
-            .bind(tag_id)
+        let t = &TABLE_LIVESTREAM_TAGS;
+        let mut ins = qbey(t.table()).into_insert();
+        ins.add_value(&[
+            ("livestream_id", (*livestream_id.inner()).into()),
+            ("tag_id", (*tag_id.inner()).into()),
+        ]);
+        let (sql, binds) = ins.to_sql();
+        bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(conn)
             .await?;
 

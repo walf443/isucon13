@@ -35,14 +35,18 @@ impl ReactionRepository for ReactionRepositoryInfra {
         conn: &mut DBConn,
         reaction: &CreateReaction,
     ) -> isupipe_core::repos::Result<ReactionId> {
-        let result =
-            sqlx::query("INSERT INTO reactions (user_id, livestream_id, emoji_name, created_at) VALUES (?, ?, ?, ?)")
-                .bind(&reaction.user_id)
-                .bind(&reaction.livestream_id)
-                .bind(&reaction.emoji_name)
-                .bind(reaction.created_at)
-                .execute(conn)
-                .await?;
+        let t = &TABLE_REACTIONS;
+        let mut ins = qbey(t.table()).into_insert();
+        ins.add_value(&[
+            ("user_id", (*reaction.user_id.inner()).into()),
+            ("livestream_id", (*reaction.livestream_id.inner()).into()),
+            ("emoji_name", reaction.emoji_name.as_str().into()),
+            ("created_at", reaction.created_at.into()),
+        ]);
+        let (sql, binds) = ins.to_sql();
+        let result = bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(conn)
+            .await?;
         let reaction_id = result.last_insert_id() as i64;
 
         Ok(ReactionId::new(reaction_id))

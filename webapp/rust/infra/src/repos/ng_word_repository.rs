@@ -25,15 +25,18 @@ impl NgWordRepository for NgWordRepositoryInfra {
         conn: &mut DBConn,
         ng_word: &CreateNgWord,
     ) -> isupipe_core::repos::Result<NgWordId> {
-        let rs = sqlx::query(
-            "INSERT INTO ng_words(user_id, livestream_id, word, created_at) VALUES (?, ?, ?, ?)",
-        )
-        .bind(&ng_word.user_id)
-        .bind(&ng_word.livestream_id)
-        .bind(&ng_word.word)
-        .bind(ng_word.created_at)
-        .execute(conn)
-        .await?;
+        let t = &TABLE_NG_WORDS;
+        let mut ins = qbey(t.table()).into_insert();
+        ins.add_value(&[
+            ("user_id", (*ng_word.user_id.inner()).into()),
+            ("livestream_id", (*ng_word.livestream_id.inner()).into()),
+            ("word", ng_word.word.as_str().into()),
+            ("created_at", ng_word.created_at.into()),
+        ]);
+        let (sql, binds) = ins.to_sql();
+        let rs = bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(conn)
+            .await?;
 
         let word_id = rs.last_insert_id() as i64;
 
