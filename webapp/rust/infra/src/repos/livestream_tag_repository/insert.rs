@@ -8,7 +8,7 @@ use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::livestream::{CreateLivestream, LivestreamId};
 use isupipe_core::models::livestream_tag::LivestreamTag;
-use isupipe_core::models::tag::Tag;
+use isupipe_core::models::tag::{Tag, TagId};
 use isupipe_core::models::user::CreateUser;
 use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
 use qbey_mysql::qbey;
@@ -52,7 +52,7 @@ async fn success_case() {
     }
 
     let repo = LivestreamTagRepositoryInfra {};
-    repo.insert(&mut tx, &LivestreamId::new(1), &tag.id)
+    repo.insert(&mut tx, &LivestreamId::new(1), &TagId::new(1))
         .await
         .unwrap();
 
