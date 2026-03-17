@@ -32,6 +32,7 @@ use isupipe_core::models::livestream_comment::{
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
 use qbey::RawSql;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 
 struct InsertComment<'a>(&'a CreateLivestreamComment);

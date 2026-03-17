@@ -10,6 +10,7 @@ use isupipe_core::models::livestream::CreateLivestream;
 use isupipe_core::models::livestream_comment::{CreateLivestreamComment, LivestreamCommentId};
 use isupipe_core::models::user::CreateUser;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 
 #[tokio::test]

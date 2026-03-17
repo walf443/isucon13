@@ -10,6 +10,7 @@ use isupipe_core::db::DBConn;
 use isupipe_core::models::theme::Theme;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::theme_repository::ThemeRepository;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 
 #[derive(Clone)]

@@ -15,6 +15,7 @@ use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::ng_word::{CreateNgWord, NgWord, NgWordId};
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::ng_word_repository::NgWordRepository;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 
 struct InsertNgWord<'a>(&'a CreateNgWord);

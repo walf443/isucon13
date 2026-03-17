@@ -16,6 +16,7 @@ use isupipe_core::models::livestream_comment_report::{
 };
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::Result;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 
 struct InsertReport<'a>(&'a CreateLivestreamCommentReport);

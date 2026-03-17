@@ -6,6 +6,7 @@ use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::reservation_slot::ReservationSlot;
 use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 
 #[tokio::test]

@@ -10,6 +10,7 @@ use isupipe_core::models::livestream::{CreateLivestream, LivestreamId};
 use isupipe_core::models::ng_word::CreateNgWord;
 use isupipe_core::models::user::{CreateUser, UserId};
 use isupipe_core::repos::ng_word_repository::NgWordRepository;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 
 #[tokio::test]

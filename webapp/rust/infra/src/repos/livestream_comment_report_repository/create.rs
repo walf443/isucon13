@@ -14,6 +14,7 @@ use isupipe_core::models::livestream_comment_report::{
 };
 use isupipe_core::models::user::{CreateUser, UserId};
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 
 #[tokio::test]

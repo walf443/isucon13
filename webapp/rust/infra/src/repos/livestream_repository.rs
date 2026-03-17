@@ -5,6 +5,7 @@ use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::{CreateLivestream, Livestream, LivestreamId};
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 
 struct InsertLivestream<'a>(&'a CreateLivestream);

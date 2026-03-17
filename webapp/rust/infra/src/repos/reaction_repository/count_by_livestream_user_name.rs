@@ -10,6 +10,7 @@ use isupipe_core::models::livestream::CreateLivestream;
 use isupipe_core::models::reaction::CreateReaction;
 use isupipe_core::models::user::{CreateUser, UserName};
 use isupipe_core::repos::reaction_repository::ReactionRepository;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 
 #[tokio::test]

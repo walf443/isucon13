@@ -11,6 +11,7 @@ use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::tag::{Tag, TagId, TagName};
 use isupipe_core::repos::tag_repository::TagRepository;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 
 #[derive(Clone)]

@@ -8,6 +8,7 @@ use isupipe_core::db::get_db_pool;
 use isupipe_core::models::livestream::{CreateLivestream, Livestream};
 use isupipe_core::models::user::{CreateUser, UserId};
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 
 #[tokio::test]

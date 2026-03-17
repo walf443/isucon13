@@ -5,6 +5,7 @@ use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::reaction::{CreateReaction, Reaction};
 use isupipe_core::repos::reaction_repository::ReactionRepository;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 
 #[tokio::test]

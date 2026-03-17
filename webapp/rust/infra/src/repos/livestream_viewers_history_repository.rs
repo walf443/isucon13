@@ -14,6 +14,7 @@ use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_viewers_history::CreateLivestreamViewersHistory;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 use sqlx::Acquire;
 

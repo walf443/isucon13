@@ -6,6 +6,7 @@ use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::tag::{Tag, TagId};
 use isupipe_core::repos::tag_repository::TagRepository;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 
 #[tokio::test]

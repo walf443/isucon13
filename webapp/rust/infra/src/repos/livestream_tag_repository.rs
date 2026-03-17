@@ -13,6 +13,7 @@ use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_tag::LivestreamTag;
 use isupipe_core::models::tag::TagId;
 use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 
 #[derive(Clone)]

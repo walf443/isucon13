@@ -5,6 +5,7 @@ use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::theme::Theme;
 use isupipe_core::repos::theme_repository::ThemeRepository;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 
 #[tokio::test]

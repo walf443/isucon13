@@ -10,6 +10,7 @@ use isupipe_core::models::livestream::{CreateLivestream, LivestreamId};
 use isupipe_core::models::livestream_viewers_history::CreateLivestreamViewersHistory;
 use isupipe_core::models::user::{CreateUser, UserId};
 use isupipe_core::repos::livestream_viewers_history_repository::LivestreamViewersHistoryRepository;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 
 #[tokio::test]

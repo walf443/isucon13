@@ -23,6 +23,7 @@ use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::reaction::{CreateReaction, Reaction, ReactionId};
 use isupipe_core::models::user::{UserId, UserName};
 use isupipe_core::repos::reaction_repository::ReactionRepository;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 
 struct InsertReaction<'a>(&'a CreateReaction);

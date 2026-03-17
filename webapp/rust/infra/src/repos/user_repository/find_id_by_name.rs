@@ -6,6 +6,7 @@ use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::user::{CreateUser, UserId};
 use isupipe_core::repos::user_repository::UserRepository;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 
 #[tokio::test]

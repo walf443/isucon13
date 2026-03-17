@@ -10,6 +10,7 @@ use isupipe_core::db::DBConn;
 use isupipe_core::models::icon::CreateIcon;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::icon_repository::IconRepository;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 
 #[derive(Clone)]

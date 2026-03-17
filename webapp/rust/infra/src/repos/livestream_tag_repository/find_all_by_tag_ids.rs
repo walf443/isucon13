@@ -11,6 +11,7 @@ use isupipe_core::models::livestream::CreateLivestream;
 use isupipe_core::models::tag::{Tag, TagId};
 use isupipe_core::models::user::CreateUser;
 use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
+use qbey::prelude::*;
 use qbey_mysql::qbey;
 
 #[tokio::test]
