@@ -15,9 +15,12 @@ pub fn build_database_connection_options() -> sqlx::mysql::MySqlConnectOptions {
 #[cfg(any(feature = "test", test))]
 pub async fn get_db_pool() -> Result<DBPool, sqlx::Error> {
     let url = get_test_db_url().await;
+    let options = url
+        .parse::<sqlx::mysql::MySqlConnectOptions>()?
+        .collation("utf8mb4_general_ci");
     let pool = MySqlPoolOptions::new()
         .max_connections(2)
-        .connect(&url)
+        .connect_with(options)
         .await?;
     Ok(pool)
 }
@@ -52,9 +55,13 @@ async fn get_test_db_url() -> String {
             let url = format!("mysql://root@127.0.0.1:{}/test", host_port);
 
             // Create schema using a temporary pool
+            let options = url
+                .parse::<sqlx::mysql::MySqlConnectOptions>()
+                .unwrap()
+                .collation("utf8mb4_general_ci");
             let pool = MySqlPoolOptions::new()
                 .max_connections(1)
-                .connect(&url)
+                .connect_with(options)
                 .await
                 .unwrap();
             init_schema(&pool).await;
@@ -92,7 +99,8 @@ fn _build_database_connection_options(is_test_mode: bool) -> sqlx::mysql::MySqlC
         .port(3306)
         .username("isucon")
         .password("isucon")
-        .database("isupipe");
+        .database("isupipe")
+        .collation("utf8mb4_general_ci");
 
     if let Ok(host) = std::env::var("ISUCON13_MYSQL_DIALCONFIG_ADDRESS") {
         options = options.host(&host);

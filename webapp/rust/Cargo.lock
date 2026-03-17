@@ -1834,12 +1834,12 @@ dependencies = [
 [[package]]
 name = "kubetsu"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94fbc038ae7d3efcbf6f67f5866510becf435f6f26fb4c813236c95f99051172"
 dependencies = [
  "fake",
  "serde",
+ "serde_json",
  "sqlx",
+ "tokio",
 ]
 
 [[package]]
