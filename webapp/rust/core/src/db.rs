@@ -30,10 +30,24 @@ static TEST_CONTAINER: tokio::sync::OnceCell<TestContainer> =
     tokio::sync::OnceCell::const_new();
 
 #[cfg(any(feature = "test", test))]
+#[ctor::dtor]
+fn cleanup_containers() {
+    if let Some(tc) = TEST_CONTAINER.get() {
+        if let Ok(mut guard) = tc.container.lock() {
+            if let Some(container) = guard.take() {
+                if let Ok(rt) = tokio::runtime::Runtime::new() {
+                    let _ = rt.block_on(container.rm());
+                }
+            }
+        }
+    }
+}
+
+#[cfg(any(feature = "test", test))]
 struct TestContainer {
     url: String,
-    // Keep container alive for the lifetime of the test suite
-    _container: testcontainers::ContainerAsync<testcontainers_modules::mysql::Mysql>,
+    container:
+        std::sync::Mutex<Option<testcontainers::ContainerAsync<testcontainers_modules::mysql::Mysql>>>,
 }
 
 // Safety: TestContainer is only accessed through OnceCell which provides synchronization
@@ -69,7 +83,7 @@ async fn get_test_db_url() -> String {
 
             TestContainer {
                 url,
-                _container: container,
+                container: std::sync::Mutex::new(Some(container)),
             }
         })
         .await;
