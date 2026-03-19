@@ -67,7 +67,7 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
         let l = livestream.as_("l");
         q.join(
             viewers_history.table(),
-            viewers_history.livestream_id().eq_col(l.id()),
+            viewers_history.livestream_id().eq(l.id()),
         );
         q.and_where(l.id().eq(*livestream_id.inner()));
         q.add_select(qbey::count_all());

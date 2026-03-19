@@ -211,7 +211,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let l = livestream.as_("l");
         q.join(
             comment.table(),
-            l.id().eq_col(comment.livestream_id()),
+            l.id().eq(comment.livestream_id()),
         );
         q.and_where(l.id().eq(*livestream_id.inner()));
         q.add_select_expr(RawSql::new("CAST(IFNULL(SUM(livecomments.tip), 0) AS SIGNED)"), None);
@@ -235,7 +235,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let l = livestream.as_("l");
         q.join(
             comment.table(),
-            l.id().eq_col(comment.livestream_id()),
+            l.id().eq(comment.livestream_id()),
         );
         q.and_where(l.id().eq(*livestream_id.inner()));
         q.add_select_expr(RawSql::new("CAST(IFNULL(MAX(livecomments.tip), 0) AS SIGNED)"), None);
@@ -261,11 +261,11 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let u = user.as_("u");
         q.join(
             livestream.table(),
-            u.id().eq_col(livestream.user_id()),
+            u.id().eq(livestream.user_id()),
         );
         q.join(
             comment.table(),
-            livestream.id().eq_col(comment.livestream_id()),
+            livestream.id().eq(comment.livestream_id()),
         );
         q.and_where(u.id().eq(*user_id.inner()));
         q.add_select_expr(RawSql::new("CAST(IFNULL(SUM(livecomments.tip), 0) AS SIGNED)"), None);

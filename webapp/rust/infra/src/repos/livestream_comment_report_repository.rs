@@ -65,7 +65,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         let l = livestream.as_("l");
         q.join(
             report.table(),
-            report.livestream_id().eq_col(l.id()),
+            report.livestream_id().eq(l.id()),
         );
         q.and_where(l.id().eq(*livestream_id.inner()));
         q.add_select(qbey::count_all());
