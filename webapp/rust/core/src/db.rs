@@ -26,8 +26,7 @@ pub async fn get_db_pool() -> Result<DBPool, sqlx::Error> {
 }
 
 #[cfg(any(feature = "test", test))]
-static TEST_CONTAINER: tokio::sync::OnceCell<TestContainer> =
-    tokio::sync::OnceCell::const_new();
+static TEST_CONTAINER: tokio::sync::OnceCell<TestContainer> = tokio::sync::OnceCell::const_new();
 
 #[cfg(any(feature = "test", test))]
 #[ctor::dtor]
@@ -46,8 +45,9 @@ fn cleanup_containers() {
 #[cfg(any(feature = "test", test))]
 struct TestContainer {
     url: String,
-    container:
-        std::sync::Mutex<Option<testcontainers::ContainerAsync<testcontainers_modules::mysql::Mysql>>>,
+    container: std::sync::Mutex<
+        Option<testcontainers::ContainerAsync<testcontainers_modules::mysql::Mysql>>,
+    >,
 }
 
 // Safety: TestContainer is only accessed through OnceCell which provides synchronization

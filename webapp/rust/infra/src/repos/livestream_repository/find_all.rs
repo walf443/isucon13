@@ -41,8 +41,16 @@ async fn not_empty_case() {
     let stream2: CreateLivestream = Faker.fake();
     {
         let mut ins = qbey(TABLE_LIVESTREAMS.table()).into_insert();
-        ins.add_value(&InsertLivestreamSetup { id: 1, user_id: 1, stream: &stream1 });
-        ins.add_value(&InsertLivestreamSetup { id: 2, user_id: 1, stream: &stream2 });
+        ins.add_value(&InsertLivestreamSetup {
+            id: 1,
+            user_id: 1,
+            stream: &stream1,
+        });
+        ins.add_value(&InsertLivestreamSetup {
+            id: 2,
+            user_id: 1,
+            stream: &stream2,
+        });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)

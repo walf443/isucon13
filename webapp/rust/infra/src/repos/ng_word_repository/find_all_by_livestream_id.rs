@@ -23,15 +23,25 @@ async fn empty_case() {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
         ins.add_value(&InsertUserSetup { id: 1, user: &user });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     let stream: CreateLivestream = Faker.fake();
     {
         let mut ins = qbey(TABLE_LIVESTREAMS.table()).into_insert();
-        ins.add_value(&InsertLivestreamSetup { id: 1, user_id: 1, stream: &stream });
+        ins.add_value(&InsertLivestreamSetup {
+            id: 1,
+            user_id: 1,
+            stream: &stream,
+        });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     let repo = NgWordRepositoryInfra {};
@@ -52,29 +62,61 @@ async fn filters_by_livestream_id() {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
         ins.add_value(&InsertUserSetup { id: 1, user: &user });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     let stream1: CreateLivestream = Faker.fake();
     let stream2: CreateLivestream = Faker.fake();
     {
         let mut ins = qbey(TABLE_LIVESTREAMS.table()).into_insert();
-        ins.add_value(&InsertLivestreamSetup { id: 1, user_id: 1, stream: &stream1 });
-        ins.add_value(&InsertLivestreamSetup { id: 2, user_id: 1, stream: &stream2 });
+        ins.add_value(&InsertLivestreamSetup {
+            id: 1,
+            user_id: 1,
+            stream: &stream1,
+        });
+        ins.add_value(&InsertLivestreamSetup {
+            id: 2,
+            user_id: 1,
+            stream: &stream2,
+        });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     {
         let mut ins = qbey(TABLE_NG_WORDS.table()).into_insert();
         let w1: CreateNgWord = Faker.fake();
-        ins.add_value(&InsertNgWordSetup { id: 1, user_id: 1, livestream_id: 1, ng_word: &w1 });
+        ins.add_value(&InsertNgWordSetup {
+            id: 1,
+            user_id: 1,
+            livestream_id: 1,
+            ng_word: &w1,
+        });
         let w2: CreateNgWord = Faker.fake();
-        ins.add_value(&InsertNgWordSetup { id: 2, user_id: 1, livestream_id: 1, ng_word: &w2 });
+        ins.add_value(&InsertNgWordSetup {
+            id: 2,
+            user_id: 1,
+            livestream_id: 1,
+            ng_word: &w2,
+        });
         let w3: CreateNgWord = Faker.fake();
-        ins.add_value(&InsertNgWordSetup { id: 3, user_id: 1, livestream_id: 2, ng_word: &w3 });
+        ins.add_value(&InsertNgWordSetup {
+            id: 3,
+            user_id: 1,
+            livestream_id: 2,
+            ng_word: &w3,
+        });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     let repo = NgWordRepositoryInfra {};

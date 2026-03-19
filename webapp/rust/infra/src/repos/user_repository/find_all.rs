@@ -35,8 +35,14 @@ async fn not_empty_case() {
 
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
-        ins.add_value(&InsertUserSetup { id: 1, user: &users[0] });
-        ins.add_value(&InsertUserSetup { id: 2, user: &users[1] });
+        ins.add_value(&InsertUserSetup {
+            id: 1,
+            user: &users[0],
+        });
+        ins.add_value(&InsertUserSetup {
+            id: 2,
+            user: &users[1],
+        });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)

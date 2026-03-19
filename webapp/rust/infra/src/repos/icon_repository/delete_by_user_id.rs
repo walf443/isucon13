@@ -21,18 +21,38 @@ async fn deletes_icon() {
     let user2: CreateUser = Faker.fake();
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
-        ins.add_value(&InsertUserSetup { id: 1, user: &user1 });
-        ins.add_value(&InsertUserSetup { id: 2, user: &user2 });
+        ins.add_value(&InsertUserSetup {
+            id: 1,
+            user: &user1,
+        });
+        ins.add_value(&InsertUserSetup {
+            id: 2,
+            user: &user2,
+        });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     {
         let mut ins = qbey_with::<crate::qbey_support::SQLValue>(TABLE_ICONS.table()).into_insert();
-        ins.add_value(&InsertIconSetup { id: 1, user_id: 1, image: vec![0x89u8, 0x50, 0x4E, 0x47] });
-        ins.add_value(&InsertIconSetup { id: 2, user_id: 2, image: vec![0x89u8, 0x50, 0x4E, 0x47] });
+        ins.add_value(&InsertIconSetup {
+            id: 1,
+            user_id: 1,
+            image: vec![0x89u8, 0x50, 0x4E, 0x47],
+        });
+        ins.add_value(&InsertIconSetup {
+            id: 2,
+            user_id: 2,
+            image: vec![0x89u8, 0x50, 0x4E, 0x47],
+        });
         let (sql, binds) = ins.to_sql();
-        bind_sql_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_sql_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     let repo = IconRepositoryInfra {};
@@ -65,7 +85,10 @@ async fn noop_when_no_icon() {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
         ins.add_value(&InsertUserSetup { id: 1, user: &user });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     let repo = IconRepositoryInfra {};

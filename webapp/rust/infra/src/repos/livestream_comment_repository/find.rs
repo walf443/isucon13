@@ -23,15 +23,25 @@ async fn found_case() {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
         ins.add_value(&InsertUserSetup { id: 1, user: &user });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     let stream: CreateLivestream = Faker.fake();
     {
         let mut ins = qbey(TABLE_LIVESTREAMS.table()).into_insert();
-        ins.add_value(&InsertLivestreamSetup { id: 1, user_id: 1, stream: &stream });
+        ins.add_value(&InsertLivestreamSetup {
+            id: 1,
+            user_id: 1,
+            stream: &stream,
+        });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     {
@@ -42,13 +52,24 @@ async fn found_case() {
             ..Faker.fake()
         };
         let mut ins = qbey(TABLE_LIVECOMMENTS.table()).into_insert();
-        ins.add_value(&InsertCommentSetup { id: 1, user_id: 1, livestream_id: 1, comment: &comment });
+        ins.add_value(&InsertCommentSetup {
+            id: 1,
+            user_id: 1,
+            livestream_id: 1,
+            comment: &comment,
+        });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     let repo = LivestreamCommentRepositoryInfra {};
-    let result = repo.find(&mut tx, &LivestreamCommentId::new(1)).await.unwrap();
+    let result = repo
+        .find(&mut tx, &LivestreamCommentId::new(1))
+        .await
+        .unwrap();
     assert!(result.is_some());
     let comment = result.unwrap();
     assert_eq!(*comment.id.inner(), 1);
@@ -62,6 +83,9 @@ async fn not_found_case() {
     let mut tx = db_pool.begin().await.unwrap();
 
     let repo = LivestreamCommentRepositoryInfra {};
-    let result = repo.find(&mut tx, &LivestreamCommentId::new(999)).await.unwrap();
+    let result = repo
+        .find(&mut tx, &LivestreamCommentId::new(999))
+        .await
+        .unwrap();
     assert!(result.is_none());
 }

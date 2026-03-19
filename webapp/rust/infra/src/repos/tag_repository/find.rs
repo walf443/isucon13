@@ -19,7 +19,11 @@ async fn not_found_case() {
     let result = repo.find(&mut tx, &tag_id).await;
     assert!(result.is_err());
     let err_msg = format!("{}", result.unwrap_err());
-    assert!(err_msg.contains("no rows returned"), "expected RowNotFound, got: {}", err_msg);
+    assert!(
+        err_msg.contains("no rows returned"),
+        "expected RowNotFound, got: {}",
+        err_msg
+    );
 }
 
 #[tokio::test]
@@ -32,9 +36,15 @@ async fn success_case() {
 
     {
         let mut ins = qbey(TABLE_TAGS.table()).into_insert();
-        ins.add_value(&InsertTagSetup { id: *tag.id.inner(), tag: &tag });
+        ins.add_value(&InsertTagSetup {
+            id: *tag.id.inner(),
+            tag: &tag,
+        });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     let got = repo.find(&mut tx, &tag.id).await.unwrap();

@@ -1,7 +1,7 @@
 use crate::error::Error;
 use crate::state::AppState;
 use crate::{
-    DEFAULT_SESSION_ID_KEY, DEFAULT_USERNAME_KEY, DEFAULT_USER_ID_KEY, DEFUALT_SESSION_EXPIRES_KEY,
+    DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY, DEFAULT_USERNAME_KEY, DEFUALT_SESSION_EXPIRES_KEY,
 };
 use async_session::{CookieStore, SessionStore};
 use axum::extract::State;

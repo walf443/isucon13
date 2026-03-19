@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod create;
 
-use crate::commands::pdnsutil_command::{HavePDNSUtilCommand, PDNSUtilCommand};
 use crate::commands::CommandOutput;
+use crate::commands::pdnsutil_command::{HavePDNSUtilCommand, PDNSUtilCommand};
 use crate::db::HaveDBPool;
 use crate::models::user::{CreateUser, User, UserId, UserName};
 use crate::repos::theme_repository::{HaveThemeRepository, ThemeRepository};

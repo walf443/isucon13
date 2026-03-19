@@ -31,10 +31,9 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         q.and_where(t.end_at().lte(end_at));
         q.for_update();
         let (sql, binds) = q.to_sql();
-        let slots =
-            bind_qbey_values!(sqlx::query_as::<_, ReservationSlot>(&sql), binds)
-                .fetch_all(conn)
-                .await?;
+        let slots = bind_qbey_values!(sqlx::query_as::<_, ReservationSlot>(&sql), binds)
+            .fetch_all(conn)
+            .await?;
 
         Ok(slots)
     }

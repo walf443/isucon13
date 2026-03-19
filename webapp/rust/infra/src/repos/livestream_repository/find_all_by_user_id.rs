@@ -44,7 +44,10 @@ async fn filters_by_user_id() {
     let bob: CreateUser = Faker.fake();
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
-        ins.add_value(&InsertUserSetup { id: 1, user: &alice });
+        ins.add_value(&InsertUserSetup {
+            id: 1,
+            user: &alice,
+        });
         ins.add_value(&InsertUserSetup { id: 2, user: &bob });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
@@ -58,9 +61,21 @@ async fn filters_by_user_id() {
     let stream3: CreateLivestream = Faker.fake();
     {
         let mut ins = qbey(TABLE_LIVESTREAMS.table()).into_insert();
-        ins.add_value(&InsertLivestreamSetup { id: 1, user_id: 1, stream: &stream1 });
-        ins.add_value(&InsertLivestreamSetup { id: 2, user_id: 1, stream: &stream2 });
-        ins.add_value(&InsertLivestreamSetup { id: 3, user_id: 2, stream: &stream3 });
+        ins.add_value(&InsertLivestreamSetup {
+            id: 1,
+            user_id: 1,
+            stream: &stream1,
+        });
+        ins.add_value(&InsertLivestreamSetup {
+            id: 2,
+            user_id: 1,
+            stream: &stream2,
+        });
+        ins.add_value(&InsertLivestreamSetup {
+            id: 3,
+            user_id: 2,
+            stream: &stream3,
+        });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)

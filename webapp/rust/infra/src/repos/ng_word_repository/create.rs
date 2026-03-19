@@ -1,5 +1,8 @@
+use crate::qbey_support::bind_qbey_values;
 use crate::repos::ng_word_repository::NgWordRepositoryInfra;
+use crate::tables::livestream::TABLE_LIVESTREAMS;
 use crate::tables::ng_word::TABLE_NG_WORDS;
+use crate::tables::user::TABLE_USERS;
 use crate::test_support::{InsertLivestreamSetup, InsertUserSetup};
 use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
@@ -9,9 +12,6 @@ use isupipe_core::models::user::{CreateUser, UserId};
 use isupipe_core::repos::ng_word_repository::NgWordRepository;
 use qbey::prelude::*;
 use qbey_mysql::qbey;
-use crate::qbey_support::bind_qbey_values;
-use crate::tables::livestream::TABLE_LIVESTREAMS;
-use crate::tables::user::TABLE_USERS;
 
 #[tokio::test]
 async fn success_case() {
@@ -32,7 +32,11 @@ async fn success_case() {
     let stream: CreateLivestream = Faker.fake();
     {
         let mut ins = qbey(TABLE_LIVESTREAMS.table()).into_insert();
-        ins.add_value(&InsertLivestreamSetup { id: 1, user_id: 1, stream: &stream });
+        ins.add_value(&InsertLivestreamSetup {
+            id: 1,
+            user_id: 1,
+            stream: &stream,
+        });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)

@@ -36,7 +36,11 @@ async fn success_case() {
     let stream: CreateLivestream = Faker.fake();
     {
         let mut ins = qbey(TABLE_LIVESTREAMS.table()).into_insert();
-        ins.add_value(&InsertLivestreamSetup { id: 1, user_id: 1, stream: &stream });
+        ins.add_value(&InsertLivestreamSetup {
+            id: 1,
+            user_id: 1,
+            stream: &stream,
+        });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
@@ -47,7 +51,12 @@ async fn success_case() {
     let comment: CreateLivestreamComment = Faker.fake();
     {
         let mut ins = qbey(TABLE_LIVECOMMENTS.table()).into_insert();
-        ins.add_value(&InsertCommentSetup { id: 1, user_id: 1, livestream_id: 1, comment: &comment });
+        ins.add_value(&InsertCommentSetup {
+            id: 1,
+            user_id: 1,
+            livestream_id: 1,
+            comment: &comment,
+        });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)

@@ -23,35 +23,67 @@ async fn returns_ordered_by_created_at_desc() {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
         ins.add_value(&InsertUserSetup { id: 1, user: &user });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     let stream: CreateLivestream = Faker.fake();
     {
         let mut ins = qbey(TABLE_LIVESTREAMS.table()).into_insert();
-        ins.add_value(&InsertLivestreamSetup { id: 1, user_id: 1, stream: &stream });
+        ins.add_value(&InsertLivestreamSetup {
+            id: 1,
+            user_id: 1,
+            stream: &stream,
+        });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     {
         let mut ins = qbey(TABLE_NG_WORDS.table()).into_insert();
         let mut w1: CreateNgWord = Faker.fake();
         w1.created_at = 100;
-        ins.add_value(&InsertNgWordSetup { id: 1, user_id: 1, livestream_id: 1, ng_word: &w1 });
+        ins.add_value(&InsertNgWordSetup {
+            id: 1,
+            user_id: 1,
+            livestream_id: 1,
+            ng_word: &w1,
+        });
         let mut w2: CreateNgWord = Faker.fake();
         w2.created_at = 300;
-        ins.add_value(&InsertNgWordSetup { id: 2, user_id: 1, livestream_id: 1, ng_word: &w2 });
+        ins.add_value(&InsertNgWordSetup {
+            id: 2,
+            user_id: 1,
+            livestream_id: 1,
+            ng_word: &w2,
+        });
         let mut w3: CreateNgWord = Faker.fake();
         w3.created_at = 200;
-        ins.add_value(&InsertNgWordSetup { id: 3, user_id: 1, livestream_id: 1, ng_word: &w3 });
+        ins.add_value(&InsertNgWordSetup {
+            id: 3,
+            user_id: 1,
+            livestream_id: 1,
+            ng_word: &w3,
+        });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     let repo = NgWordRepositoryInfra {};
     let result = repo
-        .find_all_by_livestream_id_and_user_id_order_by_created_at(&mut tx, &LivestreamId::new(1), &UserId::new(1))
+        .find_all_by_livestream_id_and_user_id_order_by_created_at(
+            &mut tx,
+            &LivestreamId::new(1),
+            &UserId::new(1),
+        )
         .await
         .unwrap();
     assert_eq!(result.len(), 3);

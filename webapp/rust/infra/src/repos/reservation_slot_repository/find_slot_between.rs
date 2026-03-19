@@ -21,7 +21,11 @@ async fn empty_case() {
     let result = repo.find_slot_between(&mut tx, start_at, end_at).await;
     assert!(result.is_err());
     let err_msg = format!("{}", result.unwrap_err());
-    assert!(err_msg.contains("no rows returned"), "expected RowNotFound, got: {}", err_msg);
+    assert!(
+        err_msg.contains("no rows returned"),
+        "expected RowNotFound, got: {}",
+        err_msg
+    );
 }
 
 #[tokio::test]
@@ -36,7 +40,10 @@ async fn success_case() {
         let mut ins = qbey(TABLE_RESERVATION_SLOTS.table()).into_insert();
         ins.add_value(&InsertReservationSlotSetup { slot: &slot });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     let result = repo

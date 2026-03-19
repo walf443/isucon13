@@ -48,7 +48,10 @@ impl UserRepository for UserRepositoryInfra {
 
         let t = &TABLE_USERS;
         let mut ins = qbey(t.table()).into_insert();
-        ins.add_value(&InsertUser { user, hashed_password: &hashed_password });
+        ins.add_value(&InsertUser {
+            user,
+            hashed_password: &hashed_password,
+        });
         let (sql, binds) = ins.to_sql();
         let result = bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(conn)

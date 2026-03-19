@@ -1,6 +1,6 @@
-use crate::responses::theme_response::ThemeResponse;
-use crate::responses::ResponseResult;
 use crate::FALLBACK_IMAGE;
+use crate::responses::ResponseResult;
+use crate::responses::theme_response::ThemeResponse;
 use isupipe_core::models::user::{User, UserId, UserName};
 use isupipe_core::services::icon_service::IconService;
 use isupipe_core::services::manager::ServiceManager;

@@ -1,7 +1,7 @@
 #[cfg(test)]
-mod create;
-#[cfg(test)]
 mod count_by_livestream_id;
+#[cfg(test)]
+mod create;
 #[cfg(test)]
 mod find_all_by_livestream_id;
 
@@ -14,8 +14,8 @@ use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_comment_report::{
     CreateLivestreamCommentReport, LivestreamCommentReport, LivestreamCommentReportId,
 };
-use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use isupipe_core::repos::Result;
+use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
 use qbey::prelude::*;
 use qbey_mysql::qbey;
 
@@ -26,7 +26,10 @@ impl qbey::ToInsertRow<qbey::Value> for InsertReport<'_> {
         vec![
             ("user_id", (*self.0.user_id.inner()).into()),
             ("livestream_id", (*self.0.livestream_id.inner()).into()),
-            ("livecomment_id", (*self.0.livestream_comment_id.inner()).into()),
+            (
+                "livecomment_id",
+                (*self.0.livestream_comment_id.inner()).into(),
+            ),
             ("created_at", self.0.created_at.into()),
         ]
     }
@@ -63,10 +66,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         let mut q = qbey(livestream.table());
         q.as_("l");
         let l = livestream.as_("l");
-        q.join(
-            report.table(),
-            report.livestream_id().eq(l.id()),
-        );
+        q.join(report.table(), report.livestream_id().eq(l.id()));
         q.and_where(l.id().eq(*livestream_id.inner()));
         q.add_select(qbey::count_all());
         let (sql, binds) = q.to_sql();

@@ -94,7 +94,10 @@ impl ReactionRepository for ReactionRepositoryInfra {
         q.as_("u");
         let u = user.as_("u");
         q.join(livestream.table(), u.id().eq(livestream.user_id()));
-        q.join(reaction.table(), livestream.id().eq(reaction.livestream_id()));
+        q.join(
+            reaction.table(),
+            livestream.id().eq(reaction.livestream_id()),
+        );
         q.and_where(u.name().eq(livestream_user_name.inner().clone()));
         q.select(&[reaction.emoji_name().into(), qbey::count_all().as_("cnt")]);
         q.group_by(&["emoji_name"]);
@@ -102,10 +105,11 @@ impl ReactionRepository for ReactionRepositoryInfra {
         q.order_by(qbey::col("emoji_name").desc());
         q.limit(1);
         let (sql, binds) = q.to_sql();
-        let favorite_emoji: String = bind_qbey_values!(sqlx::query_scalar::<_, String>(&sql), binds)
-            .fetch_optional(conn)
-            .await?
-            .unwrap_or_default();
+        let favorite_emoji: String =
+            bind_qbey_values!(sqlx::query_scalar::<_, String>(&sql), binds)
+                .fetch_optional(conn)
+                .await?
+                .unwrap_or_default();
 
         Ok(favorite_emoji)
     }
@@ -122,7 +126,10 @@ impl ReactionRepository for ReactionRepositoryInfra {
         q.as_("u");
         let u = user.as_("u");
         q.join(livestream.table(), u.id().eq(livestream.user_id()));
-        q.join(reaction.table(), livestream.id().eq(reaction.livestream_id()));
+        q.join(
+            reaction.table(),
+            livestream.id().eq(reaction.livestream_id()),
+        );
         q.and_where(u.id().eq(*livestream_user_id.inner()));
         q.add_select(qbey::count_all());
         let (sql, binds) = q.to_sql();
@@ -145,7 +152,10 @@ impl ReactionRepository for ReactionRepositoryInfra {
         q.as_("u");
         let u = user.as_("u");
         q.join(livestream.table(), u.id().eq(livestream.user_id()));
-        q.join(reaction.table(), livestream.id().eq(reaction.livestream_id()));
+        q.join(
+            reaction.table(),
+            livestream.id().eq(reaction.livestream_id()),
+        );
         q.and_where(u.name().eq(livestream_user_name.inner().clone()));
         q.add_select(qbey::count_all());
         let (sql, binds) = q.to_sql();

@@ -1,8 +1,8 @@
 use crate::commands::{CommandError, CommandOutput};
 use crate::db::get_db_pool;
 use crate::models::user::{CreateUser, UserId};
-use crate::repos::manager::tests::MockRepositoryManager;
 use crate::repos::ReposError::TestError;
+use crate::repos::manager::tests::MockRepositoryManager;
 use crate::services::user_service::UserService;
 use fake::{Fake, Faker};
 

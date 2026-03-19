@@ -1,7 +1,7 @@
 use crate::error::Error;
 use crate::responses::reaction_response::ReactionResponse;
 use crate::state::AppState;
-use crate::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
+use crate::{DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY, verify_user_session};
 use async_session::{CookieStore, SessionStore};
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;

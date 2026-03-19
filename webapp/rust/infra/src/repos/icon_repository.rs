@@ -3,7 +3,7 @@ mod create;
 #[cfg(test)]
 mod delete_by_user_id;
 
-use crate::qbey_support::{bind_sql_values, bind_qbey_values, SQLValue};
+use crate::qbey_support::{SQLValue, bind_qbey_values, bind_sql_values};
 use crate::tables::icon::TABLE_ICONS;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;

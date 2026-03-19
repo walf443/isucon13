@@ -34,7 +34,11 @@ async fn success_case() {
     let stream: CreateLivestream = Faker.fake();
     {
         let mut ins = qbey(TABLE_LIVESTREAMS.table()).into_insert();
-        ins.add_value(&InsertLivestreamSetup { id: 1, user_id: 1, stream: &stream });
+        ins.add_value(&InsertLivestreamSetup {
+            id: 1,
+            user_id: 1,
+            stream: &stream,
+        });
         let (sql, binds) = ins.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
@@ -63,11 +67,10 @@ async fn success_case() {
     q.and_where(t.livestream_id().eq(1_i64));
     q.and_where(t.tag_id().eq(1_i64));
     let (sql, binds) = q.to_sql();
-    let got: LivestreamTag =
-        bind_qbey_values!(sqlx::query_as::<_, LivestreamTag>(&sql), binds)
-            .fetch_one(&mut *tx)
-            .await
-            .unwrap();
+    let got: LivestreamTag = bind_qbey_values!(sqlx::query_as::<_, LivestreamTag>(&sql), binds)
+        .fetch_one(&mut *tx)
+        .await
+        .unwrap();
 
     assert_eq!(*got.livestream_id.inner(), 1);
     assert_eq!(*got.tag_id.inner(), 1);

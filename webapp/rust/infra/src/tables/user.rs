@@ -1,10 +1,8 @@
-qbey::qbey_schema!(UserTable, "users", [
-    id,
-    name,
-    display_name,
-    description,
-    password,
-]);
+qbey::qbey_schema!(
+    UserTable,
+    "users",
+    [id, name, display_name, description, password,]
+);
 
 impl UserTable {
     pub fn default_cols(&self) -> Vec<qbey::Col> {

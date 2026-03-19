@@ -144,6 +144,8 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
 #[cfg(test)]
 mod create;
 #[cfg(test)]
+mod exist_by_id_and_user_id;
+#[cfg(test)]
 mod find;
 #[cfg(test)]
 mod find_all;
@@ -153,5 +155,3 @@ mod find_all_by_user_id;
 mod find_all_order_by_id_desc;
 #[cfg(test)]
 mod find_all_order_by_id_desc_limit;
-#[cfg(test)]
-mod exist_by_id_and_user_id;

@@ -124,10 +124,9 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let t = &TABLE_LIVECOMMENTS;
         let q = qbey(t.table());
         let (sql, binds) = q.to_sql();
-        let livecomments =
-            bind_qbey_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
-                .fetch_all(conn)
-                .await?;
+        let livecomments = bind_qbey_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
+            .fetch_all(conn)
+            .await?;
 
         Ok(livecomments)
     }
@@ -141,10 +140,9 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let mut q = qbey(t.table());
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         let (sql, binds) = q.to_sql();
-        let comments =
-            bind_qbey_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
-                .fetch_all(conn)
-                .await?;
+        let comments = bind_qbey_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
+            .fetch_all(conn)
+            .await?;
 
         Ok(comments)
     }
@@ -159,10 +157,9 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         q.order_by(t.created_at().desc());
         let (sql, binds) = q.to_sql();
-        let comments =
-            bind_qbey_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
-                .fetch_all(conn)
-                .await?;
+        let comments = bind_qbey_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
+            .fetch_all(conn)
+            .await?;
 
         Ok(comments)
     }
@@ -179,10 +176,9 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         q.order_by(t.created_at().desc());
         q.limit(limit as u64);
         let (sql, binds) = q.to_sql();
-        let comments =
-            bind_qbey_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
-                .fetch_all(conn)
-                .await?;
+        let comments = bind_qbey_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
+            .fetch_all(conn)
+            .await?;
 
         Ok(comments)
     }
@@ -209,12 +205,12 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let mut q = qbey(livestream.table());
         q.as_("l");
         let l = livestream.as_("l");
-        q.join(
-            comment.table(),
-            l.id().eq(comment.livestream_id()),
-        );
+        q.join(comment.table(), l.id().eq(comment.livestream_id()));
         q.and_where(l.id().eq(*livestream_id.inner()));
-        q.add_select_expr(RawSql::new("CAST(IFNULL(SUM(livecomments.tip), 0) AS SIGNED)"), None);
+        q.add_select_expr(
+            RawSql::new("CAST(IFNULL(SUM(livecomments.tip), 0) AS SIGNED)"),
+            None,
+        );
         let (sql, binds) = q.to_sql();
         let total_tips = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)
@@ -233,12 +229,12 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let mut q = qbey(livestream.table());
         q.as_("l");
         let l = livestream.as_("l");
-        q.join(
-            comment.table(),
-            l.id().eq(comment.livestream_id()),
-        );
+        q.join(comment.table(), l.id().eq(comment.livestream_id()));
         q.and_where(l.id().eq(*livestream_id.inner()));
-        q.add_select_expr(RawSql::new("CAST(IFNULL(MAX(livecomments.tip), 0) AS SIGNED)"), None);
+        q.add_select_expr(
+            RawSql::new("CAST(IFNULL(MAX(livecomments.tip), 0) AS SIGNED)"),
+            None,
+        );
 
         let (sql, binds) = q.to_sql();
         let max_tip = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
@@ -259,16 +255,13 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let mut q = qbey(user.table());
         q.as_("u");
         let u = user.as_("u");
-        q.join(
-            livestream.table(),
-            u.id().eq(livestream.user_id()),
-        );
-        q.join(
-            comment.table(),
-            livestream.id().eq(comment.livestream_id()),
-        );
+        q.join(livestream.table(), u.id().eq(livestream.user_id()));
+        q.join(comment.table(), livestream.id().eq(comment.livestream_id()));
         q.and_where(u.id().eq(*user_id.inner()));
-        q.add_select_expr(RawSql::new("CAST(IFNULL(SUM(livecomments.tip), 0) AS SIGNED)"), None);
+        q.add_select_expr(
+            RawSql::new("CAST(IFNULL(SUM(livecomments.tip), 0) AS SIGNED)"),
+            None,
+        );
 
         let (sql, binds) = q.to_sql();
         let tips = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)

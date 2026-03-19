@@ -23,7 +23,10 @@ async fn zero_case() {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
         ins.add_value(&InsertUserSetup { id: 1, user: &user });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     let repo = ReactionRepositoryInfra {};
@@ -43,32 +46,67 @@ async fn counts_correctly() {
     let bob: CreateUser = Faker.fake();
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
-        ins.add_value(&InsertUserSetup { id: 1, user: &alice });
+        ins.add_value(&InsertUserSetup {
+            id: 1,
+            user: &alice,
+        });
         ins.add_value(&InsertUserSetup { id: 2, user: &bob });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     let stream1: CreateLivestream = Faker.fake();
     let stream2: CreateLivestream = Faker.fake();
     {
         let mut ins = qbey(TABLE_LIVESTREAMS.table()).into_insert();
-        ins.add_value(&InsertLivestreamSetup { id: 1, user_id: 1, stream: &stream1 });
-        ins.add_value(&InsertLivestreamSetup { id: 2, user_id: 2, stream: &stream2 });
+        ins.add_value(&InsertLivestreamSetup {
+            id: 1,
+            user_id: 1,
+            stream: &stream1,
+        });
+        ins.add_value(&InsertLivestreamSetup {
+            id: 2,
+            user_id: 2,
+            stream: &stream2,
+        });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     {
         let mut ins = qbey(TABLE_REACTIONS.table()).into_insert();
         let r1: CreateReaction = Faker.fake();
-        ins.add_value(&InsertReactionSetup { id: 1, user_id: 1, livestream_id: 1, reaction: &r1 });
+        ins.add_value(&InsertReactionSetup {
+            id: 1,
+            user_id: 1,
+            livestream_id: 1,
+            reaction: &r1,
+        });
         let r2: CreateReaction = Faker.fake();
-        ins.add_value(&InsertReactionSetup { id: 2, user_id: 2, livestream_id: 1, reaction: &r2 });
+        ins.add_value(&InsertReactionSetup {
+            id: 2,
+            user_id: 2,
+            livestream_id: 1,
+            reaction: &r2,
+        });
         let r3: CreateReaction = Faker.fake();
-        ins.add_value(&InsertReactionSetup { id: 3, user_id: 1, livestream_id: 2, reaction: &r3 });
+        ins.add_value(&InsertReactionSetup {
+            id: 3,
+            user_id: 1,
+            livestream_id: 2,
+            reaction: &r3,
+        });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     let repo = ReactionRepositoryInfra {};

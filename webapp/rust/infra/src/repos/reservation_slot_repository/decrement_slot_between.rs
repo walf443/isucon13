@@ -49,7 +49,10 @@ async fn not_empty_case() {
         ins.add_value(&InsertReservationSlotSetup { slot: &slot1 });
         ins.add_value(&InsertReservationSlotSetup { slot: &slot2 });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     repo.decrement_slot_between(&mut tx, slot1.start_at, slot2.end_at)

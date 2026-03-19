@@ -4,7 +4,9 @@ use crate::tables::livestream::TABLE_LIVESTREAMS;
 use crate::tables::livestream_comment::TABLE_LIVECOMMENTS;
 use crate::tables::livestream_comment_report::TABLE_LIVECOMMENT_REPORTS;
 use crate::tables::user::TABLE_USERS;
-use crate::test_support::{InsertCommentSetup, InsertLivestreamSetup, InsertReportSetup, InsertUserSetup};
+use crate::test_support::{
+    InsertCommentSetup, InsertLivestreamSetup, InsertReportSetup, InsertUserSetup,
+};
 use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::livestream::{CreateLivestream, LivestreamId};
@@ -25,15 +27,25 @@ async fn zero_case() {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
         ins.add_value(&InsertUserSetup { id: 1, user: &user });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     let stream: CreateLivestream = Faker.fake();
     {
         let mut ins = qbey(TABLE_LIVESTREAMS.table()).into_insert();
-        ins.add_value(&InsertLivestreamSetup { id: 1, user_id: 1, stream: &stream });
+        ins.add_value(&InsertLivestreamSetup {
+            id: 1,
+            user_id: 1,
+            stream: &stream,
+        });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     let repo = LivestreamCommentReportRepositoryInfra {};
@@ -54,39 +66,87 @@ async fn counts_correctly() {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
         ins.add_value(&InsertUserSetup { id: 1, user: &user });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     let stream1: CreateLivestream = Faker.fake();
     let stream2: CreateLivestream = Faker.fake();
     {
         let mut ins = qbey(TABLE_LIVESTREAMS.table()).into_insert();
-        ins.add_value(&InsertLivestreamSetup { id: 1, user_id: 1, stream: &stream1 });
-        ins.add_value(&InsertLivestreamSetup { id: 2, user_id: 1, stream: &stream2 });
+        ins.add_value(&InsertLivestreamSetup {
+            id: 1,
+            user_id: 1,
+            stream: &stream1,
+        });
+        ins.add_value(&InsertLivestreamSetup {
+            id: 2,
+            user_id: 1,
+            stream: &stream2,
+        });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     let comment1: CreateLivestreamComment = Faker.fake();
     let comment2: CreateLivestreamComment = Faker.fake();
     {
         let mut ins = qbey(TABLE_LIVECOMMENTS.table()).into_insert();
-        ins.add_value(&InsertCommentSetup { id: 1, user_id: 1, livestream_id: 1, comment: &comment1 });
-        ins.add_value(&InsertCommentSetup { id: 2, user_id: 1, livestream_id: 1, comment: &comment2 });
+        ins.add_value(&InsertCommentSetup {
+            id: 1,
+            user_id: 1,
+            livestream_id: 1,
+            comment: &comment1,
+        });
+        ins.add_value(&InsertCommentSetup {
+            id: 2,
+            user_id: 1,
+            livestream_id: 1,
+            comment: &comment2,
+        });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     {
         let mut ins = qbey(TABLE_LIVECOMMENT_REPORTS.table()).into_insert();
         let r1: CreateLivestreamCommentReport = Faker.fake();
-        ins.add_value(&InsertReportSetup { id: 1, user_id: 1, livestream_id: 1, livecomment_id: 1, report: &r1 });
+        ins.add_value(&InsertReportSetup {
+            id: 1,
+            user_id: 1,
+            livestream_id: 1,
+            livecomment_id: 1,
+            report: &r1,
+        });
         let r2: CreateLivestreamCommentReport = Faker.fake();
-        ins.add_value(&InsertReportSetup { id: 2, user_id: 1, livestream_id: 1, livecomment_id: 2, report: &r2 });
+        ins.add_value(&InsertReportSetup {
+            id: 2,
+            user_id: 1,
+            livestream_id: 1,
+            livecomment_id: 2,
+            report: &r2,
+        });
         let r3: CreateLivestreamCommentReport = Faker.fake();
-        ins.add_value(&InsertReportSetup { id: 3, user_id: 1, livestream_id: 2, livecomment_id: 1, report: &r3 });
+        ins.add_value(&InsertReportSetup {
+            id: 3,
+            user_id: 1,
+            livestream_id: 2,
+            livecomment_id: 1,
+            report: &r3,
+        });
         let (sql, binds) = ins.to_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds).execute(&mut *tx).await.unwrap();
+        bind_qbey_values!(sqlx::query(&sql), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
     }
 
     let repo = LivestreamCommentReportRepositoryInfra {};

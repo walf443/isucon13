@@ -1,7 +1,7 @@
 #[cfg(test)]
-mod create;
-#[cfg(test)]
 mod count_by_livestream_id;
+#[cfg(test)]
+mod create;
 #[cfg(test)]
 mod delete_by_livestream_id_and_user_id;
 
