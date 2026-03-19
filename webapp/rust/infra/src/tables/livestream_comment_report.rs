@@ -1,4 +1,4 @@
-qbey_schema!(LivestreamCommentReportTable, "livecomment_reports", [
+qbey::qbey_schema!(LivestreamCommentReportTable, "livecomment_reports", [
     id,
     livestream_id,
 ]);

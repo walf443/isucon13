@@ -1,4 +1,4 @@
-qbey_schema!(ReactionTable, "reactions", [
+qbey::qbey_schema!(ReactionTable, "reactions", [
     id,
     user_id,
     livestream_id,

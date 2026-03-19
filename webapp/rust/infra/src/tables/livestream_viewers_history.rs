@@ -1,4 +1,4 @@
-qbey_schema!(LivestreamViewersHistoryTable, "livestream_viewers_history", [
+qbey::qbey_schema!(LivestreamViewersHistoryTable, "livestream_viewers_history", [
     user_id,
     livestream_id,
 ]);

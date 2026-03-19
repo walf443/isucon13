@@ -1,4 +1,4 @@
-qbey_schema!(UserTable, "users", [
+qbey::qbey_schema!(UserTable, "users", [
     id,
     name,
     display_name,

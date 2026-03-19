@@ -1,4 +1,4 @@
-qbey_schema!(ReservationSlotTable, "reservation_slots", [
+qbey::qbey_schema!(ReservationSlotTable, "reservation_slots", [
     id,
     slot,
     start_at,
