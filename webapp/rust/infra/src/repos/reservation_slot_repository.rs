@@ -66,8 +66,8 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         let t = &TABLE_RESERVATION_SLOTS;
         let mut u = qbey(t.table()).into_update();
         u.set_expr(qbey::RawSql::new("`slot` = `slot` - 1"));
-        u.and_where(t.start_at().gte(start_at));
-        u.and_where(t.end_at().lte(end_at));
+        let u = u.and_where(t.start_at().gte(start_at));
+        let u = u.and_where(t.end_at().lte(end_at));
         let (sql, binds) = u.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(conn)

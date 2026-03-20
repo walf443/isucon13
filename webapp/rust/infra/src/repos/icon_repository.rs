@@ -61,8 +61,8 @@ impl IconRepository for IconRepositoryInfra {
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<()> {
         let t = &TABLE_ICONS;
-        let mut d = qbey(t.table()).into_delete();
-        d.and_where(t.user_id().eq(*user_id.inner()));
+        let d = qbey(t.table()).into_delete();
+        let d = d.and_where(t.user_id().eq(*user_id.inner()));
         let (sql, binds) = d.to_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(conn)
