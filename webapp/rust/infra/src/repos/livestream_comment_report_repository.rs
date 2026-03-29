@@ -48,7 +48,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         let t = &TABLE_LIVECOMMENT_REPORTS;
         let mut ins = qbey(t.table()).into_insert();
         ins.add_value(&InsertReport(report));
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         let rs = bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(conn)
             .await?;
@@ -69,7 +69,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         q.join(report.table(), report.livestream_id().eq(l.id()));
         q.and_where(l.id().eq(*livestream_id.inner()));
         q.add_select(qbey::count_all());
-        let (sql, binds) = q.to_sql();
+        let (sql, binds) = q.into_sql();
         let total_reports = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)
             .await?;
@@ -85,7 +85,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         let t = &TABLE_LIVECOMMENT_REPORTS;
         let mut q = qbey(t.table());
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
-        let (sql, binds) = q.to_sql();
+        let (sql, binds) = q.into_sql();
         let report_models =
             bind_qbey_values!(sqlx::query_as::<_, LivestreamCommentReport>(&sql), binds)
                 .fetch_all(conn)

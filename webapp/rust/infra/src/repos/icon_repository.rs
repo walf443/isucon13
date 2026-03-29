@@ -27,7 +27,7 @@ impl IconRepository for IconRepositoryInfra {
         let mut q = qbey(t.table());
         q.and_where(t.user_id().eq(*user_id.inner()));
         q.select(&[t.image()]);
-        let (sql, binds) = q.to_sql();
+        let (sql, binds) = q.into_sql();
         let image = bind_qbey_values!(sqlx::query_scalar::<_, Vec<u8>>(&sql), binds)
             .fetch_optional(conn)
             .await?;
@@ -46,7 +46,7 @@ impl IconRepository for IconRepositoryInfra {
             ("user_id", (*icon.user_id.inner()).into()),
             ("image", icon.image.clone().into()),
         ]);
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         let rs = bind_sql_values!(sqlx::query(&sql), binds)
             .execute(conn)
             .await?;
@@ -63,7 +63,7 @@ impl IconRepository for IconRepositoryInfra {
         let t = &TABLE_ICONS;
         let d = qbey(t.table()).into_delete();
         let d = d.and_where(t.user_id().eq(*user_id.inner()));
-        let (sql, binds) = d.to_sql();
+        let (sql, binds) = d.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(conn)
             .await?;

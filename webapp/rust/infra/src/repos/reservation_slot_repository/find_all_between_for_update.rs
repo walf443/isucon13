@@ -39,7 +39,7 @@ async fn not_empty_case() {
         let mut ins = qbey(TABLE_RESERVATION_SLOTS.table()).into_insert();
         ins.add_value(&InsertReservationSlotSetup { slot: &slot1 });
         ins.add_value(&InsertReservationSlotSetup { slot: &slot2 });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await
@@ -77,7 +77,7 @@ async fn boundary_case() {
     {
         let mut ins = qbey(TABLE_RESERVATION_SLOTS.table()).into_insert();
         ins.add_value(&InsertReservationSlotSetup { slot: &slot });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await
@@ -123,7 +123,7 @@ async fn filters_out_of_range() {
         let mut ins = qbey(TABLE_RESERVATION_SLOTS.table()).into_insert();
         ins.add_value(&InsertReservationSlotSetup { slot: &inside });
         ins.add_value(&InsertReservationSlotSetup { slot: &outside });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await

@@ -21,7 +21,7 @@ async fn success_case() {
     let t = &TABLE_REACTIONS;
     let mut q = qbey(t.table());
     q.and_where(t.id().eq(*reaction_id.inner()));
-    let (sql, binds) = q.to_sql();
+    let (sql, binds) = q.into_sql();
     let got: Reaction = bind_qbey_values!(sqlx::query_as::<_, Reaction>(&sql), binds)
         .fetch_one(&mut *tx)
         .await

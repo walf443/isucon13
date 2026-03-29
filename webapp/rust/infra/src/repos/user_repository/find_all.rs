@@ -43,7 +43,7 @@ async fn not_empty_case() {
             id: 2,
             user: &users[1],
         });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await

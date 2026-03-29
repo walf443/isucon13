@@ -62,7 +62,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let t = &TABLE_LIVECOMMENTS;
         let mut ins = qbey(t.table()).into_insert();
         ins.add_value(&InsertComment(comment));
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         let rs = bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(conn)
             .await?;
@@ -109,7 +109,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let t = &TABLE_LIVECOMMENTS;
         let mut q = qbey(t.table());
         q.and_where(t.id().eq(*comment_id.inner()));
-        let (sql, binds) = q.to_sql();
+        let (sql, binds) = q.into_sql();
         let comment = bind_qbey_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
             .fetch_optional(conn)
             .await?;
@@ -123,7 +123,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
         let t = &TABLE_LIVECOMMENTS;
         let q = qbey(t.table());
-        let (sql, binds) = q.to_sql();
+        let (sql, binds) = q.into_sql();
         let livecomments = bind_qbey_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
             .fetch_all(conn)
             .await?;
@@ -139,7 +139,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let t = &TABLE_LIVECOMMENTS;
         let mut q = qbey(t.table());
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
-        let (sql, binds) = q.to_sql();
+        let (sql, binds) = q.into_sql();
         let comments = bind_qbey_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
             .fetch_all(conn)
             .await?;
@@ -156,7 +156,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let mut q = qbey(t.table());
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         q.order_by(t.created_at().desc());
-        let (sql, binds) = q.to_sql();
+        let (sql, binds) = q.into_sql();
         let comments = bind_qbey_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
             .fetch_all(conn)
             .await?;
@@ -175,7 +175,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         q.order_by(t.created_at().desc());
         q.limit(limit as u64);
-        let (sql, binds) = q.to_sql();
+        let (sql, binds) = q.into_sql();
         let comments = bind_qbey_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
             .fetch_all(conn)
             .await?;
@@ -187,7 +187,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let t = &TABLE_LIVECOMMENTS;
         let mut q = qbey(t.table());
         q.add_select_expr(RawSql::new("CAST(IFNULL(SUM(tip), 0) AS SIGNED)"), None);
-        let (sql, binds) = q.to_sql();
+        let (sql, binds) = q.into_sql();
         let total_tip = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)
             .await?;
@@ -211,7 +211,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
             RawSql::new("CAST(IFNULL(SUM(livecomments.tip), 0) AS SIGNED)"),
             None,
         );
-        let (sql, binds) = q.to_sql();
+        let (sql, binds) = q.into_sql();
         let total_tips = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)
             .await?;
@@ -236,7 +236,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
             None,
         );
 
-        let (sql, binds) = q.to_sql();
+        let (sql, binds) = q.into_sql();
         let max_tip = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)
             .await?;
@@ -263,7 +263,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
             None,
         );
 
-        let (sql, binds) = q.to_sql();
+        let (sql, binds) = q.into_sql();
         let tips = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
             .fetch_one(conn)
             .await?;

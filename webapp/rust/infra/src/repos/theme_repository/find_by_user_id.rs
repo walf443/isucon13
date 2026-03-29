@@ -39,7 +39,7 @@ async fn success_case() {
     {
         let mut ins = qbey(TABLE_THEMES.table()).into_insert();
         ins.add_value(&InsertThemeSetup { theme: &theme });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await

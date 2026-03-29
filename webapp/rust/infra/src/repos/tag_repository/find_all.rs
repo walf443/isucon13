@@ -37,7 +37,7 @@ async fn exists_case() {
             id: *tag2.id.inner(),
             tag: &tag2,
         });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await

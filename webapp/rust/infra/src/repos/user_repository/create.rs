@@ -23,7 +23,7 @@ async fn success_case() {
     let mut q = qbey(t.table());
     q.and_where(t.id().eq(*user_id.inner()));
     q.select(&t.default_cols());
-    let (sql, binds) = q.to_sql();
+    let (sql, binds) = q.into_sql();
     let conn = tx.acquire().await.unwrap();
     let got: User = bind_qbey_values!(sqlx::query_as::<_, User>(&sql), binds)
         .fetch_one(conn)

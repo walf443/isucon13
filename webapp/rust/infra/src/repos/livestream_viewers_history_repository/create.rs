@@ -22,7 +22,7 @@ async fn success_case() {
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
         ins.add_value(&InsertUserSetup { id: 1, user: &user });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await
@@ -37,7 +37,7 @@ async fn success_case() {
             user_id: 1,
             stream: &stream,
         });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await
@@ -56,7 +56,7 @@ async fn success_case() {
     q.add_select(qbey::count_all());
     q.and_where(t.user_id().eq(*input.user_id.inner()));
     q.and_where(t.livestream_id().eq(*input.livestream_id.inner()));
-    let (sql, binds) = q.to_sql();
+    let (sql, binds) = q.into_sql();
     let count: i64 = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
         .fetch_one(&mut *tx)
         .await

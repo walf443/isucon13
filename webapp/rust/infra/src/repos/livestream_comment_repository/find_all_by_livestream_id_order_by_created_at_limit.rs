@@ -22,7 +22,7 @@ async fn returns_limited_rows() {
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
         ins.add_value(&InsertUserSetup { id: 1, user: &user });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await
@@ -37,7 +37,7 @@ async fn returns_limited_rows() {
             user_id: 1,
             stream: &stream,
         });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await
@@ -76,7 +76,7 @@ async fn returns_limited_rows() {
             livestream_id: 1,
             comment: &c3,
         });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await

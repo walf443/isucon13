@@ -22,7 +22,7 @@ async fn empty_case() {
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
         ins.add_value(&InsertUserSetup { id: 1, user: &user });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await
@@ -37,7 +37,7 @@ async fn empty_case() {
             user_id: 1,
             stream: &stream,
         });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await
@@ -61,7 +61,7 @@ async fn filters_by_livestream_id() {
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
         ins.add_value(&InsertUserSetup { id: 1, user: &user });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await
@@ -82,7 +82,7 @@ async fn filters_by_livestream_id() {
             user_id: 1,
             stream: &stream2,
         });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await
@@ -112,7 +112,7 @@ async fn filters_by_livestream_id() {
             livestream_id: 2,
             comment: &c3,
         });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await

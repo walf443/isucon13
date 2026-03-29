@@ -31,7 +31,7 @@ async fn not_empty_case() {
     let mut q = qbey(t.table());
     q.for_update();
     q.select(&[t.id()]);
-    let (sql, binds) = q.to_sql();
+    let (sql, binds) = q.into_sql();
     bind_qbey_values!(sqlx::query(&sql), binds)
         .fetch_all(&mut *tx)
         .await
@@ -48,7 +48,7 @@ async fn not_empty_case() {
         let mut ins = qbey(TABLE_RESERVATION_SLOTS.table()).into_insert();
         ins.add_value(&InsertReservationSlotSetup { slot: &slot1 });
         ins.add_value(&InsertReservationSlotSetup { slot: &slot2 });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await
@@ -61,7 +61,7 @@ async fn not_empty_case() {
 
     let mut q = qbey(t.table());
     q.and_where(t.id().eq(*slot1.id.inner()));
-    let (sql, binds) = q.to_sql();
+    let (sql, binds) = q.into_sql();
     let got1: ReservationSlot =
         bind_qbey_values!(sqlx::query_as::<_, ReservationSlot>(&sql), binds)
             .fetch_one(&mut *tx)
@@ -71,7 +71,7 @@ async fn not_empty_case() {
 
     let mut q = qbey(t.table());
     q.and_where(t.id().eq(*slot2.id.inner()));
-    let (sql, binds) = q.to_sql();
+    let (sql, binds) = q.into_sql();
     let got2: ReservationSlot =
         bind_qbey_values!(sqlx::query_as::<_, ReservationSlot>(&sql), binds)
             .fetch_one(&mut *tx)

@@ -34,7 +34,7 @@ async fn success_case() {
             id: *tag1.id.inner(),
             tag: &tag1,
         });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await

@@ -38,7 +38,7 @@ async fn filters_by_tag_ids() {
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
         ins.add_value(&InsertUserSetup { id: 1, user: &user });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await
@@ -59,7 +59,7 @@ async fn filters_by_tag_ids() {
             user_id: 1,
             stream: &stream2,
         });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await
@@ -74,7 +74,7 @@ async fn filters_by_tag_ids() {
         ins.add_value(&InsertTagSetup { id: 1, tag: &tag1 });
         ins.add_value(&InsertTagSetup { id: 2, tag: &tag2 });
         ins.add_value(&InsertTagSetup { id: 3, tag: &tag3 });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await
@@ -103,7 +103,7 @@ async fn filters_by_tag_ids() {
             livestream_id: 2,
             tag_id: 3,
         });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await

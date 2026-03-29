@@ -26,7 +26,7 @@ async fn success_case() {
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
         ins.add_value(&InsertUserSetup { id: 1, user: &user });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await
@@ -41,7 +41,7 @@ async fn success_case() {
             user_id: 1,
             stream: &stream,
         });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await
@@ -57,7 +57,7 @@ async fn success_case() {
             livestream_id: 1,
             comment: &comment,
         });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await
@@ -75,7 +75,7 @@ async fn success_case() {
     let t = &TABLE_LIVECOMMENT_REPORTS;
     let mut q = qbey(t.table());
     q.and_where(t.id().eq(*report_id.inner()));
-    let (sql, binds) = q.to_sql();
+    let (sql, binds) = q.into_sql();
     let got: LivestreamCommentReport =
         bind_qbey_values!(sqlx::query_as::<_, LivestreamCommentReport>(&sql), binds)
             .fetch_one(&mut *tx)

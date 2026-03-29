@@ -33,7 +33,7 @@ async fn found_case() {
             ("description", user.description.as_deref().unwrap().into()),
             ("password", user.hashed_password.as_deref().unwrap().into()),
         ]);
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await

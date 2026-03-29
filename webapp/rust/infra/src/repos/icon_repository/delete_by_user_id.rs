@@ -29,7 +29,7 @@ async fn deletes_icon() {
             id: 2,
             user: &user2,
         });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await
@@ -48,7 +48,7 @@ async fn deletes_icon() {
             user_id: 2,
             image: vec![0x89u8, 0x50, 0x4E, 0x47],
         });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_sql_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await
@@ -84,7 +84,7 @@ async fn noop_when_no_icon() {
     {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
         ins.add_value(&InsertUserSetup { id: 1, user: &user });
-        let (sql, binds) = ins.to_sql();
+        let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(&sql), binds)
             .execute(&mut *tx)
             .await

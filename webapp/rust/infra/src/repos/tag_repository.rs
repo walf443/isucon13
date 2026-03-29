@@ -24,7 +24,7 @@ impl TagRepository for TagRepositoryInfra {
         let mut q = qbey(t.table());
         q.and_where(t.id().eq(*id.inner()));
 
-        let (sql, binds) = q.to_sql();
+        let (sql, binds) = q.into_sql();
         let tag_model = bind_qbey_values!(sqlx::query_as::<_, Tag>(&sql), binds)
             .fetch_one(conn)
             .await?;
@@ -36,7 +36,7 @@ impl TagRepository for TagRepositoryInfra {
         let t = &TABLE_TAGS;
         let q = qbey(t.table());
 
-        let (sql, binds) = q.to_sql();
+        let (sql, binds) = q.into_sql();
         let tag_models = bind_qbey_values!(sqlx::query_as::<_, Tag>(&sql), binds)
             .fetch_all(conn)
             .await?;
@@ -54,7 +54,7 @@ impl TagRepository for TagRepositoryInfra {
         q.and_where(t.name().eq(name.inner().clone()));
         q.select(&[t.id()]);
 
-        let (sql, binds) = q.to_sql();
+        let (sql, binds) = q.into_sql();
         let tag_id_list = bind_qbey_values!(sqlx::query_scalar::<_, TagId>(&sql), binds)
             .fetch_all(conn)
             .await?;
