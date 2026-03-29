@@ -11,6 +11,7 @@ macro_rules! bind_qbey_values {
                 qbey::Value::Int(n) => q.bind(n),
                 qbey::Value::Float(f) => q.bind(f),
                 qbey::Value::Bool(b) => q.bind(b),
+                qbey::Value::Bytes(b) => q.bind(b),
             };
         }
         q
