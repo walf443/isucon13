@@ -42,12 +42,15 @@ fn cleanup_containers() {
     }
 }
 
+/// テストで起動する MySQL コンテナのイメージタグ。
+#[cfg(any(feature = "test", test))]
+const MYSQL_IMAGE_TAG: &str = "8.1";
+
 #[cfg(any(feature = "test", test))]
 struct TestContainer {
     url: String,
-    container: std::sync::Mutex<
-        Option<testcontainers::ContainerAsync<testcontainers_modules::mysql::Mysql>>,
-    >,
+    container:
+        std::sync::Mutex<Option<testcontainers::ContainerAsync<testcontainers::GenericImage>>>,
 }
 
 // Safety: TestContainer is only accessed through OnceCell which provides synchronization
@@ -60,10 +63,23 @@ unsafe impl Sync for TestContainer {}
 async fn get_test_db_url() -> String {
     let tc = TEST_CONTAINER
         .get_or_init(|| async {
-            use testcontainers::runners::AsyncRunner;
-            use testcontainers_modules::mysql::Mysql;
+            use testcontainers::core::{IntoContainerPort as _, WaitFor};
+            use testcontainers::runners::AsyncRunner as _;
+            use testcontainers::{GenericImage, ImageExt as _};
 
-            let container = Mysql::default().start().await.unwrap();
+            let container = GenericImage::new("mysql", MYSQL_IMAGE_TAG)
+                .with_exposed_port(3306.tcp())
+                .with_wait_for(WaitFor::message_on_stderr(
+                    "X Plugin ready for connections. Bind-address",
+                ))
+                .with_wait_for(WaitFor::message_on_stderr(
+                    "/usr/sbin/mysqld: ready for connections.",
+                ))
+                .with_env_var("MYSQL_DATABASE", "test")
+                .with_env_var("MYSQL_ALLOW_EMPTY_PASSWORD", "yes")
+                .start()
+                .await
+                .unwrap();
             let host_port = container.get_host_port_ipv4(3306).await.unwrap();
 
             let url = format!("mysql://root@127.0.0.1:{}/test", host_port);

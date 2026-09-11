@@ -6,7 +6,7 @@ publish = false
 
 [features]
 default = []
-test = ["ctor", "mockall", "testcontainers", "testcontainers-modules"]
+test = ["ctor", "mockall", "testcontainers"]
 
 [dependencies]
 async-trait.workspace = true
@@ -19,8 +19,7 @@ kubetsu-sqlx.workspace = true
 fake.workspace = true
 ctor = { version = "0.4", optional = true }
 mockall = { version = "0.13", optional = true }
-testcontainers = { version = "0.27", optional = true }
-testcontainers-modules = { version = "0.15", features = ["mysql"], optional = true }
+testcontainers = { version = "0.28", optional = true }
 num-traits.workspace = true
 serde.workspace = true
 sqlx.workspace = true
