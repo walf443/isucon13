@@ -9,22 +9,21 @@ kubetsu-fake = "0.2"
 kubetsu-sqlx = { version = "0.3", features = ["mysql"] }
 async-session = "3"
 axum = { version = "0.8", features = ["tracing"] }
-axum-extra = { version = "0.10", features = ["cookie-signed", "cookie-key-expansion", "typed-header"] }
+axum-extra = { version = "0.12", features = ["cookie-signed", "cookie-key-expansion", "typed-header"] }
 async-trait = "0.1"
-base64 = "0.21"
-bcrypt = "0.15"
+base64 = "0.23"
+bcrypt = "0.19"
 chrono = { version = "0.4", features = ["serde"] }
-hyper = "0.14"
 listenfd = "1"
 num-traits = "0.2"
 serde = { version = "1", features = ["derive"] }
-sha2 = "0.10"
+sha2 = "0.11"
 sqlx = { version = "0.9", default-features = false, features = ["macros", "runtime-tokio", "mysql", "mysql-rsa", "rust_decimal"] }
-thiserror = "1"
+thiserror = "2"
 time = "0.3"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "process", "fs"] }
 tokio-util = { version = "0.7", features = ["io"] }
-tower-http = { version = "0.6", features = ["trace"] }
+tower-http = { version = "0.7", features = ["trace"] }
 tracing = "0.1"
 tracing-subscriber = { version =  "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4"] }
