@@ -19,12 +19,10 @@ pub enum Error {
     UtilsError(#[from] UtilError),
     #[error("bcrypt error: {0}")]
     Bcrypt(#[from] bcrypt::BcryptError),
-    #[error("async-session error: {0}")]
-    AsyncSession(#[from] async_session::Error),
+    #[error("session encode error: {0}")]
+    SessionEncode(#[from] serde_json::Error),
     #[error("{0}")]
     BadRequest(Cow<'static, str>),
-    #[error("session error")]
-    SessionError,
     #[error("unauthorized: {0}")]
     Unauthorized(Cow<'static, str>),
     #[error("forbidden: {0}")]
@@ -56,7 +54,7 @@ impl axum::response::IntoResponse for Error {
 
         let status = match self {
             Self::BadRequest(_) => StatusCode::BAD_REQUEST,
-            Self::Unauthorized(_) | Self::SessionError => StatusCode::UNAUTHORIZED,
+            Self::Unauthorized(_) => StatusCode::UNAUTHORIZED,
             Self::Forbidden(_) => StatusCode::FORBIDDEN,
             Self::NotFound(_) => StatusCode::NOT_FOUND,
             Self::Io(_)
@@ -65,7 +63,7 @@ impl axum::response::IntoResponse for Error {
             | Self::ResponseError(_)
             | Self::UtilsError(_)
             | Self::Bcrypt(_)
-            | Self::AsyncSession(_)
+            | Self::SessionEncode(_)
             | Self::InternalServerError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
 

@@ -1,11 +1,9 @@
 use crate::error::Error;
 use crate::state::AppState;
-use crate::{DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY, FALLBACK_IMAGE, verify_user_session};
-use async_session::{CookieStore, SessionStore};
+use crate::{FALLBACK_IMAGE, verify_user_session};
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
-use isupipe_core::models::user::UserId;
 use isupipe_core::services::icon_service::IconService;
 use isupipe_core::services::manager::ServiceManager;
 
@@ -59,15 +57,9 @@ pub async fn post_icon_handler<S: ServiceManager>(
     jar: SignedCookieJar,
     axum::Json(req): axum::Json<PostIconRequest>,
 ) -> Result<(StatusCode, axum::Json<PostIconResponse>), Error> {
-    verify_user_session(&jar).await?;
+    let sess = verify_user_session(&jar)?;
 
-    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
-    let sess = CookieStore::new()
-        .load_session(cookie.value().to_owned())
-        .await?
-        .ok_or(Error::SessionError)?;
-    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
-    let user_id = UserId::new(user_id);
+    let user_id = sess.user_id;
 
     let icon_id = service
         .icon_service()

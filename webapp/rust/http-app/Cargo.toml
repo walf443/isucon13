@@ -9,7 +9,6 @@ isupipe-core = { path = "../core" }
 isupipe-http-core = { path = "../http-core" }
 isupipe-infra= { path = "../infra" }
 
-async-session.workspace = true
 axum-extra.workspace = true
 axum.workspace = true
 base64.workspace = true

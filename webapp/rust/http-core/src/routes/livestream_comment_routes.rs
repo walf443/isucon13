@@ -1,15 +1,13 @@
 use crate::error::Error;
 use crate::responses::livestream_comment_response::LivestreamCommentResponse;
 use crate::state::AppState;
-use crate::{DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY, verify_user_session};
-use async_session::{CookieStore, SessionStore};
+use crate::verify_user_session;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
 use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_comment::CreateLivestreamComment;
-use isupipe_core::models::user::UserId;
 use isupipe_core::services::ServiceError;
 use isupipe_core::services::livestream_comment_service::LivestreamCommentService;
 use isupipe_core::services::livestream_service::LivestreamService;
@@ -27,7 +25,7 @@ pub async fn get_livestream_comments_handler<S: ServiceManager>(
     Path((livestream_id,)): Path<(i64,)>,
     Query(GetLivestreamCommentsQuery { limit }): Query<GetLivestreamCommentsQuery>,
 ) -> Result<axum::Json<Vec<LivestreamCommentResponse>>, Error> {
-    verify_user_session(&jar).await?;
+    verify_user_session(&jar)?;
 
     let livestream_id = LivestreamId::new(livestream_id);
 
@@ -60,15 +58,9 @@ pub async fn post_livecomment_handler<S: ServiceManager>(
     Path((livestream_id,)): Path<(i64,)>,
     axum::Json(req): axum::Json<PostLivecommentRequest>,
 ) -> Result<(StatusCode, axum::Json<LivestreamCommentResponse>), Error> {
-    verify_user_session(&jar).await?;
+    let sess = verify_user_session(&jar)?;
 
-    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
-    let sess = CookieStore::new()
-        .load_session(cookie.value().to_owned())
-        .await?
-        .ok_or(Error::SessionError)?;
-    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
-    let user_id = UserId::new(user_id);
+    let user_id = sess.user_id;
     let livestream_id = LivestreamId::new(livestream_id);
 
     let livestream_model = service
