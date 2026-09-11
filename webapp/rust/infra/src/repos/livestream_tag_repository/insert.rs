@@ -25,7 +25,7 @@ async fn success_case() {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
         ins.add_value(&InsertUserSetup { id: 1, user: &user });
         let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(&mut *tx)
             .await
             .unwrap();
@@ -40,7 +40,7 @@ async fn success_case() {
             stream: &stream,
         });
         let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(&mut *tx)
             .await
             .unwrap();
@@ -51,7 +51,7 @@ async fn success_case() {
         let mut ins = qbey(TABLE_TAGS.table()).into_insert();
         ins.add_value(&InsertTagSetup { id: 1, tag: &tag });
         let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(&mut *tx)
             .await
             .unwrap();
@@ -67,10 +67,13 @@ async fn success_case() {
     q.and_where(t.livestream_id().eq(1_i64));
     q.and_where(t.tag_id().eq(1_i64));
     let (sql, binds) = q.into_sql();
-    let got: LivestreamTag = bind_qbey_values!(sqlx::query_as::<_, LivestreamTag>(&sql), binds)
-        .fetch_one(&mut *tx)
-        .await
-        .unwrap();
+    let got: LivestreamTag = bind_qbey_values!(
+        sqlx::query_as::<_, LivestreamTag>(sqlx::AssertSqlSafe(sql)),
+        binds
+    )
+    .fetch_one(&mut *tx)
+    .await
+    .unwrap();
 
     assert_eq!(*got.livestream_id.inner(), 1);
     assert_eq!(*got.tag_id.inner(), 1);

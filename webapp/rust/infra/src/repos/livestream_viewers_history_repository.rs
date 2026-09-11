@@ -46,7 +46,7 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
         let mut ins = qbey(t.table()).into_insert();
         ins.add_value(&InsertViewersHistory(history));
         let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(&mut *tx)
             .await?;
 
@@ -72,9 +72,12 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
         q.and_where(l.id().eq(*livestream_id.inner()));
         q.add_select(qbey::count_all());
         let (sql, binds) = q.into_sql();
-        let viewers_count = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
-            .fetch_one(&mut *conn)
-            .await?;
+        let viewers_count = bind_qbey_values!(
+            sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_one(&mut *conn)
+        .await?;
 
         Ok(viewers_count)
     }
@@ -92,7 +95,7 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
         let d = d.and_where(viewers_history.user_id().eq(*user_id.inner()));
         let d = d.and_where(viewers_history.livestream_id().eq(*livestream_id.inner()));
         let (sql, binds) = d.into_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(&mut *tx)
             .await?;
 

@@ -23,7 +23,7 @@ async fn success_case() {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
         ins.add_value(&InsertUserSetup { id: 1, user: &user });
         let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(&mut *tx)
             .await
             .unwrap();
@@ -38,7 +38,7 @@ async fn success_case() {
             stream: &stream,
         });
         let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(&mut *tx)
             .await
             .unwrap();
@@ -57,10 +57,13 @@ async fn success_case() {
     q.and_where(t.user_id().eq(*input.user_id.inner()));
     q.and_where(t.livestream_id().eq(*input.livestream_id.inner()));
     let (sql, binds) = q.into_sql();
-    let count: i64 = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
-        .fetch_one(&mut *tx)
-        .await
-        .unwrap();
+    let count: i64 = bind_qbey_values!(
+        sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),
+        binds
+    )
+    .fetch_one(&mut *tx)
+    .await
+    .unwrap();
 
     assert_eq!(count, 1);
 }

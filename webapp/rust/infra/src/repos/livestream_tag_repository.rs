@@ -34,7 +34,7 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
             ("tag_id", (*tag_id.inner()).into()),
         ]);
         let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(conn)
             .await?;
 
@@ -50,10 +50,12 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
         let mut q = qbey(t.table());
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         let (sql, binds) = q.into_sql();
-        let livestream_tag_models =
-            bind_qbey_values!(sqlx::query_as::<_, LivestreamTag>(&sql), binds)
-                .fetch_all(conn)
-                .await?;
+        let livestream_tag_models = bind_qbey_values!(
+            sqlx::query_as::<_, LivestreamTag>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(livestream_tag_models)
     }
@@ -72,9 +74,12 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
         q.and_where(t.tag_id().included(id_values.as_slice()));
         q.order_by(t.livestream_id().desc());
         let (sql, binds) = q.into_sql();
-        let livestreams = bind_qbey_values!(sqlx::query_as::<_, LivestreamTag>(&sql), binds)
-            .fetch_all(conn)
-            .await?;
+        let livestreams = bind_qbey_values!(
+            sqlx::query_as::<_, LivestreamTag>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(livestreams)
     }

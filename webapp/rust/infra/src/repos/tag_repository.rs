@@ -25,9 +25,10 @@ impl TagRepository for TagRepositoryInfra {
         q.and_where(t.id().eq(*id.inner()));
 
         let (sql, binds) = q.into_sql();
-        let tag_model = bind_qbey_values!(sqlx::query_as::<_, Tag>(&sql), binds)
-            .fetch_one(conn)
-            .await?;
+        let tag_model =
+            bind_qbey_values!(sqlx::query_as::<_, Tag>(sqlx::AssertSqlSafe(sql)), binds)
+                .fetch_one(conn)
+                .await?;
 
         Ok(tag_model)
     }
@@ -37,9 +38,10 @@ impl TagRepository for TagRepositoryInfra {
         let q = qbey(t.table());
 
         let (sql, binds) = q.into_sql();
-        let tag_models = bind_qbey_values!(sqlx::query_as::<_, Tag>(&sql), binds)
-            .fetch_all(conn)
-            .await?;
+        let tag_models =
+            bind_qbey_values!(sqlx::query_as::<_, Tag>(sqlx::AssertSqlSafe(sql)), binds)
+                .fetch_all(conn)
+                .await?;
 
         Ok(tag_models)
     }
@@ -55,9 +57,12 @@ impl TagRepository for TagRepositoryInfra {
         q.select(&[t.id()]);
 
         let (sql, binds) = q.into_sql();
-        let tag_id_list = bind_qbey_values!(sqlx::query_scalar::<_, TagId>(&sql), binds)
-            .fetch_all(conn)
-            .await?;
+        let tag_id_list = bind_qbey_values!(
+            sqlx::query_scalar::<_, TagId>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(tag_id_list)
     }

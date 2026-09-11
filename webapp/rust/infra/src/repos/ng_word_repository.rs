@@ -45,7 +45,7 @@ impl NgWordRepository for NgWordRepositoryInfra {
         let mut ins = qbey(t.table()).into_insert();
         ins.add_value(&InsertNgWord(ng_word));
         let (sql, binds) = ins.into_sql();
-        let rs = bind_qbey_values!(sqlx::query(&sql), binds)
+        let rs = bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(conn)
             .await?;
 
@@ -63,9 +63,10 @@ impl NgWordRepository for NgWordRepositoryInfra {
         let mut q = qbey(t.table());
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         let (sql, binds) = q.into_sql();
-        let ng_words = bind_qbey_values!(sqlx::query_as::<_, NgWord>(&sql), binds)
-            .fetch_all(conn)
-            .await?;
+        let ng_words =
+            bind_qbey_values!(sqlx::query_as::<_, NgWord>(sqlx::AssertSqlSafe(sql)), binds)
+                .fetch_all(conn)
+                .await?;
 
         Ok(ng_words)
     }
@@ -106,9 +107,10 @@ impl NgWordRepository for NgWordRepositoryInfra {
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         q.select(&[t.id(), t.user_id(), t.livestream_id(), t.word()]);
         let (sql, binds) = q.into_sql();
-        let ng_words = bind_qbey_values!(sqlx::query_as::<_, NgWord>(&sql), binds)
-            .fetch_all(conn)
-            .await?;
+        let ng_words =
+            bind_qbey_values!(sqlx::query_as::<_, NgWord>(sqlx::AssertSqlSafe(sql)), binds)
+                .fetch_all(conn)
+                .await?;
 
         Ok(ng_words)
     }
@@ -125,9 +127,10 @@ impl NgWordRepository for NgWordRepositoryInfra {
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         q.order_by(t.created_at().desc());
         let (sql, binds) = q.into_sql();
-        let ng_words = bind_qbey_values!(sqlx::query_as::<_, NgWord>(&sql), binds)
-            .fetch_all(conn)
-            .await?;
+        let ng_words =
+            bind_qbey_values!(sqlx::query_as::<_, NgWord>(sqlx::AssertSqlSafe(sql)), binds)
+                .fetch_all(conn)
+                .await?;
 
         Ok(ng_words)
     }

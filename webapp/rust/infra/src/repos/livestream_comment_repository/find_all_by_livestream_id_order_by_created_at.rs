@@ -23,7 +23,7 @@ async fn returns_ordered_by_created_at_desc() {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
         ins.add_value(&InsertUserSetup { id: 1, user: &user });
         let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(&mut *tx)
             .await
             .unwrap();
@@ -38,7 +38,7 @@ async fn returns_ordered_by_created_at_desc() {
             stream: &stream,
         });
         let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(&mut *tx)
             .await
             .unwrap();
@@ -77,7 +77,7 @@ async fn returns_ordered_by_created_at_desc() {
             comment: &c3,
         });
         let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(&mut *tx)
             .await
             .unwrap();

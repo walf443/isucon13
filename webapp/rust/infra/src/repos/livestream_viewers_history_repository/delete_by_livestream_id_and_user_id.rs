@@ -30,7 +30,7 @@ async fn deletes_matching_entry() {
             user: &user2,
         });
         let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(&mut *tx)
             .await
             .unwrap();
@@ -45,7 +45,7 @@ async fn deletes_matching_entry() {
             stream: &stream,
         });
         let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(&mut *tx)
             .await
             .unwrap();
@@ -64,7 +64,7 @@ async fn deletes_matching_entry() {
             created_at: 200,
         });
         let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(&mut *tx)
             .await
             .unwrap();
@@ -93,7 +93,7 @@ async fn noop_when_no_match() {
         let mut ins = qbey(TABLE_USERS.table()).into_insert();
         ins.add_value(&InsertUserSetup { id: 1, user: &user });
         let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(&mut *tx)
             .await
             .unwrap();
@@ -108,7 +108,7 @@ async fn noop_when_no_match() {
             stream: &stream,
         });
         let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(&mut *tx)
             .await
             .unwrap();

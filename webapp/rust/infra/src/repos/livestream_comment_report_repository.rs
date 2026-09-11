@@ -49,7 +49,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         let mut ins = qbey(t.table()).into_insert();
         ins.add_value(&InsertReport(report));
         let (sql, binds) = ins.into_sql();
-        let rs = bind_qbey_values!(sqlx::query(&sql), binds)
+        let rs = bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(conn)
             .await?;
         let report_id = rs.last_insert_id() as i64;
@@ -70,9 +70,12 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         q.and_where(l.id().eq(*livestream_id.inner()));
         q.add_select(qbey::count_all());
         let (sql, binds) = q.into_sql();
-        let total_reports = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
-            .fetch_one(conn)
-            .await?;
+        let total_reports = bind_qbey_values!(
+            sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_one(conn)
+        .await?;
 
         Ok(total_reports)
     }
@@ -86,10 +89,12 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         let mut q = qbey(t.table());
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         let (sql, binds) = q.into_sql();
-        let report_models =
-            bind_qbey_values!(sqlx::query_as::<_, LivestreamCommentReport>(&sql), binds)
-                .fetch_all(conn)
-                .await?;
+        let report_models = bind_qbey_values!(
+            sqlx::query_as::<_, LivestreamCommentReport>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(report_models)
     }

@@ -32,7 +32,7 @@ async fn not_empty_case() {
     q.for_update();
     q.select(&[t.id()]);
     let (sql, binds) = q.into_sql();
-    bind_qbey_values!(sqlx::query(&sql), binds)
+    bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
         .fetch_all(&mut *tx)
         .await
         .unwrap();
@@ -49,7 +49,7 @@ async fn not_empty_case() {
         ins.add_value(&InsertReservationSlotSetup { slot: &slot1 });
         ins.add_value(&InsertReservationSlotSetup { slot: &slot2 });
         let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(&mut *tx)
             .await
             .unwrap();
@@ -62,20 +62,24 @@ async fn not_empty_case() {
     let mut q = qbey(t.table());
     q.and_where(t.id().eq(*slot1.id.inner()));
     let (sql, binds) = q.into_sql();
-    let got1: ReservationSlot =
-        bind_qbey_values!(sqlx::query_as::<_, ReservationSlot>(&sql), binds)
-            .fetch_one(&mut *tx)
-            .await
-            .unwrap();
+    let got1: ReservationSlot = bind_qbey_values!(
+        sqlx::query_as::<_, ReservationSlot>(sqlx::AssertSqlSafe(sql)),
+        binds
+    )
+    .fetch_one(&mut *tx)
+    .await
+    .unwrap();
     assert_eq!(slot1.slot - 1, got1.slot);
 
     let mut q = qbey(t.table());
     q.and_where(t.id().eq(*slot2.id.inner()));
     let (sql, binds) = q.into_sql();
-    let got2: ReservationSlot =
-        bind_qbey_values!(sqlx::query_as::<_, ReservationSlot>(&sql), binds)
-            .fetch_one(&mut *tx)
-            .await
-            .unwrap();
+    let got2: ReservationSlot = bind_qbey_values!(
+        sqlx::query_as::<_, ReservationSlot>(sqlx::AssertSqlSafe(sql)),
+        binds
+    )
+    .fetch_one(&mut *tx)
+    .await
+    .unwrap();
     assert_eq!(slot2.slot - 1, got2.slot);
 }

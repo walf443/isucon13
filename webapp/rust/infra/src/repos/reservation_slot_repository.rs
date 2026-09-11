@@ -31,9 +31,12 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         q.and_where(t.end_at().lte(end_at));
         q.for_update();
         let (sql, binds) = q.into_sql();
-        let slots = bind_qbey_values!(sqlx::query_as::<_, ReservationSlot>(&sql), binds)
-            .fetch_all(conn)
-            .await?;
+        let slots = bind_qbey_values!(
+            sqlx::query_as::<_, ReservationSlot>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(slots)
     }
@@ -50,9 +53,12 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         q.and_where(t.end_at().eq(end_at));
         q.select(&[t.slot()]);
         let (sql, binds) = q.into_sql();
-        let count = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
-            .fetch_one(conn)
-            .await?;
+        let count = bind_qbey_values!(
+            sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_one(conn)
+        .await?;
 
         Ok(count)
     }
@@ -69,7 +75,7 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         let u = u.and_where(t.start_at().gte(start_at));
         let u = u.and_where(t.end_at().lte(end_at));
         let (sql, binds) = u.into_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(conn)
             .await?;
 

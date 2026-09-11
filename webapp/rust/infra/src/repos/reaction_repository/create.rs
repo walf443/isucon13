@@ -22,10 +22,13 @@ async fn success_case() {
     let mut q = qbey(t.table());
     q.and_where(t.id().eq(*reaction_id.inner()));
     let (sql, binds) = q.into_sql();
-    let got: Reaction = bind_qbey_values!(sqlx::query_as::<_, Reaction>(&sql), binds)
-        .fetch_one(&mut *tx)
-        .await
-        .unwrap();
+    let got: Reaction = bind_qbey_values!(
+        sqlx::query_as::<_, Reaction>(sqlx::AssertSqlSafe(sql)),
+        binds
+    )
+    .fetch_one(&mut *tx)
+    .await
+    .unwrap();
 
     assert_eq!(got.id, reaction_id);
     assert_eq!(got.user_id, reaction.user_id);

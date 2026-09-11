@@ -63,7 +63,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let mut ins = qbey(t.table()).into_insert();
         ins.add_value(&InsertComment(comment));
         let (sql, binds) = ins.into_sql();
-        let rs = bind_qbey_values!(sqlx::query(&sql), binds)
+        let rs = bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(conn)
             .await?;
         let comment_id = rs.last_insert_id() as i64;
@@ -110,9 +110,12 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let mut q = qbey(t.table());
         q.and_where(t.id().eq(*comment_id.inner()));
         let (sql, binds) = q.into_sql();
-        let comment = bind_qbey_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
-            .fetch_optional(conn)
-            .await?;
+        let comment = bind_qbey_values!(
+            sqlx::query_as::<_, LivestreamComment>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_optional(conn)
+        .await?;
 
         Ok(comment)
     }
@@ -124,9 +127,12 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let t = &TABLE_LIVECOMMENTS;
         let q = qbey(t.table());
         let (sql, binds) = q.into_sql();
-        let livecomments = bind_qbey_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
-            .fetch_all(conn)
-            .await?;
+        let livecomments = bind_qbey_values!(
+            sqlx::query_as::<_, LivestreamComment>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(livecomments)
     }
@@ -140,9 +146,12 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let mut q = qbey(t.table());
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         let (sql, binds) = q.into_sql();
-        let comments = bind_qbey_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
-            .fetch_all(conn)
-            .await?;
+        let comments = bind_qbey_values!(
+            sqlx::query_as::<_, LivestreamComment>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(comments)
     }
@@ -157,9 +166,12 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         q.order_by(t.created_at().desc());
         let (sql, binds) = q.into_sql();
-        let comments = bind_qbey_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
-            .fetch_all(conn)
-            .await?;
+        let comments = bind_qbey_values!(
+            sqlx::query_as::<_, LivestreamComment>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(comments)
     }
@@ -176,9 +188,12 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         q.order_by(t.created_at().desc());
         q.limit(limit as u64);
         let (sql, binds) = q.into_sql();
-        let comments = bind_qbey_values!(sqlx::query_as::<_, LivestreamComment>(&sql), binds)
-            .fetch_all(conn)
-            .await?;
+        let comments = bind_qbey_values!(
+            sqlx::query_as::<_, LivestreamComment>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(comments)
     }
@@ -188,9 +203,12 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let mut q = qbey(t.table());
         q.add_select_expr(RawSql::new("CAST(IFNULL(SUM(tip), 0) AS SIGNED)"), None);
         let (sql, binds) = q.into_sql();
-        let total_tip = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
-            .fetch_one(conn)
-            .await?;
+        let total_tip = bind_qbey_values!(
+            sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_one(conn)
+        .await?;
 
         Ok(total_tip)
     }
@@ -212,9 +230,12 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
             None,
         );
         let (sql, binds) = q.into_sql();
-        let total_tips = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
-            .fetch_one(conn)
-            .await?;
+        let total_tips = bind_qbey_values!(
+            sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_one(conn)
+        .await?;
 
         Ok(total_tips)
     }
@@ -237,9 +258,12 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         );
 
         let (sql, binds) = q.into_sql();
-        let max_tip = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
-            .fetch_one(conn)
-            .await?;
+        let max_tip = bind_qbey_values!(
+            sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_one(conn)
+        .await?;
 
         Ok(max_tip)
     }
@@ -264,9 +288,12 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         );
 
         let (sql, binds) = q.into_sql();
-        let tips = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
-            .fetch_one(conn)
-            .await?;
+        let tips = bind_qbey_values!(
+            sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_one(conn)
+        .await?;
 
         Ok(tips)
     }

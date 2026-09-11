@@ -34,7 +34,7 @@ async fn found_case() {
             ("password", user.hashed_password.as_deref().unwrap().into()),
         ]);
         let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(&mut *tx)
             .await
             .unwrap();

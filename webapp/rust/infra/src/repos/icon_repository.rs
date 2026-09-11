@@ -28,9 +28,12 @@ impl IconRepository for IconRepositoryInfra {
         q.and_where(t.user_id().eq(*user_id.inner()));
         q.select(&[t.image()]);
         let (sql, binds) = q.into_sql();
-        let image = bind_qbey_values!(sqlx::query_scalar::<_, Vec<u8>>(&sql), binds)
-            .fetch_optional(conn)
-            .await?;
+        let image = bind_qbey_values!(
+            sqlx::query_scalar::<_, Vec<u8>>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_optional(conn)
+        .await?;
 
         Ok(image)
     }
@@ -47,7 +50,7 @@ impl IconRepository for IconRepositoryInfra {
             ("image", icon.image.clone().into()),
         ]);
         let (sql, binds) = ins.into_sql();
-        let rs = bind_sql_values!(sqlx::query(&sql), binds)
+        let rs = bind_sql_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(conn)
             .await?;
         let icon_id = rs.last_insert_id() as i64;
@@ -64,7 +67,7 @@ impl IconRepository for IconRepositoryInfra {
         let d = qbey(t.table()).into_delete();
         let d = d.and_where(t.user_id().eq(*user_id.inner()));
         let (sql, binds) = d.into_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(conn)
             .await?;
 

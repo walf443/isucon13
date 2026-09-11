@@ -31,7 +31,7 @@ impl ThemeRepository for ThemeRepositoryInfra {
             ("dark_mode", dark_mode.into()),
         ]);
         let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(&sql), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(conn)
             .await?;
 
@@ -48,9 +48,10 @@ impl ThemeRepository for ThemeRepositoryInfra {
         q.and_where(t.user_id().eq(*user_id.inner()));
         q.select(&t.all_columns());
         let (sql, binds) = q.into_sql();
-        let theme_model = bind_qbey_values!(sqlx::query_as::<_, Theme>(&sql), binds)
-            .fetch_one(conn)
-            .await?;
+        let theme_model =
+            bind_qbey_values!(sqlx::query_as::<_, Theme>(sqlx::AssertSqlSafe(sql)), binds)
+                .fetch_one(conn)
+                .await?;
 
         Ok(theme_model)
     }

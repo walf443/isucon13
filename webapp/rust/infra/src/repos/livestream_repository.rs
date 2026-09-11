@@ -38,7 +38,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         let mut ins = qbey(t.table()).into_insert();
         ins.add_value(&InsertLivestream(stream));
         let (sql, binds) = ins.into_sql();
-        let rs = bind_qbey_values!(sqlx::query(&sql), binds)
+        let rs = bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(conn)
             .await?;
 
@@ -50,9 +50,12 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         let t = &TABLE_LIVESTREAMS;
         let q = qbey(t.table());
         let (sql, binds) = q.into_sql();
-        let livestreams = bind_qbey_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
-            .fetch_all(conn)
-            .await?;
+        let livestreams = bind_qbey_values!(
+            sqlx::query_as::<_, Livestream>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(livestreams)
     }
@@ -65,9 +68,12 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         let mut q = qbey(t.table());
         q.order_by(t.id().desc());
         let (sql, binds) = q.into_sql();
-        let livestreams = bind_qbey_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
-            .fetch_all(conn)
-            .await?;
+        let livestreams = bind_qbey_values!(
+            sqlx::query_as::<_, Livestream>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(livestreams)
     }
@@ -82,9 +88,12 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         q.order_by(t.id().desc());
         q.limit(limit as u64);
         let (sql, binds) = q.into_sql();
-        let livestreams = bind_qbey_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
-            .fetch_all(conn)
-            .await?;
+        let livestreams = bind_qbey_values!(
+            sqlx::query_as::<_, Livestream>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(livestreams)
     }
@@ -98,9 +107,12 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         let mut q = qbey(t.table());
         q.and_where(t.user_id().eq(*user_id.inner()));
         let (sql, binds) = q.into_sql();
-        let livestream_models = bind_qbey_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
-            .fetch_all(conn)
-            .await?;
+        let livestream_models = bind_qbey_values!(
+            sqlx::query_as::<_, Livestream>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(livestream_models)
     }
@@ -114,9 +126,12 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         let mut q = qbey(t.table());
         q.and_where(t.id().eq(*id.inner()));
         let (sql, binds) = q.into_sql();
-        let livestream = bind_qbey_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
-            .fetch_optional(conn)
-            .await?;
+        let livestream = bind_qbey_values!(
+            sqlx::query_as::<_, Livestream>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_optional(conn)
+        .await?;
 
         Ok(livestream)
     }
@@ -132,10 +147,12 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         q.and_where(t.id().eq(*id.inner()));
         q.and_where(t.user_id().eq(*user_id.inner()));
         let (sql, binds) = q.into_sql();
-        let livestreams: Vec<Livestream> =
-            bind_qbey_values!(sqlx::query_as::<_, Livestream>(&sql), binds)
-                .fetch_all(conn)
-                .await?;
+        let livestreams: Vec<Livestream> = bind_qbey_values!(
+            sqlx::query_as::<_, Livestream>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(!livestreams.is_empty())
     }

@@ -53,7 +53,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
         let mut ins = qbey(t.table()).into_insert();
         ins.add_value(&InsertReaction(reaction));
         let (sql, binds) = ins.into_sql();
-        let result = bind_qbey_values!(sqlx::query(&sql), binds)
+        let result = bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(conn)
             .await?;
         let reaction_id = result.last_insert_id() as i64;
@@ -75,9 +75,12 @@ impl ReactionRepository for ReactionRepositoryInfra {
         q.and_where(l.id().eq(*livestream_id.inner()));
         q.add_select(qbey::count_all());
         let (sql, binds) = q.into_sql();
-        let reactions = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
-            .fetch_one(conn)
-            .await?;
+        let reactions = bind_qbey_values!(
+            sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_one(conn)
+        .await?;
 
         Ok(reactions)
     }
@@ -105,11 +108,13 @@ impl ReactionRepository for ReactionRepositoryInfra {
         q.order_by(qbey::col("emoji_name").desc());
         q.limit(1);
         let (sql, binds) = q.into_sql();
-        let favorite_emoji: String =
-            bind_qbey_values!(sqlx::query_scalar::<_, String>(&sql), binds)
-                .fetch_optional(conn)
-                .await?
-                .unwrap_or_default();
+        let favorite_emoji: String = bind_qbey_values!(
+            sqlx::query_scalar::<_, String>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_optional(conn)
+        .await?
+        .unwrap_or_default();
 
         Ok(favorite_emoji)
     }
@@ -133,9 +138,12 @@ impl ReactionRepository for ReactionRepositoryInfra {
         q.and_where(u.id().eq(*livestream_user_id.inner()));
         q.add_select(qbey::count_all());
         let (sql, binds) = q.into_sql();
-        let reactions = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
-            .fetch_one(conn)
-            .await?;
+        let reactions = bind_qbey_values!(
+            sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_one(conn)
+        .await?;
 
         Ok(reactions)
     }
@@ -159,9 +167,12 @@ impl ReactionRepository for ReactionRepositoryInfra {
         q.and_where(u.name().eq(livestream_user_name.inner().clone()));
         q.add_select(qbey::count_all());
         let (sql, binds) = q.into_sql();
-        let total_reactions = bind_qbey_values!(sqlx::query_scalar::<_, i64>(&sql), binds)
-            .fetch_one(conn)
-            .await?;
+        let total_reactions = bind_qbey_values!(
+            sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_one(conn)
+        .await?;
 
         Ok(total_reactions)
     }
@@ -176,9 +187,12 @@ impl ReactionRepository for ReactionRepositoryInfra {
         q.and_where(t.livestream_id().eq(*livestream_id.inner()));
         q.order_by(t.created_at().desc());
         let (sql, binds) = q.into_sql();
-        let reaction_models = bind_qbey_values!(sqlx::query_as::<_, Reaction>(&sql), binds)
-            .fetch_all(conn)
-            .await?;
+        let reaction_models = bind_qbey_values!(
+            sqlx::query_as::<_, Reaction>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(reaction_models)
     }
@@ -195,9 +209,12 @@ impl ReactionRepository for ReactionRepositoryInfra {
         q.order_by(t.created_at().desc());
         q.limit(limit as u64);
         let (sql, binds) = q.into_sql();
-        let reaction_models = bind_qbey_values!(sqlx::query_as::<_, Reaction>(&sql), binds)
-            .fetch_all(conn)
-            .await?;
+        let reaction_models = bind_qbey_values!(
+            sqlx::query_as::<_, Reaction>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(reaction_models)
     }

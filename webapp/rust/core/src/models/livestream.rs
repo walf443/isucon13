@@ -1,6 +1,6 @@
+use crate::models::id::Id;
 use crate::models::user::UserId;
 use fake::Dummy;
-use kubetsu::Id;
 
 #[derive(Dummy)]
 pub struct CreateLivestream {

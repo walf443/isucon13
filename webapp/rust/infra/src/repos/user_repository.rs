@@ -53,7 +53,7 @@ impl UserRepository for UserRepositoryInfra {
             hashed_password: &hashed_password,
         });
         let (sql, binds) = ins.into_sql();
-        let result = bind_qbey_values!(sqlx::query(&sql), binds)
+        let result = bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(conn)
             .await?;
 
@@ -72,9 +72,10 @@ impl UserRepository for UserRepositoryInfra {
         q.and_where(t.id().eq(*id.inner()));
         q.select(&TABLE_USERS.default_cols());
         let (sql, binds) = q.into_sql();
-        let user_model = bind_qbey_values!(sqlx::query_as::<_, User>(&sql), binds)
-            .fetch_optional(conn)
-            .await?;
+        let user_model =
+            bind_qbey_values!(sqlx::query_as::<_, User>(sqlx::AssertSqlSafe(sql)), binds)
+                .fetch_optional(conn)
+                .await?;
 
         Ok(user_model)
     }
@@ -84,7 +85,7 @@ impl UserRepository for UserRepositoryInfra {
         let mut q = qbey(t.table());
         q.select(&TABLE_USERS.default_cols());
         let (sql, binds) = q.into_sql();
-        let users = bind_qbey_values!(sqlx::query_as::<_, User>(&sql), binds)
+        let users = bind_qbey_values!(sqlx::query_as::<_, User>(sqlx::AssertSqlSafe(sql)), binds)
             .fetch_all(conn)
             .await?;
 
@@ -101,9 +102,12 @@ impl UserRepository for UserRepositoryInfra {
         q.and_where(t.name().eq(name));
         q.select(&[t.id()]);
         let (sql, binds) = q.into_sql();
-        let user_id = bind_qbey_values!(sqlx::query_scalar::<_, UserId>(&sql), binds)
-            .fetch_optional(conn)
-            .await?;
+        let user_id = bind_qbey_values!(
+            sqlx::query_scalar::<_, UserId>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_optional(conn)
+        .await?;
 
         Ok(user_id)
     }
@@ -118,9 +122,10 @@ impl UserRepository for UserRepositoryInfra {
         q.and_where(t.name().eq(name));
         q.select(&TABLE_USERS.default_cols());
         let (sql, binds) = q.into_sql();
-        let user_model = bind_qbey_values!(sqlx::query_as::<_, User>(&sql), binds)
-            .fetch_optional(conn)
-            .await?;
+        let user_model =
+            bind_qbey_values!(sqlx::query_as::<_, User>(sqlx::AssertSqlSafe(sql)), binds)
+                .fetch_optional(conn)
+                .await?;
 
         Ok(user_model)
     }
