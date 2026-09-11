@@ -1,6 +1,0 @@
-[submodule "webapp/rust/qbey"]
-	path = webapp/rust/qbey
-	url = git@github.com:walf443/qbey.git
-[submodule "webapp/rust/kubetsu"]
-	path = webapp/rust/kubetsu
-	url = git@github.com:walf443/kubetsu.git
