@@ -1,6 +1,6 @@
-use crate::responses::theme_response::ThemeResponse;
-use crate::responses::ResponseResult;
 use crate::FALLBACK_IMAGE;
+use crate::responses::ResponseResult;
+use crate::responses::theme_response::ThemeResponse;
 use isupipe_core::models::user::{User, UserId, UserName};
 use isupipe_core::services::icon_service::IconService;
 use isupipe_core::services::manager::ServiceManager;
@@ -37,7 +37,11 @@ impl UserResponse {
         };
 
         use sha2::digest::Digest as _;
-        let icon_hash = sha2::Sha256::digest(image);
+        // sha2 0.11 (digest 0.11) の出力配列は LowerHex を実装しないので手で hex 化する
+        let icon_hash = sha2::Sha256::digest(image)
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<String>();
 
         Ok(Self {
             id: user.id.clone(),
@@ -48,7 +52,7 @@ impl UserResponse {
                 id: *theme_model.id.inner(),
                 dark_mode: theme_model.dark_mode,
             },
-            icon_hash: format!("{:x}", icon_hash),
+            icon_hash,
         })
     }
 }

@@ -1,6 +1,6 @@
+use crate::models::id::Id;
 use crate::models::livestream::LivestreamId;
 use crate::models::user::UserId;
-use kubetsu::Id;
 
 #[derive(Debug, serde::Serialize, sqlx::FromRow)]
 pub struct NgWord {
@@ -14,6 +14,7 @@ pub struct NgWord {
 
 pub type NgWordId = Id<NgWord, i64>;
 
+#[derive(fake::Dummy)]
 pub struct CreateNgWord {
     pub user_id: UserId,
     pub livestream_id: LivestreamId,

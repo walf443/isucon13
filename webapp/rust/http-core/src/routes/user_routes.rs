@@ -4,13 +4,11 @@ use crate::responses::theme_response::ThemeResponse;
 use crate::responses::user_response::UserResponse;
 use crate::routes::user_icon_routes::get_icon_handler;
 use crate::state::AppState;
-use crate::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
-use async_session::{CookieStore, SessionStore};
+use crate::verify_user_session;
+use axum::Router;
 use axum::extract::{Path, State};
 use axum::routing::get;
-use axum::Router;
 use axum_extra::extract::SignedCookieJar;
-use isupipe_core::models::user::UserId;
 use isupipe_core::models::user_statistics::UserStatistics;
 use isupipe_core::services::livestream_service::LivestreamService;
 use isupipe_core::services::manager::ServiceManager;
@@ -39,7 +37,7 @@ pub async fn get_streamer_theme_handler<S: ServiceManager>(
     jar: SignedCookieJar,
     Path((username,)): Path<(String,)>,
 ) -> Result<axum::Json<ThemeResponse>, Error> {
-    verify_user_session(&jar).await?;
+    verify_user_session(&jar)?;
 
     let user = service
         .user_service()
@@ -61,7 +59,7 @@ pub async fn get_user_livestreams_handler<S: ServiceManager>(
     jar: SignedCookieJar,
     Path((username,)): Path<(String,)>,
 ) -> Result<axum::Json<Vec<LivestreamResponse>>, Error> {
-    verify_user_session(&jar).await?;
+    verify_user_session(&jar)?;
 
     let user = service
         .user_service()
@@ -83,15 +81,9 @@ pub async fn get_me_handler<S: ServiceManager>(
     State(AppState { service, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
 ) -> Result<axum::Json<UserResponse>, Error> {
-    verify_user_session(&jar).await?;
+    let sess = verify_user_session(&jar)?;
 
-    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
-    let sess = CookieStore::new()
-        .load_session(cookie.value().to_owned())
-        .await?
-        .ok_or(Error::SessionError)?;
-    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
-    let user_id = UserId::new(user_id);
+    let user_id = sess.user_id;
 
     let user_model = service
         .user_service()
@@ -113,7 +105,7 @@ pub async fn get_user_handler<S: ServiceManager>(
     jar: SignedCookieJar,
     Path((username,)): Path<(String,)>,
 ) -> Result<axum::Json<UserResponse>, Error> {
-    verify_user_session(&jar).await?;
+    verify_user_session(&jar)?;
 
     let user_model = service
         .user_service()
@@ -133,7 +125,7 @@ pub async fn get_user_statistics_handler<S: ServiceManager>(
     jar: SignedCookieJar,
     Path((username,)): Path<(String,)>,
 ) -> Result<axum::Json<UserStatistics>, Error> {
-    verify_user_session(&jar).await?;
+    verify_user_session(&jar)?;
 
     let user = service
         .user_service()

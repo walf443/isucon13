@@ -1,8 +1,13 @@
+use crate::qbey_support::bind_qbey_values;
 use crate::repos::user_repository::UserRepositoryInfra;
+use crate::tables::user::TABLE_USERS;
+use crate::test_support::InsertUserSetup;
 use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::user::CreateUser;
 use isupipe_core::repos::user_repository::UserRepository;
+use qbey::prelude::*;
+use qbey_mysql::qbey;
 
 #[tokio::test]
 async fn empty_case() {
@@ -28,16 +33,22 @@ async fn not_empty_case() {
         users.push(Faker.fake())
     }
 
-    sqlx::query("INSERT INTO users (name, display_name, description, password) VALUES (?, ?, ?, ?), (?, ?, ?, ?)")
-        .bind(&users[0].name)
-        .bind(&users[0].display_name)
-        .bind(&users[0].description)
-        .bind(&users[0].password)
-        .bind(&users[1].name)
-        .bind(&users[1].display_name)
-        .bind(&users[1].description)
-        .bind(&users[1].password)
-        .execute(&mut *tx).await.unwrap();
+    {
+        let mut ins = qbey(TABLE_USERS.table()).into_insert();
+        ins.add_value(&InsertUserSetup {
+            id: 1,
+            user: &users[0],
+        });
+        ins.add_value(&InsertUserSetup {
+            id: 2,
+            user: &users[1],
+        });
+        let (sql, binds) = ins.into_sql();
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
+    }
 
     let users = repo.find_all(&mut tx).await.unwrap();
     assert_eq!(users.len(), user_count);

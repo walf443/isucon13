@@ -1,8 +1,12 @@
+use crate::qbey_support::bind_qbey_values;
 use crate::repos::user_repository::UserRepositoryInfra;
+use crate::tables::user::TABLE_USERS;
 use fake::{Fake, Faker};
 use isupipe_core::db::get_db_pool;
 use isupipe_core::models::user::{User, UserId};
 use isupipe_core::repos::user_repository::UserRepository;
+use qbey::prelude::*;
+use qbey_mysql::qbey;
 
 #[tokio::test]
 async fn found_case() {
@@ -20,17 +24,21 @@ async fn found_case() {
     user.hashed_password = Some(hashed_password);
     user.description = Some(Faker.fake());
 
-    sqlx::query(
-        "INSERT INTO users (id, name, display_name, description, password) VALUES (?, ?, ?, ?, ?)",
-    )
-    .bind(&user.id)
-    .bind(&user.name)
-    .bind(&user.display_name)
-    .bind(&user.description)
-    .bind(&user.hashed_password)
-    .execute(&mut *tx)
-    .await
-    .unwrap();
+    {
+        let mut ins = qbey(TABLE_USERS.table()).into_insert();
+        ins.add_value(&[
+            ("id", (*user.id.inner()).into()),
+            ("name", user.name.inner().as_str().into()),
+            ("display_name", user.display_name.as_deref().unwrap().into()),
+            ("description", user.description.as_deref().unwrap().into()),
+            ("password", user.hashed_password.as_deref().unwrap().into()),
+        ]);
+        let (sql, binds) = ins.into_sql();
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
+    }
 
     let got = repo.find(&mut tx, &user_id).await.unwrap();
     assert!(got.is_some());

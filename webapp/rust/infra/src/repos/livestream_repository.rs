@@ -1,8 +1,28 @@
+use crate::qbey_support::bind_qbey_values;
+use crate::tables::livestream::TABLE_LIVESTREAMS;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::{CreateLivestream, Livestream, LivestreamId};
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
+use qbey::prelude::*;
+use qbey_mysql::qbey;
+
+struct InsertLivestream<'a>(&'a CreateLivestream);
+
+impl qbey::ToInsertRow<qbey::Value> for InsertLivestream<'_> {
+    fn to_insert_row(&self) -> Vec<(&'static str, qbey::Value)> {
+        vec![
+            ("user_id", (*self.0.user_id.inner()).into()),
+            ("title", self.0.title.as_str().into()),
+            ("description", self.0.description.as_str().into()),
+            ("playlist_url", self.0.playlist_url.as_str().into()),
+            ("thumbnail_url", self.0.thumbnail_url.as_str().into()),
+            ("start_at", self.0.start_at.into()),
+            ("end_at", self.0.end_at.into()),
+        ]
+    }
+}
 
 #[derive(Clone)]
 pub struct LivestreamRepositoryInfra {}
@@ -14,14 +34,11 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         conn: &mut DBConn,
         stream: &CreateLivestream,
     ) -> isupipe_core::repos::Result<LivestreamId> {
-        let rs = sqlx::query("INSERT INTO livestreams (user_id, title, description, playlist_url, thumbnail_url, start_at, end_at) VALUES(?, ?, ?, ?, ?, ?, ?)")
-            .bind(&stream.user_id)
-            .bind(&stream.title)
-            .bind(&stream.description)
-            .bind(&stream.playlist_url)
-            .bind(&stream.thumbnail_url)
-            .bind(stream.start_at)
-            .bind(stream.end_at)
+        let t = &TABLE_LIVESTREAMS;
+        let mut ins = qbey(t.table()).into_insert();
+        ins.add_value(&InsertLivestream(stream));
+        let (sql, binds) = ins.into_sql();
+        let rs = bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(conn)
             .await?;
 
@@ -30,9 +47,15 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
     }
 
     async fn find_all(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<Vec<Livestream>> {
-        let livestreams: Vec<Livestream> = sqlx::query_as("SELECT * FROM livestreams")
-            .fetch_all(conn)
-            .await?;
+        let t = &TABLE_LIVESTREAMS;
+        let q = qbey(t.table());
+        let (sql, binds) = q.into_sql();
+        let livestreams = bind_qbey_values!(
+            sqlx::query_as::<_, Livestream>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(livestreams)
     }
@@ -41,10 +64,16 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         &self,
         conn: &mut DBConn,
     ) -> isupipe_core::repos::Result<Vec<Livestream>> {
-        let livestreams: Vec<Livestream> =
-            sqlx::query_as("SELECT * FROM livestreams ORDER BY id DESC")
-                .fetch_all(conn)
-                .await?;
+        let t = &TABLE_LIVESTREAMS;
+        let mut q = qbey(t.table());
+        q.order_by(t.id().desc());
+        let (sql, binds) = q.into_sql();
+        let livestreams = bind_qbey_values!(
+            sqlx::query_as::<_, Livestream>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(livestreams)
     }
@@ -54,11 +83,17 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         conn: &mut DBConn,
         limit: i64,
     ) -> isupipe_core::repos::Result<Vec<Livestream>> {
-        let livestreams: Vec<Livestream> =
-            sqlx::query_as("SELECT * FROM livestreams ORDER BY id DESC LIMIT ?")
-                .bind(limit)
-                .fetch_all(conn)
-                .await?;
+        let t = &TABLE_LIVESTREAMS;
+        let mut q = qbey(t.table());
+        q.order_by(t.id().desc());
+        q.limit(limit as u64);
+        let (sql, binds) = q.into_sql();
+        let livestreams = bind_qbey_values!(
+            sqlx::query_as::<_, Livestream>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(livestreams)
     }
@@ -68,11 +103,16 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         conn: &mut DBConn,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Vec<Livestream>> {
-        let livestream_models: Vec<Livestream> =
-            sqlx::query_as("SELECT * FROM livestreams WHERE user_id = ?")
-                .bind(user_id)
-                .fetch_all(conn)
-                .await?;
+        let t = &TABLE_LIVESTREAMS;
+        let mut q = qbey(t.table());
+        q.and_where(t.user_id().eq(*user_id.inner()));
+        let (sql, binds) = q.into_sql();
+        let livestream_models = bind_qbey_values!(
+            sqlx::query_as::<_, Livestream>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(livestream_models)
     }
@@ -82,10 +122,16 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         conn: &mut DBConn,
         id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Option<Livestream>> {
-        let livestream = sqlx::query_as("SELECT * FROM livestreams WHERE id = ?")
-            .bind(id)
-            .fetch_optional(conn)
-            .await?;
+        let t = &TABLE_LIVESTREAMS;
+        let mut q = qbey(t.table());
+        q.and_where(t.id().eq(*id.inner()));
+        let (sql, binds) = q.into_sql();
+        let livestream = bind_qbey_values!(
+            sqlx::query_as::<_, Livestream>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_optional(conn)
+        .await?;
 
         Ok(livestream)
     }
@@ -96,13 +142,33 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         id: &LivestreamId,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<bool> {
-        let livestreams: Vec<Livestream> =
-            sqlx::query_as("SELECT * FROM livestreams WHERE id = ? AND user_id = ?")
-                .bind(id)
-                .bind(user_id)
-                .fetch_all(conn)
-                .await?;
+        let t = &TABLE_LIVESTREAMS;
+        let mut q = qbey(t.table());
+        q.and_where(t.id().eq(*id.inner()));
+        q.and_where(t.user_id().eq(*user_id.inner()));
+        let (sql, binds) = q.into_sql();
+        let livestreams: Vec<Livestream> = bind_qbey_values!(
+            sqlx::query_as::<_, Livestream>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(!livestreams.is_empty())
     }
 }
+
+#[cfg(test)]
+mod create;
+#[cfg(test)]
+mod exist_by_id_and_user_id;
+#[cfg(test)]
+mod find;
+#[cfg(test)]
+mod find_all;
+#[cfg(test)]
+mod find_all_by_user_id;
+#[cfg(test)]
+mod find_all_order_by_id_desc;
+#[cfg(test)]
+mod find_all_order_by_id_desc_limit;

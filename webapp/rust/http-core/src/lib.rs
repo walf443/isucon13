@@ -1,34 +1,22 @@
 use crate::error::Error;
-use async_session::{CookieStore, SessionStore};
+use crate::session::UserSession;
 use axum_extra::extract::SignedCookieJar;
 use chrono::Utc;
 
 pub mod error;
 pub mod responses;
 pub mod routes;
+pub mod session;
 pub mod state;
 
 pub const DEFAULT_SESSION_ID_KEY: &str = "SESSIONID";
-pub const DEFUALT_SESSION_EXPIRES_KEY: &str = "EXPIRES";
-
-pub const DEFAULT_USER_ID_KEY: &str = "USERID";
-pub const DEFAULT_USERNAME_KEY: &str = "USERNAME";
 pub const FALLBACK_IMAGE: &str = "../img/NoImage.jpg";
 
-pub async fn verify_user_session(jar: &SignedCookieJar) -> Result<(), Error> {
-    let cookie = jar
-        .get(DEFAULT_SESSION_ID_KEY)
-        .ok_or(Error::Forbidden("".into()))?;
-    let sess = CookieStore::new()
-        .load_session(cookie.value().to_owned())
-        .await?
-        .ok_or(Error::Forbidden("".into()))?;
-    let session_expires: i64 = sess
-        .get(DEFUALT_SESSION_EXPIRES_KEY)
-        .ok_or(Error::Forbidden("".into()))?;
-    let now = Utc::now();
-    if now.timestamp() > session_expires {
+/// cookie のセッションを検証して返す。cookie が無い・壊れている場合は 403、期限切れは 401。
+pub fn verify_user_session(jar: &SignedCookieJar) -> Result<UserSession, Error> {
+    let sess = UserSession::load(jar).ok_or(Error::Forbidden("".into()))?;
+    if sess.is_expired_at(Utc::now()) {
         return Err(Error::Unauthorized("session has expired".into()));
     }
-    Ok(())
+    Ok(sess)
 }

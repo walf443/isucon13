@@ -1,3 +1,28 @@
+#[cfg(test)]
+mod create;
+#[cfg(test)]
+mod find;
+#[cfg(test)]
+mod find_all;
+#[cfg(test)]
+mod find_all_by_livestream_id;
+#[cfg(test)]
+mod find_all_by_livestream_id_order_by_created_at;
+#[cfg(test)]
+mod find_all_by_livestream_id_order_by_created_at_limit;
+#[cfg(test)]
+mod get_max_tip_of_livestream_id;
+#[cfg(test)]
+mod get_sum_tip;
+#[cfg(test)]
+mod get_sum_tip_of_livestream_id;
+#[cfg(test)]
+mod get_sum_tip_of_livestream_user_id;
+
+use crate::qbey_support::bind_qbey_values;
+use crate::tables::livestream::TABLE_LIVESTREAMS;
+use crate::tables::livestream_comment::TABLE_LIVECOMMENTS;
+use crate::tables::user::TABLE_USERS;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::LivestreamId;
@@ -6,6 +31,23 @@ use isupipe_core::models::livestream_comment::{
 };
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::livestream_comment_repository::LivestreamCommentRepository;
+use qbey::RawSql;
+use qbey::prelude::*;
+use qbey_mysql::qbey;
+
+struct InsertComment<'a>(&'a CreateLivestreamComment);
+
+impl qbey::ToInsertRow<qbey::Value> for InsertComment<'_> {
+    fn to_insert_row(&self) -> Vec<(&'static str, qbey::Value)> {
+        vec![
+            ("user_id", (*self.0.user_id.inner()).into()),
+            ("livestream_id", (*self.0.livestream_id.inner()).into()),
+            ("comment", self.0.comment.as_str().into()),
+            ("tip", self.0.tip.into()),
+            ("created_at", self.0.created_at.into()),
+        ]
+    }
+}
 
 #[derive(Clone)]
 pub struct LivestreamCommentRepositoryInfra {}
@@ -17,14 +59,11 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         comment: &CreateLivestreamComment,
     ) -> isupipe_core::repos::Result<LivestreamCommentId> {
-        let rs = sqlx::query(
-            "INSERT INTO livecomments (user_id, livestream_id, comment, tip, created_at) VALUES (?, ?, ?, ?, ?)",
-        )
-            .bind(&comment.user_id)
-            .bind(&comment.livestream_id)
-            .bind(&comment.comment)
-            .bind(comment.tip)
-            .bind(comment.created_at)
+        let t = &TABLE_LIVECOMMENTS;
+        let mut ins = qbey(t.table()).into_insert();
+        ins.add_value(&InsertComment(comment));
+        let (sql, binds) = ins.into_sql();
+        let rs = bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(conn)
             .await?;
         let comment_id = rs.last_insert_id() as i64;
@@ -38,6 +77,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         comment: &LivestreamComment,
         ng_word: &str,
     ) -> isupipe_core::repos::Result<()> {
+        // DELETE with complex subquery - not supported by qbey
         let query = r#"
         DELETE FROM livecomments
         WHERE
@@ -66,10 +106,16 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         comment_id: &LivestreamCommentId,
     ) -> isupipe_core::repos::Result<Option<LivestreamComment>> {
-        let comment = sqlx::query_as("SELECT * FROM livecomments WHERE id = ?")
-            .bind(comment_id)
-            .fetch_optional(conn)
-            .await?;
+        let t = &TABLE_LIVECOMMENTS;
+        let mut q = qbey(t.table());
+        q.and_where(t.id().eq(*comment_id.inner()));
+        let (sql, binds) = q.into_sql();
+        let comment = bind_qbey_values!(
+            sqlx::query_as::<_, LivestreamComment>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_optional(conn)
+        .await?;
 
         Ok(comment)
     }
@@ -78,9 +124,15 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         &self,
         conn: &mut DBConn,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
-        let livecomments: Vec<LivestreamComment> = sqlx::query_as("SELECT * FROM livecomments")
-            .fetch_all(conn)
-            .await?;
+        let t = &TABLE_LIVECOMMENTS;
+        let q = qbey(t.table());
+        let (sql, binds) = q.into_sql();
+        let livecomments = bind_qbey_values!(
+            sqlx::query_as::<_, LivestreamComment>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(livecomments)
     }
@@ -90,11 +142,16 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
-        let comments: Vec<LivestreamComment> =
-            sqlx::query_as("SELECT * FROM livecomments WHERE livestream_id = ?")
-                .bind(livestream_id)
-                .fetch_all(conn)
-                .await?;
+        let t = &TABLE_LIVECOMMENTS;
+        let mut q = qbey(t.table());
+        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
+        let (sql, binds) = q.into_sql();
+        let comments = bind_qbey_values!(
+            sqlx::query_as::<_, LivestreamComment>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(comments)
     }
@@ -104,13 +161,17 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
-        let query = "SELECT * FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC"
-            .to_owned();
-
-        let comments: Vec<LivestreamComment> = sqlx::query_as(&query)
-            .bind(livestream_id)
-            .fetch_all(conn)
-            .await?;
+        let t = &TABLE_LIVECOMMENTS;
+        let mut q = qbey(t.table());
+        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
+        q.order_by(t.created_at().desc());
+        let (sql, binds) = q.into_sql();
+        let comments = bind_qbey_values!(
+            sqlx::query_as::<_, LivestreamComment>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(comments)
     }
@@ -121,23 +182,33 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         livestream_id: &LivestreamId,
         limit: i64,
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
-        let query =
-            "SELECT * FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC LIMIT ?"
-                .to_owned();
-
-        let comments: Vec<LivestreamComment> = sqlx::query_as(&query)
-            .bind(livestream_id)
-            .bind(limit)
-            .fetch_all(conn)
-            .await?;
+        let t = &TABLE_LIVECOMMENTS;
+        let mut q = qbey(t.table());
+        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
+        q.order_by(t.created_at().desc());
+        q.limit(limit as u64);
+        let (sql, binds) = q.into_sql();
+        let comments = bind_qbey_values!(
+            sqlx::query_as::<_, LivestreamComment>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(comments)
     }
 
     async fn get_sum_tip(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<i64> {
-        let total_tip = sqlx::query_scalar("SELECT IFNULL(SUM(tip), 0) FROM livecomments")
-            .fetch_one(conn)
-            .await?;
+        let t = &TABLE_LIVECOMMENTS;
+        let mut q = qbey(t.table());
+        q.add_select_expr(RawSql::new("CAST(IFNULL(SUM(tip), 0) AS SIGNED)"), None);
+        let (sql, binds) = q.into_sql();
+        let total_tip = bind_qbey_values!(
+            sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_one(conn)
+        .await?;
 
         Ok(total_tip)
     }
@@ -147,10 +218,24 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
-        let total_tips = sqlx::query_scalar("SELECT IFNULL(SUM(l2.tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l.id = l2.livestream_id WHERE l.id = ?")
-            .bind(livestream_id)
-            .fetch_one(conn)
-            .await?;
+        let livestream = &TABLE_LIVESTREAMS;
+        let comment = &TABLE_LIVECOMMENTS;
+        let mut q = qbey(livestream.table());
+        q.as_("l");
+        let l = livestream.as_("l");
+        q.join(comment.table(), l.id().eq(comment.livestream_id()));
+        q.and_where(l.id().eq(*livestream_id.inner()));
+        q.add_select_expr(
+            RawSql::new("CAST(IFNULL(SUM(livecomments.tip), 0) AS SIGNED)"),
+            None,
+        );
+        let (sql, binds) = q.into_sql();
+        let total_tips = bind_qbey_values!(
+            sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_one(conn)
+        .await?;
 
         Ok(total_tips)
     }
@@ -160,10 +245,25 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
-        let max_tip = sqlx::query_scalar("SELECT IFNULL(MAX(tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l2.livestream_id = l.id WHERE l.id = ?")
-            .bind(livestream_id)
-            .fetch_one(conn)
-            .await?;
+        let livestream = &TABLE_LIVESTREAMS;
+        let comment = &TABLE_LIVECOMMENTS;
+        let mut q = qbey(livestream.table());
+        q.as_("l");
+        let l = livestream.as_("l");
+        q.join(comment.table(), l.id().eq(comment.livestream_id()));
+        q.and_where(l.id().eq(*livestream_id.inner()));
+        q.add_select_expr(
+            RawSql::new("CAST(IFNULL(MAX(livecomments.tip), 0) AS SIGNED)"),
+            None,
+        );
+
+        let (sql, binds) = q.into_sql();
+        let max_tip = bind_qbey_values!(
+            sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_one(conn)
+        .await?;
 
         Ok(max_tip)
     }
@@ -173,16 +273,27 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &mut DBConn,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<i64> {
-        let query = r#"
-        SELECT IFNULL(SUM(l2.tip), 0) FROM users u
-        INNER JOIN livestreams l ON l.user_id = u.id
-        INNER JOIN livecomments l2 ON l2.livestream_id = l.id
-        WHERE u.id = ?
-        "#;
-        let tips = sqlx::query_scalar(query)
-            .bind(user_id)
-            .fetch_one(conn)
-            .await?;
+        let user = &TABLE_USERS;
+        let livestream = &TABLE_LIVESTREAMS;
+        let comment = &TABLE_LIVECOMMENTS;
+        let mut q = qbey(user.table());
+        q.as_("u");
+        let u = user.as_("u");
+        q.join(livestream.table(), u.id().eq(livestream.user_id()));
+        q.join(comment.table(), livestream.id().eq(comment.livestream_id()));
+        q.and_where(u.id().eq(*user_id.inner()));
+        q.add_select_expr(
+            RawSql::new("CAST(IFNULL(SUM(livecomments.tip), 0) AS SIGNED)"),
+            None,
+        );
+
+        let (sql, binds) = q.into_sql();
+        let tips = bind_qbey_values!(
+            sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_one(conn)
+        .await?;
 
         Ok(tips)
     }

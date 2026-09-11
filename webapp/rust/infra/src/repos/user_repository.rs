@@ -9,10 +9,30 @@ mod find_by_name;
 #[cfg(test)]
 mod find_id_by_name;
 
+use crate::qbey_support::bind_qbey_values;
+use crate::tables::user::TABLE_USERS;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::user::{CreateUser, User, UserId};
 use isupipe_core::repos::user_repository::UserRepository;
+use qbey::prelude::*;
+use qbey_mysql::qbey;
+
+struct InsertUser<'a> {
+    user: &'a CreateUser,
+    hashed_password: &'a str,
+}
+
+impl qbey::ToInsertRow<qbey::Value> for InsertUser<'_> {
+    fn to_insert_row(&self) -> Vec<(&'static str, qbey::Value)> {
+        vec![
+            ("name", self.user.name.as_str().into()),
+            ("display_name", self.user.display_name.as_str().into()),
+            ("description", self.user.description.as_str().into()),
+            ("password", self.hashed_password.into()),
+        ]
+    }
+}
 
 #[derive(Clone)]
 pub struct UserRepositoryInfra {}
@@ -26,15 +46,16 @@ impl UserRepository for UserRepositoryInfra {
     ) -> isupipe_core::repos::Result<UserId> {
         let hashed_password = self.hash_password(&user.password)?;
 
-        let result = sqlx::query!(
-            "INSERT INTO users (name, display_name, description, password) VALUES(?, ?, ?, ?)",
-            &user.name,
-            &user.display_name,
-            &user.description,
-            &hashed_password,
-        )
-        .execute(conn)
-        .await?;
+        let t = &TABLE_USERS;
+        let mut ins = qbey(t.table()).into_insert();
+        ins.add_value(&InsertUser {
+            user,
+            hashed_password: &hashed_password,
+        });
+        let (sql, binds) = ins.into_sql();
+        let result = bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
+            .execute(conn)
+            .await?;
 
         let user_id = result.last_insert_id() as i64;
 
@@ -46,20 +67,27 @@ impl UserRepository for UserRepositoryInfra {
         conn: &mut DBConn,
         id: &UserId,
     ) -> isupipe_core::repos::Result<Option<User>> {
-        let user_model = sqlx::query_as!(User, "SELECT id, name, display_name, description, password as hashed_password FROM users WHERE id = ?", id)
-            .fetch_optional(conn)
-            .await?;
+        let t = &TABLE_USERS;
+        let mut q = qbey(t.table());
+        q.and_where(t.id().eq(*id.inner()));
+        q.select(&TABLE_USERS.default_cols());
+        let (sql, binds) = q.into_sql();
+        let user_model =
+            bind_qbey_values!(sqlx::query_as::<_, User>(sqlx::AssertSqlSafe(sql)), binds)
+                .fetch_optional(conn)
+                .await?;
 
         Ok(user_model)
     }
 
     async fn find_all(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<Vec<User>> {
-        let users: Vec<User> = sqlx::query_as!(
-            User,
-            "SELECT id, name, display_name, description, password as hashed_password FROM users"
-        )
-        .fetch_all(conn)
-        .await?;
+        let t = &TABLE_USERS;
+        let mut q = qbey(t.table());
+        q.select(&TABLE_USERS.default_cols());
+        let (sql, binds) = q.into_sql();
+        let users = bind_qbey_values!(sqlx::query_as::<_, User>(sqlx::AssertSqlSafe(sql)), binds)
+            .fetch_all(conn)
+            .await?;
 
         Ok(users)
     }
@@ -69,10 +97,17 @@ impl UserRepository for UserRepositoryInfra {
         conn: &mut DBConn,
         name: &str,
     ) -> isupipe_core::repos::Result<Option<UserId>> {
-        let user_id: Option<UserId> =
-            sqlx::query_scalar!("SELECT id as `id:UserId` FROM users WHERE name = ?", name)
-                .fetch_optional(conn)
-                .await?;
+        let t = &TABLE_USERS;
+        let mut q = qbey(t.table());
+        q.and_where(t.name().eq(name));
+        q.select(&[t.id()]);
+        let (sql, binds) = q.into_sql();
+        let user_id = bind_qbey_values!(
+            sqlx::query_scalar::<_, UserId>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_optional(conn)
+        .await?;
 
         Ok(user_id)
     }
@@ -82,9 +117,15 @@ impl UserRepository for UserRepositoryInfra {
         conn: &mut DBConn,
         name: &str,
     ) -> isupipe_core::repos::Result<Option<User>> {
-        let user_model: Option<User> = sqlx::query_as!(User, "SELECT id, name, display_name, description, password as hashed_password FROM users WHERE name = ?", name)
-            .fetch_optional(conn)
-            .await?;
+        let t = &TABLE_USERS;
+        let mut q = qbey(t.table());
+        q.and_where(t.name().eq(name));
+        q.select(&TABLE_USERS.default_cols());
+        let (sql, binds) = q.into_sql();
+        let user_model =
+            bind_qbey_values!(sqlx::query_as::<_, User>(sqlx::AssertSqlSafe(sql)), binds)
+                .fetch_optional(conn)
+                .await?;
 
         Ok(user_model)
     }

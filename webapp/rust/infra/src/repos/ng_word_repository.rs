@@ -1,9 +1,35 @@
+#[cfg(test)]
+mod create;
+#[cfg(test)]
+mod find_all_by_livestream_id;
+#[cfg(test)]
+mod find_all_by_livestream_id_and_user_id;
+#[cfg(test)]
+mod find_all_by_livestream_id_and_user_id_order_by_created_at;
+
+use crate::qbey_support::bind_qbey_values;
+use crate::tables::ng_word::TABLE_NG_WORDS;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::ng_word::{CreateNgWord, NgWord, NgWordId};
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::ng_word_repository::NgWordRepository;
+use qbey::prelude::*;
+use qbey_mysql::qbey;
+
+struct InsertNgWord<'a>(&'a CreateNgWord);
+
+impl qbey::ToInsertRow<qbey::Value> for InsertNgWord<'_> {
+    fn to_insert_row(&self) -> Vec<(&'static str, qbey::Value)> {
+        vec![
+            ("user_id", (*self.0.user_id.inner()).into()),
+            ("livestream_id", (*self.0.livestream_id.inner()).into()),
+            ("word", self.0.word.as_str().into()),
+            ("created_at", self.0.created_at.into()),
+        ]
+    }
+}
 
 #[derive(Clone)]
 pub struct NgWordRepositoryInfra {}
@@ -15,15 +41,13 @@ impl NgWordRepository for NgWordRepositoryInfra {
         conn: &mut DBConn,
         ng_word: &CreateNgWord,
     ) -> isupipe_core::repos::Result<NgWordId> {
-        let rs = sqlx::query(
-            "INSERT INTO ng_words(user_id, livestream_id, word, created_at) VALUES (?, ?, ?, ?)",
-        )
-        .bind(&ng_word.user_id)
-        .bind(&ng_word.livestream_id)
-        .bind(&ng_word.word)
-        .bind(ng_word.created_at)
-        .execute(conn)
-        .await?;
+        let t = &TABLE_NG_WORDS;
+        let mut ins = qbey(t.table()).into_insert();
+        ins.add_value(&InsertNgWord(ng_word));
+        let (sql, binds) = ins.into_sql();
+        let rs = bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
+            .execute(conn)
+            .await?;
 
         let word_id = rs.last_insert_id() as i64;
 
@@ -35,10 +59,14 @@ impl NgWordRepository for NgWordRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<NgWord>> {
-        let ng_words = sqlx::query_as("SELECT * FROM ng_words WHERE livestream_id = ?")
-            .bind(livestream_id)
-            .fetch_all(conn)
-            .await?;
+        let t = &TABLE_NG_WORDS;
+        let mut q = qbey(t.table());
+        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
+        let (sql, binds) = q.into_sql();
+        let ng_words =
+            bind_qbey_values!(sqlx::query_as::<_, NgWord>(sqlx::AssertSqlSafe(sql)), binds)
+                .fetch_all(conn)
+                .await?;
 
         Ok(ng_words)
     }
@@ -49,6 +77,7 @@ impl NgWordRepository for NgWordRepositoryInfra {
         ng_word: &str,
         comment: &str,
     ) -> isupipe_core::repos::Result<i64> {
+        // Complex CONCAT/LIKE subquery - not supported by qbey
         let query = r#"
         SELECT COUNT(*)
         FROM
@@ -72,10 +101,14 @@ impl NgWordRepository for NgWordRepositoryInfra {
         livestream_id: &LivestreamId,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Vec<NgWord>> {
-        let ng_words: Vec<NgWord> =
-            sqlx::query_as("SELECT id, user_id, livestream_id, word FROM ng_words WHERE user_id = ? AND livestream_id = ?")
-                .bind(livestream_id)
-                .bind(user_id)
+        let t = &TABLE_NG_WORDS;
+        let mut q = qbey(t.table());
+        q.and_where(t.user_id().eq(*user_id.inner()));
+        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
+        q.select(&[t.id(), t.user_id(), t.livestream_id(), t.word()]);
+        let (sql, binds) = q.into_sql();
+        let ng_words =
+            bind_qbey_values!(sqlx::query_as::<_, NgWord>(sqlx::AssertSqlSafe(sql)), binds)
                 .fetch_all(conn)
                 .await?;
 
@@ -88,13 +121,16 @@ impl NgWordRepository for NgWordRepositoryInfra {
         livestream_id: &LivestreamId,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Vec<NgWord>> {
-        let ng_words: Vec<NgWord> = sqlx::query_as(
-            "SELECT * FROM ng_words WHERE user_id = ? AND livestream_id = ? ORDER BY created_at DESC",
-        )
-            .bind(user_id)
-            .bind(livestream_id)
-            .fetch_all(conn)
-            .await?;
+        let t = &TABLE_NG_WORDS;
+        let mut q = qbey(t.table());
+        q.and_where(t.user_id().eq(*user_id.inner()));
+        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
+        q.order_by(t.created_at().desc());
+        let (sql, binds) = q.into_sql();
+        let ng_words =
+            bind_qbey_values!(sqlx::query_as::<_, NgWord>(sqlx::AssertSqlSafe(sql)), binds)
+                .fetch_all(conn)
+                .await?;
 
         Ok(ng_words)
     }

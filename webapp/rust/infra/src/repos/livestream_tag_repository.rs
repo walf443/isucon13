@@ -1,9 +1,20 @@
+#[cfg(test)]
+mod find_all_by_livestream_id;
+#[cfg(test)]
+mod find_all_by_tag_ids;
+#[cfg(test)]
+mod insert;
+
+use crate::qbey_support::bind_qbey_values;
+use crate::tables::livestream_tag::TABLE_LIVESTREAM_TAGS;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_tag::LivestreamTag;
 use isupipe_core::models::tag::TagId;
 use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
+use qbey::prelude::*;
+use qbey_mysql::qbey;
 
 #[derive(Clone)]
 pub struct LivestreamTagRepositoryInfra {}
@@ -16,9 +27,14 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
         livestream_id: &LivestreamId,
         tag_id: &TagId,
     ) -> isupipe_core::repos::Result<()> {
-        sqlx::query("INSERT INTO livestream_tags (livestream_id, tag_id) VALUES (?, ?)")
-            .bind(livestream_id)
-            .bind(tag_id)
+        let t = &TABLE_LIVESTREAM_TAGS;
+        let mut ins = qbey(t.table()).into_insert();
+        ins.add_value(&[
+            ("livestream_id", (*livestream_id.inner()).into()),
+            ("tag_id", (*tag_id.inner()).into()),
+        ]);
+        let (sql, binds) = ins.into_sql();
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(conn)
             .await?;
 
@@ -30,11 +46,16 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
         conn: &mut DBConn,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamTag>> {
-        let livestream_tag_models =
-            sqlx::query_as("SELECT * FROM livestream_tags WHERE livestream_id = ?")
-                .bind(livestream_id)
-                .fetch_all(conn)
-                .await?;
+        let t = &TABLE_LIVESTREAM_TAGS;
+        let mut q = qbey(t.table());
+        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
+        let (sql, binds) = q.into_sql();
+        let livestream_tag_models = bind_qbey_values!(
+            sqlx::query_as::<_, LivestreamTag>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(livestream_tag_models)
     }
@@ -44,16 +65,21 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
         conn: &mut DBConn,
         tag_ids: &[TagId],
     ) -> isupipe_core::repos::Result<Vec<LivestreamTag>> {
-        let mut query_builder = sqlx::query_builder::QueryBuilder::new(
-            "SELECT * FROM livestream_tags WHERE tag_id IN (",
-        );
-        let mut separated = query_builder.separated(", ");
-        for tag_id in tag_ids {
-            separated.push_bind(tag_id);
-        }
-        separated.push_unseparated(") ORDER BY livestream_id DESC");
-        let livestreams: Vec<LivestreamTag> =
-            query_builder.build_query_as().fetch_all(conn).await?;
+        let t = &TABLE_LIVESTREAM_TAGS;
+        let mut q = qbey(t.table());
+        let id_values: Vec<qbey::Value> = tag_ids
+            .iter()
+            .map(|id| qbey::Value::Int(*id.inner()))
+            .collect();
+        q.and_where(t.tag_id().included(id_values.as_slice()));
+        q.order_by(t.livestream_id().desc());
+        let (sql, binds) = q.into_sql();
+        let livestreams = bind_qbey_values!(
+            sqlx::query_as::<_, LivestreamTag>(sqlx::AssertSqlSafe(sql)),
+            binds
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(livestreams)
     }
