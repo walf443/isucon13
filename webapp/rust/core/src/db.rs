@@ -29,7 +29,7 @@ pub async fn get_db_pool() -> Result<DBPool, sqlx::Error> {
 static TEST_CONTAINER: tokio::sync::OnceCell<TestContainer> = tokio::sync::OnceCell::const_new();
 
 #[cfg(any(feature = "test", test))]
-#[ctor::dtor]
+#[dtor::dtor(unsafe)]
 fn cleanup_containers() {
     if let Some(tc) = TEST_CONTAINER.get() {
         if let Ok(mut guard) = tc.container.lock() {
