@@ -7,9 +7,9 @@ use isupipe_core::models::user::UserId;
 pub struct LivestreamCommentRow {
     #[key]
     #[auto]
-    pub id: i64,
-    pub user_id: i64,
-    pub livestream_id: i64,
+    pub id: LivestreamCommentId,
+    pub user_id: UserId,
+    pub livestream_id: LivestreamId,
     pub comment: String,
     pub tip: i64,
     pub created_at: i64,
@@ -18,9 +18,9 @@ pub struct LivestreamCommentRow {
 impl From<LivestreamCommentRow> for LivestreamComment {
     fn from(row: LivestreamCommentRow) -> Self {
         Self {
-            id: LivestreamCommentId::new(row.id),
-            user_id: UserId::new(row.user_id),
-            livestream_id: LivestreamId::new(row.livestream_id),
+            id: row.id,
+            user_id: row.user_id,
+            livestream_id: row.livestream_id,
             comment: row.comment,
             tip: row.tip,
             created_at: row.created_at,

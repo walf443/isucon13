@@ -20,7 +20,7 @@ impl IconRepository for IconRepositoryInfra {
         conn: &'c mut DBConn<'c>,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Option<Vec<u8>>> {
-        let images = IconRow::filter(IconRow::fields().user_id().eq(user_id.inner()))
+        let images = IconRow::filter(IconRow::fields().user_id().eq(user_id))
             .limit(1)
             .select(IconRow::fields().image())
             .exec(conn)
@@ -35,7 +35,7 @@ impl IconRepository for IconRepositoryInfra {
         icon: &CreateIcon,
     ) -> isupipe_core::repos::Result<i64> {
         let row = IconRow::create()
-            .user_id(icon.user_id.inner())
+            .user_id(&icon.user_id)
             .image(icon.image.clone())
             .exec(conn)
             .await?;
@@ -48,7 +48,7 @@ impl IconRepository for IconRepositoryInfra {
         conn: &'c mut DBConn<'c>,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<()> {
-        IconRow::filter(IconRow::fields().user_id().eq(user_id.inner()))
+        IconRow::filter(IconRow::fields().user_id().eq(user_id))
             .delete()
             .exec(conn)
             .await?;

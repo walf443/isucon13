@@ -7,9 +7,9 @@ use isupipe_core::models::user::UserId;
 pub struct ReactionRow {
     #[key]
     #[auto]
-    pub id: i64,
-    pub user_id: i64,
-    pub livestream_id: i64,
+    pub id: ReactionId,
+    pub user_id: UserId,
+    pub livestream_id: LivestreamId,
     pub emoji_name: String,
     pub created_at: i64,
 }
@@ -17,10 +17,10 @@ pub struct ReactionRow {
 impl From<ReactionRow> for Reaction {
     fn from(row: ReactionRow) -> Self {
         Self {
-            id: ReactionId::new(row.id),
+            id: row.id,
             emoji_name: row.emoji_name,
-            user_id: UserId::new(row.user_id),
-            livestream_id: LivestreamId::new(row.livestream_id),
+            user_id: row.user_id,
+            livestream_id: row.livestream_id,
             created_at: row.created_at,
         }
     }

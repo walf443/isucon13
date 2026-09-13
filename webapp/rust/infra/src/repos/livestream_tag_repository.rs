@@ -12,6 +12,7 @@ use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_tag::LivestreamTag;
 use isupipe_core::models::tag::TagId;
 use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
+use toasty::stmt::Path;
 
 #[derive(Clone)]
 pub struct LivestreamTagRepositoryInfra {}
@@ -25,8 +26,8 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
         tag_id: &TagId,
     ) -> isupipe_core::repos::Result<()> {
         LivestreamTagRow::create()
-            .livestream_id(livestream_id.inner())
-            .tag_id(tag_id.inner())
+            .livestream_id(livestream_id)
+            .tag_id(tag_id)
             .exec(conn)
             .await?;
 
@@ -38,13 +39,10 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
         conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamTag>> {
-        let rows = LivestreamTagRow::filter(
-            LivestreamTagRow::fields()
-                .livestream_id()
-                .eq(livestream_id.inner()),
-        )
-        .exec(conn)
-        .await?;
+        let rows =
+            LivestreamTagRow::filter(LivestreamTagRow::fields().livestream_id().eq(livestream_id))
+                .exec(conn)
+                .await?;
 
         Ok(rows.into_iter().map(Into::into).collect())
     }
@@ -54,8 +52,9 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
         conn: &'c mut DBConn<'c>,
         tag_ids: &[TagId],
     ) -> isupipe_core::repos::Result<Vec<LivestreamTag>> {
-        let ids: Vec<i64> = tag_ids.iter().map(|id| *id.inner()).collect();
-        let rows = LivestreamTagRow::filter(LivestreamTagRow::fields().tag_id().in_list(ids))
+        // newtype (Embed) のフィールドには in_list が生えないので、Path に変換してから使う
+        let tag_id: Path<LivestreamTagRow, TagId> = LivestreamTagRow::fields().tag_id().into();
+        let rows = LivestreamTagRow::filter(tag_id.in_list(tag_ids.to_vec()))
             .order_by(LivestreamTagRow::fields().livestream_id().desc())
             .exec(conn)
             .await?;

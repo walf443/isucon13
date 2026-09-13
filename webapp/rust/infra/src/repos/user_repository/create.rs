@@ -15,7 +15,7 @@ async fn success_case() {
     let repo = UserRepositoryInfra {};
     let user_id = repo.create(&mut tx, &user).await.unwrap();
 
-    let got: User = UserRow::filter(UserRow::fields().id().eq(user_id.inner()))
+    let got: User = UserRow::filter(UserRow::fields().id().eq(&user_id))
         .one()
         .exec(&mut tx)
         .await

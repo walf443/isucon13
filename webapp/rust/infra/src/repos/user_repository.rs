@@ -12,7 +12,7 @@ mod find_id_by_name;
 use crate::tables::user::UserRow;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::user::{CreateUser, User, UserId};
+use isupipe_core::models::user::{CreateUser, User, UserId, UserName};
 use isupipe_core::repos::user_repository::UserRepository;
 
 #[derive(Clone)]
@@ -28,14 +28,14 @@ impl UserRepository for UserRepositoryInfra {
         let hashed_password = self.hash_password(&user.password)?;
 
         let row = UserRow::create()
-            .name(&user.name)
+            .name(UserName::new(user.name.clone()))
             .display_name(&user.display_name)
             .description(&user.description)
             .hashed_password(hashed_password)
             .exec(conn)
             .await?;
 
-        Ok(UserId::new(row.id))
+        Ok(row.id)
     }
 
     async fn find<'c>(
@@ -43,7 +43,7 @@ impl UserRepository for UserRepositoryInfra {
         conn: &'c mut DBConn<'c>,
         id: &UserId,
     ) -> isupipe_core::repos::Result<Option<User>> {
-        let row = UserRow::filter(UserRow::fields().id().eq(id.inner()))
+        let row = UserRow::filter(UserRow::fields().id().eq(id))
             .first()
             .exec(conn)
             .await?;
@@ -65,13 +65,13 @@ impl UserRepository for UserRepositoryInfra {
         conn: &'c mut DBConn<'c>,
         name: &str,
     ) -> isupipe_core::repos::Result<Option<UserId>> {
-        let ids = UserRow::filter(UserRow::fields().name().eq(name))
+        let ids = UserRow::filter(UserRow::fields().name().eq(UserName::new(name.to_owned())))
             .limit(1)
             .select(UserRow::fields().id())
             .exec(conn)
             .await?;
 
-        Ok(ids.into_iter().next().map(UserId::new))
+        Ok(ids.into_iter().next())
     }
 
     async fn find_by_name<'c>(
@@ -79,7 +79,7 @@ impl UserRepository for UserRepositoryInfra {
         conn: &'c mut DBConn<'c>,
         name: &str,
     ) -> isupipe_core::repos::Result<Option<User>> {
-        let row = UserRow::filter(UserRow::fields().name().eq(name))
+        let row = UserRow::filter(UserRow::fields().name().eq(UserName::new(name.to_owned())))
             .first()
             .exec(conn)
             .await?;

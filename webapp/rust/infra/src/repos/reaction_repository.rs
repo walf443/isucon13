@@ -33,14 +33,14 @@ impl ReactionRepository for ReactionRepositoryInfra {
         reaction: &CreateReaction,
     ) -> isupipe_core::repos::Result<ReactionId> {
         let row = ReactionRow::create()
-            .user_id(reaction.user_id.inner())
-            .livestream_id(reaction.livestream_id.inner())
+            .user_id(&reaction.user_id)
+            .livestream_id(&reaction.livestream_id)
             .emoji_name(&reaction.emoji_name)
             .created_at(reaction.created_at)
             .exec(conn)
             .await?;
 
-        Ok(ReactionId::new(row.id))
+        Ok(row.id)
     }
 
     async fn count_by_livestream_id<'c>(
@@ -134,14 +134,10 @@ impl ReactionRepository for ReactionRepositoryInfra {
         conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<Reaction>> {
-        let rows = ReactionRow::filter(
-            ReactionRow::fields()
-                .livestream_id()
-                .eq(livestream_id.inner()),
-        )
-        .order_by(ReactionRow::fields().created_at().desc())
-        .exec(conn)
-        .await?;
+        let rows = ReactionRow::filter(ReactionRow::fields().livestream_id().eq(livestream_id))
+            .order_by(ReactionRow::fields().created_at().desc())
+            .exec(conn)
+            .await?;
 
         Ok(rows.into_iter().map(Into::into).collect())
     }
@@ -152,15 +148,11 @@ impl ReactionRepository for ReactionRepositoryInfra {
         livestream_id: &LivestreamId,
         limit: i64,
     ) -> isupipe_core::repos::Result<Vec<Reaction>> {
-        let rows = ReactionRow::filter(
-            ReactionRow::fields()
-                .livestream_id()
-                .eq(livestream_id.inner()),
-        )
-        .order_by(ReactionRow::fields().created_at().desc())
-        .limit(limit as usize)
-        .exec(conn)
-        .await?;
+        let rows = ReactionRow::filter(ReactionRow::fields().livestream_id().eq(livestream_id))
+            .order_by(ReactionRow::fields().created_at().desc())
+            .limit(limit as usize)
+            .exec(conn)
+            .await?;
 
         Ok(rows.into_iter().map(Into::into).collect())
     }

@@ -1,7 +1,7 @@
 //! toasty のモデル定義 (DB のテーブルと 1:1 で対応する行構造体)。
 //!
-//! core のドメインモデルは kubetsu の `Id<T, U>` を使っているため、
-//! ここでは素の `i64` / `String` で行を受け取り、`From` でドメインモデルへ変換する。
+//! ID カラムは core 側で `#[derive(toasty::Embed)]` を付けて定義した kubetsu の ID 型
+//! (`UserId` など) をそのまま使い、`From` でドメインモデルへ変換する。
 
 pub mod icon;
 pub mod livestream;

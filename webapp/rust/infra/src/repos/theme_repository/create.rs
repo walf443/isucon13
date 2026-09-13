@@ -18,7 +18,7 @@ async fn success_case() {
         .unwrap();
 
     let got: Theme = ThemeRow::all()
-        .filter(ThemeRow::fields().user_id().eq(*theme.user_id.inner()))
+        .filter(ThemeRow::fields().user_id().eq(&theme.user_id))
         .one()
         .exec(&mut tx)
         .await

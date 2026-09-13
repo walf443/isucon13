@@ -16,14 +16,18 @@ use crate::tables::tag::TagRow;
 use crate::tables::theme::ThemeRow;
 use crate::tables::user::UserRow;
 use isupipe_core::db::{DBConn, DBPool};
-use isupipe_core::models::livestream::CreateLivestream;
-use isupipe_core::models::livestream_comment::CreateLivestreamComment;
-use isupipe_core::models::livestream_comment_report::CreateLivestreamCommentReport;
-use isupipe_core::models::ng_word::CreateNgWord;
-use isupipe_core::models::reaction::CreateReaction;
+use isupipe_core::models::livestream::{CreateLivestream, LivestreamId};
+use isupipe_core::models::livestream_comment::{CreateLivestreamComment, LivestreamCommentId};
+use isupipe_core::models::livestream_comment_report::{
+    CreateLivestreamCommentReport, LivestreamCommentReportId,
+};
+use isupipe_core::models::livestream_tag::LivestreamTagId;
+use isupipe_core::models::ng_word::{CreateNgWord, NgWordId};
+use isupipe_core::models::reaction::{CreateReaction, ReactionId};
 use isupipe_core::models::reservation_slot::ReservationSlot;
-use isupipe_core::models::tag::Tag;
+use isupipe_core::models::tag::{Tag, TagId};
 use isupipe_core::models::theme::Theme;
+use isupipe_core::models::user::{UserId, UserName};
 
 /// モデル登録済みのテスト用 `Db` を返す。テストごとに独立したプールを作る。
 pub async fn get_db_pool() -> DBPool {
@@ -39,8 +43,8 @@ pub struct InsertUserSetup<'a> {
 impl InsertUserSetup<'_> {
     pub async fn insert(&self, conn: &mut DBConn<'_>) -> UserRow {
         UserRow::create()
-            .id(self.id)
-            .name(&self.user.name)
+            .id(UserId::new(self.id))
+            .name(UserName::new(self.user.name.clone()))
             .display_name(&self.user.display_name)
             .hashed_password(&self.user.password)
             .description(&self.user.description)
@@ -59,8 +63,8 @@ pub struct InsertLivestreamSetup<'a> {
 impl InsertLivestreamSetup<'_> {
     pub async fn insert(&self, conn: &mut DBConn<'_>) -> LivestreamRow {
         LivestreamRow::create()
-            .id(self.id)
-            .user_id(self.user_id)
+            .id(LivestreamId::new(self.id))
+            .user_id(UserId::new(self.user_id))
             .title(&self.stream.title)
             .description(&self.stream.description)
             .playlist_url(&self.stream.playlist_url)
@@ -83,9 +87,9 @@ pub struct InsertReactionSetup<'a> {
 impl InsertReactionSetup<'_> {
     pub async fn insert(&self, conn: &mut DBConn<'_>) -> ReactionRow {
         ReactionRow::create()
-            .id(self.id)
-            .user_id(self.user_id)
-            .livestream_id(self.livestream_id)
+            .id(ReactionId::new(self.id))
+            .user_id(UserId::new(self.user_id))
+            .livestream_id(LivestreamId::new(self.livestream_id))
             .emoji_name(&self.reaction.emoji_name)
             .created_at(self.reaction.created_at)
             .exec(conn)
@@ -104,9 +108,9 @@ pub struct InsertCommentSetup<'a> {
 impl InsertCommentSetup<'_> {
     pub async fn insert(&self, conn: &mut DBConn<'_>) -> LivestreamCommentRow {
         LivestreamCommentRow::create()
-            .id(self.id)
-            .user_id(self.user_id)
-            .livestream_id(self.livestream_id)
+            .id(LivestreamCommentId::new(self.id))
+            .user_id(UserId::new(self.user_id))
+            .livestream_id(LivestreamId::new(self.livestream_id))
             .comment(&self.comment.comment)
             .tip(self.comment.tip)
             .created_at(self.comment.created_at)
@@ -127,10 +131,10 @@ pub struct InsertReportSetup<'a> {
 impl InsertReportSetup<'_> {
     pub async fn insert(&self, conn: &mut DBConn<'_>) -> LivestreamCommentReportRow {
         LivestreamCommentReportRow::create()
-            .id(self.id)
-            .user_id(self.user_id)
-            .livestream_id(self.livestream_id)
-            .livecomment_id(self.livecomment_id)
+            .id(LivestreamCommentReportId::new(self.id))
+            .user_id(UserId::new(self.user_id))
+            .livestream_id(LivestreamId::new(self.livestream_id))
+            .livecomment_id(LivestreamCommentId::new(self.livecomment_id))
             .created_at(self.report.created_at)
             .exec(conn)
             .await
@@ -148,9 +152,9 @@ pub struct InsertNgWordSetup<'a> {
 impl InsertNgWordSetup<'_> {
     pub async fn insert(&self, conn: &mut DBConn<'_>) -> NgWordRow {
         NgWordRow::create()
-            .id(self.id)
-            .user_id(self.user_id)
-            .livestream_id(self.livestream_id)
+            .id(NgWordId::new(self.id))
+            .user_id(UserId::new(self.user_id))
+            .livestream_id(LivestreamId::new(self.livestream_id))
             .word(&self.ng_word.word)
             .created_at(self.ng_word.created_at)
             .exec(conn)
@@ -167,8 +171,8 @@ pub struct InsertTagSetup<'a> {
 impl InsertTagSetup<'_> {
     pub async fn insert(&self, conn: &mut DBConn<'_>) -> TagRow {
         TagRow::create()
-            .id(self.id)
-            .name(self.tag.name.inner())
+            .id(TagId::new(self.id))
+            .name(&self.tag.name)
             .exec(conn)
             .await
             .unwrap()
@@ -184,9 +188,9 @@ pub struct InsertLivestreamTagSetup {
 impl InsertLivestreamTagSetup {
     pub async fn insert(&self, conn: &mut DBConn<'_>) -> LivestreamTagRow {
         LivestreamTagRow::create()
-            .id(self.id)
-            .livestream_id(self.livestream_id)
-            .tag_id(self.tag_id)
+            .id(LivestreamTagId::new(self.id))
+            .livestream_id(LivestreamId::new(self.livestream_id))
+            .tag_id(TagId::new(self.tag_id))
             .exec(conn)
             .await
             .unwrap()
@@ -202,8 +206,8 @@ pub struct InsertViewersHistorySetup {
 impl InsertViewersHistorySetup {
     pub async fn insert(&self, conn: &mut DBConn<'_>) -> LivestreamViewersHistoryRow {
         LivestreamViewersHistoryRow::create()
-            .user_id(self.user_id)
-            .livestream_id(self.livestream_id)
+            .user_id(UserId::new(self.user_id))
+            .livestream_id(LivestreamId::new(self.livestream_id))
             .created_at(self.created_at)
             .exec(conn)
             .await
@@ -218,7 +222,7 @@ pub struct InsertReservationSlotSetup<'a> {
 impl InsertReservationSlotSetup<'_> {
     pub async fn insert(&self, conn: &mut DBConn<'_>) -> ReservationSlotRow {
         ReservationSlotRow::create()
-            .id(self.slot.id.inner())
+            .id(&self.slot.id)
             .slot(self.slot.slot)
             .start_at(self.slot.start_at)
             .end_at(self.slot.end_at)
@@ -235,8 +239,8 @@ pub struct InsertThemeSetup<'a> {
 impl InsertThemeSetup<'_> {
     pub async fn insert(&self, conn: &mut DBConn<'_>) -> ThemeRow {
         ThemeRow::create()
-            .id(self.theme.id.inner())
-            .user_id(self.theme.user_id.inner())
+            .id(&self.theme.id)
+            .user_id(&self.theme.user_id)
             .dark_mode(self.theme.dark_mode)
             .exec(conn)
             .await
@@ -254,7 +258,7 @@ impl InsertIconSetup {
     pub async fn insert(&self, conn: &mut DBConn<'_>) -> IconRow {
         IconRow::create()
             .id(self.id)
-            .user_id(self.user_id)
+            .user_id(UserId::new(self.user_id))
             .image(self.image.clone())
             .exec(conn)
             .await

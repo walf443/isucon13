@@ -16,7 +16,7 @@ async fn success_case() {
     let reaction_id = repo.create(&mut tx, &reaction).await.unwrap();
 
     let got: Reaction = ReactionRow::all()
-        .filter(ReactionRow::fields().id().eq(*reaction_id.inner()))
+        .filter(ReactionRow::fields().id().eq(&reaction_id))
         .one()
         .exec(&mut tx)
         .await

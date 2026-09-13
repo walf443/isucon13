@@ -41,8 +41,12 @@ async fn success_case() {
         .unwrap();
 
     let got: LivestreamTag = LivestreamTagRow::all()
-        .filter(LivestreamTagRow::fields().livestream_id().eq(1_i64))
-        .filter(LivestreamTagRow::fields().tag_id().eq(1_i64))
+        .filter(
+            LivestreamTagRow::fields()
+                .livestream_id()
+                .eq(LivestreamId::new(1)),
+        )
+        .filter(LivestreamTagRow::fields().tag_id().eq(TagId::new(1)))
         .one()
         .exec(&mut tx)
         .await

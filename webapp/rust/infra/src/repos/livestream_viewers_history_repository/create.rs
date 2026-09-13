@@ -39,12 +39,12 @@ async fn success_case() {
     let count = LivestreamViewersHistoryRow::filter(
         LivestreamViewersHistoryRow::fields()
             .user_id()
-            .eq(input.user_id.inner()),
+            .eq(&input.user_id),
     )
     .filter(
         LivestreamViewersHistoryRow::fields()
             .livestream_id()
-            .eq(input.livestream_id.inner()),
+            .eq(&input.livestream_id),
     )
     .count()
     .exec(&mut tx)

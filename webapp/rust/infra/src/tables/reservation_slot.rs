@@ -5,7 +5,7 @@ use isupipe_core::models::reservation_slot::{ReservationSlot, ReservationSlotId}
 pub struct ReservationSlotRow {
     #[key]
     #[auto]
-    pub id: i64,
+    pub id: ReservationSlotId,
     pub slot: i64,
     pub start_at: i64,
     pub end_at: i64,
@@ -14,7 +14,7 @@ pub struct ReservationSlotRow {
 impl From<ReservationSlotRow> for ReservationSlot {
     fn from(row: ReservationSlotRow) -> Self {
         Self {
-            id: ReservationSlotId::new(row.id),
+            id: row.id,
             slot: row.slot,
             start_at: row.start_at,
             end_at: row.end_at,

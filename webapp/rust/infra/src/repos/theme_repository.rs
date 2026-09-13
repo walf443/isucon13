@@ -22,7 +22,7 @@ impl ThemeRepository for ThemeRepositoryInfra {
         dark_mode: bool,
     ) -> isupipe_core::repos::Result<()> {
         ThemeRow::create()
-            .user_id(user_id.inner())
+            .user_id(user_id)
             .dark_mode(dark_mode)
             .exec(conn)
             .await?;
@@ -35,7 +35,7 @@ impl ThemeRepository for ThemeRepositoryInfra {
         conn: &'c mut DBConn<'c>,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Theme> {
-        let row = ThemeRow::filter(ThemeRow::fields().user_id().eq(user_id.inner()))
+        let row = ThemeRow::filter(ThemeRow::fields().user_id().eq(user_id))
             .one()
             .exec(conn)
             .await?;

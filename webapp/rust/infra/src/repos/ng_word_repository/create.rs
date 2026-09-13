@@ -37,7 +37,7 @@ async fn success_case() {
     let word_id = repo.create(&mut tx, &input).await.unwrap();
 
     let got: NgWord = NgWordRow::all()
-        .filter(NgWordRow::fields().id().eq(*word_id.inner()))
+        .filter(NgWordRow::fields().id().eq(&word_id))
         .one()
         .exec(&mut tx)
         .await

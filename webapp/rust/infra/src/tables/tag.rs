@@ -5,16 +5,16 @@ use isupipe_core::models::tag::{Tag, TagId, TagName};
 pub struct TagRow {
     #[key]
     #[auto]
-    pub id: i64,
+    pub id: TagId,
     #[unique]
-    pub name: String,
+    pub name: TagName,
 }
 
 impl From<TagRow> for Tag {
     fn from(row: TagRow) -> Self {
         Self {
-            id: TagId::new(row.id),
-            name: TagName::new(row.name),
+            id: row.id,
+            name: row.name,
         }
     }
 }

@@ -5,9 +5,9 @@ use isupipe_core::models::user::{User, UserId, UserName};
 pub struct UserRow {
     #[key]
     #[auto]
-    pub id: i64,
+    pub id: UserId,
     #[unique]
-    pub name: String,
+    pub name: UserName,
     pub display_name: String,
     #[column("password")]
     pub hashed_password: String,
@@ -17,8 +17,8 @@ pub struct UserRow {
 impl From<UserRow> for User {
     fn from(row: UserRow) -> Self {
         Self {
-            id: UserId::new(row.id),
-            name: UserName::new(row.name),
+            id: row.id,
+            name: row.name,
             display_name: Some(row.display_name),
             description: Some(row.description),
             hashed_password: Some(row.hashed_password),

@@ -6,8 +6,8 @@ use isupipe_core::models::user::UserId;
 pub struct LivestreamRow {
     #[key]
     #[auto]
-    pub id: i64,
-    pub user_id: i64,
+    pub id: LivestreamId,
+    pub user_id: UserId,
     pub title: String,
     pub description: String,
     pub playlist_url: String,
@@ -19,8 +19,8 @@ pub struct LivestreamRow {
 impl From<LivestreamRow> for Livestream {
     fn from(row: LivestreamRow) -> Self {
         Self {
-            id: LivestreamId::new(row.id),
-            user_id: UserId::new(row.user_id),
+            id: row.id,
+            user_id: row.user_id,
             title: row.title,
             description: row.description,
             playlist_url: row.playlist_url,

@@ -16,7 +16,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         stream: &CreateLivestream,
     ) -> isupipe_core::repos::Result<LivestreamId> {
         let row = LivestreamRow::create()
-            .user_id(stream.user_id.inner())
+            .user_id(&stream.user_id)
             .title(&stream.title)
             .description(&stream.description)
             .playlist_url(&stream.playlist_url)
@@ -26,7 +26,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
             .exec(conn)
             .await?;
 
-        Ok(LivestreamId::new(row.id))
+        Ok(row.id)
     }
 
     async fn find_all<'c>(
@@ -69,7 +69,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         conn: &'c mut DBConn<'c>,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Vec<Livestream>> {
-        let rows = LivestreamRow::filter(LivestreamRow::fields().user_id().eq(user_id.inner()))
+        let rows = LivestreamRow::filter(LivestreamRow::fields().user_id().eq(user_id))
             .exec(conn)
             .await?;
 
@@ -81,7 +81,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         conn: &'c mut DBConn<'c>,
         id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Option<Livestream>> {
-        let row = LivestreamRow::filter(LivestreamRow::fields().id().eq(id.inner()))
+        let row = LivestreamRow::filter(LivestreamRow::fields().id().eq(id))
             .first()
             .exec(conn)
             .await?;
@@ -95,8 +95,8 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
         id: &LivestreamId,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<bool> {
-        let count = LivestreamRow::filter(LivestreamRow::fields().id().eq(id.inner()))
-            .filter(LivestreamRow::fields().user_id().eq(user_id.inner()))
+        let count = LivestreamRow::filter(LivestreamRow::fields().id().eq(id))
+            .filter(LivestreamRow::fields().user_id().eq(user_id))
             .count()
             .exec(conn)
             .await?;

@@ -41,15 +41,15 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         comment: &CreateLivestreamComment,
     ) -> isupipe_core::repos::Result<LivestreamCommentId> {
         let row = LivestreamCommentRow::create()
-            .user_id(comment.user_id.inner())
-            .livestream_id(comment.livestream_id.inner())
+            .user_id(&comment.user_id)
+            .livestream_id(&comment.livestream_id)
             .comment(&comment.comment)
             .tip(comment.tip)
             .created_at(comment.created_at)
             .exec(conn)
             .await?;
 
-        Ok(LivestreamCommentId::new(row.id))
+        Ok(row.id)
     }
 
     async fn remove_if_match_ng_word<'c>(
@@ -87,12 +87,10 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         conn: &'c mut DBConn<'c>,
         comment_id: &LivestreamCommentId,
     ) -> isupipe_core::repos::Result<Option<LivestreamComment>> {
-        let row = LivestreamCommentRow::filter(
-            LivestreamCommentRow::fields().id().eq(comment_id.inner()),
-        )
-        .first()
-        .exec(conn)
-        .await?;
+        let row = LivestreamCommentRow::filter(LivestreamCommentRow::fields().id().eq(comment_id))
+            .first()
+            .exec(conn)
+            .await?;
 
         Ok(row.map(Into::into))
     }
@@ -114,7 +112,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let rows = LivestreamCommentRow::filter(
             LivestreamCommentRow::fields()
                 .livestream_id()
-                .eq(livestream_id.inner()),
+                .eq(livestream_id),
         )
         .exec(conn)
         .await?;
@@ -130,7 +128,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let rows = LivestreamCommentRow::filter(
             LivestreamCommentRow::fields()
                 .livestream_id()
-                .eq(livestream_id.inner()),
+                .eq(livestream_id),
         )
         .order_by(LivestreamCommentRow::fields().created_at().desc())
         .exec(conn)
@@ -148,7 +146,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let rows = LivestreamCommentRow::filter(
             LivestreamCommentRow::fields()
                 .livestream_id()
-                .eq(livestream_id.inner()),
+                .eq(livestream_id),
         )
         .order_by(LivestreamCommentRow::fields().created_at().desc())
         .limit(limit as usize)

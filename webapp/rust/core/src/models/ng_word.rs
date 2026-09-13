@@ -1,17 +1,14 @@
-use crate::models::id::Id;
 use crate::models::livestream::LivestreamId;
 use crate::models::user::UserId;
 
 #[derive(Debug, serde::Serialize)]
 pub struct NgWord {
-    pub id: Id<Self, i64>,
+    pub id: NgWordId,
     pub user_id: UserId,
     pub livestream_id: LivestreamId,
     pub word: String,
     pub created_at: i64,
 }
-
-pub type NgWordId = Id<NgWord, i64>;
 
 #[derive(fake::Dummy)]
 pub struct CreateNgWord {
@@ -20,3 +17,10 @@ pub struct CreateNgWord {
     pub word: String,
     pub created_at: i64,
 }
+
+kubetsu::define_id!(
+    #[derive(toasty::Embed)]
+    pub struct NgWordId(i64);
+);
+kubetsu_serde::impl_serde!(NgWordId(i64));
+kubetsu_fake::impl_fake!(NgWordId(i64));

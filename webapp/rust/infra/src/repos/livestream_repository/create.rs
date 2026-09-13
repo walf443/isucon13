@@ -24,7 +24,7 @@ async fn success_case() {
     let livestream_id = repo.create(&mut tx, &input).await.unwrap();
 
     let got: Livestream = LivestreamRow::all()
-        .filter(LivestreamRow::fields().id().eq(*livestream_id.inner()))
+        .filter(LivestreamRow::fields().id().eq(&livestream_id))
         .one()
         .exec(&mut tx)
         .await

@@ -27,14 +27,14 @@ impl NgWordRepository for NgWordRepositoryInfra {
         ng_word: &CreateNgWord,
     ) -> isupipe_core::repos::Result<NgWordId> {
         let row = NgWordRow::create()
-            .user_id(ng_word.user_id.inner())
-            .livestream_id(ng_word.livestream_id.inner())
+            .user_id(&ng_word.user_id)
+            .livestream_id(&ng_word.livestream_id)
             .word(&ng_word.word)
             .created_at(ng_word.created_at)
             .exec(conn)
             .await?;
 
-        Ok(NgWordId::new(row.id))
+        Ok(row.id)
     }
 
     async fn find_all_by_livestream_id<'c>(
@@ -42,13 +42,9 @@ impl NgWordRepository for NgWordRepositoryInfra {
         conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<NgWord>> {
-        let rows = NgWordRow::filter(
-            NgWordRow::fields()
-                .livestream_id()
-                .eq(livestream_id.inner()),
-        )
-        .exec(conn)
-        .await?;
+        let rows = NgWordRow::filter(NgWordRow::fields().livestream_id().eq(livestream_id))
+            .exec(conn)
+            .await?;
 
         Ok(rows.into_iter().map(Into::into).collect())
     }
@@ -83,12 +79,8 @@ impl NgWordRepository for NgWordRepositoryInfra {
         livestream_id: &LivestreamId,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Vec<NgWord>> {
-        let rows = NgWordRow::filter(NgWordRow::fields().user_id().eq(user_id.inner()))
-            .filter(
-                NgWordRow::fields()
-                    .livestream_id()
-                    .eq(livestream_id.inner()),
-            )
+        let rows = NgWordRow::filter(NgWordRow::fields().user_id().eq(user_id))
+            .filter(NgWordRow::fields().livestream_id().eq(livestream_id))
             .exec(conn)
             .await?;
 
@@ -101,12 +93,8 @@ impl NgWordRepository for NgWordRepositoryInfra {
         livestream_id: &LivestreamId,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Vec<NgWord>> {
-        let rows = NgWordRow::filter(NgWordRow::fields().user_id().eq(user_id.inner()))
-            .filter(
-                NgWordRow::fields()
-                    .livestream_id()
-                    .eq(livestream_id.inner()),
-            )
+        let rows = NgWordRow::filter(NgWordRow::fields().user_id().eq(user_id))
+            .filter(NgWordRow::fields().livestream_id().eq(livestream_id))
             .order_by(NgWordRow::fields().created_at().desc())
             .exec(conn)
             .await?;

@@ -50,7 +50,7 @@ async fn not_empty_case() {
         .unwrap();
 
     let got1: ReservationSlot =
-        ReservationSlotRow::filter(ReservationSlotRow::fields().id().eq(slot1.id.inner()))
+        ReservationSlotRow::filter(ReservationSlotRow::fields().id().eq(&slot1.id))
             .one()
             .exec(&mut tx)
             .await
@@ -59,7 +59,7 @@ async fn not_empty_case() {
     assert_eq!(slot1.slot - 1, got1.slot);
 
     let got2: ReservationSlot =
-        ReservationSlotRow::filter(ReservationSlotRow::fields().id().eq(slot2.id.inner()))
+        ReservationSlotRow::filter(ReservationSlotRow::fields().id().eq(&slot2.id))
             .one()
             .exec(&mut tx)
             .await

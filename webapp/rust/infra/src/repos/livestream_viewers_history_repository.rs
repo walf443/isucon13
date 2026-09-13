@@ -27,8 +27,8 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
         let mut tx = conn.transaction().await?;
 
         LivestreamViewersHistoryRow::create()
-            .user_id(history.user_id.inner())
-            .livestream_id(history.livestream_id.inner())
+            .user_id(&history.user_id)
+            .livestream_id(&history.livestream_id)
             .created_at(history.created_at)
             .exec(&mut tx)
             .await?;
@@ -67,14 +67,12 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
         let mut tx = conn.transaction().await?;
 
         LivestreamViewersHistoryRow::filter(
-            LivestreamViewersHistoryRow::fields()
-                .user_id()
-                .eq(user_id.inner()),
+            LivestreamViewersHistoryRow::fields().user_id().eq(user_id),
         )
         .filter(
             LivestreamViewersHistoryRow::fields()
                 .livestream_id()
-                .eq(livestream_id.inner()),
+                .eq(livestream_id),
         )
         .delete()
         .exec(&mut tx)

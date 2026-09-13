@@ -21,7 +21,7 @@ impl TagRepository for TagRepositoryInfra {
         conn: &'c mut DBConn<'c>,
         id: &TagId,
     ) -> isupipe_core::repos::Result<Tag> {
-        let row = TagRow::filter(TagRow::fields().id().eq(id.inner()))
+        let row = TagRow::filter(TagRow::fields().id().eq(id))
             .one()
             .exec(conn)
             .await?;
@@ -43,11 +43,11 @@ impl TagRepository for TagRepositoryInfra {
         conn: &'c mut DBConn<'c>,
         name: &TagName,
     ) -> isupipe_core::repos::Result<Vec<TagId>> {
-        let ids = TagRow::filter(TagRow::fields().name().eq(name.inner()))
+        let ids = TagRow::filter(TagRow::fields().name().eq(name))
             .select(TagRow::fields().id())
             .exec(conn)
             .await?;
 
-        Ok(ids.into_iter().map(TagId::new).collect())
+        Ok(ids)
     }
 }

@@ -1,4 +1,3 @@
-use crate::models::id::Id;
 use crate::models::user::UserId;
 use fake::Dummy;
 
@@ -15,7 +14,7 @@ pub struct CreateLivestream {
 
 #[derive(Debug)]
 pub struct Livestream {
-    pub id: Id<Self, i64>,
+    pub id: LivestreamId,
     pub user_id: UserId,
     pub title: String,
     pub description: String,
@@ -25,4 +24,9 @@ pub struct Livestream {
     pub end_at: i64,
 }
 
-pub type LivestreamId = Id<Livestream, i64>;
+kubetsu::define_id!(
+    #[derive(toasty::Embed)]
+    pub struct LivestreamId(i64);
+);
+kubetsu_serde::impl_serde!(LivestreamId(i64));
+kubetsu_fake::impl_fake!(LivestreamId(i64));

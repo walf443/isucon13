@@ -22,8 +22,8 @@ async fn found_case() {
     user.description = Some(Faker.fake());
 
     UserRow::create()
-        .id(user.id.inner())
-        .name(user.name.inner())
+        .id(&user.id)
+        .name(&user.name)
         .display_name(user.display_name.as_deref().unwrap())
         .description(user.description.as_deref().unwrap())
         .hashed_password(user.hashed_password.as_deref().unwrap())

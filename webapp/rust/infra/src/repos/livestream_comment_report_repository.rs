@@ -27,14 +27,14 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         report: &CreateLivestreamCommentReport,
     ) -> Result<LivestreamCommentReportId> {
         let row = LivestreamCommentReportRow::create()
-            .user_id(report.user_id.inner())
-            .livestream_id(report.livestream_id.inner())
-            .livecomment_id(report.livestream_comment_id.inner())
+            .user_id(&report.user_id)
+            .livestream_id(&report.livestream_id)
+            .livecomment_id(&report.livestream_comment_id)
             .created_at(report.created_at)
             .exec(conn)
             .await?;
 
-        Ok(LivestreamCommentReportId::new(row.id))
+        Ok(row.id)
     }
 
     async fn count_by_livestream_id<'c>(
@@ -65,7 +65,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         let rows = LivestreamCommentReportRow::filter(
             LivestreamCommentReportRow::fields()
                 .livestream_id()
-                .eq(livestream_id.inner()),
+                .eq(livestream_id),
         )
         .exec(conn)
         .await?;

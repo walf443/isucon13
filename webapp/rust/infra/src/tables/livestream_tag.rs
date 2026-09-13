@@ -7,17 +7,17 @@ use isupipe_core::models::tag::TagId;
 pub struct LivestreamTagRow {
     #[key]
     #[auto]
-    pub id: i64,
-    pub livestream_id: i64,
-    pub tag_id: i64,
+    pub id: LivestreamTagId,
+    pub livestream_id: LivestreamId,
+    pub tag_id: TagId,
 }
 
 impl From<LivestreamTagRow> for LivestreamTag {
     fn from(row: LivestreamTagRow) -> Self {
         Self {
-            id: LivestreamTagId::new(row.id),
-            livestream_id: LivestreamId::new(row.livestream_id),
-            tag_id: TagId::new(row.tag_id),
+            id: row.id,
+            livestream_id: row.livestream_id,
+            tag_id: row.tag_id,
         }
     }
 }

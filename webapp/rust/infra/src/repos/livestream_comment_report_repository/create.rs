@@ -53,9 +53,7 @@ async fn success_case() {
     let report_id = repo.create(&mut tx, &input).await.unwrap();
 
     let got: LivestreamCommentReport = LivestreamCommentReportRow::filter(
-        LivestreamCommentReportRow::fields()
-            .id()
-            .eq(report_id.inner()),
+        LivestreamCommentReportRow::fields().id().eq(&report_id),
     )
     .one()
     .exec(&mut tx)

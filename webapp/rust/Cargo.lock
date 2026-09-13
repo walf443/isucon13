@@ -1692,8 +1692,6 @@ dependencies = [
 [[package]]
 name = "kubetsu"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8a3348307ee652cd81b9b869f93970852dbc519365acca22ccb36e9ddd0a787"
 
 [[package]]
 name = "kubetsu-fake"
