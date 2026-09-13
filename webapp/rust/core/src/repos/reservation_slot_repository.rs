@@ -6,19 +6,23 @@ use async_trait::async_trait;
 #[cfg_attr(any(feature = "test", test), mockall::automock)]
 #[async_trait]
 pub trait ReservationSlotRepository {
-    async fn find_all_between_for_update(
+    async fn find_all_between_for_update<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         start_at: i64,
         end_at: i64,
     ) -> Result<Vec<ReservationSlot>>;
 
-    async fn find_slot_between(&self, conn: &mut DBConn, start_at: i64, end_at: i64)
-    -> Result<i64>;
-
-    async fn decrement_slot_between(
+    async fn find_slot_between<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
+        start_at: i64,
+        end_at: i64,
+    ) -> Result<i64>;
+
+    async fn decrement_slot_between<'c>(
+        &self,
+        conn: &'c mut DBConn<'c>,
         start_at: i64,
         end_at: i64,
     ) -> Result<()>;

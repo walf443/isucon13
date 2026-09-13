@@ -21,7 +21,7 @@ pub trait ThemeServiceImpl: Sync + HaveDBPool + HaveThemeRepository {}
 #[async_trait]
 impl<T: ThemeServiceImpl> ThemeService for T {
     async fn find_by_user_id(&self, user_id: &UserId) -> ServiceResult<Theme> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         let theme = self
             .theme_repo()
             .find_by_user_id(&mut conn, user_id)

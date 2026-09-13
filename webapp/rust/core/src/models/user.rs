@@ -1,13 +1,12 @@
 use crate::models::id::Id;
 use fake::Dummy;
 
-#[derive(Debug, sqlx::FromRow, Dummy)]
+#[derive(Debug, Dummy)]
 pub struct User {
     pub id: Id<Self, i64>,
     pub name: UserName,
     pub display_name: Option<String>,
     pub description: Option<String>,
-    #[sqlx(default, rename = "password")]
     pub hashed_password: Option<String>,
 }
 

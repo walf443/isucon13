@@ -21,13 +21,13 @@ pub trait TagServiceImpl: Sync + HaveDBPool + HaveTagRepository {}
 #[async_trait]
 impl<T: TagServiceImpl> TagService for T {
     async fn find(&self, tag_id: &TagId) -> ServiceResult<Tag> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         let tag = self.tag_repo().find(&mut conn, tag_id).await?;
         Ok(tag)
     }
 
     async fn find_all(&self) -> ServiceResult<Vec<Tag>> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         let tags = self.tag_repo().find_all(&mut conn).await?;
 
         Ok(tags)

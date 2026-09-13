@@ -33,7 +33,8 @@ pub trait NgWordServiceImpl:
 #[async_trait]
 impl<T: NgWordServiceImpl> NgWordService for T {
     async fn create(&self, ng_word: &CreateNgWord) -> ServiceResult<NgWordId> {
-        let mut tx = self.get_db_pool().begin().await?;
+        let mut db = self.get_db_pool().clone();
+        let mut tx = db.transaction().await?;
 
         let word_id = self.ng_word_repo().create(&mut tx, ng_word).await?;
 
@@ -63,7 +64,7 @@ impl<T: NgWordServiceImpl> NgWordService for T {
         livestream_id: &LivestreamId,
         user_id: &UserId,
     ) -> ServiceResult<Vec<NgWord>> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         let ng_words = self
             .ng_word_repo()
             .find_all_by_livestream_id_and_user_id_order_by_created_at(

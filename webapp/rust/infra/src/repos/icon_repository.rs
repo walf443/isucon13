@@ -3,72 +3,54 @@ mod create;
 #[cfg(test)]
 mod delete_by_user_id;
 
-use crate::qbey_support::{SQLValue, bind_qbey_values, bind_sql_values};
-use crate::tables::icon::TABLE_ICONS;
+use crate::tables::icon::IconRow;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::icon::CreateIcon;
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::icon_repository::IconRepository;
-use qbey::prelude::*;
-use qbey_mysql::qbey;
 
 #[derive(Clone)]
 pub struct IconRepositoryInfra {}
 
 #[async_trait]
 impl IconRepository for IconRepositoryInfra {
-    async fn find_image_by_user_id(
+    async fn find_image_by_user_id<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<Option<Vec<u8>>> {
-        let t = &TABLE_ICONS;
-        let mut q = qbey(t.table());
-        q.and_where(t.user_id().eq(*user_id.inner()));
-        q.select(&[t.image()]);
-        let (sql, binds) = q.into_sql();
-        let image = bind_qbey_values!(
-            sqlx::query_scalar::<_, Vec<u8>>(sqlx::AssertSqlSafe(sql)),
-            binds
-        )
-        .fetch_optional(conn)
-        .await?;
+        let images = IconRow::filter(IconRow::fields().user_id().eq(user_id.inner()))
+            .limit(1)
+            .select(IconRow::fields().image())
+            .exec(conn)
+            .await?;
 
-        Ok(image)
+        Ok(images.into_iter().next())
     }
 
-    async fn create(
+    async fn create<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         icon: &CreateIcon,
     ) -> isupipe_core::repos::Result<i64> {
-        let t = &TABLE_ICONS;
-        let mut ins = qbey_mysql::qbey_with::<SQLValue>(t.table()).into_insert();
-        ins.add_value(&[
-            ("user_id", (*icon.user_id.inner()).into()),
-            ("image", icon.image.clone().into()),
-        ]);
-        let (sql, binds) = ins.into_sql();
-        let rs = bind_sql_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
-            .execute(conn)
+        let row = IconRow::create()
+            .user_id(icon.user_id.inner())
+            .image(icon.image.clone())
+            .exec(conn)
             .await?;
-        let icon_id = rs.last_insert_id() as i64;
 
-        Ok(icon_id)
+        Ok(row.id)
     }
 
-    async fn delete_by_user_id(
+    async fn delete_by_user_id<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         user_id: &UserId,
     ) -> isupipe_core::repos::Result<()> {
-        let t = &TABLE_ICONS;
-        let d = qbey(t.table()).into_delete();
-        let d = d.and_where(t.user_id().eq(*user_id.inner()));
-        let (sql, binds) = d.into_sql();
-        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
-            .execute(conn)
+        IconRow::filter(IconRow::fields().user_id().eq(user_id.inner()))
+            .delete()
+            .exec(conn)
             .await?;
 
         Ok(())

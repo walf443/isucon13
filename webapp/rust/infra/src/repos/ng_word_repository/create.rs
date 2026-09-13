@@ -1,47 +1,32 @@
-use crate::qbey_support::bind_qbey_values;
 use crate::repos::ng_word_repository::NgWordRepositoryInfra;
-use crate::tables::livestream::TABLE_LIVESTREAMS;
-use crate::tables::ng_word::TABLE_NG_WORDS;
-use crate::tables::user::TABLE_USERS;
+use crate::tables::ng_word::NgWordRow;
+use crate::test_support::get_db_pool;
 use crate::test_support::{InsertLivestreamSetup, InsertUserSetup};
 use fake::{Fake, Faker};
-use isupipe_core::db::get_db_pool;
 use isupipe_core::models::livestream::{CreateLivestream, LivestreamId};
 use isupipe_core::models::ng_word::{CreateNgWord, NgWord};
 use isupipe_core::models::user::{CreateUser, UserId};
 use isupipe_core::repos::ng_word_repository::NgWordRepository;
-use qbey::prelude::*;
-use qbey_mysql::qbey;
 
 #[tokio::test]
 async fn success_case() {
-    let db_pool = get_db_pool().await.unwrap();
-    let mut tx = db_pool.begin().await.unwrap();
+    let mut db = get_db_pool().await;
+    let mut tx = db.transaction().await.unwrap();
 
     let user: CreateUser = Faker.fake();
     {
-        let mut ins = qbey(TABLE_USERS.table()).into_insert();
-        ins.add_value(&InsertUserSetup { id: 1, user: &user });
-        let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
-            .execute(&mut *tx)
-            .await
-            .unwrap();
+        InsertUserSetup { id: 1, user: &user }.insert(&mut tx).await;
     }
 
     let stream: CreateLivestream = Faker.fake();
     {
-        let mut ins = qbey(TABLE_LIVESTREAMS.table()).into_insert();
-        ins.add_value(&InsertLivestreamSetup {
+        InsertLivestreamSetup {
             id: 1,
             user_id: 1,
             stream: &stream,
-        });
-        let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
-            .execute(&mut *tx)
-            .await
-            .unwrap();
+        }
+        .insert(&mut tx)
+        .await;
     }
 
     let mut input: CreateNgWord = Faker.fake();
@@ -51,15 +36,13 @@ async fn success_case() {
     let repo = NgWordRepositoryInfra {};
     let word_id = repo.create(&mut tx, &input).await.unwrap();
 
-    let t = &TABLE_NG_WORDS;
-    let mut q = qbey(t.table());
-    q.and_where(t.id().eq(*word_id.inner()));
-    let (sql, binds) = q.into_sql();
-    let got: NgWord =
-        bind_qbey_values!(sqlx::query_as::<_, NgWord>(sqlx::AssertSqlSafe(sql)), binds)
-            .fetch_one(&mut *tx)
-            .await
-            .unwrap();
+    let got: NgWord = NgWordRow::all()
+        .filter(NgWordRow::fields().id().eq(*word_id.inner()))
+        .one()
+        .exec(&mut tx)
+        .await
+        .unwrap()
+        .into();
 
     assert_eq!(got.id, word_id);
     assert_eq!(got.user_id, input.user_id);

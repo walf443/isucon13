@@ -1,25 +1,18 @@
-use crate::qbey_support::bind_qbey_values;
 use crate::repos::livestream_tag_repository::LivestreamTagRepositoryInfra;
-use crate::tables::livestream::TABLE_LIVESTREAMS;
-use crate::tables::livestream_tag::TABLE_LIVESTREAM_TAGS;
-use crate::tables::tag::TABLE_TAGS;
-use crate::tables::user::TABLE_USERS;
+use crate::test_support::get_db_pool;
 use crate::test_support::{
     InsertLivestreamSetup, InsertLivestreamTagSetup, InsertTagSetup, InsertUserSetup,
 };
 use fake::{Fake, Faker};
-use isupipe_core::db::get_db_pool;
 use isupipe_core::models::livestream::CreateLivestream;
 use isupipe_core::models::tag::{Tag, TagId};
 use isupipe_core::models::user::CreateUser;
 use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
-use qbey::prelude::*;
-use qbey_mysql::qbey;
 
 #[tokio::test]
 async fn empty_case() {
-    let db_pool = get_db_pool().await.unwrap();
-    let mut tx = db_pool.begin().await.unwrap();
+    let mut db = get_db_pool().await;
+    let mut tx = db.transaction().await.unwrap();
 
     let repo = LivestreamTagRepositoryInfra {};
     let result = repo
@@ -31,83 +24,71 @@ async fn empty_case() {
 
 #[tokio::test]
 async fn filters_by_tag_ids() {
-    let db_pool = get_db_pool().await.unwrap();
-    let mut tx = db_pool.begin().await.unwrap();
+    let mut db = get_db_pool().await;
+    let mut tx = db.transaction().await.unwrap();
 
     let user: CreateUser = Faker.fake();
     {
-        let mut ins = qbey(TABLE_USERS.table()).into_insert();
-        ins.add_value(&InsertUserSetup { id: 1, user: &user });
-        let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
-            .execute(&mut *tx)
-            .await
-            .unwrap();
+        InsertUserSetup { id: 1, user: &user }.insert(&mut tx).await;
     }
 
     let stream1: CreateLivestream = Faker.fake();
     let stream2: CreateLivestream = Faker.fake();
     {
-        let mut ins = qbey(TABLE_LIVESTREAMS.table()).into_insert();
-        ins.add_value(&InsertLivestreamSetup {
+        InsertLivestreamSetup {
             id: 1,
             user_id: 1,
             stream: &stream1,
-        });
-        ins.add_value(&InsertLivestreamSetup {
+        }
+        .insert(&mut tx)
+        .await;
+        InsertLivestreamSetup {
             id: 2,
             user_id: 1,
             stream: &stream2,
-        });
-        let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
-            .execute(&mut *tx)
-            .await
-            .unwrap();
+        }
+        .insert(&mut tx)
+        .await;
     }
 
     let tag1: Tag = Faker.fake();
     let tag2: Tag = Faker.fake();
     let tag3: Tag = Faker.fake();
     {
-        let mut ins = qbey(TABLE_TAGS.table()).into_insert();
-        ins.add_value(&InsertTagSetup { id: 1, tag: &tag1 });
-        ins.add_value(&InsertTagSetup { id: 2, tag: &tag2 });
-        ins.add_value(&InsertTagSetup { id: 3, tag: &tag3 });
-        let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
-            .execute(&mut *tx)
-            .await
-            .unwrap();
+        InsertTagSetup { id: 1, tag: &tag1 }.insert(&mut tx).await;
+        InsertTagSetup { id: 2, tag: &tag2 }.insert(&mut tx).await;
+        InsertTagSetup { id: 3, tag: &tag3 }.insert(&mut tx).await;
     }
 
     {
-        let mut ins = qbey(TABLE_LIVESTREAM_TAGS.table()).into_insert();
-        ins.add_value(&InsertLivestreamTagSetup {
+        InsertLivestreamTagSetup {
             id: 1,
             livestream_id: 1,
             tag_id: 1,
-        });
-        ins.add_value(&InsertLivestreamTagSetup {
+        }
+        .insert(&mut tx)
+        .await;
+        InsertLivestreamTagSetup {
             id: 2,
             livestream_id: 1,
             tag_id: 2,
-        });
-        ins.add_value(&InsertLivestreamTagSetup {
+        }
+        .insert(&mut tx)
+        .await;
+        InsertLivestreamTagSetup {
             id: 3,
             livestream_id: 2,
             tag_id: 1,
-        });
-        ins.add_value(&InsertLivestreamTagSetup {
+        }
+        .insert(&mut tx)
+        .await;
+        InsertLivestreamTagSetup {
             id: 4,
             livestream_id: 2,
             tag_id: 3,
-        });
-        let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
-            .execute(&mut *tx)
-            .await
-            .unwrap();
+        }
+        .insert(&mut tx)
+        .await;
     }
 
     let repo = LivestreamTagRepositoryInfra {};

@@ -7,8 +7,17 @@ use async_trait::async_trait;
 #[cfg_attr(any(feature = "test", test), mockall::automock)]
 #[async_trait]
 pub trait ThemeRepository {
-    async fn create(&self, conn: &mut DBConn, user_id: &UserId, dark_mode: bool) -> Result<()>;
-    async fn find_by_user_id(&self, conn: &mut DBConn, user_id: &UserId) -> Result<Theme>;
+    async fn create<'c>(
+        &self,
+        conn: &'c mut DBConn<'c>,
+        user_id: &UserId,
+        dark_mode: bool,
+    ) -> Result<()>;
+    async fn find_by_user_id<'c>(
+        &self,
+        conn: &'c mut DBConn<'c>,
+        user_id: &UserId,
+    ) -> Result<Theme>;
 }
 
 pub trait HaveThemeRepository {

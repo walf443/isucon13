@@ -48,7 +48,8 @@ pub trait UserStatisticsServiceImpl:
 #[async_trait]
 impl<T: UserStatisticsServiceImpl> UserStatisticsService for T {
     async fn get_stats(&self, user: &User) -> ServiceResult<UserStatistics> {
-        let mut tx = self.get_db_pool().begin().await?;
+        let mut db = self.get_db_pool().clone();
+        let mut tx = db.transaction().await?;
 
         let livestreams = self
             .livestream_repo()
@@ -70,7 +71,8 @@ impl<T: UserStatisticsServiceImpl> UserStatisticsService for T {
     }
 
     async fn get_rank(&self, user_name: &UserName) -> ServiceResult<i64> {
-        let mut tx = self.get_db_pool().begin().await?;
+        let mut db = self.get_db_pool().clone();
+        let mut tx = db.transaction().await?;
 
         // ランク算出
         let users = self.user_repo().find_all(&mut tx).await?;
@@ -109,7 +111,8 @@ impl<T: UserStatisticsServiceImpl> UserStatisticsService for T {
     }
 
     async fn get_viewers_count(&self, user_livestreams: &[Livestream]) -> ServiceResult<i64> {
-        let mut tx = self.get_db_pool().begin().await?;
+        let mut db = self.get_db_pool().clone();
+        let mut tx = db.transaction().await?;
 
         // 合計視聴者数
         let mut viewers_count = 0;
@@ -125,7 +128,7 @@ impl<T: UserStatisticsServiceImpl> UserStatisticsService for T {
     }
 
     async fn get_total_reactions(&self, user_name: &UserName) -> ServiceResult<i64> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
 
         let total_reactions = self
             .reaction_repo()
@@ -139,7 +142,8 @@ impl<T: UserStatisticsServiceImpl> UserStatisticsService for T {
         &self,
         user_livestreams: &[Livestream],
     ) -> ServiceResult<(i64, i64)> {
-        let mut tx = self.get_db_pool().begin().await?;
+        let mut db = self.get_db_pool().clone();
+        let mut tx = db.transaction().await?;
 
         let mut total_livecomments = 0;
         let mut total_tip = 0;
@@ -160,7 +164,7 @@ impl<T: UserStatisticsServiceImpl> UserStatisticsService for T {
     }
 
     async fn get_favorite_emoji(&self, user_name: &UserName) -> ServiceResult<String> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
 
         let favorite_emoji = self
             .reaction_repo()

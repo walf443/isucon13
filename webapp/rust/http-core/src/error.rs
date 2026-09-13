@@ -9,8 +9,8 @@ use std::borrow::Cow;
 pub enum Error {
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
-    #[error("SQLx error: {0}")]
-    Sqlx(#[from] sqlx::Error),
+    #[error("toasty error: {0}")]
+    Toasty(#[from] toasty::Error),
     #[error("Repos error: {0}")]
     ReposError(#[from] ReposError),
     #[error("response error: {0}")]
@@ -58,7 +58,7 @@ impl axum::response::IntoResponse for Error {
             Self::Forbidden(_) => StatusCode::FORBIDDEN,
             Self::NotFound(_) => StatusCode::NOT_FOUND,
             Self::Io(_)
-            | Self::Sqlx(_)
+            | Self::Toasty(_)
             | Self::ReposError(_)
             | Self::ResponseError(_)
             | Self::UtilsError(_)

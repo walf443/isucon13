@@ -1,19 +1,27 @@
-qbey::qbey_schema!(
-    UserTable,
-    "users",
-    [id, name, display_name, description, password,]
-);
+use isupipe_core::models::user::{User, UserId, UserName};
 
-impl UserTable {
-    pub fn default_cols(&self) -> Vec<qbey::Col> {
-        vec![
-            self.id(),
-            self.name(),
-            self.display_name(),
-            self.description(),
-            self.password().as_("hashed_password"),
-        ]
-    }
+#[derive(Debug, toasty::Model)]
+#[table = "users"]
+pub struct UserRow {
+    #[key]
+    #[auto]
+    pub id: i64,
+    #[unique]
+    pub name: String,
+    pub display_name: String,
+    #[column("password")]
+    pub hashed_password: String,
+    pub description: String,
 }
 
-pub const TABLE_USERS: UserTable = UserTable::new();
+impl From<UserRow> for User {
+    fn from(row: UserRow) -> Self {
+        Self {
+            id: UserId::new(row.id),
+            name: UserName::new(row.name),
+            display_name: Some(row.display_name),
+            description: Some(row.description),
+            hashed_password: Some(row.hashed_password),
+        }
+    }
+}

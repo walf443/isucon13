@@ -57,7 +57,8 @@ impl<T: LivestreamServiceImpl> LivestreamService for T {
         livestream: &CreateLivestream,
         tag_ids: &[TagId],
     ) -> ServiceResult<Livestream> {
-        let mut tx = self.get_db_pool().begin().await?;
+        let mut db = self.get_db_pool().clone();
+        let mut tx = db.transaction().await?;
 
         let reservation_slot_repo = self.reservation_slot_repo();
 
@@ -110,7 +111,7 @@ impl<T: LivestreamServiceImpl> LivestreamService for T {
     }
 
     async fn find(&self, livestream_id: &LivestreamId) -> ServiceResult<Option<Livestream>> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         let result = self
             .livestream_repo()
             .find(&mut conn, livestream_id)
@@ -119,7 +120,7 @@ impl<T: LivestreamServiceImpl> LivestreamService for T {
     }
 
     async fn find_recent_livestreams(&self, limit: Option<i64>) -> ServiceResult<Vec<Livestream>> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         let livestreams = match limit {
             None => {
                 self.livestream_repo()
@@ -137,7 +138,7 @@ impl<T: LivestreamServiceImpl> LivestreamService for T {
     }
 
     async fn find_recent_by_tag_name(&self, tag_name: &TagName) -> ServiceResult<Vec<Livestream>> {
-        let mut tx = self.get_db_pool().acquire().await?;
+        let mut tx = self.get_db_pool().connection().await?;
         let tag_id_list = self.tag_repo().find_ids_by_name(&mut tx, tag_name).await?;
 
         let key_tagged_livestreams = self
@@ -160,7 +161,7 @@ impl<T: LivestreamServiceImpl> LivestreamService for T {
     }
 
     async fn find_all_by_user_id(&self, user_id: &UserId) -> ServiceResult<Vec<Livestream>> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         let livestreams = self
             .livestream_repo()
             .find_all_by_user_id(&mut conn, user_id)
@@ -174,7 +175,7 @@ impl<T: LivestreamServiceImpl> LivestreamService for T {
         livestream_id: &LivestreamId,
         user_id: &UserId,
     ) -> ServiceResult<bool> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         let is_exist = self
             .livestream_repo()
             .exist_by_id_and_user_id(&mut conn, livestream_id, user_id)

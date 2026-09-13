@@ -8,19 +8,19 @@ use async_trait::async_trait;
 #[cfg_attr(any(feature = "test", test), mockall::automock)]
 #[async_trait]
 pub trait LivestreamViewersHistoryRepository {
-    async fn create(
+    async fn create<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         history: &CreateLivestreamViewersHistory,
     ) -> Result<()>;
-    async fn count_by_livestream_id(
+    async fn count_by_livestream_id<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
     ) -> Result<i64>;
-    async fn delete_by_livestream_id_and_user_id(
+    async fn delete_by_livestream_id_and_user_id<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
         user_id: &UserId,
     ) -> Result<()>;

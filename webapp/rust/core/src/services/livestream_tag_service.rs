@@ -29,7 +29,7 @@ impl<T: LivestreamTagServiceImpl> LivestreamTagService for T {
         &self,
         livestream_id: &LivestreamId,
     ) -> ServiceResult<Vec<LivestreamTag>> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         let livestream_tags = self
             .livestream_tag_repo()
             .find_all_by_livestream_id(&mut conn, livestream_id)

@@ -1,58 +1,47 @@
-use crate::qbey_support::bind_qbey_values;
-use crate::qbey_support::bind_sql_values;
 use crate::repos::icon_repository::IconRepositoryInfra;
-use crate::tables::icon::TABLE_ICONS;
-use crate::tables::user::TABLE_USERS;
+use crate::test_support::get_db_pool;
 use crate::test_support::{InsertIconSetup, InsertUserSetup};
 use fake::{Fake, Faker};
-use isupipe_core::db::get_db_pool;
 use isupipe_core::models::user::{CreateUser, UserId};
 use isupipe_core::repos::icon_repository::IconRepository;
-use qbey::prelude::*;
-use qbey_mysql::qbey;
-use qbey_mysql::qbey_with;
 
 #[tokio::test]
 async fn deletes_icon() {
-    let db_pool = get_db_pool().await.unwrap();
-    let mut tx = db_pool.begin().await.unwrap();
+    let mut db = get_db_pool().await;
+    let mut tx = db.transaction().await.unwrap();
 
     let user1: CreateUser = Faker.fake();
     let user2: CreateUser = Faker.fake();
     {
-        let mut ins = qbey(TABLE_USERS.table()).into_insert();
-        ins.add_value(&InsertUserSetup {
+        InsertUserSetup {
             id: 1,
             user: &user1,
-        });
-        ins.add_value(&InsertUserSetup {
+        }
+        .insert(&mut tx)
+        .await;
+        InsertUserSetup {
             id: 2,
             user: &user2,
-        });
-        let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
-            .execute(&mut *tx)
-            .await
-            .unwrap();
+        }
+        .insert(&mut tx)
+        .await;
     }
 
     {
-        let mut ins = qbey_with::<crate::qbey_support::SQLValue>(TABLE_ICONS.table()).into_insert();
-        ins.add_value(&InsertIconSetup {
+        InsertIconSetup {
             id: 1,
             user_id: 1,
             image: vec![0x89u8, 0x50, 0x4E, 0x47],
-        });
-        ins.add_value(&InsertIconSetup {
+        }
+        .insert(&mut tx)
+        .await;
+        InsertIconSetup {
             id: 2,
             user_id: 2,
             image: vec![0x89u8, 0x50, 0x4E, 0x47],
-        });
-        let (sql, binds) = ins.into_sql();
-        bind_sql_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
-            .execute(&mut *tx)
-            .await
-            .unwrap();
+        }
+        .insert(&mut tx)
+        .await;
     }
 
     let repo = IconRepositoryInfra {};
@@ -77,18 +66,12 @@ async fn deletes_icon() {
 
 #[tokio::test]
 async fn noop_when_no_icon() {
-    let db_pool = get_db_pool().await.unwrap();
-    let mut tx = db_pool.begin().await.unwrap();
+    let mut db = get_db_pool().await;
+    let mut tx = db.transaction().await.unwrap();
 
     let user: CreateUser = Faker.fake();
     {
-        let mut ins = qbey(TABLE_USERS.table()).into_insert();
-        ins.add_value(&InsertUserSetup { id: 1, user: &user });
-        let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
-            .execute(&mut *tx)
-            .await
-            .unwrap();
+        InsertUserSetup { id: 1, user: &user }.insert(&mut tx).await;
     }
 
     let repo = IconRepositoryInfra {};

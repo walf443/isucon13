@@ -8,22 +8,22 @@ use async_trait::async_trait;
 #[cfg_attr(any(feature = "test", test), mockall::automock)]
 #[async_trait]
 pub trait LivestreamTagRepository {
-    async fn insert(
+    async fn insert<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
         tag_id: &TagId,
     ) -> Result<()>;
 
-    async fn find_all_by_livestream_id(
+    async fn find_all_by_livestream_id<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
     ) -> Result<Vec<LivestreamTag>>;
 
-    async fn find_all_by_tag_ids(
+    async fn find_all_by_tag_ids<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         tag_ids: &[TagId],
     ) -> Result<Vec<LivestreamTag>>;
 }

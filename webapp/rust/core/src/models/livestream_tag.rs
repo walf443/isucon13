@@ -2,7 +2,7 @@ use crate::models::id::Id;
 use crate::models::livestream::LivestreamId;
 use crate::models::tag::TagId;
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug)]
 pub struct LivestreamTag {
     #[allow(unused)]
     pub id: Id<Self, i64>,

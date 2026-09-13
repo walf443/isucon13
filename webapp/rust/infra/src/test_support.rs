@@ -1,4 +1,21 @@
-use isupipe_core::models::icon::CreateIcon;
+//! リポジトリのテストで使う、テスト DB の組み立てとセットアップ用 INSERT のヘルパ。
+//!
+//! 各 `Insert*Setup` は既存のテストコードとの互換のために struct literal で組み立て、
+//! `.insert(&mut tx).await` で toasty のモデル経由で INSERT する。
+
+use crate::tables::icon::IconRow;
+use crate::tables::livestream::LivestreamRow;
+use crate::tables::livestream_comment::LivestreamCommentRow;
+use crate::tables::livestream_comment_report::LivestreamCommentReportRow;
+use crate::tables::livestream_tag::LivestreamTagRow;
+use crate::tables::livestream_viewers_history::LivestreamViewersHistoryRow;
+use crate::tables::ng_word::NgWordRow;
+use crate::tables::reaction::ReactionRow;
+use crate::tables::reservation_slot::ReservationSlotRow;
+use crate::tables::tag::TagRow;
+use crate::tables::theme::ThemeRow;
+use crate::tables::user::UserRow;
+use isupipe_core::db::{DBConn, DBPool};
 use isupipe_core::models::livestream::CreateLivestream;
 use isupipe_core::models::livestream_comment::CreateLivestreamComment;
 use isupipe_core::models::livestream_comment_report::CreateLivestreamCommentReport;
@@ -8,20 +25,28 @@ use isupipe_core::models::reservation_slot::ReservationSlot;
 use isupipe_core::models::tag::Tag;
 use isupipe_core::models::theme::Theme;
 
+/// モデル登録済みのテスト用 `Db` を返す。テストごとに独立したプールを作る。
+pub async fn get_db_pool() -> DBPool {
+    let url = isupipe_core::db::get_test_db_url().await;
+    crate::db::build_db(&url, 2).await.unwrap()
+}
+
 pub struct InsertUserSetup<'a> {
     pub id: i64,
     pub user: &'a isupipe_core::models::user::CreateUser,
 }
 
-impl qbey::ToInsertRow<qbey::Value> for InsertUserSetup<'_> {
-    fn to_insert_row(&self) -> Vec<(&'static str, qbey::Value)> {
-        vec![
-            ("id", self.id.into()),
-            ("name", self.user.name.as_str().into()),
-            ("display_name", self.user.display_name.as_str().into()),
-            ("password", self.user.password.as_str().into()),
-            ("description", self.user.description.as_str().into()),
-        ]
+impl InsertUserSetup<'_> {
+    pub async fn insert(&self, conn: &mut DBConn<'_>) -> UserRow {
+        UserRow::create()
+            .id(self.id)
+            .name(&self.user.name)
+            .display_name(&self.user.display_name)
+            .hashed_password(&self.user.password)
+            .description(&self.user.description)
+            .exec(conn)
+            .await
+            .unwrap()
     }
 }
 
@@ -31,18 +56,20 @@ pub struct InsertLivestreamSetup<'a> {
     pub stream: &'a CreateLivestream,
 }
 
-impl qbey::ToInsertRow<qbey::Value> for InsertLivestreamSetup<'_> {
-    fn to_insert_row(&self) -> Vec<(&'static str, qbey::Value)> {
-        vec![
-            ("id", self.id.into()),
-            ("user_id", self.user_id.into()),
-            ("title", self.stream.title.as_str().into()),
-            ("description", self.stream.description.as_str().into()),
-            ("playlist_url", self.stream.playlist_url.as_str().into()),
-            ("thumbnail_url", self.stream.thumbnail_url.as_str().into()),
-            ("start_at", self.stream.start_at.into()),
-            ("end_at", self.stream.end_at.into()),
-        ]
+impl InsertLivestreamSetup<'_> {
+    pub async fn insert(&self, conn: &mut DBConn<'_>) -> LivestreamRow {
+        LivestreamRow::create()
+            .id(self.id)
+            .user_id(self.user_id)
+            .title(&self.stream.title)
+            .description(&self.stream.description)
+            .playlist_url(&self.stream.playlist_url)
+            .thumbnail_url(&self.stream.thumbnail_url)
+            .start_at(self.stream.start_at)
+            .end_at(self.stream.end_at)
+            .exec(conn)
+            .await
+            .unwrap()
     }
 }
 
@@ -53,15 +80,17 @@ pub struct InsertReactionSetup<'a> {
     pub reaction: &'a CreateReaction,
 }
 
-impl qbey::ToInsertRow<qbey::Value> for InsertReactionSetup<'_> {
-    fn to_insert_row(&self) -> Vec<(&'static str, qbey::Value)> {
-        vec![
-            ("id", self.id.into()),
-            ("user_id", self.user_id.into()),
-            ("livestream_id", self.livestream_id.into()),
-            ("emoji_name", self.reaction.emoji_name.as_str().into()),
-            ("created_at", self.reaction.created_at.into()),
-        ]
+impl InsertReactionSetup<'_> {
+    pub async fn insert(&self, conn: &mut DBConn<'_>) -> ReactionRow {
+        ReactionRow::create()
+            .id(self.id)
+            .user_id(self.user_id)
+            .livestream_id(self.livestream_id)
+            .emoji_name(&self.reaction.emoji_name)
+            .created_at(self.reaction.created_at)
+            .exec(conn)
+            .await
+            .unwrap()
     }
 }
 
@@ -72,16 +101,18 @@ pub struct InsertCommentSetup<'a> {
     pub comment: &'a CreateLivestreamComment,
 }
 
-impl qbey::ToInsertRow<qbey::Value> for InsertCommentSetup<'_> {
-    fn to_insert_row(&self) -> Vec<(&'static str, qbey::Value)> {
-        vec![
-            ("id", self.id.into()),
-            ("user_id", self.user_id.into()),
-            ("livestream_id", self.livestream_id.into()),
-            ("comment", self.comment.comment.as_str().into()),
-            ("tip", self.comment.tip.into()),
-            ("created_at", self.comment.created_at.into()),
-        ]
+impl InsertCommentSetup<'_> {
+    pub async fn insert(&self, conn: &mut DBConn<'_>) -> LivestreamCommentRow {
+        LivestreamCommentRow::create()
+            .id(self.id)
+            .user_id(self.user_id)
+            .livestream_id(self.livestream_id)
+            .comment(&self.comment.comment)
+            .tip(self.comment.tip)
+            .created_at(self.comment.created_at)
+            .exec(conn)
+            .await
+            .unwrap()
     }
 }
 
@@ -93,15 +124,17 @@ pub struct InsertReportSetup<'a> {
     pub report: &'a CreateLivestreamCommentReport,
 }
 
-impl qbey::ToInsertRow<qbey::Value> for InsertReportSetup<'_> {
-    fn to_insert_row(&self) -> Vec<(&'static str, qbey::Value)> {
-        vec![
-            ("id", self.id.into()),
-            ("user_id", self.user_id.into()),
-            ("livestream_id", self.livestream_id.into()),
-            ("livecomment_id", self.livecomment_id.into()),
-            ("created_at", self.report.created_at.into()),
-        ]
+impl InsertReportSetup<'_> {
+    pub async fn insert(&self, conn: &mut DBConn<'_>) -> LivestreamCommentReportRow {
+        LivestreamCommentReportRow::create()
+            .id(self.id)
+            .user_id(self.user_id)
+            .livestream_id(self.livestream_id)
+            .livecomment_id(self.livecomment_id)
+            .created_at(self.report.created_at)
+            .exec(conn)
+            .await
+            .unwrap()
     }
 }
 
@@ -112,15 +145,17 @@ pub struct InsertNgWordSetup<'a> {
     pub ng_word: &'a CreateNgWord,
 }
 
-impl qbey::ToInsertRow<qbey::Value> for InsertNgWordSetup<'_> {
-    fn to_insert_row(&self) -> Vec<(&'static str, qbey::Value)> {
-        vec![
-            ("id", self.id.into()),
-            ("user_id", self.user_id.into()),
-            ("livestream_id", self.livestream_id.into()),
-            ("word", self.ng_word.word.as_str().into()),
-            ("created_at", self.ng_word.created_at.into()),
-        ]
+impl InsertNgWordSetup<'_> {
+    pub async fn insert(&self, conn: &mut DBConn<'_>) -> NgWordRow {
+        NgWordRow::create()
+            .id(self.id)
+            .user_id(self.user_id)
+            .livestream_id(self.livestream_id)
+            .word(&self.ng_word.word)
+            .created_at(self.ng_word.created_at)
+            .exec(conn)
+            .await
+            .unwrap()
     }
 }
 
@@ -129,12 +164,14 @@ pub struct InsertTagSetup<'a> {
     pub tag: &'a Tag,
 }
 
-impl qbey::ToInsertRow<qbey::Value> for InsertTagSetup<'_> {
-    fn to_insert_row(&self) -> Vec<(&'static str, qbey::Value)> {
-        vec![
-            ("id", self.id.into()),
-            ("name", self.tag.name.inner().as_str().into()),
-        ]
+impl InsertTagSetup<'_> {
+    pub async fn insert(&self, conn: &mut DBConn<'_>) -> TagRow {
+        TagRow::create()
+            .id(self.id)
+            .name(self.tag.name.inner())
+            .exec(conn)
+            .await
+            .unwrap()
     }
 }
 
@@ -144,13 +181,15 @@ pub struct InsertLivestreamTagSetup {
     pub tag_id: i64,
 }
 
-impl qbey::ToInsertRow<qbey::Value> for InsertLivestreamTagSetup {
-    fn to_insert_row(&self) -> Vec<(&'static str, qbey::Value)> {
-        vec![
-            ("id", self.id.into()),
-            ("livestream_id", self.livestream_id.into()),
-            ("tag_id", self.tag_id.into()),
-        ]
+impl InsertLivestreamTagSetup {
+    pub async fn insert(&self, conn: &mut DBConn<'_>) -> LivestreamTagRow {
+        LivestreamTagRow::create()
+            .id(self.id)
+            .livestream_id(self.livestream_id)
+            .tag_id(self.tag_id)
+            .exec(conn)
+            .await
+            .unwrap()
     }
 }
 
@@ -160,13 +199,15 @@ pub struct InsertViewersHistorySetup {
     pub created_at: i64,
 }
 
-impl qbey::ToInsertRow<qbey::Value> for InsertViewersHistorySetup {
-    fn to_insert_row(&self) -> Vec<(&'static str, qbey::Value)> {
-        vec![
-            ("user_id", self.user_id.into()),
-            ("livestream_id", self.livestream_id.into()),
-            ("created_at", self.created_at.into()),
-        ]
+impl InsertViewersHistorySetup {
+    pub async fn insert(&self, conn: &mut DBConn<'_>) -> LivestreamViewersHistoryRow {
+        LivestreamViewersHistoryRow::create()
+            .user_id(self.user_id)
+            .livestream_id(self.livestream_id)
+            .created_at(self.created_at)
+            .exec(conn)
+            .await
+            .unwrap()
     }
 }
 
@@ -174,14 +215,16 @@ pub struct InsertReservationSlotSetup<'a> {
     pub slot: &'a ReservationSlot,
 }
 
-impl qbey::ToInsertRow<qbey::Value> for InsertReservationSlotSetup<'_> {
-    fn to_insert_row(&self) -> Vec<(&'static str, qbey::Value)> {
-        vec![
-            ("id", (*self.slot.id.inner()).into()),
-            ("slot", self.slot.slot.into()),
-            ("start_at", self.slot.start_at.into()),
-            ("end_at", self.slot.end_at.into()),
-        ]
+impl InsertReservationSlotSetup<'_> {
+    pub async fn insert(&self, conn: &mut DBConn<'_>) -> ReservationSlotRow {
+        ReservationSlotRow::create()
+            .id(self.slot.id.inner())
+            .slot(self.slot.slot)
+            .start_at(self.slot.start_at)
+            .end_at(self.slot.end_at)
+            .exec(conn)
+            .await
+            .unwrap()
     }
 }
 
@@ -189,13 +232,15 @@ pub struct InsertThemeSetup<'a> {
     pub theme: &'a Theme,
 }
 
-impl qbey::ToInsertRow<qbey::Value> for InsertThemeSetup<'_> {
-    fn to_insert_row(&self) -> Vec<(&'static str, qbey::Value)> {
-        vec![
-            ("id", (*self.theme.id.inner()).into()),
-            ("user_id", (*self.theme.user_id.inner()).into()),
-            ("dark_mode", self.theme.dark_mode.into()),
-        ]
+impl InsertThemeSetup<'_> {
+    pub async fn insert(&self, conn: &mut DBConn<'_>) -> ThemeRow {
+        ThemeRow::create()
+            .id(self.theme.id.inner())
+            .user_id(self.theme.user_id.inner())
+            .dark_mode(self.theme.dark_mode)
+            .exec(conn)
+            .await
+            .unwrap()
     }
 }
 
@@ -205,12 +250,14 @@ pub struct InsertIconSetup {
     pub image: Vec<u8>,
 }
 
-impl qbey::ToInsertRow<crate::qbey_support::SQLValue> for InsertIconSetup {
-    fn to_insert_row(&self) -> Vec<(&'static str, crate::qbey_support::SQLValue)> {
-        vec![
-            ("id", self.id.into()),
-            ("user_id", self.user_id.into()),
-            ("image", self.image.clone().into()),
-        ]
+impl InsertIconSetup {
+    pub async fn insert(&self, conn: &mut DBConn<'_>) -> IconRow {
+        IconRow::create()
+            .id(self.id)
+            .user_id(self.user_id)
+            .image(self.image.clone())
+            .exec(conn)
+            .await
+            .unwrap()
     }
 }

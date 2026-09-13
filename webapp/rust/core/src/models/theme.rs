@@ -2,7 +2,7 @@ use crate::models::id::Id;
 use crate::models::user::UserId;
 use fake::Dummy;
 
-#[derive(Debug, sqlx::FromRow, Dummy)]
+#[derive(Debug, Dummy)]
 pub struct Theme {
     pub id: Id<Self, i64>,
     #[allow(unused)]

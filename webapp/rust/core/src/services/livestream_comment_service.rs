@@ -44,7 +44,7 @@ impl<T: LivestreamCommentServiceImpl> LivestreamCommentService for T {
         &self,
         livestream_comment_id: &LivestreamCommentId,
     ) -> ServiceResult<Option<LivestreamComment>> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         let comment = self
             .livestream_comment_repo()
             .find(&mut conn, livestream_comment_id)
@@ -57,7 +57,7 @@ impl<T: LivestreamCommentServiceImpl> LivestreamCommentService for T {
         livestream_id: &LivestreamId,
         limit: Option<i64>,
     ) -> ServiceResult<Vec<LivestreamComment>> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
 
         let comments = match limit {
             None => {
@@ -80,7 +80,7 @@ impl<T: LivestreamCommentServiceImpl> LivestreamCommentService for T {
     }
 
     async fn get_sum_tip(&self) -> ServiceResult<i64> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         let sum_tip = self
             .livestream_comment_repo()
             .get_sum_tip(&mut conn)
@@ -89,7 +89,8 @@ impl<T: LivestreamCommentServiceImpl> LivestreamCommentService for T {
     }
 
     async fn create(&self, comment: &CreateLivestreamComment) -> ServiceResult<LivestreamComment> {
-        let mut tx = self.get_db_pool().begin().await?;
+        let mut db = self.get_db_pool().clone();
+        let mut tx = db.transaction().await?;
 
         let ng_word_repo = self.ng_word_repo();
         let ng_words = ng_word_repo

@@ -8,40 +8,44 @@ use async_trait::async_trait;
 #[cfg_attr(any(feature = "test", test), mockall::automock)]
 #[async_trait]
 pub trait ReactionRepository {
-    async fn create(&self, conn: &mut DBConn, reaction: &CreateReaction) -> Result<ReactionId>;
-
-    async fn count_by_livestream_id(
+    async fn create<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
+        reaction: &CreateReaction,
+    ) -> Result<ReactionId>;
+
+    async fn count_by_livestream_id<'c>(
+        &self,
+        conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
     ) -> Result<i64>;
 
-    async fn most_favorite_emoji_by_livestream_user_name(
+    async fn most_favorite_emoji_by_livestream_user_name<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_user_name: &UserName,
     ) -> Result<String>;
 
-    async fn count_by_livestream_user_id(
+    async fn count_by_livestream_user_id<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_user_id: &UserId,
     ) -> Result<i64>;
 
-    async fn count_by_livestream_user_name(
+    async fn count_by_livestream_user_name<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_user_name: &UserName,
     ) -> Result<i64>;
 
-    async fn find_all_by_livestream_id(
+    async fn find_all_by_livestream_id<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
     ) -> Result<Vec<Reaction>>;
-    async fn find_all_by_livestream_id_limit(
+    async fn find_all_by_livestream_id_limit<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
         limit: i64,
     ) -> Result<Vec<Reaction>>;

@@ -3,7 +3,7 @@ use crate::models::livestream::LivestreamId;
 use crate::models::user::UserId;
 use fake::Dummy;
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug)]
 pub struct Reaction {
     pub id: Id<Self, i64>,
     pub emoji_name: String,

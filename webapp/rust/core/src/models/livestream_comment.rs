@@ -2,7 +2,7 @@ use crate::models::id::Id;
 use crate::models::livestream::LivestreamId;
 use crate::models::user::UserId;
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug)]
 pub struct LivestreamComment {
     pub id: Id<Self, i64>,
     pub user_id: UserId,

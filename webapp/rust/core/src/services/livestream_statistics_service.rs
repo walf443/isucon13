@@ -59,7 +59,7 @@ impl<T: LivestreamStatisticsServiceImpl> LivestreamStatisticsService for T {
 
     /// ランク算出
     async fn get_rank(&self, livestream: &Livestream) -> ServiceResult<i64> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
 
         let livestreams = self.livestream_repo().find_all(&mut conn).await?;
 
@@ -100,7 +100,7 @@ impl<T: LivestreamStatisticsServiceImpl> LivestreamStatisticsService for T {
 
     /// 視聴者数算出
     async fn get_viewers_count(&self, livestream: &Livestream) -> ServiceResult<i64> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         let viewers_count = self
             .livestream_viewers_history_repo()
             .count_by_livestream_id(&mut conn, &livestream.id)
@@ -110,7 +110,7 @@ impl<T: LivestreamStatisticsServiceImpl> LivestreamStatisticsService for T {
 
     /// 最大チップ額
     async fn get_max_tip(&self, livestream: &Livestream) -> ServiceResult<i64> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         let max_tip = self
             .livestream_comment_repo()
             .get_max_tip_of_livestream_id(&mut conn, &livestream.id)
@@ -120,7 +120,7 @@ impl<T: LivestreamStatisticsServiceImpl> LivestreamStatisticsService for T {
 
     /// リアクション数
     async fn get_total_reactions(&self, livestream: &Livestream) -> ServiceResult<i64> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         let total_reactions = self
             .reaction_repo()
             .count_by_livestream_id(&mut conn, &livestream.id)
@@ -130,7 +130,7 @@ impl<T: LivestreamStatisticsServiceImpl> LivestreamStatisticsService for T {
 
     /// スパム報告数
     async fn get_total_report(&self, livestream: &Livestream) -> ServiceResult<i64> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         let total_reports = self
             .livestream_comment_report_repo()
             .count_by_livestream_id(&mut conn, &livestream.id)

@@ -1,17 +1,14 @@
-use crate::qbey_support::bind_qbey_values;
 use crate::repos::theme_repository::ThemeRepositoryInfra;
-use crate::tables::theme::TABLE_THEMES;
+use crate::tables::theme::ThemeRow;
+use crate::test_support::get_db_pool;
 use fake::{Fake, Faker};
-use isupipe_core::db::get_db_pool;
 use isupipe_core::models::theme::Theme;
 use isupipe_core::repos::theme_repository::ThemeRepository;
-use qbey::prelude::*;
-use qbey_mysql::qbey;
 
 #[tokio::test]
 async fn success_case() {
-    let db_pool = get_db_pool().await.unwrap();
-    let mut tx = db_pool.begin().await.unwrap();
+    let mut db = get_db_pool().await;
+    let mut tx = db.transaction().await.unwrap();
 
     let theme: Theme = Faker.fake();
 
@@ -20,14 +17,13 @@ async fn success_case() {
         .await
         .unwrap();
 
-    let t = &TABLE_THEMES;
-    let mut q = qbey(t.table());
-    q.and_where(t.user_id().eq(*theme.user_id.inner()));
-    let (sql, binds) = q.into_sql();
-    let got: Theme = bind_qbey_values!(sqlx::query_as::<_, Theme>(sqlx::AssertSqlSafe(sql)), binds)
-        .fetch_one(&mut *tx)
+    let got: Theme = ThemeRow::all()
+        .filter(ThemeRow::fields().user_id().eq(*theme.user_id.inner()))
+        .one()
+        .exec(&mut tx)
         .await
-        .unwrap();
+        .unwrap()
+        .into();
 
     assert_eq!(theme.user_id, got.user_id);
     assert_eq!(theme.dark_mode, got.dark_mode);

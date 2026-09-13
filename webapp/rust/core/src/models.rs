@@ -7,7 +7,6 @@ pub mod livestream_ranking_entry;
 pub mod livestream_statistics;
 pub mod livestream_tag;
 pub mod livestream_viewers_history;
-// pub mod mysql_decimal;
 pub mod ng_word;
 pub mod reaction;
 pub mod reservation_slot;

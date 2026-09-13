@@ -1,28 +1,69 @@
-#[cfg(any(feature = "test", test))]
-use sqlx::mysql::MySqlPoolOptions;
-use sqlx::{MySqlConnection, MySqlPool};
+/// アプリケーション全体で共有する toasty のデータベースハンドル (コネクションプール)。
+pub type DBPool = toasty::Db;
 
-pub type DBPool = MySqlPool;
-pub type DBConn = MySqlConnection;
+/// リポジトリが受け取るクエリ実行ハンドル。
+///
+/// `toasty::Db` / `toasty::Connection` / `toasty::Transaction` のいずれも渡せる。
+/// `mockall` + `async_trait` と組み合わせるためにライフタイムを明示している。
+/// リポジトリのメソッドでは `async fn f<'c>(&self, conn: &'c mut DBConn<'c>, ...)`
+/// の形で受け取ること。
+pub type DBConn<'a> = dyn toasty::Executor + 'a;
 
 pub trait HaveDBPool {
     fn get_db_pool(&self) -> &DBPool;
 }
-pub fn build_database_connection_options() -> sqlx::mysql::MySqlConnectOptions {
-    _build_database_connection_options(false)
+
+/// 環境変数から MySQL の接続 URL を組み立てる。
+pub fn build_database_url() -> String {
+    let mut host = "127.0.0.1".to_string();
+    let mut port = "3306".to_string();
+    let mut user = "isucon".to_string();
+    let mut password = "isucon".to_string();
+    let mut database = "isupipe".to_string();
+
+    if let Ok(v) = std::env::var("ISUCON13_MYSQL_DIALCONFIG_ADDRESS") {
+        host = v;
+    }
+    if let Ok(v) = std::env::var("ISUCON13_MYSQL_DIALCONFIG_PORT") {
+        port = v;
+    }
+    if let Ok(v) = std::env::var("ISUCON13_MYSQL_DIALCONFIG_USER") {
+        user = v;
+    }
+    if let Ok(v) = std::env::var("ISUCON13_MYSQL_DIALCONFIG_PASSWORD") {
+        password = v;
+    }
+    if let Ok(v) = std::env::var("ISUCON13_MYSQL_DIALCONFIG_DATABASE") {
+        database = v;
+    }
+
+    format!(
+        "mysql://{}:{}@{host}:{port}/{database}?collation=utf8mb4_general_ci",
+        url_encode(&user),
+        url_encode(&password)
+    )
 }
 
+/// URL の userinfo 部分に含められない文字をパーセントエンコードする。
+fn url_encode(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for b in s.bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(b as char)
+            }
+            _ => out.push_str(&format!("%{b:02X}")),
+        }
+    }
+    out
+}
+
+/// テスト用の DB ハンドルを返す。モデルは登録しないので、raw SQL とトランザクション制御にのみ使える。
+/// infra 側のテストではモデルを登録した `Db` を別途組み立てること。
 #[cfg(any(feature = "test", test))]
-pub async fn get_db_pool() -> Result<DBPool, sqlx::Error> {
+pub async fn get_db_pool() -> toasty::Result<DBPool> {
     let url = get_test_db_url().await;
-    let options = url
-        .parse::<sqlx::mysql::MySqlConnectOptions>()?
-        .collation("utf8mb4_general_ci");
-    let pool = MySqlPoolOptions::new()
-        .max_connections(2)
-        .connect_with(options)
-        .await?;
-    Ok(pool)
+    toasty::Db::builder().max_pool_size(2).connect(&url).await
 }
 
 #[cfg(any(feature = "test", test))]
@@ -59,8 +100,9 @@ unsafe impl Send for TestContainer {}
 #[cfg(any(feature = "test", test))]
 unsafe impl Sync for TestContainer {}
 
+/// テスト用 MySQL コンテナを (未起動なら) 起動し、スキーマ適用済みの接続 URL を返す。
 #[cfg(any(feature = "test", test))]
-async fn get_test_db_url() -> String {
+pub async fn get_test_db_url() -> String {
     let tc = TEST_CONTAINER
         .get_or_init(|| async {
             use testcontainers::core::{IntoContainerPort as _, WaitFor};
@@ -82,20 +124,18 @@ async fn get_test_db_url() -> String {
                 .unwrap();
             let host_port = container.get_host_port_ipv4(3306).await.unwrap();
 
-            let url = format!("mysql://root@127.0.0.1:{}/test", host_port);
+            let url = format!(
+                "mysql://root@127.0.0.1:{}/test?collation=utf8mb4_general_ci",
+                host_port
+            );
 
-            // Create schema using a temporary pool
-            let options = url
-                .parse::<sqlx::mysql::MySqlConnectOptions>()
-                .unwrap()
-                .collation("utf8mb4_general_ci");
-            let pool = MySqlPoolOptions::new()
-                .max_connections(1)
-                .connect_with(options)
+            // Create schema using a temporary handle
+            let mut db = toasty::Db::builder()
+                .max_pool_size(1)
+                .connect(&url)
                 .await
                 .unwrap();
-            init_schema(&pool).await;
-            pool.close().await;
+            init_schema(&mut db).await;
 
             TestContainer {
                 url,
@@ -108,7 +148,7 @@ async fn get_test_db_url() -> String {
 }
 
 #[cfg(any(feature = "test", test))]
-async fn init_schema(pool: &MySqlPool) {
+async fn init_schema(db: &mut DBPool) {
     let schema = include_str!("../../../sql/initdb.d/10_schema.sql");
     for statement in schema.split(';') {
         let trimmed = statement.trim();
@@ -119,39 +159,6 @@ async fn init_schema(pool: &MySqlPool) {
         if trimmed.to_uppercase().starts_with("USE ") {
             continue;
         }
-        sqlx::query(trimmed).execute(pool).await.unwrap();
+        toasty::sql::statement(trimmed).exec(db).await.unwrap();
     }
-}
-
-fn _build_database_connection_options(is_test_mode: bool) -> sqlx::mysql::MySqlConnectOptions {
-    let mut options = sqlx::mysql::MySqlConnectOptions::new()
-        .host("127.0.0.1")
-        .port(3306)
-        .username("isucon")
-        .password("isucon")
-        .database("isupipe")
-        .collation("utf8mb4_general_ci");
-
-    if let Ok(host) = std::env::var("ISUCON13_MYSQL_DIALCONFIG_ADDRESS") {
-        options = options.host(&host);
-    }
-    if let Some(port) = std::env::var("ISUCON13_MYSQL_DIALCONFIG_PORT")
-        .ok()
-        .and_then(|port_str| port_str.parse().ok())
-    {
-        options = options.port(port);
-    }
-    if let Ok(user) = std::env::var("ISUCON13_MYSQL_DIALCONFIG_USER") {
-        options = options.username(&user);
-    }
-    if let Ok(password) = std::env::var("ISUCON13_MYSQL_DIALCONFIG_PASSWORD") {
-        options = options.password(&password);
-    }
-    if let Ok(database) = std::env::var("ISUCON13_MYSQL_DIALCONFIG_DATABASE") {
-        options = options.database(&database);
-    }
-    if is_test_mode {
-        options = options.database("isupipe-test")
-    }
-    options
 }

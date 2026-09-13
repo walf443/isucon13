@@ -33,7 +33,7 @@ pub trait LivestreamViewersHistoryServiceImpl:
 #[async_trait]
 impl<T: LivestreamViewersHistoryServiceImpl> LivestreamViewersHistoryService for T {
     async fn create(&self, history: &CreateLivestreamViewersHistory) -> ServiceResult<()> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         self.livestream_viewers_history_repo()
             .create(&mut conn, history)
             .await?;
@@ -45,7 +45,7 @@ impl<T: LivestreamViewersHistoryServiceImpl> LivestreamViewersHistoryService for
         livestream_id: &LivestreamId,
         user_id: &UserId,
     ) -> ServiceResult<()> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         self.livestream_viewers_history_repo()
             .delete_by_livestream_id_and_user_id(&mut conn, livestream_id, user_id)
             .await?;

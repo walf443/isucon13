@@ -1,34 +1,27 @@
-use crate::qbey_support::bind_qbey_values;
 use crate::repos::reaction_repository::ReactionRepositoryInfra;
-use crate::tables::reaction::TABLE_REACTIONS;
+use crate::tables::reaction::ReactionRow;
+use crate::test_support::get_db_pool;
 use fake::{Fake, Faker};
-use isupipe_core::db::get_db_pool;
 use isupipe_core::models::reaction::{CreateReaction, Reaction};
 use isupipe_core::repos::reaction_repository::ReactionRepository;
-use qbey::prelude::*;
-use qbey_mysql::qbey;
 
 #[tokio::test]
 async fn success_case() {
-    let db_pool = get_db_pool().await.unwrap();
-    let mut tx = db_pool.begin().await.unwrap();
+    let mut db = get_db_pool().await;
+    let mut tx = db.transaction().await.unwrap();
 
     let repo = ReactionRepositoryInfra {};
 
     let reaction: CreateReaction = Faker.fake();
     let reaction_id = repo.create(&mut tx, &reaction).await.unwrap();
 
-    let t = &TABLE_REACTIONS;
-    let mut q = qbey(t.table());
-    q.and_where(t.id().eq(*reaction_id.inner()));
-    let (sql, binds) = q.into_sql();
-    let got: Reaction = bind_qbey_values!(
-        sqlx::query_as::<_, Reaction>(sqlx::AssertSqlSafe(sql)),
-        binds
-    )
-    .fetch_one(&mut *tx)
-    .await
-    .unwrap();
+    let got: Reaction = ReactionRow::all()
+        .filter(ReactionRow::fields().id().eq(*reaction_id.inner()))
+        .one()
+        .exec(&mut tx)
+        .await
+        .unwrap()
+        .into();
 
     assert_eq!(got.id, reaction_id);
     assert_eq!(got.user_id, reaction.user_id);

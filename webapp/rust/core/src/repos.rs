@@ -17,8 +17,8 @@ pub mod user_repository;
 
 #[derive(Debug, Error)]
 pub enum ReposError {
-    #[error("SQLx error: {0}")]
-    Sqlx(#[from] sqlx::Error),
+    #[error("toasty error: {0}")]
+    Toasty(#[from] toasty::Error),
     #[error("bcrypt error: {0}")]
     Bcrypt(#[from] BcryptError),
     #[error("test error")]
