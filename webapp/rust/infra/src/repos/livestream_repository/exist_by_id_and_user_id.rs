@@ -1,7 +1,7 @@
 use crate::repos::livestream_repository::LivestreamRepositoryInfra;
+use crate::test_support::get_db_pool;
 use crate::test_support::{InsertLivestreamSetup, InsertUserSetup};
 use fake::{Fake, Faker};
-use crate::test_support::get_db_pool;
 use isupipe_core::models::livestream::{CreateLivestream, LivestreamId};
 use isupipe_core::models::user::{CreateUser, UserId};
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
@@ -13,16 +13,18 @@ async fn exists_case() {
 
     let user: CreateUser = Faker.fake();
     {
-                InsertUserSetup { id: 1, user: &user }.insert(&mut tx).await;
+        InsertUserSetup { id: 1, user: &user }.insert(&mut tx).await;
     }
 
     let stream: CreateLivestream = Faker.fake();
     {
-                InsertLivestreamSetup {
+        InsertLivestreamSetup {
             id: 1,
             user_id: 1,
             stream: &stream,
-        }.insert(&mut tx).await;
+        }
+        .insert(&mut tx)
+        .await;
     }
 
     let repo = LivestreamRepositoryInfra {};
@@ -41,23 +43,29 @@ async fn not_exists_wrong_user() {
     let user1: CreateUser = Faker.fake();
     let user2: CreateUser = Faker.fake();
     {
-                InsertUserSetup {
+        InsertUserSetup {
             id: 1,
             user: &user1,
-        }.insert(&mut tx).await;
+        }
+        .insert(&mut tx)
+        .await;
         InsertUserSetup {
             id: 2,
             user: &user2,
-        }.insert(&mut tx).await;
+        }
+        .insert(&mut tx)
+        .await;
     }
 
     let stream: CreateLivestream = Faker.fake();
     {
-                InsertLivestreamSetup {
+        InsertLivestreamSetup {
             id: 1,
             user_id: 1,
             stream: &stream,
-        }.insert(&mut tx).await;
+        }
+        .insert(&mut tx)
+        .await;
     }
 
     let repo = LivestreamRepositoryInfra {};
@@ -75,16 +83,18 @@ async fn not_exists_wrong_id() {
 
     let user: CreateUser = Faker.fake();
     {
-                InsertUserSetup { id: 1, user: &user }.insert(&mut tx).await;
+        InsertUserSetup { id: 1, user: &user }.insert(&mut tx).await;
     }
 
     let stream: CreateLivestream = Faker.fake();
     {
-                InsertLivestreamSetup {
+        InsertLivestreamSetup {
             id: 1,
             user_id: 1,
             stream: &stream,
-        }.insert(&mut tx).await;
+        }
+        .insert(&mut tx)
+        .await;
     }
 
     let repo = LivestreamRepositoryInfra {};

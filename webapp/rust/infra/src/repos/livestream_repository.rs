@@ -1,3 +1,18 @@
+#[cfg(test)]
+mod create;
+#[cfg(test)]
+mod exist_by_id_and_user_id;
+#[cfg(test)]
+mod find;
+#[cfg(test)]
+mod find_all;
+#[cfg(test)]
+mod find_all_by_user_id;
+#[cfg(test)]
+mod find_all_order_by_id_desc;
+#[cfg(test)]
+mod find_all_order_by_id_desc_limit;
+
 use crate::tables::livestream::LivestreamRow;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;

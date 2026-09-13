@@ -1,7 +1,7 @@
 use crate::repos::livestream_repository::LivestreamRepositoryInfra;
+use crate::test_support::get_db_pool;
 use crate::test_support::{InsertLivestreamSetup, InsertUserSetup};
 use fake::{Fake, Faker};
-use crate::test_support::get_db_pool;
 use isupipe_core::models::livestream::CreateLivestream;
 use isupipe_core::models::user::{CreateUser, UserId};
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
@@ -13,7 +13,7 @@ async fn empty_case() {
 
     let user: CreateUser = Faker.fake();
     {
-                InsertUserSetup { id: 1, user: &user }.insert(&mut tx).await;
+        InsertUserSetup { id: 1, user: &user }.insert(&mut tx).await;
     }
 
     let repo = LivestreamRepositoryInfra {};
@@ -32,10 +32,12 @@ async fn filters_by_user_id() {
     let alice: CreateUser = Faker.fake();
     let bob: CreateUser = Faker.fake();
     {
-                InsertUserSetup {
+        InsertUserSetup {
             id: 1,
             user: &alice,
-        }.insert(&mut tx).await;
+        }
+        .insert(&mut tx)
+        .await;
         InsertUserSetup { id: 2, user: &bob }.insert(&mut tx).await;
     }
 
@@ -43,21 +45,27 @@ async fn filters_by_user_id() {
     let stream2: CreateLivestream = Faker.fake();
     let stream3: CreateLivestream = Faker.fake();
     {
-                InsertLivestreamSetup {
+        InsertLivestreamSetup {
             id: 1,
             user_id: 1,
             stream: &stream1,
-        }.insert(&mut tx).await;
+        }
+        .insert(&mut tx)
+        .await;
         InsertLivestreamSetup {
             id: 2,
             user_id: 1,
             stream: &stream2,
-        }.insert(&mut tx).await;
+        }
+        .insert(&mut tx)
+        .await;
         InsertLivestreamSetup {
             id: 3,
             user_id: 2,
             stream: &stream3,
-        }.insert(&mut tx).await;
+        }
+        .insert(&mut tx)
+        .await;
     }
 
     let repo = LivestreamRepositoryInfra {};

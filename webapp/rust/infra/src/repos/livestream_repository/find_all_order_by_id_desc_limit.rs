@@ -1,7 +1,7 @@
 use crate::repos::livestream_repository::LivestreamRepositoryInfra;
+use crate::test_support::get_db_pool;
 use crate::test_support::{InsertLivestreamSetup, InsertUserSetup};
 use fake::{Fake, Faker};
-use crate::test_support::get_db_pool;
 use isupipe_core::models::livestream::CreateLivestream;
 use isupipe_core::models::user::CreateUser;
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
@@ -26,28 +26,34 @@ async fn returns_limited_rows() {
 
     let user: CreateUser = Faker.fake();
     {
-                InsertUserSetup { id: 1, user: &user }.insert(&mut tx).await;
+        InsertUserSetup { id: 1, user: &user }.insert(&mut tx).await;
     }
 
     let stream1: CreateLivestream = Faker.fake();
     let stream2: CreateLivestream = Faker.fake();
     let stream3: CreateLivestream = Faker.fake();
     {
-                InsertLivestreamSetup {
+        InsertLivestreamSetup {
             id: 1,
             user_id: 1,
             stream: &stream1,
-        }.insert(&mut tx).await;
+        }
+        .insert(&mut tx)
+        .await;
         InsertLivestreamSetup {
             id: 2,
             user_id: 1,
             stream: &stream2,
-        }.insert(&mut tx).await;
+        }
+        .insert(&mut tx)
+        .await;
         InsertLivestreamSetup {
             id: 3,
             user_id: 1,
             stream: &stream3,
-        }.insert(&mut tx).await;
+        }
+        .insert(&mut tx)
+        .await;
     }
 
     let repo = LivestreamRepositoryInfra {};

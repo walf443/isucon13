@@ -1,8 +1,8 @@
 use crate::repos::livestream_repository::LivestreamRepositoryInfra;
-use crate::test_support::InsertUserSetup;
 use crate::tables::livestream::LivestreamRow;
-use fake::{Fake, Faker};
+use crate::test_support::InsertUserSetup;
 use crate::test_support::get_db_pool;
+use fake::{Fake, Faker};
 use isupipe_core::models::livestream::{CreateLivestream, Livestream};
 use isupipe_core::models::user::{CreateUser, UserId};
 use isupipe_core::repos::livestream_repository::LivestreamRepository;
@@ -14,7 +14,7 @@ async fn success_case() {
 
     let user: CreateUser = Faker.fake();
     {
-                InsertUserSetup { id: 1, user: &user }.insert(&mut tx).await;
+        InsertUserSetup { id: 1, user: &user }.insert(&mut tx).await;
     }
 
     let mut input: CreateLivestream = Faker.fake();
