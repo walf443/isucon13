@@ -21,7 +21,7 @@ impl From<UserRow> for User {
             name: row.name,
             display_name: Some(row.display_name),
             description: Some(row.description),
-            hashed_password: Some(row.hashed_password),
+            hashed_password: row.hashed_password,
         }
     }
 }

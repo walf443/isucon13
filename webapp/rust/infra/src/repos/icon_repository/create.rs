@@ -21,7 +21,7 @@ async fn success_case() {
 
     let repo = IconRepositoryInfra {};
     let icon_id = repo.create(&mut tx, &icon).await.unwrap();
-    assert!(icon_id > 0);
+    assert!(*icon_id.inner() > 0);
 
     let got = repo
         .find_image_by_user_id(&mut tx, &UserId::new(1))

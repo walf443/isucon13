@@ -48,19 +48,12 @@ impl ReactionRepository for ReactionRepositoryInfra {
         conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
-        let rows = toasty::sql::query(
-            r#"
-            SELECT COUNT(*)
-            FROM livestreams l
-            INNER JOIN reactions r ON l.id = r.livestream_id
-            WHERE l.id = ?
-            "#,
-        )
-        .bind(*livestream_id.inner())
-        .exec(conn)
-        .await?;
+        let count = ReactionRow::filter(ReactionRow::fields().livestream_id().eq(livestream_id))
+            .count()
+            .exec(conn)
+            .await?;
 
-        Ok(scalar_i64(rows)?)
+        Ok(count as i64)
     }
 
     async fn most_favorite_emoji_by_livestream_user_name<'c>(

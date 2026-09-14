@@ -6,7 +6,7 @@ pub struct User {
     pub name: UserName,
     pub display_name: Option<String>,
     pub description: Option<String>,
-    pub hashed_password: Option<String>,
+    pub hashed_password: String,
 }
 
 #[derive(Debug, Dummy, PartialEq, Clone)]

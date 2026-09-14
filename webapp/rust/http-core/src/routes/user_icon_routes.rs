@@ -4,6 +4,7 @@ use crate::{FALLBACK_IMAGE, verify_user_session};
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum_extra::extract::SignedCookieJar;
+use isupipe_core::models::icon::IconId;
 use isupipe_core::services::icon_service::IconService;
 use isupipe_core::services::manager::ServiceManager;
 
@@ -49,7 +50,7 @@ where
 
 #[derive(Debug, serde::Serialize)]
 pub struct PostIconResponse {
-    id: i64,
+    id: IconId,
 }
 
 pub async fn post_icon_handler<S: ServiceManager>(

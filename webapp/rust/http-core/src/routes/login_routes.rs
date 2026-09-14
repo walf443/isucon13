@@ -27,8 +27,7 @@ pub async fn login_handler<S: ServiceManager>(
         .await?
         .ok_or(Error::Unauthorized("invalid username or password".into()))?;
 
-    let hashed_password = user_model.hashed_password.unwrap();
-    if !bcrypt::verify(&req.password, &hashed_password)? {
+    if !bcrypt::verify(&req.password, &user_model.hashed_password)? {
         return Err(Error::Unauthorized("invalid username or password".into()));
     }
 

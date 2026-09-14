@@ -1,5 +1,5 @@
 use crate::db::HaveDBPool;
-use crate::models::icon::CreateIcon;
+use crate::models::icon::{CreateIcon, IconId};
 use crate::models::user::UserId;
 use crate::repos::icon_repository::{HaveIconRepository, IconRepository};
 use crate::repos::user_repository::{HaveUserRepository, UserRepository};
@@ -10,7 +10,7 @@ use async_trait::async_trait;
 pub trait IconService {
     async fn find_image_by_user_id(&self, user_id: &UserId) -> ServiceResult<Option<Vec<u8>>>;
     async fn find_image_by_user_name(&self, user_name: &str) -> ServiceResult<Option<Vec<u8>>>;
-    async fn replace_new_image(&self, user_id: &UserId, image: &[u8]) -> ServiceResult<i64>;
+    async fn replace_new_image(&self, user_id: &UserId, image: &[u8]) -> ServiceResult<IconId>;
 }
 
 pub trait HaveIconService {
@@ -52,7 +52,7 @@ impl<T: IconServiceImpl> IconService for T {
         Ok(image)
     }
 
-    async fn replace_new_image(&self, user_id: &UserId, image: &[u8]) -> ServiceResult<i64> {
+    async fn replace_new_image(&self, user_id: &UserId, image: &[u8]) -> ServiceResult<IconId> {
         let mut db = self.get_db_pool().clone();
         let mut tx = db.transaction().await?;
 

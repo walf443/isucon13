@@ -67,7 +67,7 @@ impl<T: UserServiceImpl> UserService for T {
                 name: UserName::new(user.name.clone()),
                 display_name: Some(user.display_name.clone()),
                 description: Some(user.description.clone()),
-                hashed_password: Some(hashed_password),
+                hashed_password,
             },
             output,
         ))

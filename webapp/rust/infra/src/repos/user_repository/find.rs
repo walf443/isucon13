@@ -18,7 +18,7 @@ async fn found_case() {
     user.display_name = Some(Faker.fake());
     let password: String = Faker.fake();
     let hashed_password = repo.hash_password(&password).unwrap();
-    user.hashed_password = Some(hashed_password);
+    user.hashed_password = hashed_password;
     user.description = Some(Faker.fake());
 
     UserRow::create()
@@ -26,7 +26,7 @@ async fn found_case() {
         .name(&user.name)
         .display_name(user.display_name.as_deref().unwrap())
         .description(user.description.as_deref().unwrap())
-        .hashed_password(user.hashed_password.as_deref().unwrap())
+        .hashed_password(&user.hashed_password)
         .exec(&mut tx)
         .await
         .unwrap();

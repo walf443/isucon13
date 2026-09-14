@@ -5,7 +5,6 @@ mod create;
 #[cfg(test)]
 mod delete_by_livestream_id_and_user_id;
 
-use crate::sql_support::scalar_i64;
 use crate::tables::livestream_viewers_history::LivestreamViewersHistoryRow;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
@@ -43,19 +42,16 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
         conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
-        let rows = toasty::sql::query(
-            r#"
-            SELECT COUNT(*)
-            FROM livestreams l
-            INNER JOIN livestream_viewers_history h ON h.livestream_id = l.id
-            WHERE l.id = ?
-            "#,
+        let count = LivestreamViewersHistoryRow::filter(
+            LivestreamViewersHistoryRow::fields()
+                .livestream_id()
+                .eq(livestream_id),
         )
-        .bind(*livestream_id.inner())
+        .count()
         .exec(conn)
         .await?;
 
-        Ok(scalar_i64(rows)?)
+        Ok(count as i64)
     }
 
     async fn delete_by_livestream_id_and_user_id<'c>(

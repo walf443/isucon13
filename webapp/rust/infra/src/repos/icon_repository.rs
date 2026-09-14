@@ -6,7 +6,7 @@ mod delete_by_user_id;
 use crate::tables::icon::IconRow;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::icon::CreateIcon;
+use isupipe_core::models::icon::{CreateIcon, IconId};
 use isupipe_core::models::user::UserId;
 use isupipe_core::repos::icon_repository::IconRepository;
 
@@ -33,7 +33,7 @@ impl IconRepository for IconRepositoryInfra {
         &self,
         conn: &'c mut DBConn<'c>,
         icon: &CreateIcon,
-    ) -> isupipe_core::repos::Result<i64> {
+    ) -> isupipe_core::repos::Result<IconId> {
         let row = IconRow::create()
             .user_id(&icon.user_id)
             .image(icon.image.clone())

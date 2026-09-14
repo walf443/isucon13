@@ -16,6 +16,7 @@ use crate::tables::tag::TagRow;
 use crate::tables::theme::ThemeRow;
 use crate::tables::user::UserRow;
 use isupipe_core::db::{DBConn, DBPool};
+use isupipe_core::models::icon::IconId;
 use isupipe_core::models::livestream::{CreateLivestream, LivestreamId};
 use isupipe_core::models::livestream_comment::{CreateLivestreamComment, LivestreamCommentId};
 use isupipe_core::models::livestream_comment_report::{
@@ -257,7 +258,7 @@ pub struct InsertIconSetup {
 impl InsertIconSetup {
     pub async fn insert(&self, conn: &mut DBConn<'_>) -> IconRow {
         IconRow::create()
-            .id(self.id)
+            .id(IconId::new(self.id))
             .user_id(UserId::new(self.user_id))
             .image(self.image.clone())
             .exec(conn)
