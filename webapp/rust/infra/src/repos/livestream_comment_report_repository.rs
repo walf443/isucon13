@@ -19,6 +19,20 @@ use isupipe_core::repos::livestream_comment_report_repository::LivestreamComment
 use qbey::prelude::*;
 use qbey_mysql::qbey;
 
+struct InsertReport<'a>(&'a CreateLivestreamCommentReport);
+
+impl qbey::ToInsertRow<qbey::Value, String> for InsertReport<'_> {
+    fn to_insert_row(&self) -> Vec<(String, qbey::Value)> {
+        let t = &TABLE_LIVECOMMENT_REPORTS;
+        vec![
+            t.user_id().value(&self.0.user_id),
+            t.livestream_id().value(&self.0.livestream_id),
+            t.livecomment_id().value(&self.0.livestream_comment_id),
+            t.created_at().value(self.0.created_at),
+        ]
+    }
+}
+
 #[derive(Clone)]
 pub struct LivestreamCommentReportRepositoryInfra {}
 
@@ -31,12 +45,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
     ) -> Result<LivestreamCommentReportId> {
         let t = &TABLE_LIVECOMMENT_REPORTS;
         let mut ins = qbey(t.table()).into_insert();
-        ins.add_value(&[
-            t.user_id().value(&report.user_id),
-            t.livestream_id().value(&report.livestream_id),
-            t.livecomment_id().value(&report.livestream_comment_id),
-            t.created_at().value(report.created_at),
-        ]);
+        ins.add_value(&InsertReport(report));
         let (sql, binds) = ins.into_sql();
         let rs = bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(conn)

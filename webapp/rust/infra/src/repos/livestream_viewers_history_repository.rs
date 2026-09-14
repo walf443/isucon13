@@ -18,6 +18,19 @@ use qbey::prelude::*;
 use qbey_mysql::qbey;
 use sqlx::Acquire;
 
+struct InsertViewersHistory<'a>(&'a CreateLivestreamViewersHistory);
+
+impl qbey::ToInsertRow<qbey::Value, String> for InsertViewersHistory<'_> {
+    fn to_insert_row(&self) -> Vec<(String, qbey::Value)> {
+        let t = &TABLE_LIVESTREAM_VIEWERS_HISTORY;
+        vec![
+            t.user_id().value(&self.0.user_id),
+            t.livestream_id().value(&self.0.livestream_id),
+            t.created_at().value(self.0.created_at),
+        ]
+    }
+}
+
 #[derive(Clone)]
 pub struct LivestreamViewersHistoryRepositoryInfra {}
 
@@ -32,11 +45,7 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
 
         let t = &TABLE_LIVESTREAM_VIEWERS_HISTORY;
         let mut ins = qbey(t.table()).into_insert();
-        ins.add_value(&[
-            t.user_id().value(&history.user_id),
-            t.livestream_id().value(&history.livestream_id),
-            t.created_at().value(history.created_at),
-        ]);
+        ins.add_value(&InsertViewersHistory(history));
         let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(&mut *tx)
