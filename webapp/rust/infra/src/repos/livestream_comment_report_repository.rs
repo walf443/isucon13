@@ -67,7 +67,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
         q.as_("l");
         let l = livestream.as_("l");
         q.join(report.table(), report.livestream_id().eq(l.id()));
-        q.and_where(l.id().eq(*livestream_id.inner()));
+        q.and_where(l.id().eq(livestream_id));
         q.add_select(qbey::count_all());
         let (sql, binds) = q.into_sql();
         let total_reports = bind_qbey_values!(
@@ -87,7 +87,7 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
     ) -> isupipe_core::repos::Result<Vec<LivestreamCommentReport>> {
         let t = &TABLE_LIVECOMMENT_REPORTS;
         let mut q = qbey(t.table());
-        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
+        q.and_where(t.livestream_id().eq(livestream_id));
         let (sql, binds) = q.into_sql();
         let report_models = bind_qbey_values!(
             sqlx::query_as::<_, LivestreamCommentReport>(sqlx::AssertSqlSafe(sql)),

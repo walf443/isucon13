@@ -61,7 +61,7 @@ impl NgWordRepository for NgWordRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<NgWord>> {
         let t = &TABLE_NG_WORDS;
         let mut q = qbey(t.table());
-        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
+        q.and_where(t.livestream_id().eq(livestream_id));
         let (sql, binds) = q.into_sql();
         let ng_words =
             bind_qbey_values!(sqlx::query_as::<_, NgWord>(sqlx::AssertSqlSafe(sql)), binds)
@@ -103,9 +103,14 @@ impl NgWordRepository for NgWordRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<NgWord>> {
         let t = &TABLE_NG_WORDS;
         let mut q = qbey(t.table());
-        q.and_where(t.user_id().eq(*user_id.inner()));
-        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
-        q.select(&[t.id(), t.user_id(), t.livestream_id(), t.word()]);
+        q.and_where(t.user_id().eq(user_id));
+        q.and_where(t.livestream_id().eq(livestream_id));
+        q.select(&[
+            t.id().into_col(),
+            t.user_id().into_col(),
+            t.livestream_id().into_col(),
+            t.word().into_col(),
+        ]);
         let (sql, binds) = q.into_sql();
         let ng_words =
             bind_qbey_values!(sqlx::query_as::<_, NgWord>(sqlx::AssertSqlSafe(sql)), binds)
@@ -123,8 +128,8 @@ impl NgWordRepository for NgWordRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<NgWord>> {
         let t = &TABLE_NG_WORDS;
         let mut q = qbey(t.table());
-        q.and_where(t.user_id().eq(*user_id.inner()));
-        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
+        q.and_where(t.user_id().eq(user_id));
+        q.and_where(t.livestream_id().eq(livestream_id));
         q.order_by(t.created_at().desc());
         let (sql, binds) = q.into_sql();
         let ng_words =

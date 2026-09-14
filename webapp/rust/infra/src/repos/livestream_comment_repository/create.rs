@@ -53,7 +53,7 @@ async fn success_case() {
 
     let t = &TABLE_LIVECOMMENTS;
     let mut q = qbey(t.table());
-    q.and_where(t.id().eq(*comment_id.inner()));
+    q.and_where(t.id().eq(&comment_id));
     let (sql, binds) = q.into_sql();
     let got: LivestreamComment = bind_qbey_values!(
         sqlx::query_as::<_, LivestreamComment>(sqlx::AssertSqlSafe(sql)),

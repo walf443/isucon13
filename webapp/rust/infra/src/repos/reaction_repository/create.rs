@@ -20,7 +20,7 @@ async fn success_case() {
 
     let t = &TABLE_REACTIONS;
     let mut q = qbey(t.table());
-    q.and_where(t.id().eq(*reaction_id.inner()));
+    q.and_where(t.id().eq(&reaction_id));
     let (sql, binds) = q.into_sql();
     let got: Reaction = bind_qbey_values!(
         sqlx::query_as::<_, Reaction>(sqlx::AssertSqlSafe(sql)),

@@ -48,7 +48,7 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<LivestreamTag>> {
         let t = &TABLE_LIVESTREAM_TAGS;
         let mut q = qbey(t.table());
-        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
+        q.and_where(t.livestream_id().eq(livestream_id));
         let (sql, binds) = q.into_sql();
         let livestream_tag_models = bind_qbey_values!(
             sqlx::query_as::<_, LivestreamTag>(sqlx::AssertSqlSafe(sql)),
@@ -67,11 +67,7 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<LivestreamTag>> {
         let t = &TABLE_LIVESTREAM_TAGS;
         let mut q = qbey(t.table());
-        let id_values: Vec<qbey::Value> = tag_ids
-            .iter()
-            .map(|id| qbey::Value::Int(*id.inner()))
-            .collect();
-        q.and_where(t.tag_id().included(id_values.as_slice()));
+        q.and_where(t.tag_id().included(tag_ids));
         q.order_by(t.livestream_id().desc());
         let (sql, binds) = q.into_sql();
         let livestreams = bind_qbey_values!(

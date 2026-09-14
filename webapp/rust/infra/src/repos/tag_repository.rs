@@ -22,7 +22,7 @@ impl TagRepository for TagRepositoryInfra {
     async fn find(&self, conn: &mut DBConn, id: &TagId) -> isupipe_core::repos::Result<Tag> {
         let t = &TABLE_TAGS;
         let mut q = qbey(t.table());
-        q.and_where(t.id().eq(*id.inner()));
+        q.and_where(t.id().eq(id));
 
         let (sql, binds) = q.into_sql();
         let tag_model =
@@ -53,7 +53,7 @@ impl TagRepository for TagRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<TagId>> {
         let t = &TABLE_TAGS;
         let mut q = qbey(t.table());
-        q.and_where(t.name().eq(name.inner().clone()));
+        q.and_where(t.name().eq(name));
         q.select(&[t.id()]);
 
         let (sql, binds) = q.into_sql();

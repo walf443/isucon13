@@ -21,7 +21,7 @@ async fn success_case() {
 
     let t = &TABLE_USERS;
     let mut q = qbey(t.table());
-    q.and_where(t.id().eq(*user_id.inner()));
+    q.and_where(t.id().eq(&user_id));
     q.select(&t.default_cols());
     let (sql, binds) = q.into_sql();
     let conn = tx.acquire().await.unwrap();

@@ -54,8 +54,8 @@ async fn success_case() {
     let t = &TABLE_LIVESTREAM_VIEWERS_HISTORY;
     let mut q = qbey(t.table());
     q.add_select(qbey::count_all());
-    q.and_where(t.user_id().eq(*input.user_id.inner()));
-    q.and_where(t.livestream_id().eq(*input.livestream_id.inner()));
+    q.and_where(t.user_id().eq(input.user_id));
+    q.and_where(t.livestream_id().eq(input.livestream_id));
     let (sql, binds) = q.into_sql();
     let count: i64 = bind_qbey_values!(
         sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),

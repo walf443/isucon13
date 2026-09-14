@@ -64,8 +64,8 @@ async fn success_case() {
 
     let t = &TABLE_LIVESTREAM_TAGS;
     let mut q = qbey(t.table());
-    q.and_where(t.livestream_id().eq(1_i64));
-    q.and_where(t.tag_id().eq(1_i64));
+    q.and_where(t.livestream_id().eq(LivestreamId::new(1)));
+    q.and_where(t.tag_id().eq(TagId::new(1)));
     let (sql, binds) = q.into_sql();
     let got: LivestreamTag = bind_qbey_values!(
         sqlx::query_as::<_, LivestreamTag>(sqlx::AssertSqlSafe(sql)),

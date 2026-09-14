@@ -60,7 +60,7 @@ async fn not_empty_case() {
         .unwrap();
 
     let mut q = qbey(t.table());
-    q.and_where(t.id().eq(*slot1.id.inner()));
+    q.and_where(t.id().eq(&slot1.id));
     let (sql, binds) = q.into_sql();
     let got1: ReservationSlot = bind_qbey_values!(
         sqlx::query_as::<_, ReservationSlot>(sqlx::AssertSqlSafe(sql)),
@@ -72,7 +72,7 @@ async fn not_empty_case() {
     assert_eq!(slot1.slot - 1, got1.slot);
 
     let mut q = qbey(t.table());
-    q.and_where(t.id().eq(*slot2.id.inner()));
+    q.and_where(t.id().eq(&slot2.id));
     let (sql, binds) = q.into_sql();
     let got2: ReservationSlot = bind_qbey_values!(
         sqlx::query_as::<_, ReservationSlot>(sqlx::AssertSqlSafe(sql)),

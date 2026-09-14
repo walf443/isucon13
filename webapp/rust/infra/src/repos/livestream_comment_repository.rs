@@ -108,7 +108,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     ) -> isupipe_core::repos::Result<Option<LivestreamComment>> {
         let t = &TABLE_LIVECOMMENTS;
         let mut q = qbey(t.table());
-        q.and_where(t.id().eq(*comment_id.inner()));
+        q.and_where(t.id().eq(comment_id));
         let (sql, binds) = q.into_sql();
         let comment = bind_qbey_values!(
             sqlx::query_as::<_, LivestreamComment>(sqlx::AssertSqlSafe(sql)),
@@ -144,7 +144,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
         let t = &TABLE_LIVECOMMENTS;
         let mut q = qbey(t.table());
-        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
+        q.and_where(t.livestream_id().eq(livestream_id));
         let (sql, binds) = q.into_sql();
         let comments = bind_qbey_values!(
             sqlx::query_as::<_, LivestreamComment>(sqlx::AssertSqlSafe(sql)),
@@ -163,7 +163,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
         let t = &TABLE_LIVECOMMENTS;
         let mut q = qbey(t.table());
-        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
+        q.and_where(t.livestream_id().eq(livestream_id));
         q.order_by(t.created_at().desc());
         let (sql, binds) = q.into_sql();
         let comments = bind_qbey_values!(
@@ -184,7 +184,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<LivestreamComment>> {
         let t = &TABLE_LIVECOMMENTS;
         let mut q = qbey(t.table());
-        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
+        q.and_where(t.livestream_id().eq(livestream_id));
         q.order_by(t.created_at().desc());
         q.limit(limit as u64);
         let (sql, binds) = q.into_sql();
@@ -224,7 +224,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         q.as_("l");
         let l = livestream.as_("l");
         q.join(comment.table(), l.id().eq(comment.livestream_id()));
-        q.and_where(l.id().eq(*livestream_id.inner()));
+        q.and_where(l.id().eq(livestream_id));
         q.add_select_expr(
             RawSql::new("CAST(IFNULL(SUM(livecomments.tip), 0) AS SIGNED)"),
             None,
@@ -251,7 +251,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         q.as_("l");
         let l = livestream.as_("l");
         q.join(comment.table(), l.id().eq(comment.livestream_id()));
-        q.and_where(l.id().eq(*livestream_id.inner()));
+        q.and_where(l.id().eq(livestream_id));
         q.add_select_expr(
             RawSql::new("CAST(IFNULL(MAX(livecomments.tip), 0) AS SIGNED)"),
             None,
@@ -281,7 +281,7 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let u = user.as_("u");
         q.join(livestream.table(), u.id().eq(livestream.user_id()));
         q.join(comment.table(), livestream.id().eq(comment.livestream_id()));
-        q.and_where(u.id().eq(*user_id.inner()));
+        q.and_where(u.id().eq(user_id));
         q.add_select_expr(
             RawSql::new("CAST(IFNULL(SUM(livecomments.tip), 0) AS SIGNED)"),
             None,

@@ -30,3 +30,7 @@ uuid = { version = "1", features = ["v4"] }
 fake = { version = "5", features=["derive"] }
 qbey = "0.3"
 qbey-mysql = "0.3"
+
+# qbey_schema! の型付きカラム (walf443/qbey#111, typed-schema-columns ブランチ) を試すためのローカルパッチ
+[patch.crates-io]
+qbey = { path = "../../../qbey/qbey" }

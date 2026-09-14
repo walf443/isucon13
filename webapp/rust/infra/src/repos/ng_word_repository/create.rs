@@ -53,7 +53,7 @@ async fn success_case() {
 
     let t = &TABLE_NG_WORDS;
     let mut q = qbey(t.table());
-    q.and_where(t.id().eq(*word_id.inner()));
+    q.and_where(t.id().eq(&word_id));
     let (sql, binds) = q.into_sql();
     let got: NgWord =
         bind_qbey_values!(sqlx::query_as::<_, NgWord>(sqlx::AssertSqlSafe(sql)), binds)

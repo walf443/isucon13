@@ -22,7 +22,7 @@ async fn success_case() {
 
     let t = &TABLE_THEMES;
     let mut q = qbey(t.table());
-    q.and_where(t.user_id().eq(*theme.user_id.inner()));
+    q.and_where(t.user_id().eq(&theme.user_id));
     let (sql, binds) = q.into_sql();
     let got: Theme = bind_qbey_values!(sqlx::query_as::<_, Theme>(sqlx::AssertSqlSafe(sql)), binds)
         .fetch_one(&mut *tx)

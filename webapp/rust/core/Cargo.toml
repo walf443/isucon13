@@ -16,6 +16,7 @@ kubetsu.workspace = true
 kubetsu-serde.workspace = true
 kubetsu-fake.workspace = true
 kubetsu-sqlx.workspace = true
+qbey.workspace = true
 fake.workspace = true
 dtor = { version = "1", optional = true }
 mockall = { version = "0.15", optional = true }

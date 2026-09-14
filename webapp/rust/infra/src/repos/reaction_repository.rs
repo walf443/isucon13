@@ -72,7 +72,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
         q.as_("l");
         let l = livestream.as_("l");
         q.join(reaction.table(), l.id().eq(reaction.livestream_id()));
-        q.and_where(l.id().eq(*livestream_id.inner()));
+        q.and_where(l.id().eq(livestream_id));
         q.add_select(qbey::count_all());
         let (sql, binds) = q.into_sql();
         let reactions = bind_qbey_values!(
@@ -101,7 +101,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
             reaction.table(),
             livestream.id().eq(reaction.livestream_id()),
         );
-        q.and_where(u.name().eq(livestream_user_name.inner().clone()));
+        q.and_where(u.name().eq(livestream_user_name));
         q.select(&[reaction.emoji_name().into(), qbey::count_all().as_("cnt")]);
         q.group_by(&["emoji_name"]);
         q.order_by(qbey::col("cnt").desc());
@@ -135,7 +135,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
             reaction.table(),
             livestream.id().eq(reaction.livestream_id()),
         );
-        q.and_where(u.id().eq(*livestream_user_id.inner()));
+        q.and_where(u.id().eq(livestream_user_id));
         q.add_select(qbey::count_all());
         let (sql, binds) = q.into_sql();
         let reactions = bind_qbey_values!(
@@ -164,7 +164,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
             reaction.table(),
             livestream.id().eq(reaction.livestream_id()),
         );
-        q.and_where(u.name().eq(livestream_user_name.inner().clone()));
+        q.and_where(u.name().eq(livestream_user_name));
         q.add_select(qbey::count_all());
         let (sql, binds) = q.into_sql();
         let total_reactions = bind_qbey_values!(
@@ -184,7 +184,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<Reaction>> {
         let t = &TABLE_REACTIONS;
         let mut q = qbey(t.table());
-        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
+        q.and_where(t.livestream_id().eq(livestream_id));
         q.order_by(t.created_at().desc());
         let (sql, binds) = q.into_sql();
         let reaction_models = bind_qbey_values!(
@@ -205,7 +205,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<Reaction>> {
         let t = &TABLE_REACTIONS;
         let mut q = qbey(t.table());
-        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
+        q.and_where(t.livestream_id().eq(livestream_id));
         q.order_by(t.created_at().desc());
         q.limit(limit as u64);
         let (sql, binds) = q.into_sql();

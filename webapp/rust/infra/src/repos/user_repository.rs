@@ -13,7 +13,7 @@ use crate::qbey_support::bind_qbey_values;
 use crate::tables::user::TABLE_USERS;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
-use isupipe_core::models::user::{CreateUser, User, UserId};
+use isupipe_core::models::user::{CreateUser, User, UserId, UserName};
 use isupipe_core::repos::user_repository::UserRepository;
 use qbey::prelude::*;
 use qbey_mysql::qbey;
@@ -69,7 +69,7 @@ impl UserRepository for UserRepositoryInfra {
     ) -> isupipe_core::repos::Result<Option<User>> {
         let t = &TABLE_USERS;
         let mut q = qbey(t.table());
-        q.and_where(t.id().eq(*id.inner()));
+        q.and_where(t.id().eq(id));
         q.select(&TABLE_USERS.default_cols());
         let (sql, binds) = q.into_sql();
         let user_model =
@@ -99,7 +99,7 @@ impl UserRepository for UserRepositoryInfra {
     ) -> isupipe_core::repos::Result<Option<UserId>> {
         let t = &TABLE_USERS;
         let mut q = qbey(t.table());
-        q.and_where(t.name().eq(name));
+        q.and_where(t.name().eq(UserName::new(name.to_owned())));
         q.select(&[t.id()]);
         let (sql, binds) = q.into_sql();
         let user_id = bind_qbey_values!(
@@ -119,7 +119,7 @@ impl UserRepository for UserRepositoryInfra {
     ) -> isupipe_core::repos::Result<Option<User>> {
         let t = &TABLE_USERS;
         let mut q = qbey(t.table());
-        q.and_where(t.name().eq(name));
+        q.and_where(t.name().eq(UserName::new(name.to_owned())));
         q.select(&TABLE_USERS.default_cols());
         let (sql, binds) = q.into_sql();
         let user_model =

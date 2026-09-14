@@ -45,7 +45,7 @@ impl ThemeRepository for ThemeRepositoryInfra {
     ) -> isupipe_core::repos::Result<Theme> {
         let t = &TABLE_THEMES;
         let mut q = qbey(t.table());
-        q.and_where(t.user_id().eq(*user_id.inner()));
+        q.and_where(t.user_id().eq(user_id));
         q.select(&t.all_columns());
         let (sql, binds) = q.into_sql();
         let theme_model =

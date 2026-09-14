@@ -1535,6 +1535,7 @@ dependencies = [
  "kubetsu-sqlx",
  "mockall",
  "num-traits",
+ "qbey",
  "serde",
  "sqlx",
  "testcontainers",
@@ -2203,8 +2204,6 @@ dependencies = [
 [[package]]
 name = "qbey"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71329d5b1ee36f8bd900c40f16f108012275f1945302967533250319e3ef72c0"
 
 [[package]]
 name = "qbey-mysql"

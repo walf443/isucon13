@@ -35,7 +35,7 @@ async fn success_case() {
 
     let t = &TABLE_LIVESTREAMS;
     let mut q = qbey(t.table());
-    q.and_where(t.id().eq(*livestream_id.inner()));
+    q.and_where(t.id().eq(&livestream_id));
     let (sql, binds) = q.into_sql();
     let got: Livestream = bind_qbey_values!(
         sqlx::query_as::<_, Livestream>(sqlx::AssertSqlSafe(sql)),

@@ -105,7 +105,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
     ) -> isupipe_core::repos::Result<Vec<Livestream>> {
         let t = &TABLE_LIVESTREAMS;
         let mut q = qbey(t.table());
-        q.and_where(t.user_id().eq(*user_id.inner()));
+        q.and_where(t.user_id().eq(user_id));
         let (sql, binds) = q.into_sql();
         let livestream_models = bind_qbey_values!(
             sqlx::query_as::<_, Livestream>(sqlx::AssertSqlSafe(sql)),
@@ -124,7 +124,7 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
     ) -> isupipe_core::repos::Result<Option<Livestream>> {
         let t = &TABLE_LIVESTREAMS;
         let mut q = qbey(t.table());
-        q.and_where(t.id().eq(*id.inner()));
+        q.and_where(t.id().eq(id));
         let (sql, binds) = q.into_sql();
         let livestream = bind_qbey_values!(
             sqlx::query_as::<_, Livestream>(sqlx::AssertSqlSafe(sql)),
@@ -144,8 +144,8 @@ impl LivestreamRepository for LivestreamRepositoryInfra {
     ) -> isupipe_core::repos::Result<bool> {
         let t = &TABLE_LIVESTREAMS;
         let mut q = qbey(t.table());
-        q.and_where(t.id().eq(*id.inner()));
-        q.and_where(t.user_id().eq(*user_id.inner()));
+        q.and_where(t.id().eq(id));
+        q.and_where(t.user_id().eq(user_id));
         let (sql, binds) = q.into_sql();
         let livestreams: Vec<Livestream> = bind_qbey_values!(
             sqlx::query_as::<_, Livestream>(sqlx::AssertSqlSafe(sql)),

@@ -69,7 +69,7 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
             viewers_history.table(),
             viewers_history.livestream_id().eq(l.id()),
         );
-        q.and_where(l.id().eq(*livestream_id.inner()));
+        q.and_where(l.id().eq(livestream_id));
         q.add_select(qbey::count_all());
         let (sql, binds) = q.into_sql();
         let viewers_count = bind_qbey_values!(
@@ -92,8 +92,8 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
 
         let viewers_history = &TABLE_LIVESTREAM_VIEWERS_HISTORY;
         let d = qbey(viewers_history.table()).into_delete();
-        let d = d.and_where(viewers_history.user_id().eq(*user_id.inner()));
-        let d = d.and_where(viewers_history.livestream_id().eq(*livestream_id.inner()));
+        let d = d.and_where(viewers_history.user_id().eq(user_id));
+        let d = d.and_where(viewers_history.livestream_id().eq(livestream_id));
         let (sql, binds) = d.into_sql();
         bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(&mut *tx)

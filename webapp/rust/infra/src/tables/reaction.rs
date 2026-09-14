@@ -1,7 +1,17 @@
+use isupipe_core::models::livestream::LivestreamId;
+use isupipe_core::models::reaction::ReactionId;
+use isupipe_core::models::user::UserId;
+
 qbey::qbey_schema!(
     ReactionTable,
     "reactions",
-    [id, user_id, livestream_id, emoji_name, created_at,]
+    [
+        id: ReactionId,
+        user_id: UserId,
+        livestream_id: LivestreamId,
+        emoji_name: String,
+        created_at: i64,
+    ]
 );
 
 pub const TABLE_REACTIONS: ReactionTable = ReactionTable::new();
