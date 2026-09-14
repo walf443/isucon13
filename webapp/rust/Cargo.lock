@@ -1692,15 +1692,15 @@ dependencies = [
 
 [[package]]
 name = "kubetsu"
-version = "0.8.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8a3348307ee652cd81b9b869f93970852dbc519365acca22ccb36e9ddd0a787"
+checksum = "1f103045383453db4bdeda5ecba6650d65aac7c7c06ba06d3cf05d5bf28cb2c2"
 
 [[package]]
 name = "kubetsu-fake"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e5da4fd1bf845fde5e38f6895d8d46dcb7bd88c18274bf03420363bba3f72ee"
+checksum = "807ef9d91ca13e7e61ebe5125332e985312a6efa42fc28e43028e7ee5b62d4fe"
 dependencies = [
  "fake",
  "kubetsu",
@@ -1708,9 +1708,9 @@ dependencies = [
 
 [[package]]
 name = "kubetsu-serde"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3bcb69e22d5f4088953a2ee6feb17f149a00986fd68a4af73aa600a57162ea5"
+checksum = "3b492f18049bcb8e9bc93c5d38bb729ed3bd55fad4c63469a3c88f4d74c86f52"
 dependencies = [
  "kubetsu",
  "serde",
@@ -1718,9 +1718,9 @@ dependencies = [
 
 [[package]]
 name = "kubetsu-sqlx"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "590f30548834b13014b572a99ed4f28ac30fcb09dd8b1da18d81dfae3a053afb"
+checksum = "1240cce976362a21fcc81302161c2b705669876dfb41e93b840992a9c26d05b0"
 dependencies = [
  "kubetsu",
  "sqlx",
