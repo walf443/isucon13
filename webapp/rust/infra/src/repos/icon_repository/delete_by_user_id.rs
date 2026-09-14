@@ -1,5 +1,4 @@
 use crate::qbey_support::bind_qbey_values;
-use crate::qbey_support::bind_sql_values;
 use crate::repos::icon_repository::IconRepositoryInfra;
 use crate::tables::icon::TABLE_ICONS;
 use crate::tables::user::TABLE_USERS;
@@ -10,7 +9,6 @@ use isupipe_core::models::user::{CreateUser, UserId};
 use isupipe_core::repos::icon_repository::IconRepository;
 use qbey::prelude::*;
 use qbey_mysql::qbey;
-use qbey_mysql::qbey_with;
 
 #[tokio::test]
 async fn deletes_icon() {
@@ -37,7 +35,7 @@ async fn deletes_icon() {
     }
 
     {
-        let mut ins = qbey_with::<crate::qbey_support::SQLValue>(TABLE_ICONS.table()).into_insert();
+        let mut ins = qbey(TABLE_ICONS.table()).into_insert();
         ins.add_value(&InsertIconSetup {
             id: 1,
             user_id: 1,
@@ -49,7 +47,7 @@ async fn deletes_icon() {
             image: vec![0x89u8, 0x50, 0x4E, 0x47],
         });
         let (sql, binds) = ins.into_sql();
-        bind_sql_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(&mut *tx)
             .await
             .unwrap();

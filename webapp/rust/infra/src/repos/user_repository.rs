@@ -18,22 +18,6 @@ use isupipe_core::repos::user_repository::UserRepository;
 use qbey::prelude::*;
 use qbey_mysql::qbey;
 
-struct InsertUser<'a> {
-    user: &'a CreateUser,
-    hashed_password: &'a str,
-}
-
-impl qbey::ToInsertRow<qbey::Value> for InsertUser<'_> {
-    fn to_insert_row(&self) -> Vec<(&'static str, qbey::Value)> {
-        vec![
-            ("name", self.user.name.as_str().into()),
-            ("display_name", self.user.display_name.as_str().into()),
-            ("description", self.user.description.as_str().into()),
-            ("password", self.hashed_password.into()),
-        ]
-    }
-}
-
 #[derive(Clone)]
 pub struct UserRepositoryInfra {}
 
@@ -48,10 +32,12 @@ impl UserRepository for UserRepositoryInfra {
 
         let t = &TABLE_USERS;
         let mut ins = qbey(t.table()).into_insert();
-        ins.add_value(&InsertUser {
-            user,
-            hashed_password: &hashed_password,
-        });
+        ins.add_value(&[
+            t.name().value(UserName::new(user.name.clone())),
+            t.display_name().value(&user.display_name),
+            t.description().value(&user.description),
+            t.password().value(hashed_password),
+        ]);
         let (sql, binds) = ins.into_sql();
         let result = bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(conn)

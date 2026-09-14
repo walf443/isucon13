@@ -30,8 +30,8 @@ impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
         let t = &TABLE_LIVESTREAM_TAGS;
         let mut ins = qbey(t.table()).into_insert();
         ins.add_value(&[
-            ("livestream_id", (*livestream_id.inner()).into()),
-            ("tag_id", (*tag_id.inner()).into()),
+            t.livestream_id().value(livestream_id),
+            t.tag_id().value(tag_id),
         ]);
         let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)

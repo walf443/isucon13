@@ -31,6 +31,7 @@ fake = { version = "5", features=["derive"] }
 qbey = "0.3"
 qbey-mysql = "0.3"
 
-# qbey_schema! の型付きカラム (walf443/qbey#111, typed-schema-columns ブランチ) を試すためのローカルパッチ
+# qbey_schema! の型付きカラムと型付き INSERT/UPDATE (walf443/qbey#111, #112, main 未リリース) を試すためのローカルパッチ
 [patch.crates-io]
 qbey = { path = "../../../qbey/qbey" }
+qbey-mysql = { path = "../../../qbey/qbey-mysql" }

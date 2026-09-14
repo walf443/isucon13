@@ -26,10 +26,7 @@ impl ThemeRepository for ThemeRepositoryInfra {
     ) -> isupipe_core::repos::Result<()> {
         let t = &TABLE_THEMES;
         let mut ins = qbey(t.table()).into_insert();
-        ins.add_value(&[
-            ("user_id", (*user_id.inner()).into()),
-            ("dark_mode", dark_mode.into()),
-        ]);
+        ins.add_value(&[t.user_id().value(user_id), t.dark_mode().value(dark_mode)]);
         let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(conn)

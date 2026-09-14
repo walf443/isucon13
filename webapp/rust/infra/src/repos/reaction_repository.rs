@@ -26,19 +26,6 @@ use isupipe_core::repos::reaction_repository::ReactionRepository;
 use qbey::prelude::*;
 use qbey_mysql::qbey;
 
-struct InsertReaction<'a>(&'a CreateReaction);
-
-impl qbey::ToInsertRow<qbey::Value> for InsertReaction<'_> {
-    fn to_insert_row(&self) -> Vec<(&'static str, qbey::Value)> {
-        vec![
-            ("user_id", (*self.0.user_id.inner()).into()),
-            ("livestream_id", (*self.0.livestream_id.inner()).into()),
-            ("emoji_name", self.0.emoji_name.as_str().into()),
-            ("created_at", self.0.created_at.into()),
-        ]
-    }
-}
-
 #[derive(Clone)]
 pub struct ReactionRepositoryInfra {}
 
@@ -51,7 +38,12 @@ impl ReactionRepository for ReactionRepositoryInfra {
     ) -> isupipe_core::repos::Result<ReactionId> {
         let t = &TABLE_REACTIONS;
         let mut ins = qbey(t.table()).into_insert();
-        ins.add_value(&InsertReaction(reaction));
+        ins.add_value(&[
+            t.user_id().value(&reaction.user_id),
+            t.livestream_id().value(&reaction.livestream_id),
+            t.emoji_name().value(&reaction.emoji_name),
+            t.created_at().value(reaction.created_at),
+        ]);
         let (sql, binds) = ins.into_sql();
         let result = bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(conn)

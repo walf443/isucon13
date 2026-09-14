@@ -3,7 +3,7 @@ mod create;
 #[cfg(test)]
 mod delete_by_user_id;
 
-use crate::qbey_support::{SQLValue, bind_qbey_values, bind_sql_values};
+use crate::qbey_support::bind_qbey_values;
 use crate::tables::icon::TABLE_ICONS;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
@@ -44,13 +44,13 @@ impl IconRepository for IconRepositoryInfra {
         icon: &CreateIcon,
     ) -> isupipe_core::repos::Result<i64> {
         let t = &TABLE_ICONS;
-        let mut ins = qbey_mysql::qbey_with::<SQLValue>(t.table()).into_insert();
+        let mut ins = qbey(t.table()).into_insert();
         ins.add_value(&[
-            ("user_id", (*icon.user_id.inner()).into()),
-            ("image", icon.image.clone().into()),
+            t.user_id().value(&icon.user_id),
+            t.image().value(&icon.image),
         ]);
         let (sql, binds) = ins.into_sql();
-        let rs = bind_sql_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
+        let rs = bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(conn)
             .await?;
         let icon_id = rs.last_insert_id() as i64;
