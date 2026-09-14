@@ -30,8 +30,8 @@ pub enum ServiceError {
     InvalidReservationRange,
     #[error("repos error: #{0}")]
     ReposError(#[from] ReposError),
-    #[error("sqlx error: #{0}")]
-    SqlxError(#[from] sqlx::Error),
+    #[error("toasty error: #{0}")]
+    ToastyError(#[from] toasty::Error),
     #[error("command error: #{0}")]
     CommandError(#[from] CommandError),
 }

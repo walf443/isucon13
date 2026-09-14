@@ -1,20 +1,21 @@
 use crate::db::DBConn;
-use crate::models::icon::CreateIcon;
+use crate::models::icon::{CreateIcon, IconId};
 use crate::models::user::UserId;
 use crate::repos::Result;
 use async_trait::async_trait;
 
 #[async_trait]
 pub trait IconRepository {
-    async fn find_image_by_user_id(
+    async fn find_image_by_user_id<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         user_id: &UserId,
     ) -> Result<Option<Vec<u8>>>;
 
-    async fn create(&self, conn: &mut DBConn, icon: &CreateIcon) -> Result<i64>;
+    async fn create<'c>(&self, conn: &'c mut DBConn<'c>, icon: &CreateIcon) -> Result<IconId>;
 
-    async fn delete_by_user_id(&self, conn: &mut DBConn, user_id: &UserId) -> Result<()>;
+    async fn delete_by_user_id<'c>(&self, conn: &'c mut DBConn<'c>, user_id: &UserId)
+    -> Result<()>;
 }
 
 pub trait HaveIconRepository {

@@ -5,82 +5,60 @@ mod find_all_by_tag_ids;
 #[cfg(test)]
 mod insert;
 
-use crate::qbey_support::bind_qbey_values;
-use crate::tables::livestream_tag::TABLE_LIVESTREAM_TAGS;
+use crate::tables::livestream_tag::LivestreamTagRow;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::LivestreamId;
 use isupipe_core::models::livestream_tag::LivestreamTag;
 use isupipe_core::models::tag::TagId;
 use isupipe_core::repos::livestream_tag_repository::LivestreamTagRepository;
-use qbey::prelude::*;
-use qbey_mysql::qbey;
+use toasty::stmt::Path;
 
 #[derive(Clone)]
 pub struct LivestreamTagRepositoryInfra {}
 
 #[async_trait]
 impl LivestreamTagRepository for LivestreamTagRepositoryInfra {
-    async fn insert(
+    async fn insert<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
         tag_id: &TagId,
     ) -> isupipe_core::repos::Result<()> {
-        let t = &TABLE_LIVESTREAM_TAGS;
-        let mut ins = qbey(t.table()).into_insert();
-        ins.add_value(&[
-            ("livestream_id", (*livestream_id.inner()).into()),
-            ("tag_id", (*tag_id.inner()).into()),
-        ]);
-        let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
-            .execute(conn)
+        LivestreamTagRow::create()
+            .livestream_id(livestream_id)
+            .tag_id(tag_id)
+            .exec(conn)
             .await?;
 
         Ok(())
     }
 
-    async fn find_all_by_livestream_id(
+    async fn find_all_by_livestream_id<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamTag>> {
-        let t = &TABLE_LIVESTREAM_TAGS;
-        let mut q = qbey(t.table());
-        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
-        let (sql, binds) = q.into_sql();
-        let livestream_tag_models = bind_qbey_values!(
-            sqlx::query_as::<_, LivestreamTag>(sqlx::AssertSqlSafe(sql)),
-            binds
-        )
-        .fetch_all(conn)
-        .await?;
+        let rows =
+            LivestreamTagRow::filter(LivestreamTagRow::fields().livestream_id().eq(livestream_id))
+                .exec(conn)
+                .await?;
 
-        Ok(livestream_tag_models)
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    async fn find_all_by_tag_ids(
+    async fn find_all_by_tag_ids<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         tag_ids: &[TagId],
     ) -> isupipe_core::repos::Result<Vec<LivestreamTag>> {
-        let t = &TABLE_LIVESTREAM_TAGS;
-        let mut q = qbey(t.table());
-        let id_values: Vec<qbey::Value> = tag_ids
-            .iter()
-            .map(|id| qbey::Value::Int(*id.inner()))
-            .collect();
-        q.and_where(t.tag_id().included(id_values.as_slice()));
-        q.order_by(t.livestream_id().desc());
-        let (sql, binds) = q.into_sql();
-        let livestreams = bind_qbey_values!(
-            sqlx::query_as::<_, LivestreamTag>(sqlx::AssertSqlSafe(sql)),
-            binds
-        )
-        .fetch_all(conn)
-        .await?;
+        // newtype (Embed) のフィールドには in_list が生えないので、Path に変換してから使う
+        let tag_id: Path<LivestreamTagRow, TagId> = LivestreamTagRow::fields().tag_id().into();
+        let rows = LivestreamTagRow::filter(tag_id.in_list(tag_ids.to_vec()))
+            .order_by(LivestreamTagRow::fields().livestream_id().desc())
+            .exec(conn)
+            .await?;
 
-        Ok(livestreams)
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 }

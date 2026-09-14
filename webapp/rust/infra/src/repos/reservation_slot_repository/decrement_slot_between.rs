@@ -1,18 +1,15 @@
-use crate::qbey_support::bind_qbey_values;
 use crate::repos::reservation_slot_repository::ReservationSlotRepositoryInfra;
-use crate::tables::reservation_slot::TABLE_RESERVATION_SLOTS;
+use crate::tables::reservation_slot::ReservationSlotRow;
 use crate::test_support::InsertReservationSlotSetup;
+use crate::test_support::get_db_pool;
 use fake::{Fake, Faker};
-use isupipe_core::db::get_db_pool;
 use isupipe_core::models::reservation_slot::ReservationSlot;
 use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
-use qbey::prelude::*;
-use qbey_mysql::qbey;
 
 #[tokio::test]
 async fn empty_case() {
-    let db_pool = get_db_pool().await.unwrap();
-    let mut tx = db_pool.begin().await.unwrap();
+    let mut db = get_db_pool().await;
+    let mut tx = db.transaction().await.unwrap();
 
     let repo = ReservationSlotRepositoryInfra {};
     let slot: ReservationSlot = Faker.fake();
@@ -23,17 +20,12 @@ async fn empty_case() {
 
 #[tokio::test]
 async fn not_empty_case() {
-    let db_pool = get_db_pool().await.unwrap();
-    let mut tx = db_pool.begin().await.unwrap();
+    let mut db = get_db_pool().await;
+    let mut tx = db.transaction().await.unwrap();
 
     // deadlock対策
-    let t = &TABLE_RESERVATION_SLOTS;
-    let mut q = qbey(t.table());
-    q.for_update();
-    q.select(&[t.id()]);
-    let (sql, binds) = q.into_sql();
-    bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
-        .fetch_all(&mut *tx)
+    toasty::sql::query("SELECT id FROM reservation_slots FOR UPDATE")
+        .exec(&mut tx)
         .await
         .unwrap();
 
@@ -45,41 +37,33 @@ async fn not_empty_case() {
     slot2.end_at = slot2.start_at + 100;
 
     {
-        let mut ins = qbey(TABLE_RESERVATION_SLOTS.table()).into_insert();
-        ins.add_value(&InsertReservationSlotSetup { slot: &slot1 });
-        ins.add_value(&InsertReservationSlotSetup { slot: &slot2 });
-        let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
-            .execute(&mut *tx)
-            .await
-            .unwrap();
+        InsertReservationSlotSetup { slot: &slot1 }
+            .insert(&mut tx)
+            .await;
+        InsertReservationSlotSetup { slot: &slot2 }
+            .insert(&mut tx)
+            .await;
     }
 
     repo.decrement_slot_between(&mut tx, slot1.start_at, slot2.end_at)
         .await
         .unwrap();
 
-    let mut q = qbey(t.table());
-    q.and_where(t.id().eq(*slot1.id.inner()));
-    let (sql, binds) = q.into_sql();
-    let got1: ReservationSlot = bind_qbey_values!(
-        sqlx::query_as::<_, ReservationSlot>(sqlx::AssertSqlSafe(sql)),
-        binds
-    )
-    .fetch_one(&mut *tx)
-    .await
-    .unwrap();
+    let got1: ReservationSlot =
+        ReservationSlotRow::filter(ReservationSlotRow::fields().id().eq(&slot1.id))
+            .one()
+            .exec(&mut tx)
+            .await
+            .unwrap()
+            .into();
     assert_eq!(slot1.slot - 1, got1.slot);
 
-    let mut q = qbey(t.table());
-    q.and_where(t.id().eq(*slot2.id.inner()));
-    let (sql, binds) = q.into_sql();
-    let got2: ReservationSlot = bind_qbey_values!(
-        sqlx::query_as::<_, ReservationSlot>(sqlx::AssertSqlSafe(sql)),
-        binds
-    )
-    .fetch_one(&mut *tx)
-    .await
-    .unwrap();
+    let got2: ReservationSlot =
+        ReservationSlotRow::filter(ReservationSlotRow::fields().id().eq(&slot2.id))
+            .one()
+            .exec(&mut tx)
+            .await
+            .unwrap()
+            .into();
     assert_eq!(slot2.slot - 1, got2.slot);
 }

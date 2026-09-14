@@ -5,9 +5,7 @@ mod create;
 #[cfg(test)]
 mod find_all_by_livestream_id;
 
-use crate::qbey_support::bind_qbey_values;
-use crate::tables::livestream::TABLE_LIVESTREAMS;
-use crate::tables::livestream_comment_report::TABLE_LIVECOMMENT_REPORTS;
+use crate::tables::livestream_comment_report::LivestreamCommentReportRow;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::livestream::LivestreamId;
@@ -16,86 +14,58 @@ use isupipe_core::models::livestream_comment_report::{
 };
 use isupipe_core::repos::Result;
 use isupipe_core::repos::livestream_comment_report_repository::LivestreamCommentReportRepository;
-use qbey::prelude::*;
-use qbey_mysql::qbey;
-
-struct InsertReport<'a>(&'a CreateLivestreamCommentReport);
-
-impl qbey::ToInsertRow<qbey::Value> for InsertReport<'_> {
-    fn to_insert_row(&self) -> Vec<(&'static str, qbey::Value)> {
-        vec![
-            ("user_id", (*self.0.user_id.inner()).into()),
-            ("livestream_id", (*self.0.livestream_id.inner()).into()),
-            (
-                "livecomment_id",
-                (*self.0.livestream_comment_id.inner()).into(),
-            ),
-            ("created_at", self.0.created_at.into()),
-        ]
-    }
-}
 
 #[derive(Clone)]
 pub struct LivestreamCommentReportRepositoryInfra {}
 
 #[async_trait]
 impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfra {
-    async fn create(
+    async fn create<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         report: &CreateLivestreamCommentReport,
     ) -> Result<LivestreamCommentReportId> {
-        let t = &TABLE_LIVECOMMENT_REPORTS;
-        let mut ins = qbey(t.table()).into_insert();
-        ins.add_value(&InsertReport(report));
-        let (sql, binds) = ins.into_sql();
-        let rs = bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
-            .execute(conn)
+        let row = LivestreamCommentReportRow::create()
+            .user_id(&report.user_id)
+            .livestream_id(&report.livestream_id)
+            .livecomment_id(&report.livestream_comment_id)
+            .created_at(report.created_at)
+            .exec(conn)
             .await?;
-        let report_id = rs.last_insert_id() as i64;
-        Ok(LivestreamCommentReportId::new(report_id))
+
+        Ok(row.id)
     }
 
-    async fn count_by_livestream_id(
+    async fn count_by_livestream_id<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<i64> {
-        let livestream = &TABLE_LIVESTREAMS;
-        let report = &TABLE_LIVECOMMENT_REPORTS;
-        let mut q = qbey(livestream.table());
-        q.as_("l");
-        let l = livestream.as_("l");
-        q.join(report.table(), report.livestream_id().eq(l.id()));
-        q.and_where(l.id().eq(*livestream_id.inner()));
-        q.add_select(qbey::count_all());
-        let (sql, binds) = q.into_sql();
-        let total_reports = bind_qbey_values!(
-            sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),
-            binds
+        let count = LivestreamCommentReportRow::filter(
+            LivestreamCommentReportRow::fields()
+                .livestream_id()
+                .eq(livestream_id),
         )
-        .fetch_one(conn)
+        .count()
+        .exec(conn)
         .await?;
 
-        Ok(total_reports)
+        Ok(count as i64)
     }
 
-    async fn find_all_by_livestream_id(
+    async fn find_all_by_livestream_id<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
     ) -> isupipe_core::repos::Result<Vec<LivestreamCommentReport>> {
-        let t = &TABLE_LIVECOMMENT_REPORTS;
-        let mut q = qbey(t.table());
-        q.and_where(t.livestream_id().eq(*livestream_id.inner()));
-        let (sql, binds) = q.into_sql();
-        let report_models = bind_qbey_values!(
-            sqlx::query_as::<_, LivestreamCommentReport>(sqlx::AssertSqlSafe(sql)),
-            binds
+        let rows = LivestreamCommentReportRow::filter(
+            LivestreamCommentReportRow::fields()
+                .livestream_id()
+                .eq(livestream_id),
         )
-        .fetch_all(conn)
+        .exec(conn)
         .await?;
 
-        Ok(report_models)
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 }

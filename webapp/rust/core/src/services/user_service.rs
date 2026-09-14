@@ -41,7 +41,8 @@ impl<T: UserServiceImpl> UserService for T {
         dark_mode: bool,
         powerdns_subdomain_address: &str,
     ) -> ServiceResult<(User, CommandOutput)> {
-        let mut tx = self.get_db_pool().begin().await?;
+        let mut db = self.get_db_pool().clone();
+        let mut tx = db.transaction().await?;
 
         let user_id = self.user_repo().create(&mut tx, user).await?;
 
@@ -66,20 +67,20 @@ impl<T: UserServiceImpl> UserService for T {
                 name: UserName::new(user.name.clone()),
                 display_name: Some(user.display_name.clone()),
                 description: Some(user.description.clone()),
-                hashed_password: Some(hashed_password),
+                hashed_password,
             },
             output,
         ))
     }
 
     async fn find(&self, id: &UserId) -> ServiceResult<Option<User>> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         let user = self.user_repo().find(&mut conn, id).await?;
         Ok(user)
     }
 
     async fn find_by_name(&self, name: &str) -> ServiceResult<Option<User>> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         let user = self.user_repo().find_by_name(&mut conn, name).await?;
         Ok(user)
     }

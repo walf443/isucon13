@@ -56,8 +56,8 @@ impl<S: LivestreamCommentReportServiceImpl> LivestreamCommentReportService for S
         livestream_id: &LivestreamId,
         livestream_comment_id: &LivestreamCommentId,
     ) -> ServiceResult<LivestreamCommentReport> {
-        let pool = self.get_db_pool();
-        let mut tx = pool.begin().await?;
+        let mut db = self.get_db_pool().clone();
+        let mut tx = db.transaction().await?;
 
         let livestream_repo = self.livestream_repo();
         livestream_repo
@@ -98,7 +98,7 @@ impl<S: LivestreamCommentReportServiceImpl> LivestreamCommentReportService for S
         &self,
         livestream_id: &LivestreamId,
     ) -> ServiceResult<Vec<LivestreamCommentReport>> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         let result = self
             .livestream_comment_report_repo()
             .find_all_by_livestream_id(&mut conn, livestream_id)

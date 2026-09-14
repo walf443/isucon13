@@ -5,65 +5,49 @@ mod find_all;
 #[cfg(test)]
 mod find_ids_by_name;
 
-use crate::qbey_support::bind_qbey_values;
-use crate::tables::tag::TABLE_TAGS;
+use crate::tables::tag::TagRow;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::tag::{Tag, TagId, TagName};
 use isupipe_core::repos::tag_repository::TagRepository;
-use qbey::prelude::*;
-use qbey_mysql::qbey;
 
 #[derive(Clone)]
 pub struct TagRepositoryInfra {}
 
 #[async_trait]
 impl TagRepository for TagRepositoryInfra {
-    async fn find(&self, conn: &mut DBConn, id: &TagId) -> isupipe_core::repos::Result<Tag> {
-        let t = &TABLE_TAGS;
-        let mut q = qbey(t.table());
-        q.and_where(t.id().eq(*id.inner()));
-
-        let (sql, binds) = q.into_sql();
-        let tag_model =
-            bind_qbey_values!(sqlx::query_as::<_, Tag>(sqlx::AssertSqlSafe(sql)), binds)
-                .fetch_one(conn)
-                .await?;
-
-        Ok(tag_model)
-    }
-
-    async fn find_all(&self, conn: &mut DBConn) -> isupipe_core::repos::Result<Vec<Tag>> {
-        let t = &TABLE_TAGS;
-        let q = qbey(t.table());
-
-        let (sql, binds) = q.into_sql();
-        let tag_models =
-            bind_qbey_values!(sqlx::query_as::<_, Tag>(sqlx::AssertSqlSafe(sql)), binds)
-                .fetch_all(conn)
-                .await?;
-
-        Ok(tag_models)
-    }
-
-    async fn find_ids_by_name(
+    async fn find<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
+        id: &TagId,
+    ) -> isupipe_core::repos::Result<Tag> {
+        let row = TagRow::filter(TagRow::fields().id().eq(id))
+            .one()
+            .exec(conn)
+            .await?;
+
+        Ok(row.into())
+    }
+
+    async fn find_all<'c>(
+        &self,
+        conn: &'c mut DBConn<'c>,
+    ) -> isupipe_core::repos::Result<Vec<Tag>> {
+        let rows = TagRow::all().exec(conn).await?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
+    }
+
+    async fn find_ids_by_name<'c>(
+        &self,
+        conn: &'c mut DBConn<'c>,
         name: &TagName,
     ) -> isupipe_core::repos::Result<Vec<TagId>> {
-        let t = &TABLE_TAGS;
-        let mut q = qbey(t.table());
-        q.and_where(t.name().eq(name.inner().clone()));
-        q.select(&[t.id()]);
+        let ids = TagRow::filter(TagRow::fields().name().eq(name))
+            .select(TagRow::fields().id())
+            .exec(conn)
+            .await?;
 
-        let (sql, binds) = q.into_sql();
-        let tag_id_list = bind_qbey_values!(
-            sqlx::query_scalar::<_, TagId>(sqlx::AssertSqlSafe(sql)),
-            binds
-        )
-        .fetch_all(conn)
-        .await?;
-
-        Ok(tag_id_list)
+        Ok(ids)
     }
 }

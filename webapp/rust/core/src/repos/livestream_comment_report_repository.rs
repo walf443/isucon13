@@ -9,20 +9,20 @@ use async_trait::async_trait;
 #[cfg_attr(any(feature = "test", test), mockall::automock)]
 #[async_trait]
 pub trait LivestreamCommentReportRepository {
-    async fn create(
+    async fn create<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         report: &CreateLivestreamCommentReport,
     ) -> Result<LivestreamCommentReportId>;
-    async fn count_by_livestream_id(
+    async fn count_by_livestream_id<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
     ) -> Result<i64>;
 
-    async fn find_all_by_livestream_id(
+    async fn find_all_by_livestream_id<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
     ) -> Result<Vec<LivestreamCommentReport>>;
 }

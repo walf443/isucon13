@@ -4,8 +4,6 @@ use crate::repos;
 
 #[derive(Debug, thiserror::Error)]
 pub enum UtilError {
-    #[error("SQLx error: {0}")]
-    Sqlx(#[from] sqlx::Error),
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
     #[error("Repos error: {0}")]

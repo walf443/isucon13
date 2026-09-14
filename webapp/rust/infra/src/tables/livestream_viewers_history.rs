@@ -1,8 +1,13 @@
-qbey::qbey_schema!(
-    LivestreamViewersHistoryTable,
-    "livestream_viewers_history",
-    [user_id, livestream_id,]
-);
+use isupipe_core::models::livestream::LivestreamId;
+use isupipe_core::models::user::UserId;
 
-pub const TABLE_LIVESTREAM_VIEWERS_HISTORY: LivestreamViewersHistoryTable =
-    LivestreamViewersHistoryTable::new();
+#[derive(Debug, toasty::Model)]
+#[table = "livestream_viewers_history"]
+pub struct LivestreamViewersHistoryRow {
+    #[key]
+    #[auto]
+    pub id: i64,
+    pub user_id: UserId,
+    pub livestream_id: LivestreamId,
+    pub created_at: i64,
+}

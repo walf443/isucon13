@@ -1,3 +1,12 @@
-qbey::qbey_schema!(IconTable, "icons", [image, user_id]);
+use isupipe_core::models::icon::IconId;
+use isupipe_core::models::user::UserId;
 
-pub const TABLE_ICONS: IconTable = IconTable::new();
+#[derive(Debug, toasty::Model)]
+#[table = "icons"]
+pub struct IconRow {
+    #[key]
+    #[auto]
+    pub id: IconId,
+    pub user_id: UserId,
+    pub image: Vec<u8>,
+}

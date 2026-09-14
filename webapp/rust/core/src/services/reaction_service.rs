@@ -27,7 +27,7 @@ pub trait ReactionServiceImpl: Sync + HaveDBPool + HaveReactionRepository {}
 #[async_trait]
 impl<T: ReactionServiceImpl> ReactionService for T {
     async fn create(&self, reaction: &CreateReaction) -> ServiceResult<ReactionId> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         let reaction_id = self.reaction_repo().create(&mut conn, reaction).await?;
 
         Ok(reaction_id)
@@ -38,7 +38,7 @@ impl<T: ReactionServiceImpl> ReactionService for T {
         livestream_id: &LivestreamId,
         limit: Option<i64>,
     ) -> ServiceResult<Vec<Reaction>> {
-        let mut conn = self.get_db_pool().acquire().await?;
+        let mut conn = self.get_db_pool().connection().await?;
         let result = match limit {
             None => {
                 self.reaction_repo()

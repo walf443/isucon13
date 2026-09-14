@@ -1,18 +1,14 @@
-use crate::qbey_support::bind_qbey_values;
 use crate::repos::reservation_slot_repository::ReservationSlotRepositoryInfra;
-use crate::tables::reservation_slot::TABLE_RESERVATION_SLOTS;
 use crate::test_support::InsertReservationSlotSetup;
+use crate::test_support::get_db_pool;
 use fake::{Fake, Faker};
-use isupipe_core::db::get_db_pool;
 use isupipe_core::models::reservation_slot::ReservationSlot;
 use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
-use qbey::prelude::*;
-use qbey_mysql::qbey;
 
 #[tokio::test]
 async fn empty_case() {
-    let db_pool = get_db_pool().await.unwrap();
-    let mut tx = db_pool.begin().await.unwrap();
+    let mut db = get_db_pool().await;
+    let mut tx = db.transaction().await.unwrap();
 
     let repo = ReservationSlotRepositoryInfra {};
     let slot: ReservationSlot = Faker.fake();
@@ -25,8 +21,8 @@ async fn empty_case() {
 
 #[tokio::test]
 async fn not_empty_case() {
-    let db_pool = get_db_pool().await.unwrap();
-    let mut tx = db_pool.begin().await.unwrap();
+    let mut db = get_db_pool().await;
+    let mut tx = db.transaction().await.unwrap();
 
     let repo = ReservationSlotRepositoryInfra {};
     let mut slot1: ReservationSlot = Faker.fake();
@@ -36,14 +32,12 @@ async fn not_empty_case() {
     slot2.end_at = slot2.start_at + 100;
 
     {
-        let mut ins = qbey(TABLE_RESERVATION_SLOTS.table()).into_insert();
-        ins.add_value(&InsertReservationSlotSetup { slot: &slot1 });
-        ins.add_value(&InsertReservationSlotSetup { slot: &slot2 });
-        let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
-            .execute(&mut *tx)
-            .await
-            .unwrap();
+        InsertReservationSlotSetup { slot: &slot1 }
+            .insert(&mut tx)
+            .await;
+        InsertReservationSlotSetup { slot: &slot2 }
+            .insert(&mut tx)
+            .await;
     }
 
     let result = repo
@@ -66,8 +60,8 @@ async fn not_empty_case() {
 
 #[tokio::test]
 async fn boundary_case() {
-    let db_pool = get_db_pool().await.unwrap();
-    let mut tx = db_pool.begin().await.unwrap();
+    let mut db = get_db_pool().await;
+    let mut tx = db.transaction().await.unwrap();
 
     let repo = ReservationSlotRepositoryInfra {};
     let mut slot: ReservationSlot = Faker.fake();
@@ -75,13 +69,9 @@ async fn boundary_case() {
     slot.end_at = 2000;
 
     {
-        let mut ins = qbey(TABLE_RESERVATION_SLOTS.table()).into_insert();
-        ins.add_value(&InsertReservationSlotSetup { slot: &slot });
-        let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
-            .execute(&mut *tx)
-            .await
-            .unwrap();
+        InsertReservationSlotSetup { slot: &slot }
+            .insert(&mut tx)
+            .await;
     }
 
     // exact boundary match (start_at >= 1000 AND end_at <= 2000)
@@ -108,8 +98,8 @@ async fn boundary_case() {
 
 #[tokio::test]
 async fn filters_out_of_range() {
-    let db_pool = get_db_pool().await.unwrap();
-    let mut tx = db_pool.begin().await.unwrap();
+    let mut db = get_db_pool().await;
+    let mut tx = db.transaction().await.unwrap();
 
     let repo = ReservationSlotRepositoryInfra {};
     let mut inside: ReservationSlot = Faker.fake();
@@ -120,14 +110,12 @@ async fn filters_out_of_range() {
     outside.end_at = 4000;
 
     {
-        let mut ins = qbey(TABLE_RESERVATION_SLOTS.table()).into_insert();
-        ins.add_value(&InsertReservationSlotSetup { slot: &inside });
-        ins.add_value(&InsertReservationSlotSetup { slot: &outside });
-        let (sql, binds) = ins.into_sql();
-        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
-            .execute(&mut *tx)
-            .await
-            .unwrap();
+        InsertReservationSlotSetup { slot: &inside }
+            .insert(&mut tx)
+            .await;
+        InsertReservationSlotSetup { slot: &outside }
+            .insert(&mut tx)
+            .await;
     }
 
     let result = repo

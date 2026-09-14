@@ -8,30 +8,34 @@ use async_trait::async_trait;
 #[cfg_attr(any(feature = "test", test), mockall::automock)]
 #[async_trait]
 pub trait NgWordRepository {
-    async fn create(&self, conn: &mut DBConn, ng_word: &CreateNgWord) -> Result<NgWordId>;
-    async fn find_all_by_livestream_id(
+    async fn create<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
+        ng_word: &CreateNgWord,
+    ) -> Result<NgWordId>;
+    async fn find_all_by_livestream_id<'c>(
+        &self,
+        conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
     ) -> Result<Vec<NgWord>>;
 
-    async fn count_by_ng_word_in_comment(
+    async fn count_by_ng_word_in_comment<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         ng_word: &str,
         comment: &str,
     ) -> Result<i64>;
 
-    async fn find_all_by_livestream_id_and_user_id(
+    async fn find_all_by_livestream_id_and_user_id<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
         user_id: &UserId,
     ) -> Result<Vec<NgWord>>;
 
-    async fn find_all_by_livestream_id_and_user_id_order_by_created_at(
+    async fn find_all_by_livestream_id_and_user_id_order_by_created_at<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
         user_id: &UserId,
     ) -> Result<Vec<NgWord>>;

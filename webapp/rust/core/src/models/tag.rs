@@ -1,11 +1,21 @@
-use crate::models::id::Id;
 use fake::Dummy;
 
-#[derive(Debug, sqlx::FromRow, Dummy)]
+#[derive(Debug, Dummy)]
 pub struct Tag {
-    pub id: Id<Self, i64>,
+    pub id: TagId,
     pub name: TagName,
 }
 
-pub type TagId = Id<Tag, i64>;
-pub type TagName = Id<Tag, String>;
+kubetsu::define_id!(
+    #[derive(toasty::Embed)]
+    pub struct TagId(i64);
+);
+kubetsu_serde::impl_serde!(TagId(i64));
+kubetsu_fake::impl_fake!(TagId(i64));
+
+kubetsu::define_id!(
+    #[derive(toasty::Embed)]
+    pub struct TagName(String);
+);
+kubetsu_serde::impl_serde!(TagName(String));
+kubetsu_fake::impl_fake!(TagName(String));

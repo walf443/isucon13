@@ -1,5 +1,6 @@
-mod qbey_support;
-mod tables;
+pub mod db;
+mod sql_support;
+pub mod tables;
 #[cfg(test)]
 pub(crate) mod test_support;
 

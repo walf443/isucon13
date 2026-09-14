@@ -1,14 +1,12 @@
-use crate::models::id::Id;
 use crate::models::livestream::LivestreamId;
 use crate::models::livestream_comment::LivestreamCommentId;
 use crate::models::user::UserId;
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug)]
 pub struct LivestreamCommentReport {
-    pub id: Id<Self, i64>,
+    pub id: LivestreamCommentReportId,
     pub user_id: UserId,
     pub livestream_id: LivestreamId,
-    #[sqlx(rename = "livecomment_id")]
     pub livestream_comment_id: LivestreamCommentId,
     pub created_at: i64,
 }
@@ -21,4 +19,9 @@ pub struct CreateLivestreamCommentReport {
     pub created_at: i64,
 }
 
-pub type LivestreamCommentReportId = Id<LivestreamCommentReport, i64>;
+kubetsu::define_id!(
+    #[derive(toasty::Embed)]
+    pub struct LivestreamCommentReportId(i64);
+);
+kubetsu_serde::impl_serde!(LivestreamCommentReportId(i64));
+kubetsu_fake::impl_fake!(LivestreamCommentReportId(i64));

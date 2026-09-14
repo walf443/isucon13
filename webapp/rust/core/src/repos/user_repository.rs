@@ -6,7 +6,7 @@ use async_trait::async_trait;
 #[cfg_attr(any(feature = "test", test), mockall::automock)]
 #[async_trait]
 pub trait UserRepository {
-    async fn create(&self, conn: &mut DBConn, user: &CreateUser) -> Result<UserId>;
+    async fn create<'c>(&self, conn: &'c mut DBConn<'c>, user: &CreateUser) -> Result<UserId>;
 
     fn hash_password(&self, password: &str) -> Result<String> {
         const BCRYPT_DEFAULT_COST: u32 = 4;
@@ -14,10 +14,14 @@ pub trait UserRepository {
         Ok(hashed_password)
     }
 
-    async fn find(&self, conn: &mut DBConn, id: &UserId) -> Result<Option<User>>;
-    async fn find_all(&self, conn: &mut DBConn) -> Result<Vec<User>>;
-    async fn find_id_by_name(&self, conn: &mut DBConn, name: &str) -> Result<Option<UserId>>;
-    async fn find_by_name(&self, conn: &mut DBConn, name: &str) -> Result<Option<User>>;
+    async fn find<'c>(&self, conn: &'c mut DBConn<'c>, id: &UserId) -> Result<Option<User>>;
+    async fn find_all<'c>(&self, conn: &'c mut DBConn<'c>) -> Result<Vec<User>>;
+    async fn find_id_by_name<'c>(
+        &self,
+        conn: &'c mut DBConn<'c>,
+        name: &str,
+    ) -> Result<Option<UserId>>;
+    async fn find_by_name<'c>(&self, conn: &'c mut DBConn<'c>, name: &str) -> Result<Option<User>>;
 }
 
 pub trait HaveUserRepository {

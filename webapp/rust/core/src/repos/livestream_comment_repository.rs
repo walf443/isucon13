@@ -10,63 +10,63 @@ use async_trait::async_trait;
 #[cfg_attr(any(feature = "test", test), mockall::automock)]
 #[async_trait]
 pub trait LivestreamCommentRepository {
-    async fn create(
+    async fn create<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         comment: &CreateLivestreamComment,
     ) -> Result<LivestreamCommentId>;
 
-    async fn remove_if_match_ng_word(
+    async fn remove_if_match_ng_word<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         comment: &LivestreamComment,
         ng_word: &str,
     ) -> Result<()>;
 
-    async fn find(
+    async fn find<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         comment_id: &LivestreamCommentId,
     ) -> Result<Option<LivestreamComment>>;
 
-    async fn find_all(&self, conn: &mut DBConn) -> Result<Vec<LivestreamComment>>;
+    async fn find_all<'c>(&self, conn: &'c mut DBConn<'c>) -> Result<Vec<LivestreamComment>>;
 
-    async fn find_all_by_livestream_id(
+    async fn find_all_by_livestream_id<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
     ) -> Result<Vec<LivestreamComment>>;
 
-    async fn find_all_by_livestream_id_order_by_created_at(
+    async fn find_all_by_livestream_id_order_by_created_at<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
     ) -> Result<Vec<LivestreamComment>>;
 
-    async fn find_all_by_livestream_id_order_by_created_at_limit(
+    async fn find_all_by_livestream_id_order_by_created_at_limit<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
         limit: i64,
     ) -> Result<Vec<LivestreamComment>>;
 
-    async fn get_sum_tip(&self, conn: &mut DBConn) -> Result<i64>;
+    async fn get_sum_tip<'c>(&self, conn: &'c mut DBConn<'c>) -> Result<i64>;
 
-    async fn get_sum_tip_of_livestream_id(
+    async fn get_sum_tip_of_livestream_id<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
     ) -> Result<i64>;
 
-    async fn get_max_tip_of_livestream_id(
+    async fn get_max_tip_of_livestream_id<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         livestream_id: &LivestreamId,
     ) -> Result<i64>;
 
-    async fn get_sum_tip_of_livestream_user_id(
+    async fn get_sum_tip_of_livestream_user_id<'c>(
         &self,
-        conn: &mut DBConn,
+        conn: &'c mut DBConn<'c>,
         user_id: &UserId,
     ) -> Result<i64>;
 }
