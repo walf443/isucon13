@@ -5,10 +5,14 @@ mod find_all_between_for_update;
 #[cfg(test)]
 mod find_slot_between;
 
+use crate::qbey_support::bind_qbey_values;
+use crate::tables::reservation_slot::TABLE_RESERVATION_SLOTS;
 use async_trait::async_trait;
 use isupipe_core::db::DBConn;
 use isupipe_core::models::reservation_slot::ReservationSlot;
 use isupipe_core::repos::reservation_slot_repository::ReservationSlotRepository;
+use qbey::prelude::*;
+use qbey_mysql::qbey;
 
 #[derive(Clone)]
 pub struct ReservationSlotRepositoryInfra {}
@@ -21,11 +25,15 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         start_at: i64,
         end_at: i64,
     ) -> isupipe_core::repos::Result<Vec<ReservationSlot>> {
-        let slots: Vec<ReservationSlot> = sqlx::query_as!(
-            ReservationSlot,
-            "SELECT * FROM reservation_slots WHERE start_at >= ? AND end_at <= ? FOR UPDATE",
-            start_at,
-            end_at,
+        let t = &TABLE_RESERVATION_SLOTS;
+        let mut q = qbey(t.table());
+        q.and_where(t.start_at().gte(start_at));
+        q.and_where(t.end_at().lte(end_at));
+        q.for_update();
+        let (sql, binds) = q.into_sql();
+        let slots = bind_qbey_values!(
+            sqlx::query_as::<_, ReservationSlot>(sqlx::AssertSqlSafe(sql)),
+            binds
         )
         .fetch_all(conn)
         .await?;
@@ -39,10 +47,15 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         start_at: i64,
         end_at: i64,
     ) -> isupipe_core::repos::Result<i64> {
-        let count: i64 = sqlx::query_scalar!(
-            "SELECT slot FROM reservation_slots WHERE start_at = ? AND end_at = ?",
-            start_at,
-            end_at,
+        let t = &TABLE_RESERVATION_SLOTS;
+        let mut q = qbey(t.table());
+        q.and_where(t.start_at().eq(start_at));
+        q.and_where(t.end_at().eq(end_at));
+        q.select(&[t.slot()]);
+        let (sql, binds) = q.into_sql();
+        let count = bind_qbey_values!(
+            sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),
+            binds
         )
         .fetch_one(conn)
         .await?;
@@ -56,13 +69,15 @@ impl ReservationSlotRepository for ReservationSlotRepositoryInfra {
         start_at: i64,
         end_at: i64,
     ) -> isupipe_core::repos::Result<()> {
-        sqlx::query!(
-            "UPDATE reservation_slots SET slot = slot - 1 WHERE start_at >= ? AND end_at <= ?",
-            start_at,
-            end_at,
-        )
-        .execute(conn)
-        .await?;
+        let t = &TABLE_RESERVATION_SLOTS;
+        let mut u = qbey(t.table()).into_update();
+        u.set_expr(qbey::RawSql::new("`slot` = `slot` - 1"));
+        let u = u.and_where(t.start_at().gte(start_at));
+        let u = u.and_where(t.end_at().lte(end_at));
+        let (sql, binds) = u.into_sql();
+        bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
+            .execute(conn)
+            .await?;
 
         Ok(())
     }
