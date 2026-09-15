@@ -28,10 +28,5 @@ tracing = "0.1"
 tracing-subscriber = { version =  "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4"] }
 fake = { version = "5", features=["derive"] }
-qbey = "0.3"
-qbey-mysql = "0.3"
-
-# qbey_schema! の型付きカラムと型付き INSERT/UPDATE (walf443/qbey#111, #112, main 未リリース) を試すためのローカルパッチ
-[patch.crates-io]
-qbey = { path = "../../../qbey/qbey" }
-qbey-mysql = { path = "../../../qbey/qbey-mysql" }
+qbey = "0.4"
+qbey-mysql = "0.4"

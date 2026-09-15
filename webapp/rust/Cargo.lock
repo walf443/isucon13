@@ -2203,11 +2203,15 @@ dependencies = [
 
 [[package]]
 name = "qbey"
-version = "0.3.0"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ddc5b17b62b8280c6a52a7c0a1fe529d613598fd63dc2244094db59d6e636a4"
 
 [[package]]
 name = "qbey-mysql"
-version = "0.3.0"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "33bbecf69a710582d9181b83c763f3acde3d5637f317d2682423670377c2378e"
 dependencies = [
  "qbey",
 ]
