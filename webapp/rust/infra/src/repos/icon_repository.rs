@@ -45,10 +45,7 @@ impl IconRepository for IconRepositoryInfra {
     ) -> isupipe_core::repos::Result<i64> {
         let t = &TABLE_ICONS;
         let mut ins = qbey(t.table()).into_insert();
-        ins.add_value(&[
-            t.user_id().value(&icon.user_id),
-            t.image().value(&icon.image),
-        ]);
+        ins.add_value(t.row().user_id(&icon.user_id).image(&icon.image));
         let (sql, binds) = ins.into_sql();
         let rs = bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(conn)

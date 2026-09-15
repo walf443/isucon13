@@ -37,14 +37,13 @@ pub struct InsertUserSetup<'a> {
 
 impl qbey::ToInsertRow<Value, String> for InsertUserSetup<'_> {
     fn to_insert_row(&self) -> Vec<(String, Value)> {
-        let t = &TABLE_USERS;
-        vec![
-            t.id().value(UserId::new(self.id)),
-            t.name().value(UserName::new(self.user.name.clone())),
-            t.display_name().value(&self.user.display_name),
-            t.password().value(&self.user.password),
-            t.description().value(&self.user.description),
-        ]
+        let mut row = TABLE_USERS.row();
+        row.id(UserId::new(self.id))
+            .name(UserName::new(self.user.name.clone()))
+            .display_name(&self.user.display_name)
+            .password(&self.user.password)
+            .description(&self.user.description);
+        row.to_insert_row()
     }
 }
 
@@ -56,17 +55,16 @@ pub struct InsertLivestreamSetup<'a> {
 
 impl qbey::ToInsertRow<Value, String> for InsertLivestreamSetup<'_> {
     fn to_insert_row(&self) -> Vec<(String, Value)> {
-        let t = &TABLE_LIVESTREAMS;
-        vec![
-            t.id().value(LivestreamId::new(self.id)),
-            t.user_id().value(UserId::new(self.user_id)),
-            t.title().value(&self.stream.title),
-            t.description().value(&self.stream.description),
-            t.playlist_url().value(&self.stream.playlist_url),
-            t.thumbnail_url().value(&self.stream.thumbnail_url),
-            t.start_at().value(self.stream.start_at),
-            t.end_at().value(self.stream.end_at),
-        ]
+        let mut row = TABLE_LIVESTREAMS.row();
+        row.id(LivestreamId::new(self.id))
+            .user_id(UserId::new(self.user_id))
+            .title(&self.stream.title)
+            .description(&self.stream.description)
+            .playlist_url(&self.stream.playlist_url)
+            .thumbnail_url(&self.stream.thumbnail_url)
+            .start_at(self.stream.start_at)
+            .end_at(self.stream.end_at);
+        row.to_insert_row()
     }
 }
 
@@ -79,15 +77,13 @@ pub struct InsertReactionSetup<'a> {
 
 impl qbey::ToInsertRow<Value, String> for InsertReactionSetup<'_> {
     fn to_insert_row(&self) -> Vec<(String, Value)> {
-        let t = &TABLE_REACTIONS;
-        vec![
-            t.id().value(ReactionId::new(self.id)),
-            t.user_id().value(UserId::new(self.user_id)),
-            t.livestream_id()
-                .value(LivestreamId::new(self.livestream_id)),
-            t.emoji_name().value(&self.reaction.emoji_name),
-            t.created_at().value(self.reaction.created_at),
-        ]
+        let mut row = TABLE_REACTIONS.row();
+        row.id(ReactionId::new(self.id))
+            .user_id(UserId::new(self.user_id))
+            .livestream_id(LivestreamId::new(self.livestream_id))
+            .emoji_name(&self.reaction.emoji_name)
+            .created_at(self.reaction.created_at);
+        row.to_insert_row()
     }
 }
 
@@ -100,16 +96,14 @@ pub struct InsertCommentSetup<'a> {
 
 impl qbey::ToInsertRow<Value, String> for InsertCommentSetup<'_> {
     fn to_insert_row(&self) -> Vec<(String, Value)> {
-        let t = &TABLE_LIVECOMMENTS;
-        vec![
-            t.id().value(LivestreamCommentId::new(self.id)),
-            t.user_id().value(UserId::new(self.user_id)),
-            t.livestream_id()
-                .value(LivestreamId::new(self.livestream_id)),
-            t.comment().value(&self.comment.comment),
-            t.tip().value(self.comment.tip),
-            t.created_at().value(self.comment.created_at),
-        ]
+        let mut row = TABLE_LIVECOMMENTS.row();
+        row.id(LivestreamCommentId::new(self.id))
+            .user_id(UserId::new(self.user_id))
+            .livestream_id(LivestreamId::new(self.livestream_id))
+            .comment(&self.comment.comment)
+            .tip(self.comment.tip)
+            .created_at(self.comment.created_at);
+        row.to_insert_row()
     }
 }
 
@@ -123,16 +117,13 @@ pub struct InsertReportSetup<'a> {
 
 impl qbey::ToInsertRow<Value, String> for InsertReportSetup<'_> {
     fn to_insert_row(&self) -> Vec<(String, Value)> {
-        let t = &TABLE_LIVECOMMENT_REPORTS;
-        vec![
-            t.id().value(LivestreamCommentReportId::new(self.id)),
-            t.user_id().value(UserId::new(self.user_id)),
-            t.livestream_id()
-                .value(LivestreamId::new(self.livestream_id)),
-            t.livecomment_id()
-                .value(LivestreamCommentId::new(self.livecomment_id)),
-            t.created_at().value(self.report.created_at),
-        ]
+        let mut row = TABLE_LIVECOMMENT_REPORTS.row();
+        row.id(LivestreamCommentReportId::new(self.id))
+            .user_id(UserId::new(self.user_id))
+            .livestream_id(LivestreamId::new(self.livestream_id))
+            .livecomment_id(LivestreamCommentId::new(self.livecomment_id))
+            .created_at(self.report.created_at);
+        row.to_insert_row()
     }
 }
 
@@ -145,15 +136,13 @@ pub struct InsertNgWordSetup<'a> {
 
 impl qbey::ToInsertRow<Value, String> for InsertNgWordSetup<'_> {
     fn to_insert_row(&self) -> Vec<(String, Value)> {
-        let t = &TABLE_NG_WORDS;
-        vec![
-            t.id().value(NgWordId::new(self.id)),
-            t.user_id().value(UserId::new(self.user_id)),
-            t.livestream_id()
-                .value(LivestreamId::new(self.livestream_id)),
-            t.word().value(&self.ng_word.word),
-            t.created_at().value(self.ng_word.created_at),
-        ]
+        let mut row = TABLE_NG_WORDS.row();
+        row.id(NgWordId::new(self.id))
+            .user_id(UserId::new(self.user_id))
+            .livestream_id(LivestreamId::new(self.livestream_id))
+            .word(&self.ng_word.word)
+            .created_at(self.ng_word.created_at);
+        row.to_insert_row()
     }
 }
 
@@ -164,11 +153,9 @@ pub struct InsertTagSetup<'a> {
 
 impl qbey::ToInsertRow<Value, String> for InsertTagSetup<'_> {
     fn to_insert_row(&self) -> Vec<(String, Value)> {
-        let t = &TABLE_TAGS;
-        vec![
-            t.id().value(TagId::new(self.id)),
-            t.name().value(&self.tag.name),
-        ]
+        let mut row = TABLE_TAGS.row();
+        row.id(TagId::new(self.id)).name(&self.tag.name);
+        row.to_insert_row()
     }
 }
 
@@ -180,13 +167,11 @@ pub struct InsertLivestreamTagSetup {
 
 impl qbey::ToInsertRow<Value, String> for InsertLivestreamTagSetup {
     fn to_insert_row(&self) -> Vec<(String, Value)> {
-        let t = &TABLE_LIVESTREAM_TAGS;
-        vec![
-            t.id().value(LivestreamTagId::new(self.id)),
-            t.livestream_id()
-                .value(LivestreamId::new(self.livestream_id)),
-            t.tag_id().value(TagId::new(self.tag_id)),
-        ]
+        let mut row = TABLE_LIVESTREAM_TAGS.row();
+        row.id(LivestreamTagId::new(self.id))
+            .livestream_id(LivestreamId::new(self.livestream_id))
+            .tag_id(TagId::new(self.tag_id));
+        row.to_insert_row()
     }
 }
 
@@ -198,13 +183,11 @@ pub struct InsertViewersHistorySetup {
 
 impl qbey::ToInsertRow<Value, String> for InsertViewersHistorySetup {
     fn to_insert_row(&self) -> Vec<(String, Value)> {
-        let t = &TABLE_LIVESTREAM_VIEWERS_HISTORY;
-        vec![
-            t.user_id().value(UserId::new(self.user_id)),
-            t.livestream_id()
-                .value(LivestreamId::new(self.livestream_id)),
-            t.created_at().value(self.created_at),
-        ]
+        let mut row = TABLE_LIVESTREAM_VIEWERS_HISTORY.row();
+        row.user_id(UserId::new(self.user_id))
+            .livestream_id(LivestreamId::new(self.livestream_id))
+            .created_at(self.created_at);
+        row.to_insert_row()
     }
 }
 
@@ -214,13 +197,12 @@ pub struct InsertReservationSlotSetup<'a> {
 
 impl qbey::ToInsertRow<Value, String> for InsertReservationSlotSetup<'_> {
     fn to_insert_row(&self) -> Vec<(String, Value)> {
-        let t = &TABLE_RESERVATION_SLOTS;
-        vec![
-            t.id().value(&self.slot.id),
-            t.slot().value(self.slot.slot),
-            t.start_at().value(self.slot.start_at),
-            t.end_at().value(self.slot.end_at),
-        ]
+        let mut row = TABLE_RESERVATION_SLOTS.row();
+        row.id(&self.slot.id)
+            .slot(self.slot.slot)
+            .start_at(self.slot.start_at)
+            .end_at(self.slot.end_at);
+        row.to_insert_row()
     }
 }
 
@@ -230,12 +212,11 @@ pub struct InsertThemeSetup<'a> {
 
 impl qbey::ToInsertRow<Value, String> for InsertThemeSetup<'_> {
     fn to_insert_row(&self) -> Vec<(String, Value)> {
-        let t = &TABLE_THEMES;
-        vec![
-            t.id().value(&self.theme.id),
-            t.user_id().value(&self.theme.user_id),
-            t.dark_mode().value(self.theme.dark_mode),
-        ]
+        let mut row = TABLE_THEMES.row();
+        row.id(&self.theme.id)
+            .user_id(&self.theme.user_id)
+            .dark_mode(self.theme.dark_mode);
+        row.to_insert_row()
     }
 }
 
@@ -247,11 +228,10 @@ pub struct InsertIconSetup {
 
 impl qbey::ToInsertRow<Value, String> for InsertIconSetup {
     fn to_insert_row(&self) -> Vec<(String, Value)> {
-        let t = &TABLE_ICONS;
-        vec![
-            t.id().value(self.id),
-            t.user_id().value(UserId::new(self.user_id)),
-            t.image().value(&self.image),
-        ]
+        let mut row = TABLE_ICONS.row();
+        row.id(self.id)
+            .user_id(UserId::new(self.user_id))
+            .image(&self.image);
+        row.to_insert_row()
     }
 }

@@ -9,8 +9,7 @@ qbey::qbey_schema!(
         display_name: String,
         description: String,
         password: String,
-    ]
-);
+    ], row = UserRow);
 
 impl UserTable {
     pub fn default_cols(&self) -> Vec<qbey::Col> {

@@ -11,7 +11,6 @@ qbey::qbey_schema!(
         livestream_id: LivestreamId,
         emoji_name: String,
         created_at: i64,
-    ]
-);
+    ], row = ReactionRow);
 
 pub const TABLE_REACTIONS: ReactionTable = ReactionTable::new();

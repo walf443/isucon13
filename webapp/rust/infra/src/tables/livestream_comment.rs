@@ -12,7 +12,6 @@ qbey::qbey_schema!(
         comment: String,
         tip: i64,
         created_at: i64,
-    ]
-);
+    ], row = LivestreamCommentRow);
 
 pub const TABLE_LIVECOMMENTS: LivestreamCommentTable = LivestreamCommentTable::new();

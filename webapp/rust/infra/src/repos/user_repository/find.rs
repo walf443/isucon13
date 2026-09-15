@@ -27,14 +27,14 @@ async fn found_case() {
     {
         let t = &TABLE_USERS;
         let mut ins = qbey(t.table()).into_insert();
-        ins.add_value(&[
-            t.id().value(&user.id),
-            t.name().value(&user.name),
-            t.display_name()
-                .value(user.display_name.as_deref().unwrap()),
-            t.description().value(user.description.as_deref().unwrap()),
-            t.password().value(user.hashed_password.as_deref().unwrap()),
-        ]);
+        ins.add_value(
+            t.row()
+                .id(&user.id)
+                .name(&user.name)
+                .display_name(user.display_name.as_deref().unwrap())
+                .description(user.description.as_deref().unwrap())
+                .password(user.hashed_password.as_deref().unwrap()),
+        );
         let (sql, binds) = ins.into_sql();
         bind_qbey_values!(sqlx::query(sqlx::AssertSqlSafe(sql)), binds)
             .execute(&mut *tx)

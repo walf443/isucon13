@@ -11,7 +11,6 @@ qbey::qbey_schema!(
         livestream_id: LivestreamId,
         word: String,
         created_at: i64,
-    ]
-);
+    ], row = NgWordRow);
 
 pub const TABLE_NG_WORDS: NgWordTable = NgWordTable::new();

@@ -12,16 +12,15 @@ struct InsertLivestream<'a>(&'a CreateLivestream);
 
 impl qbey::ToInsertRow<qbey::Value, String> for InsertLivestream<'_> {
     fn to_insert_row(&self) -> Vec<(String, qbey::Value)> {
-        let t = &TABLE_LIVESTREAMS;
-        vec![
-            t.user_id().value(&self.0.user_id),
-            t.title().value(&self.0.title),
-            t.description().value(&self.0.description),
-            t.playlist_url().value(&self.0.playlist_url),
-            t.thumbnail_url().value(&self.0.thumbnail_url),
-            t.start_at().value(self.0.start_at),
-            t.end_at().value(self.0.end_at),
-        ]
+        let mut row = TABLE_LIVESTREAMS.row();
+        row.user_id(&self.0.user_id)
+            .title(&self.0.title)
+            .description(&self.0.description)
+            .playlist_url(&self.0.playlist_url)
+            .thumbnail_url(&self.0.thumbnail_url)
+            .start_at(self.0.start_at)
+            .end_at(self.0.end_at);
+        row.to_insert_row()
     }
 }
 

@@ -13,7 +13,6 @@ qbey::qbey_schema!(
         thumbnail_url: String,
         start_at: i64,
         end_at: i64,
-    ]
-);
+    ], row = LivestreamRow);
 
 pub const TABLE_LIVESTREAMS: LivestreamTable = LivestreamTable::new();

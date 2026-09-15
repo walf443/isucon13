@@ -22,13 +22,12 @@ struct InsertNgWord<'a>(&'a CreateNgWord);
 
 impl qbey::ToInsertRow<qbey::Value, String> for InsertNgWord<'_> {
     fn to_insert_row(&self) -> Vec<(String, qbey::Value)> {
-        let t = &TABLE_NG_WORDS;
-        vec![
-            t.user_id().value(&self.0.user_id),
-            t.livestream_id().value(&self.0.livestream_id),
-            t.word().value(&self.0.word),
-            t.created_at().value(self.0.created_at),
-        ]
+        let mut row = TABLE_NG_WORDS.row();
+        row.user_id(&self.0.user_id)
+            .livestream_id(&self.0.livestream_id)
+            .word(&self.0.word)
+            .created_at(self.0.created_at);
+        row.to_insert_row()
     }
 }
 

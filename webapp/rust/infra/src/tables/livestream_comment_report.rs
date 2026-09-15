@@ -12,8 +12,7 @@ qbey::qbey_schema!(
         livestream_id: LivestreamId,
         livecomment_id: LivestreamCommentId,
         created_at: i64,
-    ]
-);
+    ], row = LivestreamCommentReportRow);
 
 pub const TABLE_LIVECOMMENT_REPORTS: LivestreamCommentReportTable =
     LivestreamCommentReportTable::new();

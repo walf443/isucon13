@@ -22,12 +22,11 @@ struct InsertViewersHistory<'a>(&'a CreateLivestreamViewersHistory);
 
 impl qbey::ToInsertRow<qbey::Value, String> for InsertViewersHistory<'_> {
     fn to_insert_row(&self) -> Vec<(String, qbey::Value)> {
-        let t = &TABLE_LIVESTREAM_VIEWERS_HISTORY;
-        vec![
-            t.user_id().value(&self.0.user_id),
-            t.livestream_id().value(&self.0.livestream_id),
-            t.created_at().value(self.0.created_at),
-        ]
+        let mut row = TABLE_LIVESTREAM_VIEWERS_HISTORY.row();
+        row.user_id(&self.0.user_id)
+            .livestream_id(&self.0.livestream_id)
+            .created_at(self.0.created_at);
+        row.to_insert_row()
     }
 }
 

@@ -25,13 +25,12 @@ struct InsertUser<'a> {
 
 impl qbey::ToInsertRow<qbey::Value, String> for InsertUser<'_> {
     fn to_insert_row(&self) -> Vec<(String, qbey::Value)> {
-        let t = &TABLE_USERS;
-        vec![
-            t.name().value(UserName::new(self.user.name.clone())),
-            t.display_name().value(&self.user.display_name),
-            t.description().value(&self.user.description),
-            t.password().value(self.hashed_password),
-        ]
+        let mut row = TABLE_USERS.row();
+        row.name(UserName::new(self.user.name.clone()))
+            .display_name(&self.user.display_name)
+            .description(&self.user.description)
+            .password(self.hashed_password);
+        row.to_insert_row()
     }
 }
 

@@ -23,13 +23,12 @@ struct InsertReport<'a>(&'a CreateLivestreamCommentReport);
 
 impl qbey::ToInsertRow<qbey::Value, String> for InsertReport<'_> {
     fn to_insert_row(&self) -> Vec<(String, qbey::Value)> {
-        let t = &TABLE_LIVECOMMENT_REPORTS;
-        vec![
-            t.user_id().value(&self.0.user_id),
-            t.livestream_id().value(&self.0.livestream_id),
-            t.livecomment_id().value(&self.0.livestream_comment_id),
-            t.created_at().value(self.0.created_at),
-        ]
+        let mut row = TABLE_LIVECOMMENT_REPORTS.row();
+        row.user_id(&self.0.user_id)
+            .livestream_id(&self.0.livestream_id)
+            .livecomment_id(&self.0.livestream_comment_id)
+            .created_at(self.0.created_at);
+        row.to_insert_row()
     }
 }
 
