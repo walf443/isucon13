@@ -140,8 +140,12 @@ func main() {
 	defer conn.Close()
 	dbConn = conn
 
+	txManager := infra.NewTxManager(dbConn)
 	tagHandler := handler.NewTagHandler(
-		usecase.NewTagUsecase(dbConn, infra.NewTagRepository()),
+		usecase.NewTagUsecase(txManager, infra.NewTagRepository()),
+	)
+	themeHandler := handler.NewThemeHandler(
+		usecase.NewThemeUsecase(txManager, infra.NewUserRepository(), infra.NewThemeRepository()),
 	)
 
 	// 初期化
@@ -149,7 +153,7 @@ func main() {
 
 	// top
 	e.GET("/api/tag", tagHandler.GetTags)
-	e.GET("/api/user/:username/theme", getStreamerThemeHandler)
+	e.GET("/api/user/:username/theme", themeHandler.GetStreamerTheme)
 
 	// livestream
 	// reserve livestream

@@ -30,7 +30,7 @@ func (h *TagHandler) GetTags(c echo.Context) error {
 
 	tagModels, err := h.tagUsecase.FindAll(ctx)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get tags: "+err.Error())
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	tags := make([]*Tag, len(tagModels))

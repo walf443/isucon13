@@ -1,0 +1,49 @@
+package handler
+
+import (
+	"errors"
+	"net/http"
+
+	"github.com/isucon/isucon13/webapp/go/usecase"
+	"github.com/labstack/echo/v4"
+)
+
+type Theme struct {
+	ID       int64 `json:"id"`
+	DarkMode bool  `json:"dark_mode"`
+}
+
+type ThemeHandler struct {
+	themeUsecase usecase.ThemeUsecase
+}
+
+func NewThemeHandler(themeUsecase usecase.ThemeUsecase) *ThemeHandler {
+	return &ThemeHandler{themeUsecase: themeUsecase}
+}
+
+// 配信者のテーマ取得API
+// GET /api/user/:username/theme
+func (h *ThemeHandler) GetStreamerTheme(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	if err := VerifyUserSession(c); err != nil {
+		// echo.NewHTTPErrorが返っているのでそのまま出力
+		c.Logger().Printf("verifyUserSession: %+v\n", err)
+		return err
+	}
+
+	username := c.Param("username")
+
+	themeModel, err := h.themeUsecase.FindByUsername(ctx, username)
+	if errors.Is(err, usecase.ErrUserNotFound) {
+		return echo.NewHTTPError(http.StatusNotFound, "not found user that has the given username")
+	}
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, Theme{
+		ID:       themeModel.ID,
+		DarkMode: themeModel.DarkMode,
+	})
+}

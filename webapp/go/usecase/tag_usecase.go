@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
@@ -12,14 +13,26 @@ type TagUsecase interface {
 }
 
 type tagUsecase struct {
-	db      repository.Querier
-	tagRepo repository.TagRepository
+	txManager repository.TxManager
+	tagRepo   repository.TagRepository
 }
 
-func NewTagUsecase(db repository.Querier, tagRepo repository.TagRepository) TagUsecase {
-	return &tagUsecase{db: db, tagRepo: tagRepo}
+func NewTagUsecase(txManager repository.TxManager, tagRepo repository.TagRepository) TagUsecase {
+	return &tagUsecase{txManager: txManager, tagRepo: tagRepo}
 }
 
-func (s *tagUsecase) FindAll(ctx context.Context) ([]*model.TagModel, error) {
-	return s.tagRepo.FindAll(ctx, s.db)
+func (u *tagUsecase) FindAll(ctx context.Context) ([]*model.TagModel, error) {
+	var tags []*model.TagModel
+	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
+		var err error
+		tags, err = u.tagRepo.FindAll(ctx, q)
+		if err != nil {
+			return fmt.Errorf("failed to get tags: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return tags, nil
 }
