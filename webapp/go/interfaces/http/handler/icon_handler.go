@@ -1,0 +1,77 @@
+package handler
+
+import (
+	"encoding/json"
+	"errors"
+	"net/http"
+
+	"github.com/isucon/isucon13/webapp/go/usecase"
+	"github.com/labstack/echo/v4"
+)
+
+type PostIconRequest struct {
+	Image []byte `json:"image"`
+}
+
+type PostIconResponse struct {
+	ID int64 `json:"id"`
+}
+
+type IconHandler struct {
+	iconUsecase usecase.IconUsecase
+	// fallbackImagePath はアイコン未登録のユーザに返す画像ファイルのパス。
+	fallbackImagePath string
+}
+
+func NewIconHandler(iconUsecase usecase.IconUsecase, fallbackImagePath string) *IconHandler {
+	return &IconHandler{iconUsecase: iconUsecase, fallbackImagePath: fallbackImagePath}
+}
+
+// GET /api/user/:username/icon
+func (h *IconHandler) GetIcon(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	username := c.Param("username")
+
+	image, err := h.iconUsecase.FindImageByUsername(ctx, username)
+	if errors.Is(err, usecase.ErrUserNotFound) {
+		return echo.NewHTTPError(http.StatusNotFound, "not found user that has the given username")
+	}
+	if errors.Is(err, usecase.ErrIconNotFound) {
+		return c.File(h.fallbackImagePath)
+	}
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.Blob(http.StatusOK, "image/jpeg", image)
+}
+
+// POST /api/icon
+func (h *IconHandler) PostIcon(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	if err := VerifyUserSession(c); err != nil {
+		// echo.NewHTTPErrorが返っているのでそのまま出力
+		return err
+	}
+
+	userID, err := getSessionUserID(c)
+	if err != nil {
+		return err
+	}
+
+	var req PostIconRequest
+	if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
+	}
+
+	iconID, err := h.iconUsecase.Update(ctx, userID, req.Image)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusCreated, &PostIconResponse{
+		ID: iconID,
+	})
+}

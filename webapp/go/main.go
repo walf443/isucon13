@@ -153,6 +153,10 @@ func main() {
 	themeHandler := handler.NewThemeHandler(
 		usecase.NewThemeUsecase(txManager, infra.NewUserRepository(), infra.NewThemeRepository()),
 	)
+	iconHandler := handler.NewIconHandler(
+		usecase.NewIconUsecase(txManager, infra.NewUserRepository(), infra.NewIconRepository()),
+		fallbackImage,
+	)
 	userHandler := handler.NewUserHandler(
 		usecase.NewUserUsecase(txManager, infra.NewUserRepository(), infra.NewThemeRepository(), infra.NewIconRepository(), fallbackIcon),
 	)
@@ -201,8 +205,8 @@ func main() {
 	// フロントエンドで、配信予約のコラボレーターを指定する際に必要
 	e.GET("/api/user/:username", userHandler.GetUser)
 	e.GET("/api/user/:username/statistics", getUserStatisticsHandler)
-	e.GET("/api/user/:username/icon", getIconHandler)
-	e.POST("/api/icon", postIconHandler)
+	e.GET("/api/user/:username/icon", iconHandler.GetIcon)
+	e.POST("/api/icon", iconHandler.PostIcon)
 
 	// stats
 	// ライブ配信統計情報

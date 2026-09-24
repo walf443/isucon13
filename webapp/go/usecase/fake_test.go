@@ -54,10 +54,33 @@ func (r *fakeThemeRepository) FindByUserID(ctx context.Context, q repository.Que
 }
 
 type fakeIconRepository struct {
-	image []byte
-	err   error
+	image     []byte
+	err       error
+	createID  int64
+	createErr error
+	deleteErr error
+
+	// calls は呼ばれたメソッド名を順に記録する
+	calls     []string
+	gotUserID int64
+	gotImage  []byte
 }
 
 func (r *fakeIconRepository) FindImageByUserID(ctx context.Context, q repository.Querier, userID int64) ([]byte, error) {
+	r.calls = append(r.calls, "FindImageByUserID")
+	r.gotUserID = userID
 	return r.image, r.err
+}
+
+func (r *fakeIconRepository) Create(ctx context.Context, q repository.Querier, userID int64, image []byte) (int64, error) {
+	r.calls = append(r.calls, "Create")
+	r.gotUserID = userID
+	r.gotImage = image
+	return r.createID, r.createErr
+}
+
+func (r *fakeIconRepository) DeleteByUserID(ctx context.Context, q repository.Querier, userID int64) error {
+	r.calls = append(r.calls, "DeleteByUserID")
+	r.gotUserID = userID
+	return r.deleteErr
 }

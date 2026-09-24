@@ -4,3 +4,6 @@ import "errors"
 
 // ErrUserNotFound は指定されたユーザが存在しないことを表す。
 var ErrUserNotFound = errors.New("user not found")
+
+// ErrIconNotFound はユーザのアイコンが登録されていないことを表す。
+var ErrIconNotFound = errors.New("icon not found")
