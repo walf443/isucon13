@@ -13,8 +13,19 @@ on:
       - ".github/workflows/go.yml"
 
 jobs:
-  test:
+  check:
+    name: go ${{ matrix.command }}
     runs-on: ubuntu-latest
+    strategy:
+      # どれか 1 つが落ちても、残りの結果も最後まで見られるようにする
+      fail-fast: false
+      matrix:
+        include:
+          - command: build
+          - command: vet
+          # infra/mysql のテストは testcontainers で MySQL コンテナを起動する (ubuntu-latest には Docker がある)
+          - command: test
+            args: -v
     defaults:
       run:
         working-directory: webapp/go
@@ -24,10 +35,4 @@ jobs:
         with:
           go-version-file: webapp/go/go.mod
           cache-dependency-path: webapp/go/go.sum
-      - name: Build
-        run: go build ./...
-      - name: Vet
-        run: go vet ./...
-      # infra/mysql のテストは testcontainers で MySQL コンテナを起動する (ubuntu-latest には Docker がある)
-      - name: Test
-        run: go test ./...
+      - run: go ${{ matrix.command }} ${{ matrix.args }} ./...
