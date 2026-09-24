@@ -6,11 +6,10 @@ use crate::routes::livestream_comment_report_routes::{
 use crate::routes::livestream_comment_routes::post_livecomment_handler;
 use crate::routes::livestream_reaction_routes::{get_reactions_handler, post_reaction_handler};
 use crate::state::AppState;
-use crate::{verify_user_session, DEFAULT_SESSION_ID_KEY, DEFAULT_USER_ID_KEY};
-use async_session::{CookieStore, SessionStore};
+use crate::verify_user_session;
+use axum::Router;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
-use axum::Router;
 use axum_extra::extract::SignedCookieJar;
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use isupipe_core::models::livestream::{CreateLivestream, Livestream, LivestreamId};
@@ -18,13 +17,12 @@ use isupipe_core::models::livestream_statistics::LivestreamStatistics;
 use isupipe_core::models::livestream_viewers_history::CreateLivestreamViewersHistory;
 use isupipe_core::models::ng_word::{CreateNgWord, NgWord, NgWordId};
 use isupipe_core::models::tag::{TagId, TagName};
-use isupipe_core::models::user::UserId;
+use isupipe_core::services::ServiceError;
 use isupipe_core::services::livestream_service::LivestreamService;
 use isupipe_core::services::livestream_statistics_service::LivestreamStatisticsService;
 use isupipe_core::services::livestream_viewers_history_service::LivestreamViewersHistoryService;
 use isupipe_core::services::manager::ServiceManager;
 use isupipe_core::services::ng_word_service::NgWordService;
-use isupipe_core::services::ServiceError;
 
 // handle /api/livestreams/
 pub fn livestreams_routes<S: ServiceManager + 'static>() -> Router<AppState<S>> {
@@ -86,19 +84,13 @@ pub async fn reserve_livestream_handler<S: ServiceManager>(
     jar: SignedCookieJar,
     axum::Json(req): axum::Json<ReserveLivestreamRequest>,
 ) -> Result<(StatusCode, axum::Json<LivestreamResponse>), Error> {
-    verify_user_session(&jar).await?;
+    let sess = verify_user_session(&jar)?;
 
     if req.tags.iter().any(|&tag_id| tag_id > 103) {
         tracing::error!("unexpected tags: {:?}", req);
     }
 
-    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
-    let sess = CookieStore::new()
-        .load_session(cookie.value().to_owned())
-        .await?
-        .ok_or(Error::SessionError)?;
-    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
-    let user_id = UserId::new(user_id);
+    let user_id = sess.user_id;
 
     // 2023/11/25 10:00からの１年間の期間内であるかチェック
     let term_start_at = Utc.from_utc_datetime(
@@ -210,15 +202,9 @@ pub async fn get_my_livestreams_handler<S: ServiceManager>(
     State(AppState { service, .. }): State<AppState<S>>,
     jar: SignedCookieJar,
 ) -> Result<axum::Json<Vec<LivestreamResponse>>, Error> {
-    verify_user_session(&jar).await?;
+    let sess = verify_user_session(&jar)?;
 
-    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
-    let sess = CookieStore::new()
-        .load_session(cookie.value().to_owned())
-        .await?
-        .ok_or(Error::SessionError)?;
-    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
-    let user_id = UserId::new(user_id);
+    let user_id = sess.user_id;
 
     let livestream_models = service
         .livestream_service()
@@ -236,7 +222,7 @@ pub async fn get_livestream_handler<S: ServiceManager>(
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
 ) -> Result<axum::Json<LivestreamResponse>, Error> {
-    verify_user_session(&jar).await?;
+    verify_user_session(&jar)?;
     let livestream_id = LivestreamId::new(livestream_id);
 
     let livestream_model = service.livestream_service().find(&livestream_id).await?;
@@ -257,15 +243,9 @@ pub async fn get_ngwords<S: ServiceManager>(
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
 ) -> Result<axum::Json<Vec<NgWord>>, Error> {
-    verify_user_session(&jar).await?;
+    let sess = verify_user_session(&jar)?;
 
-    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
-    let sess = CookieStore::new()
-        .load_session(cookie.value().to_owned())
-        .await?
-        .ok_or(Error::SessionError)?;
-    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
-    let user_id = UserId::new(user_id);
+    let user_id = sess.user_id;
     let livestream_id = LivestreamId::new(livestream_id);
 
     let ng_words = service
@@ -292,15 +272,9 @@ pub async fn moderate_handler<S: ServiceManager>(
     Path((livestream_id,)): Path<(i64,)>,
     axum::Json(req): axum::Json<ModerateRequest>,
 ) -> Result<(StatusCode, axum::Json<ModerateResponse>), Error> {
-    verify_user_session(&jar).await?;
+    let sess = verify_user_session(&jar)?;
 
-    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
-    let sess = CookieStore::new()
-        .load_session(cookie.value().to_owned())
-        .await?
-        .ok_or(Error::SessionError)?;
-    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
-    let user_id = UserId::new(user_id);
+    let user_id = sess.user_id;
 
     let livestream_id = LivestreamId::new(livestream_id);
 
@@ -340,15 +314,9 @@ pub async fn enter_livestream_handler<S: ServiceManager>(
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
 ) -> Result<(), Error> {
-    verify_user_session(&jar).await?;
+    let sess = verify_user_session(&jar)?;
 
-    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
-    let sess = CookieStore::new()
-        .load_session(cookie.value().to_owned())
-        .await?
-        .ok_or(Error::SessionError)?;
-    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
-    let user_id = UserId::new(user_id);
+    let user_id = sess.user_id;
     let livestream_id = LivestreamId::new(livestream_id);
 
     let created_at = Utc::now().timestamp();
@@ -369,15 +337,9 @@ pub async fn exit_livestream_handler<S: ServiceManager>(
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
 ) -> Result<(), Error> {
-    verify_user_session(&jar).await?;
+    let sess = verify_user_session(&jar)?;
 
-    let cookie = jar.get(DEFAULT_SESSION_ID_KEY).ok_or(Error::SessionError)?;
-    let sess = CookieStore::new()
-        .load_session(cookie.value().to_owned())
-        .await?
-        .ok_or(Error::SessionError)?;
-    let user_id: i64 = sess.get(DEFAULT_USER_ID_KEY).ok_or(Error::SessionError)?;
-    let user_id = UserId::new(user_id);
+    let user_id = sess.user_id;
     let livestream_id = LivestreamId::new(livestream_id);
 
     service
@@ -392,7 +354,7 @@ pub async fn get_livestream_statistics_handler<S: ServiceManager>(
     jar: SignedCookieJar,
     Path((livestream_id,)): Path<(i64,)>,
 ) -> Result<axum::Json<LivestreamStatistics>, Error> {
-    verify_user_session(&jar).await?;
+    verify_user_session(&jar)?;
 
     let livestream_id = LivestreamId::new(livestream_id);
 

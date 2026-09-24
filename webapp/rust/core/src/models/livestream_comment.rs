@@ -1,6 +1,6 @@
+use crate::models::id::Id;
 use crate::models::livestream::LivestreamId;
 use crate::models::user::UserId;
-use kubetsu::Id;
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct LivestreamComment {
@@ -14,6 +14,7 @@ pub struct LivestreamComment {
 
 pub type LivestreamCommentId = Id<LivestreamComment, i64>;
 
+#[derive(fake::Dummy)]
 pub struct CreateLivestreamComment {
     pub user_id: UserId,
     pub livestream_id: LivestreamId,

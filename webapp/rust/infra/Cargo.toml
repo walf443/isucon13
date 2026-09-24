@@ -14,6 +14,8 @@ thiserror.workspace = true
 time.workspace = true
 tokio.workspace = true
 fake.workspace = true
+qbey.workspace = true
+qbey-mysql.workspace = true
 
 [dev-dependencies]
 isupipe-core = { path = "../core", features = ["test"]}

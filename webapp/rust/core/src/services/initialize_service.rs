@@ -1,5 +1,5 @@
-use crate::commands::initialize_command::{HaveInitializeCommand, InitializeCommand};
 use crate::commands::CommandOutput;
+use crate::commands::initialize_command::{HaveInitializeCommand, InitializeCommand};
 use crate::services::ServiceResult;
 use async_trait::async_trait;
 
