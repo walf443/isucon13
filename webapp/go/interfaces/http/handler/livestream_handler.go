@@ -119,3 +119,32 @@ func (h *LivestreamHandler) GetUserLivestreams(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, newLivestreams(livestreams))
 }
+
+// GET /api/livestream/search
+func (h *LivestreamHandler) SearchLivestreams(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	var livestreams []*model.Livestream
+	var err error
+	if tagName := c.QueryParam("tag"); tagName != "" {
+		// タグによる取得 (limit は無視する)
+		livestreams, err = h.livestreamUsecase.FindAllByTagName(ctx, tagName)
+	} else {
+		// 検索条件なし
+		var limit *int64
+		if c.QueryParam("limit") != "" {
+			l, err := strconv.Atoi(c.QueryParam("limit"))
+			if err != nil {
+				return echo.NewHTTPError(http.StatusBadRequest, "limit query parameter must be integer")
+			}
+			limit64 := int64(l)
+			limit = &limit64
+		}
+		livestreams, err = h.livestreamUsecase.FindAll(ctx, limit)
+	}
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, newLivestreams(livestreams))
+}

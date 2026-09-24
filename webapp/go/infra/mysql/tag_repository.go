@@ -20,3 +20,11 @@ func (r *tagRepository) FindAll(ctx context.Context, q repository.Querier) ([]*m
 	}
 	return tags, nil
 }
+
+func (r *tagRepository) FindIDsByName(ctx context.Context, q repository.Querier, name string) ([]int64, error) {
+	var ids []int64
+	if err := q.SelectContext(ctx, &ids, "SELECT id FROM tags WHERE name = ?", name); err != nil {
+		return nil, err
+	}
+	return ids, nil
+}

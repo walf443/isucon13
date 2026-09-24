@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
 	"time"
 
@@ -20,6 +21,22 @@ type fakeLivestreamUsecase struct {
 	gotID       int64
 	gotUserID   int64
 	gotUsername string
+	gotTagName  string
+	gotLimit    *int64
+	// calls は呼ばれたメソッド名を順に記録する
+	calls []string
+}
+
+func (u *fakeLivestreamUsecase) FindAllByTagName(ctx context.Context, tagName string) ([]*model.Livestream, error) {
+	u.calls = append(u.calls, "FindAllByTagName")
+	u.gotTagName = tagName
+	return u.livestreams, u.err
+}
+
+func (u *fakeLivestreamUsecase) FindAll(ctx context.Context, limit *int64) ([]*model.Livestream, error) {
+	u.calls = append(u.calls, "FindAll")
+	u.gotLimit = limit
+	return u.livestreams, u.err
 }
 
 func (u *fakeLivestreamUsecase) FindAllByUsername(ctx context.Context, username string) ([]*model.Livestream, error) {
@@ -283,6 +300,108 @@ func TestLivestreamHandler_GetUserLivestreams(t *testing.T) {
 			}
 			if tt.wantCode == http.StatusOK && tt.usecase.gotUsername != "alice" {
 				t.Errorf("username = %q, want %q", tt.usecase.gotUsername, "alice")
+			}
+		})
+	}
+}
+
+func TestLivestreamHandler_SearchLivestreams(t *testing.T) {
+	owner := model.User{ID: 42, Name: "alice", Theme: model.ThemeModel{ID: 20, UserID: 42}, IconHash: "abc"}
+	found := []*model.Livestream{{ID: 1, Owner: owner, Title: "s1"}}
+	foundJSON := `[{"id":1,"owner":{"id":42,"name":"alice","theme":{"id":20,"dark_mode":false},"icon_hash":"abc"},"title":"s1","description":"","playlist_url":"","thumbnail_url":"","tags":[],"start_at":0,"end_at":0}]` + "\n"
+	five := int64(5)
+
+	tests := []struct {
+		name        string
+		query       string
+		usecase     *fakeLivestreamUsecase
+		wantCode    int
+		wantBody    string
+		wantCalls   []string
+		wantTagName string
+		wantLimit   *int64
+	}{
+		{
+			name:        "searches by tag",
+			query:       "?tag=%E3%82%B2%E3%83%BC%E3%83%A0",
+			usecase:     &fakeLivestreamUsecase{livestreams: found},
+			wantCode:    http.StatusOK,
+			wantBody:    foundJSON,
+			wantCalls:   []string{"FindAllByTagName"},
+			wantTagName: "ゲーム",
+		},
+		{
+			// tag がある場合 limit は見ない (不正な値でも 400 にならない)
+			name:        "ignores limit when tag is given",
+			query:       "?tag=foo&limit=abc",
+			usecase:     &fakeLivestreamUsecase{livestreams: found},
+			wantCode:    http.StatusOK,
+			wantCalls:   []string{"FindAllByTagName"},
+			wantTagName: "foo",
+		},
+		{
+			name:      "lists all without condition",
+			query:     "",
+			usecase:   &fakeLivestreamUsecase{livestreams: found},
+			wantCode:  http.StatusOK,
+			wantBody:  foundJSON,
+			wantCalls: []string{"FindAll"},
+		},
+		{
+			name:      "lists with limit",
+			query:     "?limit=5",
+			usecase:   &fakeLivestreamUsecase{livestreams: found},
+			wantCode:  http.StatusOK,
+			wantCalls: []string{"FindAll"},
+			wantLimit: &five,
+		},
+		{
+			name:        "returns empty array when nothing found",
+			query:       "?tag=nothing",
+			usecase:     &fakeLivestreamUsecase{livestreams: []*model.Livestream{}},
+			wantCode:    http.StatusOK,
+			wantBody:    "[]\n",
+			wantCalls:   []string{"FindAllByTagName"},
+			wantTagName: "nothing",
+		},
+		{
+			name:     "returns 400 when limit is not integer",
+			query:    "?limit=abc",
+			usecase:  &fakeLivestreamUsecase{},
+			wantCode: http.StatusBadRequest,
+		},
+		{
+			name:     "returns 500 on unexpected error",
+			query:    "",
+			usecase:  &fakeLivestreamUsecase{err: errors.New("boom")},
+			wantCode: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := newTestEcho()
+			e.GET("/api/livestream/search", NewLivestreamHandler(tt.usecase).SearchLivestreams)
+
+			// セッション不要のエンドポイントなので Cookie は付けない
+			req := httptest.NewRequest(http.MethodGet, "/api/livestream/search"+tt.query, nil)
+			rec := httptest.NewRecorder()
+			e.ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantCode {
+				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
+			}
+			if tt.wantBody != "" && rec.Body.String() != tt.wantBody {
+				t.Errorf("body = %s\nwant   %s", rec.Body.String(), tt.wantBody)
+			}
+			if tt.wantCalls != nil && !slices.Equal(tt.usecase.calls, tt.wantCalls) {
+				t.Errorf("calls = %v, want %v", tt.usecase.calls, tt.wantCalls)
+			}
+			if tt.usecase.gotTagName != tt.wantTagName {
+				t.Errorf("tag name = %q, want %q", tt.usecase.gotTagName, tt.wantTagName)
+			}
+			if (tt.usecase.gotLimit == nil) != (tt.wantLimit == nil) || (tt.wantLimit != nil && *tt.usecase.gotLimit != *tt.wantLimit) {
+				t.Errorf("limit = %v, want %v", tt.usecase.gotLimit, tt.wantLimit)
 			}
 		})
 	}

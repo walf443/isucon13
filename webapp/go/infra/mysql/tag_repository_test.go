@@ -48,3 +48,31 @@ func TestTagRepository_FindAll_Empty(t *testing.T) {
 		t.Errorf("len(tags) = %d, want 0", len(tags))
 	}
 }
+
+func TestTagRepository_FindIDsByName(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	res, err := tx.ExecContext(ctx, "INSERT INTO tags (name) VALUES (?)", "ゲーム実況")
+	if err != nil {
+		t.Fatalf("failed to insert tag: %v", err)
+	}
+	wantID, _ := res.LastInsertId()
+	repo := NewTagRepository()
+
+	ids, err := repo.FindIDsByName(ctx, tx, "ゲーム実況")
+	if err != nil {
+		t.Fatalf("FindIDsByName returned error: %v", err)
+	}
+	if len(ids) != 1 || ids[0] != wantID {
+		t.Errorf("ids = %v, want [%d]", ids, wantID)
+	}
+
+	ids, err = repo.FindIDsByName(ctx, tx, "存在しないタグ")
+	if err != nil {
+		t.Fatalf("FindIDsByName returned error: %v", err)
+	}
+	if len(ids) != 0 {
+		t.Errorf("ids = %v, want empty", ids)
+	}
+}

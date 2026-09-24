@@ -38,7 +38,7 @@ func newHandlers(db *sqlx.DB, fallbackImagePath string) (*handlers, error) {
 	themeUsecase := usecase.NewThemeUsecase(txManager, userRepo, themeRepo)
 	userUsecase := usecase.NewUserUsecase(txManager, userRepo)
 	iconUsecase := usecase.NewIconUsecase(txManager, userRepo, iconRepo)
-	livestreamUsecase := usecase.NewLivestreamUsecase(txManager, userRepo, livestreamRepo)
+	livestreamUsecase := usecase.NewLivestreamUsecase(txManager, userRepo, tagRepo, livestreamRepo)
 
 	return &handlers{
 		tag:        handler.NewTagHandler(tagUsecase),

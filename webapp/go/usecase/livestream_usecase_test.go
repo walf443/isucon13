@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
@@ -12,7 +13,7 @@ import (
 func TestLivestreamUsecase_FindByID(t *testing.T) {
 	want := &model.Livestream{ID: 1, Title: "stream"}
 	repo := &fakeLivestreamRepository{livestream: want}
-	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, repo)
+	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, repo)
 
 	got, err := u.FindByID(context.Background(), 1)
 	if err != nil {
@@ -56,7 +57,7 @@ func TestLivestreamUsecase_FindByID_Errors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeLivestreamRepository{err: tt.repoErr})
+			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, &fakeLivestreamRepository{err: tt.repoErr})
 			_, err := u.FindByID(context.Background(), 1)
 			tt.check(t, err)
 		})
@@ -66,7 +67,7 @@ func TestLivestreamUsecase_FindByID_Errors(t *testing.T) {
 func TestLivestreamUsecase_FindAllByUserID(t *testing.T) {
 	want := []*model.Livestream{{ID: 1}, {ID: 2}}
 	repo := &fakeLivestreamRepository{livestreams: want}
-	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, repo)
+	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, repo)
 
 	got, err := u.FindAllByUserID(context.Background(), 42)
 	if err != nil {
@@ -82,7 +83,7 @@ func TestLivestreamUsecase_FindAllByUserID(t *testing.T) {
 
 func TestLivestreamUsecase_FindAllByUserID_Error(t *testing.T) {
 	boom := errors.New("boom")
-	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeLivestreamRepository{err: boom})
+	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, &fakeLivestreamRepository{err: boom})
 
 	_, err := u.FindAllByUserID(context.Background(), 42)
 	if !errors.Is(err, boom) {
@@ -94,7 +95,7 @@ func TestLivestreamUsecase_FindAllByUsername(t *testing.T) {
 	want := []*model.Livestream{{ID: 1}}
 	userRepo := &fakeUserRepository{id: 42}
 	livestreamRepo := &fakeLivestreamRepository{livestreams: want}
-	u := NewLivestreamUsecase(&fakeTxManager{}, userRepo, livestreamRepo)
+	u := NewLivestreamUsecase(&fakeTxManager{}, userRepo, &fakeTagRepository{}, livestreamRepo)
 
 	got, err := u.FindAllByUsername(context.Background(), "alice")
 	if err != nil {
@@ -143,11 +144,118 @@ func TestLivestreamUsecase_FindAllByUsername_Errors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u := NewLivestreamUsecase(&fakeTxManager{}, tt.userRepo, tt.livestreamRepo)
+			u := NewLivestreamUsecase(&fakeTxManager{}, tt.userRepo, &fakeTagRepository{}, tt.livestreamRepo)
 			_, err := u.FindAllByUsername(context.Background(), "alice")
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestLivestreamUsecase_FindAllByTagName(t *testing.T) {
+	want := []*model.Livestream{{ID: 2}, {ID: 1}}
+	tagRepo := &fakeTagRepository{ids: []int64{7}}
+	livestreamRepo := &fakeLivestreamRepository{livestreams: want}
+	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, tagRepo, livestreamRepo)
+
+	got, err := u.FindAllByTagName(context.Background(), "ゲーム実況")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %+v, want %+v", got, want)
+	}
+	if tagRepo.gotName != "ゲーム実況" {
+		t.Errorf("tag name = %q", tagRepo.gotName)
+	}
+	if !slices.Equal(livestreamRepo.gotTagIDs, []int64{7}) {
+		t.Errorf("tagIDs = %v, want [7]", livestreamRepo.gotTagIDs)
+	}
+}
+
+func TestLivestreamUsecase_FindAllByTagName_TagNotFound(t *testing.T) {
+	livestreamRepo := &fakeLivestreamRepository{}
+	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{ids: nil}, livestreamRepo)
+
+	got, err := u.FindAllByTagName(context.Background(), "nothing")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got == nil || len(got) != 0 {
+		t.Errorf("got %#v, want empty non-nil slice", got)
+	}
+	// 空の IN () になるので livestream の検索はしない
+	if len(livestreamRepo.calls) != 0 {
+		t.Errorf("calls = %v, want none", livestreamRepo.calls)
+	}
+}
+
+func TestLivestreamUsecase_FindAllByTagName_Errors(t *testing.T) {
+	boom := errors.New("boom")
+
+	tests := []struct {
+		name           string
+		tagRepo        *fakeTagRepository
+		livestreamRepo *fakeLivestreamRepository
+	}{
+		{name: "tag repository error", tagRepo: &fakeTagRepository{err: boom}, livestreamRepo: &fakeLivestreamRepository{}},
+		{name: "livestream repository error", tagRepo: &fakeTagRepository{ids: []int64{7}}, livestreamRepo: &fakeLivestreamRepository{err: boom}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, tt.tagRepo, tt.livestreamRepo)
+			_, err := u.FindAllByTagName(context.Background(), "ゲーム実況")
+			if !errors.Is(err, boom) {
+				t.Fatalf("err = %v, want %v", err, boom)
+			}
+		})
+	}
+}
+
+func TestLivestreamUsecase_FindAll(t *testing.T) {
+	limit := int64(5)
+
+	tests := []struct {
+		name      string
+		limit     *int64
+		wantCalls []string
+		wantLimit int64
+	}{
+		{name: "without limit", limit: nil, wantCalls: []string{"FindAllWithDetails"}},
+		{name: "with limit", limit: &limit, wantCalls: []string{"FindAllWithDetailsLimited"}, wantLimit: 5},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			want := []*model.Livestream{{ID: 1}}
+			livestreamRepo := &fakeLivestreamRepository{livestreams: want}
+			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, livestreamRepo)
+
+			got, err := u.FindAll(context.Background(), tt.limit)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if !slices.Equal(got, want) {
+				t.Errorf("got %+v, want %+v", got, want)
+			}
+			if !slices.Equal(livestreamRepo.calls, tt.wantCalls) {
+				t.Errorf("calls = %v, want %v", livestreamRepo.calls, tt.wantCalls)
+			}
+			if livestreamRepo.gotLimit != tt.wantLimit {
+				t.Errorf("limit = %d, want %d", livestreamRepo.gotLimit, tt.wantLimit)
+			}
+		})
+	}
+}
+
+func TestLivestreamUsecase_FindAll_Error(t *testing.T) {
+	boom := errors.New("boom")
+	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, &fakeLivestreamRepository{err: boom})
+
+	_, err := u.FindAll(context.Background(), nil)
+	if !errors.Is(err, boom) {
+		t.Fatalf("err = %v, want %v", err, boom)
 	}
 }

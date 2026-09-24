@@ -15,7 +15,15 @@ func (m *fakeTxManager) RunInTx(ctx context.Context, fn func(q repository.Querie
 
 type fakeTagRepository struct {
 	tags []*model.TagModel
+	ids  []int64
 	err  error
+
+	gotName string
+}
+
+func (r *fakeTagRepository) FindIDsByName(ctx context.Context, q repository.Querier, name string) ([]int64, error) {
+	r.gotName = name
+	return r.ids, r.err
 }
 
 func (r *fakeTagRepository) FindAll(ctx context.Context, q repository.Querier) ([]*model.TagModel, error) {
@@ -107,6 +115,27 @@ type fakeLivestreamRepository struct {
 
 	gotID     int64
 	gotUserID int64
+	gotTagIDs []int64
+	gotLimit  int64
+	// calls は呼ばれたメソッド名を順に記録する
+	calls []string
+}
+
+func (r *fakeLivestreamRepository) FindAllWithDetailsByTagIDs(ctx context.Context, q repository.Querier, tagIDs []int64) ([]*model.Livestream, error) {
+	r.calls = append(r.calls, "FindAllWithDetailsByTagIDs")
+	r.gotTagIDs = tagIDs
+	return r.livestreams, r.err
+}
+
+func (r *fakeLivestreamRepository) FindAllWithDetails(ctx context.Context, q repository.Querier) ([]*model.Livestream, error) {
+	r.calls = append(r.calls, "FindAllWithDetails")
+	return r.livestreams, r.err
+}
+
+func (r *fakeLivestreamRepository) FindAllWithDetailsLimited(ctx context.Context, q repository.Querier, limit int64) ([]*model.Livestream, error) {
+	r.calls = append(r.calls, "FindAllWithDetailsLimited")
+	r.gotLimit = limit
+	return r.livestreams, r.err
 }
 
 func (r *fakeLivestreamRepository) FindAllWithDetailsByUserID(ctx context.Context, q repository.Querier, userID int64) ([]*model.Livestream, error) {

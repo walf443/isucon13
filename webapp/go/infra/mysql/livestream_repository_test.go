@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
@@ -190,5 +191,70 @@ func TestLivestreamRepository_FindAllWithDetailsByUserID(t *testing.T) {
 	}
 	if len(got) != 0 {
 		t.Errorf("got %+v, want empty", got)
+	}
+}
+
+func livestreamIDs(livestreams []*model.Livestream) []int64 {
+	ids := make([]int64, len(livestreams))
+	for i, l := range livestreams {
+		ids[i] = l.ID
+	}
+	return ids
+}
+
+func TestLivestreamRepository_FindAllWithDetailsByTagIDs(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	ownerID := insertTestUser(t, tx, "alice")
+	insertTestTheme(t, tx, ownerID, false)
+	stream1 := insertTestLivestream(t, tx, ownerID, "s1")
+	stream2 := insertTestLivestream(t, tx, ownerID, "s2")
+	stream3 := insertTestLivestream(t, tx, ownerID, "s3")
+	gameTag := insertTestTag(t, tx, stream1, "ゲーム実況")
+	if _, err := tx.ExecContext(ctx, "INSERT INTO livestream_tags (livestream_id, tag_id) VALUES (?, ?)", stream3, gameTag.ID); err != nil {
+		t.Fatalf("failed to insert livestream_tag: %v", err)
+	}
+	insertTestTag(t, tx, stream2, "雑談")
+
+	got, err := NewLivestreamRepository(nil).FindAllWithDetailsByTagIDs(ctx, tx, []int64{gameTag.ID})
+	if err != nil {
+		t.Fatalf("FindAllWithDetailsByTagIDs returned error: %v", err)
+	}
+	// livestream_id の降順
+	if want := []int64{stream3, stream1}; !slices.Equal(livestreamIDs(got), want) {
+		t.Errorf("ids = %v, want %v", livestreamIDs(got), want)
+	}
+	if got[1].Owner.ID != ownerID || !reflect.DeepEqual(got[1].Tags, []model.TagModel{gameTag}) {
+		t.Errorf("got[1] = %+v", got[1])
+	}
+}
+
+func TestLivestreamRepository_FindAllWithDetails(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	ownerID := insertTestUser(t, tx, "alice")
+	insertTestTheme(t, tx, ownerID, false)
+	stream1 := insertTestLivestream(t, tx, ownerID, "s1")
+	stream2 := insertTestLivestream(t, tx, ownerID, "s2")
+	stream3 := insertTestLivestream(t, tx, ownerID, "s3")
+	repo := NewLivestreamRepository(nil)
+
+	all, err := repo.FindAllWithDetails(ctx, tx)
+	if err != nil {
+		t.Fatalf("FindAllWithDetails returned error: %v", err)
+	}
+	// id の降順
+	if want := []int64{stream3, stream2, stream1}; !slices.Equal(livestreamIDs(all), want) {
+		t.Errorf("ids = %v, want %v", livestreamIDs(all), want)
+	}
+
+	limited, err := repo.FindAllWithDetailsLimited(ctx, tx, 2)
+	if err != nil {
+		t.Fatalf("FindAllWithDetailsLimited returned error: %v", err)
+	}
+	if want := []int64{stream3, stream2}; !slices.Equal(livestreamIDs(limited), want) {
+		t.Errorf("ids = %v, want %v", livestreamIDs(limited), want)
 	}
 }
