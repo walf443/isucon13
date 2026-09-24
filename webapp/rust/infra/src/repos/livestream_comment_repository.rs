@@ -220,9 +220,8 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     ) -> isupipe_core::repos::Result<i64> {
         let livestream = &TABLE_LIVESTREAMS;
         let comment = &TABLE_LIVECOMMENTS;
-        let mut q = qbey(livestream.table());
-        q.as_("l");
         let l = livestream.as_("l");
+        let mut q = qbey(l.table());
         q.join(comment.table(), l.id().eq(comment.livestream_id()));
         q.and_where(l.id().eq(livestream_id));
         q.add_select_expr(
@@ -247,9 +246,8 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
     ) -> isupipe_core::repos::Result<i64> {
         let livestream = &TABLE_LIVESTREAMS;
         let comment = &TABLE_LIVECOMMENTS;
-        let mut q = qbey(livestream.table());
-        q.as_("l");
         let l = livestream.as_("l");
+        let mut q = qbey(l.table());
         q.join(comment.table(), l.id().eq(comment.livestream_id()));
         q.and_where(l.id().eq(livestream_id));
         q.add_select_expr(
@@ -276,9 +274,8 @@ impl LivestreamCommentRepository for LivestreamCommentRepositoryInfra {
         let user = &TABLE_USERS;
         let livestream = &TABLE_LIVESTREAMS;
         let comment = &TABLE_LIVECOMMENTS;
-        let mut q = qbey(user.table());
-        q.as_("u");
         let u = user.as_("u");
+        let mut q = qbey(u.table());
         q.join(livestream.table(), u.id().eq(livestream.user_id()));
         q.join(comment.table(), livestream.id().eq(comment.livestream_id()));
         q.and_where(u.id().eq(user_id));

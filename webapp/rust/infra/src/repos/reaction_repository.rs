@@ -68,9 +68,8 @@ impl ReactionRepository for ReactionRepositoryInfra {
     ) -> isupipe_core::repos::Result<i64> {
         let livestream = &TABLE_LIVESTREAMS;
         let reaction = &TABLE_REACTIONS;
-        let mut q = qbey(livestream.table());
-        q.as_("l");
         let l = livestream.as_("l");
+        let mut q = qbey(l.table());
         q.join(reaction.table(), l.id().eq(reaction.livestream_id()));
         q.and_where(l.id().eq(livestream_id));
         q.add_select(qbey::count_all());
@@ -93,9 +92,8 @@ impl ReactionRepository for ReactionRepositoryInfra {
         let user = &TABLE_USERS;
         let livestream = &TABLE_LIVESTREAMS;
         let reaction = &TABLE_REACTIONS;
-        let mut q = qbey(user.table());
-        q.as_("u");
         let u = user.as_("u");
+        let mut q = qbey(u.table());
         q.join(livestream.table(), u.id().eq(livestream.user_id()));
         q.join(
             reaction.table(),
@@ -103,7 +101,7 @@ impl ReactionRepository for ReactionRepositoryInfra {
         );
         q.and_where(u.name().eq(livestream_user_name));
         q.select(&[reaction.emoji_name().into(), qbey::count_all().as_("cnt")]);
-        q.group_by(&["emoji_name"]);
+        q.group_by(&[reaction.emoji_name()]);
         q.order_by(qbey::col("cnt").desc());
         q.order_by(qbey::col("emoji_name").desc());
         q.limit(1);
@@ -127,9 +125,8 @@ impl ReactionRepository for ReactionRepositoryInfra {
         let user = &TABLE_USERS;
         let livestream = &TABLE_LIVESTREAMS;
         let reaction = &TABLE_REACTIONS;
-        let mut q = qbey(user.table());
-        q.as_("u");
         let u = user.as_("u");
+        let mut q = qbey(u.table());
         q.join(livestream.table(), u.id().eq(livestream.user_id()));
         q.join(
             reaction.table(),
@@ -156,9 +153,8 @@ impl ReactionRepository for ReactionRepositoryInfra {
         let user = &TABLE_USERS;
         let livestream = &TABLE_LIVESTREAMS;
         let reaction = &TABLE_REACTIONS;
-        let mut q = qbey(user.table());
-        q.as_("u");
         let u = user.as_("u");
+        let mut q = qbey(u.table());
         q.join(livestream.table(), u.id().eq(livestream.user_id()));
         q.join(
             reaction.table(),

@@ -62,9 +62,8 @@ impl LivestreamViewersHistoryRepository for LivestreamViewersHistoryRepositoryIn
     ) -> isupipe_core::repos::Result<i64> {
         let livestream = &TABLE_LIVESTREAMS;
         let viewers_history = &TABLE_LIVESTREAM_VIEWERS_HISTORY;
-        let mut q = qbey(livestream.table());
-        q.as_("l");
         let l = livestream.as_("l");
+        let mut q = qbey(l.table());
         q.join(
             viewers_history.table(),
             viewers_history.livestream_id().eq(l.id()),

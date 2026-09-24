@@ -60,9 +60,8 @@ impl LivestreamCommentReportRepository for LivestreamCommentReportRepositoryInfr
     ) -> isupipe_core::repos::Result<i64> {
         let livestream = &TABLE_LIVESTREAMS;
         let report = &TABLE_LIVECOMMENT_REPORTS;
-        let mut q = qbey(livestream.table());
-        q.as_("l");
         let l = livestream.as_("l");
+        let mut q = qbey(l.table());
         q.join(report.table(), report.livestream_id().eq(l.id()));
         q.and_where(l.id().eq(livestream_id));
         q.add_select(qbey::count_all());
