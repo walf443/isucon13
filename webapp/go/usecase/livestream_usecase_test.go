@@ -62,3 +62,30 @@ func TestLivestreamUsecase_FindByID_Errors(t *testing.T) {
 		})
 	}
 }
+
+func TestLivestreamUsecase_FindAllByUserID(t *testing.T) {
+	want := []*model.Livestream{{ID: 1}, {ID: 2}}
+	repo := &fakeLivestreamRepository{livestreams: want}
+	u := NewLivestreamUsecase(&fakeTxManager{}, repo)
+
+	got, err := u.FindAllByUserID(context.Background(), 42)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 2 || got[0] != want[0] || got[1] != want[1] {
+		t.Errorf("got %+v, want %+v", got, want)
+	}
+	if repo.gotUserID != 42 {
+		t.Errorf("userID = %d, want 42", repo.gotUserID)
+	}
+}
+
+func TestLivestreamUsecase_FindAllByUserID_Error(t *testing.T) {
+	boom := errors.New("boom")
+	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeLivestreamRepository{err: boom})
+
+	_, err := u.FindAllByUserID(context.Background(), 42)
+	if !errors.Is(err, boom) {
+		t.Fatalf("err = %v, want %v", err, boom)
+	}
+}

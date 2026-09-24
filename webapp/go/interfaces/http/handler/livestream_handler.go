@@ -40,6 +40,14 @@ func newLivestream(l *model.Livestream) Livestream {
 	}
 }
 
+func newLivestreams(ls []*model.Livestream) []Livestream {
+	livestreams := make([]Livestream, len(ls))
+	for i, l := range ls {
+		livestreams[i] = newLivestream(l)
+	}
+	return livestreams
+}
+
 type LivestreamHandler struct {
 	livestreamUsecase usecase.LivestreamUsecase
 }
@@ -70,4 +78,24 @@ func (h *LivestreamHandler) GetLivestream(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, newLivestream(livestream))
+}
+
+// GET /api/livestream
+func (h *LivestreamHandler) GetMyLivestreams(c echo.Context) error {
+	ctx := c.Request().Context()
+	if err := VerifyUserSession(c); err != nil {
+		return err
+	}
+
+	userID, err := getSessionUserID(c)
+	if err != nil {
+		return err
+	}
+
+	livestreams, err := h.livestreamUsecase.FindAllByUserID(ctx, userID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, newLivestreams(livestreams))
 }

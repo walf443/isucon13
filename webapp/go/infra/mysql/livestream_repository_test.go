@@ -149,3 +149,46 @@ func TestFillLivestreams(t *testing.T) {
 		t.Errorf("livestreams[1] = %+v", livestreams[1])
 	}
 }
+
+func TestLivestreamRepository_FindAllWithDetailsByUserID(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	aliceID := insertTestUser(t, tx, "alice")
+	insertTestTheme(t, tx, aliceID, false)
+	bobID := insertTestUser(t, tx, "bob")
+	insertTestTheme(t, tx, bobID, false)
+
+	stream1 := insertTestLivestream(t, tx, aliceID, "alice-1")
+	tag := insertTestTag(t, tx, stream1, "alice-tag")
+	stream2 := insertTestLivestream(t, tx, aliceID, "alice-2")
+	insertTestLivestream(t, tx, bobID, "bob-1")
+
+	repo := NewLivestreamRepository(nil)
+
+	got, err := repo.FindAllWithDetailsByUserID(ctx, tx, aliceID)
+	if err != nil {
+		t.Fatalf("FindAllWithDetailsByUserID returned error: %v", err)
+	}
+	// ORDER BY が無いので順序には依存しない
+	gotByID := map[int64]*model.Livestream{}
+	for _, l := range got {
+		gotByID[l.ID] = l
+	}
+	if len(got) != 2 || gotByID[stream1] == nil || gotByID[stream2] == nil {
+		t.Fatalf("got livestreams %+v, want IDs %d and %d", got, stream1, stream2)
+	}
+	if gotByID[stream1].Owner.ID != aliceID || !reflect.DeepEqual(gotByID[stream1].Tags, []model.TagModel{tag}) {
+		t.Errorf("stream1 = %+v", gotByID[stream1])
+	}
+
+	// 配信が無いユーザは空
+	carolID := insertTestUser(t, tx, "carol")
+	got, err = repo.FindAllWithDetailsByUserID(ctx, tx, carolID)
+	if err != nil {
+		t.Fatalf("FindAllWithDetailsByUserID returned error: %v", err)
+	}
+	if len(got) != 0 {
+		t.Errorf("got %+v, want empty", got)
+	}
+}

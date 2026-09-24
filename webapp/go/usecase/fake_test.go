@@ -100,9 +100,17 @@ func (r *fakeIconRepository) DeleteByUserID(ctx context.Context, q repository.Qu
 }
 
 type fakeLivestreamRepository struct {
-	livestream *model.Livestream
-	err        error
-	gotID      int64
+	livestream  *model.Livestream
+	livestreams []*model.Livestream
+	err         error
+
+	gotID     int64
+	gotUserID int64
+}
+
+func (r *fakeLivestreamRepository) FindAllWithDetailsByUserID(ctx context.Context, q repository.Querier, userID int64) ([]*model.Livestream, error) {
+	r.gotUserID = userID
+	return r.livestreams, r.err
 }
 
 func (r *fakeLivestreamRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id int64) (*model.Livestream, error) {
