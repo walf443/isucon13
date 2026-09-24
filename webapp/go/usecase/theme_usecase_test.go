@@ -9,32 +9,6 @@ import (
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
 )
 
-type fakeTxManager struct{}
-
-func (m *fakeTxManager) RunInTx(ctx context.Context, fn func(q repository.Querier) error) error {
-	return fn(nil)
-}
-
-type fakeUserRepository struct {
-	id  int64
-	err error
-}
-
-func (r *fakeUserRepository) FindIDByName(ctx context.Context, q repository.Querier, name string) (int64, error) {
-	return r.id, r.err
-}
-
-type fakeThemeRepository struct {
-	theme     *model.ThemeModel
-	err       error
-	gotUserID int64
-}
-
-func (r *fakeThemeRepository) FindByUserID(ctx context.Context, q repository.Querier, userID int64) (*model.ThemeModel, error) {
-	r.gotUserID = userID
-	return r.theme, r.err
-}
-
 func TestThemeUsecase_FindByUsername(t *testing.T) {
 	themeRepo := &fakeThemeRepository{theme: &model.ThemeModel{ID: 10, UserID: 1, DarkMode: true}}
 	u := NewThemeUsecase(&fakeTxManager{}, &fakeUserRepository{id: 1}, themeRepo)

@@ -140,12 +140,21 @@ func main() {
 	defer conn.Close()
 	dbConn = conn
 
+	fallbackIcon, err := os.ReadFile(fallbackImage)
+	if err != nil {
+		e.Logger.Errorf("failed to read fallback image: %v", err)
+		os.Exit(1)
+	}
+
 	txManager := infra.NewTxManager(dbConn)
 	tagHandler := handler.NewTagHandler(
 		usecase.NewTagUsecase(txManager, infra.NewTagRepository()),
 	)
 	themeHandler := handler.NewThemeHandler(
 		usecase.NewThemeUsecase(txManager, infra.NewUserRepository(), infra.NewThemeRepository()),
+	)
+	userHandler := handler.NewUserHandler(
+		usecase.NewUserUsecase(txManager, infra.NewUserRepository(), infra.NewThemeRepository(), infra.NewIconRepository(), fallbackIcon),
 	)
 
 	// 初期化
@@ -190,7 +199,7 @@ func main() {
 	e.POST("/api/login", loginHandler)
 	e.GET("/api/user/me", getMeHandler)
 	// フロントエンドで、配信予約のコラボレーターを指定する際に必要
-	e.GET("/api/user/:username", getUserHandler)
+	e.GET("/api/user/:username", userHandler.GetUser)
 	e.GET("/api/user/:username/statistics", getUserStatisticsHandler)
 	e.GET("/api/user/:username/icon", getIconHandler)
 	e.POST("/api/icon", postIconHandler)

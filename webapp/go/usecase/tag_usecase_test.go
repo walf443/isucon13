@@ -6,17 +6,7 @@ import (
 	"testing"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
-	"github.com/isucon/isucon13/webapp/go/domain/repository"
 )
-
-type fakeTagRepository struct {
-	tags []*model.TagModel
-	err  error
-}
-
-func (r *fakeTagRepository) FindAll(ctx context.Context, q repository.Querier) ([]*model.TagModel, error) {
-	return r.tags, r.err
-}
 
 func TestTagUsecase_FindAll(t *testing.T) {
 	want := []*model.TagModel{{ID: 1, Name: "ライブ配信"}}
