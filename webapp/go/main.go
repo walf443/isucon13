@@ -13,6 +13,9 @@ import (
 	"strconv"
 
 	"github.com/go-sql-driver/mysql"
+	infra "github.com/isucon/isucon13/webapp/go/infra/mysql"
+	"github.com/isucon/isucon13/webapp/go/interfaces/http/handler"
+	"github.com/isucon/isucon13/webapp/go/usecase"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -128,11 +131,24 @@ func main() {
 	e.Use(session.Middleware(cookieStore))
 	// e.Use(middleware.Recover())
 
+	// DB接続
+	conn, err := connectDB(e.Logger)
+	if err != nil {
+		e.Logger.Errorf("failed to connect db: %v", err)
+		os.Exit(1)
+	}
+	defer conn.Close()
+	dbConn = conn
+
+	tagHandler := handler.NewTagHandler(
+		usecase.NewTagUsecase(dbConn, infra.NewTagRepository()),
+	)
+
 	// 初期化
 	e.POST("/api/initialize", initializeHandler)
 
 	// top
-	e.GET("/api/tag", getTagHandler)
+	e.GET("/api/tag", tagHandler.GetTags)
 	e.GET("/api/user/:username/theme", getStreamerThemeHandler)
 
 	// livestream
@@ -183,15 +199,6 @@ func main() {
 	e.GET("/api/payment", GetPaymentResult)
 
 	e.HTTPErrorHandler = errorResponseHandler
-
-	// DB接続
-	conn, err := connectDB(e.Logger)
-	if err != nil {
-		e.Logger.Errorf("failed to connect db: %v", err)
-		os.Exit(1)
-	}
-	defer conn.Close()
-	dbConn = conn
 
 	subdomainAddr, ok := os.LookupEnv(powerDNSSubdomainAddressEnvKey)
 	if !ok {
