@@ -12,7 +12,7 @@ import (
 func TestLivestreamUsecase_FindByID(t *testing.T) {
 	want := &model.Livestream{ID: 1, Title: "stream"}
 	repo := &fakeLivestreamRepository{livestream: want}
-	u := NewLivestreamUsecase(&fakeTxManager{}, repo)
+	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, repo)
 
 	got, err := u.FindByID(context.Background(), 1)
 	if err != nil {
@@ -56,7 +56,7 @@ func TestLivestreamUsecase_FindByID_Errors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeLivestreamRepository{err: tt.repoErr})
+			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeLivestreamRepository{err: tt.repoErr})
 			_, err := u.FindByID(context.Background(), 1)
 			tt.check(t, err)
 		})
@@ -66,7 +66,7 @@ func TestLivestreamUsecase_FindByID_Errors(t *testing.T) {
 func TestLivestreamUsecase_FindAllByUserID(t *testing.T) {
 	want := []*model.Livestream{{ID: 1}, {ID: 2}}
 	repo := &fakeLivestreamRepository{livestreams: want}
-	u := NewLivestreamUsecase(&fakeTxManager{}, repo)
+	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, repo)
 
 	got, err := u.FindAllByUserID(context.Background(), 42)
 	if err != nil {
@@ -82,10 +82,72 @@ func TestLivestreamUsecase_FindAllByUserID(t *testing.T) {
 
 func TestLivestreamUsecase_FindAllByUserID_Error(t *testing.T) {
 	boom := errors.New("boom")
-	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeLivestreamRepository{err: boom})
+	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeLivestreamRepository{err: boom})
 
 	_, err := u.FindAllByUserID(context.Background(), 42)
 	if !errors.Is(err, boom) {
 		t.Fatalf("err = %v, want %v", err, boom)
+	}
+}
+
+func TestLivestreamUsecase_FindAllByUsername(t *testing.T) {
+	want := []*model.Livestream{{ID: 1}}
+	userRepo := &fakeUserRepository{id: 42}
+	livestreamRepo := &fakeLivestreamRepository{livestreams: want}
+	u := NewLivestreamUsecase(&fakeTxManager{}, userRepo, livestreamRepo)
+
+	got, err := u.FindAllByUsername(context.Background(), "alice")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 1 || got[0] != want[0] {
+		t.Errorf("got %+v, want %+v", got, want)
+	}
+	if userRepo.gotName != "alice" {
+		t.Errorf("name = %q, want %q", userRepo.gotName, "alice")
+	}
+	// ユーザ名から引いた ID で検索する
+	if livestreamRepo.gotUserID != 42 {
+		t.Errorf("userID = %d, want 42", livestreamRepo.gotUserID)
+	}
+}
+
+func TestLivestreamUsecase_FindAllByUsername_Errors(t *testing.T) {
+	boom := errors.New("boom")
+
+	tests := []struct {
+		name           string
+		userRepo       *fakeUserRepository
+		livestreamRepo *fakeLivestreamRepository
+		wantErr        error
+	}{
+		{
+			name:           "user not found",
+			userRepo:       &fakeUserRepository{err: repository.ErrNotFound},
+			livestreamRepo: &fakeLivestreamRepository{},
+			wantErr:        ErrUserNotFound,
+		},
+		{
+			name:           "user repository error",
+			userRepo:       &fakeUserRepository{err: boom},
+			livestreamRepo: &fakeLivestreamRepository{},
+			wantErr:        boom,
+		},
+		{
+			name:           "livestream repository error",
+			userRepo:       &fakeUserRepository{id: 42},
+			livestreamRepo: &fakeLivestreamRepository{err: boom},
+			wantErr:        boom,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			u := NewLivestreamUsecase(&fakeTxManager{}, tt.userRepo, tt.livestreamRepo)
+			_, err := u.FindAllByUsername(context.Background(), "alice")
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("err = %v, want %v", err, tt.wantErr)
+			}
+		})
 	}
 }

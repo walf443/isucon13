@@ -99,3 +99,23 @@ func (h *LivestreamHandler) GetMyLivestreams(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, newLivestreams(livestreams))
 }
+
+// GET /api/user/:username/livestream
+func (h *LivestreamHandler) GetUserLivestreams(c echo.Context) error {
+	ctx := c.Request().Context()
+	if err := VerifyUserSession(c); err != nil {
+		return err
+	}
+
+	username := c.Param("username")
+
+	livestreams, err := h.livestreamUsecase.FindAllByUsername(ctx, username)
+	if errors.Is(err, usecase.ErrUserNotFound) {
+		return echo.NewHTTPError(http.StatusNotFound, "user not found")
+	}
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, newLivestreams(livestreams))
+}

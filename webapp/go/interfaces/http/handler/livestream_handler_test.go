@@ -17,8 +17,14 @@ type fakeLivestreamUsecase struct {
 	livestreams []*model.Livestream
 	err         error
 
-	gotID     int64
-	gotUserID int64
+	gotID       int64
+	gotUserID   int64
+	gotUsername string
+}
+
+func (u *fakeLivestreamUsecase) FindAllByUsername(ctx context.Context, username string) ([]*model.Livestream, error) {
+	u.gotUsername = username
+	return u.livestreams, u.err
 }
 
 func (u *fakeLivestreamUsecase) FindAllByUserID(ctx context.Context, userID int64) ([]*model.Livestream, error) {
@@ -203,6 +209,80 @@ func TestLivestreamHandler_GetMyLivestreams(t *testing.T) {
 			}
 			if tt.wantCode == http.StatusOK && tt.usecase.gotUserID != 42 {
 				t.Errorf("userID = %d, want 42", tt.usecase.gotUserID)
+			}
+		})
+	}
+}
+
+func TestLivestreamHandler_GetUserLivestreams(t *testing.T) {
+	validCookie := func(t *testing.T) *http.Cookie {
+		return newSessionCookie(t, 1, time.Now().Add(time.Hour))
+	}
+	owner := model.User{ID: 42, Name: "alice", Theme: model.ThemeModel{ID: 20, UserID: 42}, IconHash: "abc"}
+
+	tests := []struct {
+		name     string
+		cookie   func(t *testing.T) *http.Cookie
+		usecase  *fakeLivestreamUsecase
+		wantCode int
+		wantBody string
+	}{
+		{
+			name:     "returns livestreams of the user",
+			cookie:   validCookie,
+			usecase:  &fakeLivestreamUsecase{livestreams: []*model.Livestream{{ID: 1, Owner: owner, Title: "s1"}}},
+			wantCode: http.StatusOK,
+			wantBody: `[{"id":1,"owner":{"id":42,"name":"alice","theme":{"id":20,"dark_mode":false},"icon_hash":"abc"},"title":"s1","description":"","playlist_url":"","thumbnail_url":"","tags":[],"start_at":0,"end_at":0}]` + "\n",
+		},
+		{
+			name:     "returns empty array when no livestreams",
+			cookie:   validCookie,
+			usecase:  &fakeLivestreamUsecase{livestreams: nil},
+			wantCode: http.StatusOK,
+			wantBody: "[]\n",
+		},
+		{
+			name:     "returns 403 without session",
+			cookie:   nil,
+			usecase:  &fakeLivestreamUsecase{},
+			wantCode: http.StatusForbidden,
+		},
+		{
+			name:     "returns 404 when user is not found",
+			cookie:   validCookie,
+			usecase:  &fakeLivestreamUsecase{err: usecase.ErrUserNotFound},
+			wantCode: http.StatusNotFound,
+			// このエンドポイントだけ 404 のメッセージが他と異なるので確認しておく (echo のデフォルトのエラーハンドラの形式)
+			wantBody: `{"message":"user not found"}` + "\n",
+		},
+		{
+			name:     "returns 500 on unexpected error",
+			cookie:   validCookie,
+			usecase:  &fakeLivestreamUsecase{err: errors.New("boom")},
+			wantCode: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := newTestEcho()
+			e.GET("/api/user/:username/livestream", NewLivestreamHandler(tt.usecase).GetUserLivestreams)
+
+			req := httptest.NewRequest(http.MethodGet, "/api/user/alice/livestream", nil)
+			if tt.cookie != nil {
+				req.AddCookie(tt.cookie(t))
+			}
+			rec := httptest.NewRecorder()
+			e.ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantCode {
+				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
+			}
+			if tt.wantBody != "" && rec.Body.String() != tt.wantBody {
+				t.Errorf("body = %s\nwant   %s", rec.Body.String(), tt.wantBody)
+			}
+			if tt.wantCode == http.StatusOK && tt.usecase.gotUsername != "alice" {
+				t.Errorf("username = %q, want %q", tt.usecase.gotUsername, "alice")
 			}
 		})
 	}

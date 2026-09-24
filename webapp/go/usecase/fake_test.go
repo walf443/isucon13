@@ -33,6 +33,7 @@ type fakeUserRepository struct {
 }
 
 func (r *fakeUserRepository) FindIDByName(ctx context.Context, q repository.Querier, name string) (int64, error) {
+	r.gotName = name
 	return r.id, r.err
 }
 
