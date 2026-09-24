@@ -19,7 +19,7 @@ func TestUserRepository_FindIDByName(t *testing.T) {
 	}
 	wantID, _ := res.LastInsertId()
 
-	id, err := NewUserRepository().FindIDByName(ctx, tx, "alice")
+	id, err := NewUserRepository(nil).FindIDByName(ctx, tx, "alice")
 	if err != nil {
 		t.Fatalf("FindIDByName returned error: %v", err)
 	}
@@ -31,7 +31,7 @@ func TestUserRepository_FindIDByName(t *testing.T) {
 func TestUserRepository_FindIDByName_NotFound(t *testing.T) {
 	tx := beginTestTx(t)
 
-	_, err := NewUserRepository().FindIDByName(context.Background(), tx, "nobody")
+	_, err := NewUserRepository(nil).FindIDByName(context.Background(), tx, "nobody")
 	if !errors.Is(err, repository.ErrNotFound) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
 	}
@@ -47,7 +47,7 @@ func TestUserRepository_FindByName(t *testing.T) {
 	}
 	wantID, _ := res.LastInsertId()
 
-	user, err := NewUserRepository().FindByName(ctx, tx, "alice")
+	user, err := NewUserRepository(nil).FindByName(ctx, tx, "alice")
 	if err != nil {
 		t.Fatalf("FindByName returned error: %v", err)
 	}
@@ -60,7 +60,7 @@ func TestUserRepository_FindByName(t *testing.T) {
 func TestUserRepository_FindByName_NotFound(t *testing.T) {
 	tx := beginTestTx(t)
 
-	_, err := NewUserRepository().FindByName(context.Background(), tx, "nobody")
+	_, err := NewUserRepository(nil).FindByName(context.Background(), tx, "nobody")
 	if !errors.Is(err, repository.ErrNotFound) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
 	}
@@ -76,7 +76,7 @@ func TestUserRepository_FindByID(t *testing.T) {
 	}
 	id, _ := res.LastInsertId()
 
-	user, err := NewUserRepository().FindByID(ctx, tx, id)
+	user, err := NewUserRepository(nil).FindByID(ctx, tx, id)
 	if err != nil {
 		t.Fatalf("FindByID returned error: %v", err)
 	}
@@ -89,7 +89,7 @@ func TestUserRepository_FindByID(t *testing.T) {
 func TestUserRepository_FindByID_NotFound(t *testing.T) {
 	tx := beginTestTx(t)
 
-	_, err := NewUserRepository().FindByID(context.Background(), tx, 999999)
+	_, err := NewUserRepository(nil).FindByID(context.Background(), tx, 999999)
 	if !errors.Is(err, repository.ErrNotFound) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
 	}

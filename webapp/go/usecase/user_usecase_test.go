@@ -2,9 +2,7 @@ package usecase
 
 import (
 	"context"
-	"crypto/sha256"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
@@ -12,71 +10,50 @@ import (
 )
 
 func TestUserUsecase_FindByName(t *testing.T) {
-	userModel := &model.UserModel{ID: 1, Name: "alice", DisplayName: "Alice", Description: "hello", HashedPassword: "x"}
-	theme := &model.ThemeModel{ID: 10, UserID: 1, DarkMode: true}
-	fallback := []byte("fallback")
+	want := &model.User{ID: 1, Name: "alice", Theme: model.ThemeModel{ID: 10, UserID: 1}, IconHash: "abc"}
+	userRepo := &fakeUserRepository{userDetails: want}
+	u := NewUserUsecase(&fakeTxManager{}, userRepo)
 
-	tests := []struct {
-		name         string
-		iconRepo     *fakeIconRepository
-		wantIconHash string
-	}{
-		{
-			name:         "uses registered icon",
-			iconRepo:     &fakeIconRepository{image: []byte("icon")},
-			wantIconHash: fmt.Sprintf("%x", sha256.Sum256([]byte("icon"))),
-		},
-		{
-			name:         "uses fallback icon when not registered",
-			iconRepo:     &fakeIconRepository{err: repository.ErrNotFound},
-			wantIconHash: fmt.Sprintf("%x", sha256.Sum256(fallback)),
-		},
+	user, err := u.FindByName(context.Background(), "alice")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			themeRepo := &fakeThemeRepository{theme: theme}
-			u := NewUserUsecase(&fakeTxManager{}, &fakeUserRepository{user: userModel}, themeRepo, tt.iconRepo, fallback)
-
-			user, err := u.FindByName(context.Background(), "alice")
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			want := &model.User{
-				ID:          1,
-				Name:        "alice",
-				DisplayName: "Alice",
-				Description: "hello",
-				Theme:       *theme,
-				IconHash:    tt.wantIconHash,
-			}
-			if *user != *want {
-				t.Errorf("user = %+v, want %+v", user, want)
-			}
-			if themeRepo.gotUserID != 1 {
-				t.Errorf("theme userID = %d, want 1", themeRepo.gotUserID)
-			}
-		})
+	if user != want {
+		t.Errorf("user = %+v, want %+v", user, want)
+	}
+	if userRepo.gotName != "alice" {
+		t.Errorf("name = %q, want %q", userRepo.gotName, "alice")
 	}
 }
 
-func TestUserUsecase_FindByName_Errors(t *testing.T) {
-	userModel := &model.UserModel{ID: 1, Name: "alice"}
-	theme := &model.ThemeModel{ID: 10, UserID: 1}
+func TestUserUsecase_FindByID(t *testing.T) {
+	want := &model.User{ID: 1, Name: "alice"}
+	userRepo := &fakeUserRepository{userDetails: want}
+	u := NewUserUsecase(&fakeTxManager{}, userRepo)
+
+	user, err := u.FindByID(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if user != want {
+		t.Errorf("user = %+v, want %+v", user, want)
+	}
+	if userRepo.gotID != 1 {
+		t.Errorf("id = %d, want 1", userRepo.gotID)
+	}
+}
+
+func TestUserUsecase_Errors(t *testing.T) {
 	boom := errors.New("boom")
 
 	tests := []struct {
-		name      string
-		userRepo  *fakeUserRepository
-		themeRepo *fakeThemeRepository
-		iconRepo  *fakeIconRepository
-		check     func(t *testing.T, err error)
+		name    string
+		repoErr error
+		check   func(t *testing.T, err error)
 	}{
 		{
-			name:      "user not found",
-			userRepo:  &fakeUserRepository{err: repository.ErrNotFound},
-			themeRepo: &fakeThemeRepository{},
-			iconRepo:  &fakeIconRepository{},
+			name:    "user not found",
+			repoErr: repository.ErrNotFound,
 			check: func(t *testing.T, err error) {
 				if !errors.Is(err, ErrUserNotFound) {
 					t.Errorf("err = %v, want ErrUserNotFound", err)
@@ -84,25 +61,12 @@ func TestUserUsecase_FindByName_Errors(t *testing.T) {
 			},
 		},
 		{
-			// テーマが無いのはデータ不整合なので、ユーザ不在 (404) とは区別する
-			name:      "theme not found",
-			userRepo:  &fakeUserRepository{user: userModel},
-			themeRepo: &fakeThemeRepository{err: repository.ErrNotFound},
-			iconRepo:  &fakeIconRepository{},
+			// テーマ欠損などの repository のエラーは 404 にしない
+			name:    "unexpected error",
+			repoErr: boom,
 			check: func(t *testing.T, err error) {
-				if err == nil || errors.Is(err, ErrUserNotFound) {
-					t.Errorf("err = %v, want non-ErrUserNotFound error", err)
-				}
-			},
-		},
-		{
-			name:      "icon repository error",
-			userRepo:  &fakeUserRepository{user: userModel},
-			themeRepo: &fakeThemeRepository{theme: theme},
-			iconRepo:  &fakeIconRepository{err: boom},
-			check: func(t *testing.T, err error) {
-				if !errors.Is(err, boom) {
-					t.Errorf("err = %v, want %v", err, boom)
+				if !errors.Is(err, boom) || errors.Is(err, ErrUserNotFound) {
+					t.Errorf("err = %v, want wrapped %v", err, boom)
 				}
 			},
 		},
@@ -110,36 +74,12 @@ func TestUserUsecase_FindByName_Errors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u := NewUserUsecase(&fakeTxManager{}, tt.userRepo, tt.themeRepo, tt.iconRepo, []byte("fallback"))
+			u := NewUserUsecase(&fakeTxManager{}, &fakeUserRepository{err: tt.repoErr})
+
 			_, err := u.FindByName(context.Background(), "alice")
 			tt.check(t, err)
+			_, err = u.FindByID(context.Background(), 1)
+			tt.check(t, err)
 		})
-	}
-}
-
-// FindByID は FindByName と findUser を共有しているので、ID が渡ることとエラーの変換だけ確認する
-func TestUserUsecase_FindByID(t *testing.T) {
-	userRepo := &fakeUserRepository{user: &model.UserModel{ID: 1, Name: "alice"}}
-	themeRepo := &fakeThemeRepository{theme: &model.ThemeModel{ID: 10, UserID: 1}}
-	u := NewUserUsecase(&fakeTxManager{}, userRepo, themeRepo, &fakeIconRepository{image: []byte("icon")}, nil)
-
-	user, err := u.FindByID(context.Background(), 1)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if userRepo.gotID != 1 {
-		t.Errorf("id = %d, want 1", userRepo.gotID)
-	}
-	if user.ID != 1 || user.Name != "alice" || user.Theme.ID != 10 {
-		t.Errorf("user = %+v", user)
-	}
-}
-
-func TestUserUsecase_FindByID_NotFound(t *testing.T) {
-	u := NewUserUsecase(&fakeTxManager{}, &fakeUserRepository{err: repository.ErrNotFound}, &fakeThemeRepository{}, &fakeIconRepository{}, nil)
-
-	_, err := u.FindByID(context.Background(), 1)
-	if !errors.Is(err, ErrUserNotFound) {
-		t.Fatalf("err = %v, want ErrUserNotFound", err)
 	}
 }

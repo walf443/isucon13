@@ -23,10 +23,13 @@ func (r *fakeTagRepository) FindAll(ctx context.Context, q repository.Querier) (
 }
 
 type fakeUserRepository struct {
-	id    int64
-	user  *model.UserModel
-	err   error
-	gotID int64
+	id          int64
+	user        *model.UserModel
+	userDetails *model.User
+	err         error
+
+	gotID   int64
+	gotName string
 }
 
 func (r *fakeUserRepository) FindIDByName(ctx context.Context, q repository.Querier, name string) (int64, error) {
@@ -39,7 +42,18 @@ func (r *fakeUserRepository) FindByID(ctx context.Context, q repository.Querier,
 }
 
 func (r *fakeUserRepository) FindByName(ctx context.Context, q repository.Querier, name string) (*model.UserModel, error) {
+	r.gotName = name
 	return r.user, r.err
+}
+
+func (r *fakeUserRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id int64) (*model.User, error) {
+	r.gotID = id
+	return r.userDetails, r.err
+}
+
+func (r *fakeUserRepository) FindWithDetailsByName(ctx context.Context, q repository.Querier, name string) (*model.User, error) {
+	r.gotName = name
+	return r.userDetails, r.err
 }
 
 type fakeThemeRepository struct {

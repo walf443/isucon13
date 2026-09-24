@@ -9,10 +9,13 @@ import (
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
 )
 
-type userRepository struct{}
+type userRepository struct {
+	// fallbackIcon はアイコン未登録のユーザに使う画像。
+	fallbackIcon []byte
+}
 
-func NewUserRepository() repository.UserRepository {
-	return &userRepository{}
+func NewUserRepository(fallbackIcon []byte) repository.UserRepository {
+	return &userRepository{fallbackIcon: fallbackIcon}
 }
 
 func (r *userRepository) FindIDByName(ctx context.Context, q repository.Querier, name string) (int64, error) {
@@ -49,4 +52,28 @@ func (r *userRepository) FindByID(ctx context.Context, q repository.Querier, id 
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (r *userRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id int64) (*model.User, error) {
+	userModel, err := r.FindByID(ctx, q, id)
+	if err != nil {
+		return nil, err
+	}
+	return r.fillUser(ctx, q, userModel)
+}
+
+func (r *userRepository) FindWithDetailsByName(ctx context.Context, q repository.Querier, name string) (*model.User, error) {
+	userModel, err := r.FindByName(ctx, q, name)
+	if err != nil {
+		return nil, err
+	}
+	return r.fillUser(ctx, q, userModel)
+}
+
+func (r *userRepository) fillUser(ctx context.Context, q repository.Querier, userModel *model.UserModel) (*model.User, error) {
+	users, err := fillUsers(ctx, q, []*model.UserModel{userModel}, r.fallbackIcon)
+	if err != nil {
+		return nil, err
+	}
+	return users[0], nil
 }

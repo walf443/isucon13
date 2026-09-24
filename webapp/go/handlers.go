@@ -28,13 +28,13 @@ func newHandlers(db *sqlx.DB, fallbackImagePath string) (*handlers, error) {
 	txManager := infra.NewTxManager(db)
 
 	tagRepo := infra.NewTagRepository()
-	userRepo := infra.NewUserRepository()
+	userRepo := infra.NewUserRepository(fallbackIcon)
 	themeRepo := infra.NewThemeRepository()
 	iconRepo := infra.NewIconRepository()
 
 	tagUsecase := usecase.NewTagUsecase(txManager, tagRepo)
 	themeUsecase := usecase.NewThemeUsecase(txManager, userRepo, themeRepo)
-	userUsecase := usecase.NewUserUsecase(txManager, userRepo, themeRepo, iconRepo, fallbackIcon)
+	userUsecase := usecase.NewUserUsecase(txManager, userRepo)
 	iconUsecase := usecase.NewIconUsecase(txManager, userRepo, iconRepo)
 
 	return &handlers{
