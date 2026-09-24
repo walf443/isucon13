@@ -38,3 +38,15 @@ func (r *userRepository) FindByName(ctx context.Context, q repository.Querier, n
 	}
 	return &user, nil
 }
+
+func (r *userRepository) FindByID(ctx context.Context, q repository.Querier, id int64) (*model.UserModel, error) {
+	var user model.UserModel
+	err := q.GetContext(ctx, &user, "SELECT id, name, display_name, description, password FROM users WHERE id = ?", id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, repository.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}

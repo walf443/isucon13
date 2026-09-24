@@ -60,3 +60,28 @@ func (h *UserHandler) GetUser(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, newUser(user))
 }
+
+// GET /api/user/me
+func (h *UserHandler) GetMe(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	if err := VerifyUserSession(c); err != nil {
+		// echo.NewHTTPErrorが返っているのでそのまま出力
+		return err
+	}
+
+	userID, err := getSessionUserID(c)
+	if err != nil {
+		return err
+	}
+
+	user, err := h.userUsecase.FindByID(ctx, userID)
+	if errors.Is(err, usecase.ErrUserNotFound) {
+		return echo.NewHTTPError(http.StatusNotFound, "not found user that has the userid in session")
+	}
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, newUser(user))
+}

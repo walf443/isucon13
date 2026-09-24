@@ -116,3 +116,30 @@ func TestUserUsecase_FindByName_Errors(t *testing.T) {
 		})
 	}
 }
+
+// FindByID は FindByName と findUser を共有しているので、ID が渡ることとエラーの変換だけ確認する
+func TestUserUsecase_FindByID(t *testing.T) {
+	userRepo := &fakeUserRepository{user: &model.UserModel{ID: 1, Name: "alice"}}
+	themeRepo := &fakeThemeRepository{theme: &model.ThemeModel{ID: 10, UserID: 1}}
+	u := NewUserUsecase(&fakeTxManager{}, userRepo, themeRepo, &fakeIconRepository{image: []byte("icon")}, nil)
+
+	user, err := u.FindByID(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if userRepo.gotID != 1 {
+		t.Errorf("id = %d, want 1", userRepo.gotID)
+	}
+	if user.ID != 1 || user.Name != "alice" || user.Theme.ID != 10 {
+		t.Errorf("user = %+v", user)
+	}
+}
+
+func TestUserUsecase_FindByID_NotFound(t *testing.T) {
+	u := NewUserUsecase(&fakeTxManager{}, &fakeUserRepository{err: repository.ErrNotFound}, &fakeThemeRepository{}, &fakeIconRepository{}, nil)
+
+	_, err := u.FindByID(context.Background(), 1)
+	if !errors.Is(err, ErrUserNotFound) {
+		t.Fatalf("err = %v, want ErrUserNotFound", err)
+	}
+}

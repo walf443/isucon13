@@ -65,3 +65,32 @@ func TestUserRepository_FindByName_NotFound(t *testing.T) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
 	}
 }
+
+func TestUserRepository_FindByID(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	res, err := tx.ExecContext(ctx, "INSERT INTO users (name, display_name, password, description) VALUES (?, ?, ?, ?)", "alice", "Alice", "hashed", "hello")
+	if err != nil {
+		t.Fatalf("failed to insert user: %v", err)
+	}
+	id, _ := res.LastInsertId()
+
+	user, err := NewUserRepository().FindByID(ctx, tx, id)
+	if err != nil {
+		t.Fatalf("FindByID returned error: %v", err)
+	}
+	want := model.UserModel{ID: id, Name: "alice", DisplayName: "Alice", Description: "hello", HashedPassword: "hashed"}
+	if *user != want {
+		t.Errorf("user = %+v, want %+v", *user, want)
+	}
+}
+
+func TestUserRepository_FindByID_NotFound(t *testing.T) {
+	tx := beginTestTx(t)
+
+	_, err := NewUserRepository().FindByID(context.Background(), tx, 999999)
+	if !errors.Is(err, repository.ErrNotFound) {
+		t.Fatalf("err = %v, want ErrNotFound", err)
+	}
+}

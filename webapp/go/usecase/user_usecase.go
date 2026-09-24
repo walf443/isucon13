@@ -11,6 +11,8 @@ import (
 )
 
 type UserUsecase interface {
+	// FindByID はユーザが存在しない場合 ErrUserNotFound を返す。
+	FindByID(ctx context.Context, id int64) (*model.User, error)
 	// FindByName はユーザが存在しない場合 ErrUserNotFound を返す。
 	FindByName(ctx context.Context, name string) (*model.User, error)
 }
@@ -34,10 +36,23 @@ func NewUserUsecase(txManager repository.TxManager, userRepo repository.UserRepo
 	}
 }
 
+func (u *userUsecase) FindByID(ctx context.Context, id int64) (*model.User, error) {
+	return u.findUser(ctx, func(q repository.Querier) (*model.UserModel, error) {
+		return u.userRepo.FindByID(ctx, q, id)
+	})
+}
+
 func (u *userUsecase) FindByName(ctx context.Context, name string) (*model.User, error) {
+	return u.findUser(ctx, func(q repository.Querier) (*model.UserModel, error) {
+		return u.userRepo.FindByName(ctx, q, name)
+	})
+}
+
+// findUser は find で取得したユーザにテーマ・アイコンを埋めて返す。
+func (u *userUsecase) findUser(ctx context.Context, find func(q repository.Querier) (*model.UserModel, error)) (*model.User, error) {
 	var user *model.User
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
-		userModel, err := u.userRepo.FindByName(ctx, q, name)
+		userModel, err := find(q)
 		if errors.Is(err, repository.ErrNotFound) {
 			return ErrUserNotFound
 		}

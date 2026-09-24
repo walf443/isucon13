@@ -197,7 +197,7 @@ func main() {
 	// user
 	e.POST("/api/register", registerHandler)
 	e.POST("/api/login", loginHandler)
-	e.GET("/api/user/me", getMeHandler)
+	e.GET("/api/user/me", userHandler.GetMe)
 	// フロントエンドで、配信予約のコラボレーターを指定する際に必要
 	e.GET("/api/user/:username", userHandler.GetUser)
 	e.GET("/api/user/:username/statistics", getUserStatisticsHandler)

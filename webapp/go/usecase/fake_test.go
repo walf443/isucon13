@@ -23,13 +23,19 @@ func (r *fakeTagRepository) FindAll(ctx context.Context, q repository.Querier) (
 }
 
 type fakeUserRepository struct {
-	id   int64
-	user *model.UserModel
-	err  error
+	id    int64
+	user  *model.UserModel
+	err   error
+	gotID int64
 }
 
 func (r *fakeUserRepository) FindIDByName(ctx context.Context, q repository.Querier, name string) (int64, error) {
 	return r.id, r.err
+}
+
+func (r *fakeUserRepository) FindByID(ctx context.Context, q repository.Querier, id int64) (*model.UserModel, error) {
+	r.gotID = id
+	return r.user, r.err
 }
 
 func (r *fakeUserRepository) FindByName(ctx context.Context, q repository.Querier, name string) (*model.UserModel, error) {

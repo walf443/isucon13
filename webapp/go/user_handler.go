@@ -164,46 +164,6 @@ func postIconHandler(c echo.Context) error {
 	})
 }
 
-func getMeHandler(c echo.Context) error {
-	ctx := c.Request().Context()
-
-	if err := verifyUserSession(c); err != nil {
-		// echo.NewHTTPErrorが返っているのでそのまま出力
-		return err
-	}
-
-	// error already checked
-	sess, _ := session.Get(defaultSessionIDKey, c)
-	// existence already checked
-	userID := sess.Values[defaultUserIDKey].(int64)
-
-	tx, err := dbConn.BeginTxx(ctx, nil)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to begin transaction: "+err.Error())
-	}
-	defer tx.Rollback()
-
-	userModel := UserModel{}
-	err = tx.GetContext(ctx, &userModel, "SELECT * FROM users WHERE id = ?", userID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return echo.NewHTTPError(http.StatusNotFound, "not found user that has the userid in session")
-	}
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user: "+err.Error())
-	}
-
-	user, err := fillUserResponse(ctx, tx, userModel)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill user: "+err.Error())
-	}
-
-	if err := tx.Commit(); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
-	}
-
-	return c.JSON(http.StatusOK, user)
-}
-
 // ユーザ登録API
 // POST /api/register
 func registerHandler(c echo.Context) error {
