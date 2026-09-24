@@ -1,0 +1,33 @@
+name: go
+
+on:
+  push:
+    paths:
+      - "webapp/go/**"
+      - "webapp/sql/initdb.d/**"
+      - ".github/workflows/go.yml"
+  pull_request:
+    paths:
+      - "webapp/go/**"
+      - "webapp/sql/initdb.d/**"
+      - ".github/workflows/go.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: webapp/go
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: webapp/go/go.mod
+          cache-dependency-path: webapp/go/go.sum
+      - name: Build
+        run: go build ./...
+      - name: Vet
+        run: go vet ./...
+      # infra/mysql のテストは testcontainers で MySQL コンテナを起動する (ubuntu-latest には Docker がある)
+      - name: Test
+        run: go test ./...
