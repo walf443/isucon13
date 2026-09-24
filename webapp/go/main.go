@@ -13,9 +13,6 @@ import (
 	"strconv"
 
 	"github.com/go-sql-driver/mysql"
-	infra "github.com/isucon/isucon13/webapp/go/infra/mysql"
-	"github.com/isucon/isucon13/webapp/go/interfaces/http/handler"
-	"github.com/isucon/isucon13/webapp/go/usecase"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -140,80 +137,12 @@ func main() {
 	defer conn.Close()
 	dbConn = conn
 
-	fallbackIcon, err := os.ReadFile(fallbackImage)
+	h, err := newHandlers(dbConn, fallbackImage)
 	if err != nil {
-		e.Logger.Errorf("failed to read fallback image: %v", err)
+		e.Logger.Errorf("failed to initialize handlers: %v", err)
 		os.Exit(1)
 	}
-
-	txManager := infra.NewTxManager(dbConn)
-	tagHandler := handler.NewTagHandler(
-		usecase.NewTagUsecase(txManager, infra.NewTagRepository()),
-	)
-	themeHandler := handler.NewThemeHandler(
-		usecase.NewThemeUsecase(txManager, infra.NewUserRepository(), infra.NewThemeRepository()),
-	)
-	iconHandler := handler.NewIconHandler(
-		usecase.NewIconUsecase(txManager, infra.NewUserRepository(), infra.NewIconRepository()),
-		fallbackImage,
-	)
-	userHandler := handler.NewUserHandler(
-		usecase.NewUserUsecase(txManager, infra.NewUserRepository(), infra.NewThemeRepository(), infra.NewIconRepository(), fallbackIcon),
-	)
-
-	// 初期化
-	e.POST("/api/initialize", initializeHandler)
-
-	// top
-	e.GET("/api/tag", tagHandler.GetTags)
-	e.GET("/api/user/:username/theme", themeHandler.GetStreamerTheme)
-
-	// livestream
-	// reserve livestream
-	e.POST("/api/livestream/reservation", reserveLivestreamHandler)
-	// list livestream
-	e.GET("/api/livestream/search", searchLivestreamsHandler)
-	e.GET("/api/livestream", getMyLivestreamsHandler)
-	e.GET("/api/user/:username/livestream", getUserLivestreamsHandler)
-	// get livestream
-	e.GET("/api/livestream/:livestream_id", getLivestreamHandler)
-	// get polling livecomment timeline
-	e.GET("/api/livestream/:livestream_id/livecomment", getLivecommentsHandler)
-	// ライブコメント投稿
-	e.POST("/api/livestream/:livestream_id/livecomment", postLivecommentHandler)
-	e.POST("/api/livestream/:livestream_id/reaction", postReactionHandler)
-	e.GET("/api/livestream/:livestream_id/reaction", getReactionsHandler)
-
-	// (配信者向け)ライブコメントの報告一覧取得API
-	e.GET("/api/livestream/:livestream_id/report", getLivecommentReportsHandler)
-	e.GET("/api/livestream/:livestream_id/ngwords", getNgwords)
-	// ライブコメント報告
-	e.POST("/api/livestream/:livestream_id/livecomment/:livecomment_id/report", reportLivecommentHandler)
-	// 配信者によるモデレーション (NGワード登録)
-	e.POST("/api/livestream/:livestream_id/moderate", moderateHandler)
-
-	// livestream_viewersにINSERTするため必要
-	// ユーザ視聴開始 (viewer)
-	e.POST("/api/livestream/:livestream_id/enter", enterLivestreamHandler)
-	// ユーザ視聴終了 (viewer)
-	e.DELETE("/api/livestream/:livestream_id/exit", exitLivestreamHandler)
-
-	// user
-	e.POST("/api/register", registerHandler)
-	e.POST("/api/login", loginHandler)
-	e.GET("/api/user/me", userHandler.GetMe)
-	// フロントエンドで、配信予約のコラボレーターを指定する際に必要
-	e.GET("/api/user/:username", userHandler.GetUser)
-	e.GET("/api/user/:username/statistics", getUserStatisticsHandler)
-	e.GET("/api/user/:username/icon", iconHandler.GetIcon)
-	e.POST("/api/icon", iconHandler.PostIcon)
-
-	// stats
-	// ライブ配信統計情報
-	e.GET("/api/livestream/:livestream_id/statistics", getLivestreamStatisticsHandler)
-
-	// 課金情報
-	e.GET("/api/payment", GetPaymentResult)
+	registerRoutes(e, h)
 
 	e.HTTPErrorHandler = errorResponseHandler
 
