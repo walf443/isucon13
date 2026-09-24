@@ -12,10 +12,11 @@ import (
 
 // handlers はクリーンアーキテクチャへ移行済みの handler をまとめたもの。
 type handlers struct {
-	tag   *handler.TagHandler
-	theme *handler.ThemeHandler
-	user  *handler.UserHandler
-	icon  *handler.IconHandler
+	tag        *handler.TagHandler
+	theme      *handler.ThemeHandler
+	user       *handler.UserHandler
+	icon       *handler.IconHandler
+	livestream *handler.LivestreamHandler
 }
 
 // newHandlers は repository・usecase・handler を組み立てる。
@@ -31,16 +32,19 @@ func newHandlers(db *sqlx.DB, fallbackImagePath string) (*handlers, error) {
 	userRepo := infra.NewUserRepository(fallbackIcon)
 	themeRepo := infra.NewThemeRepository()
 	iconRepo := infra.NewIconRepository()
+	livestreamRepo := infra.NewLivestreamRepository(fallbackIcon)
 
 	tagUsecase := usecase.NewTagUsecase(txManager, tagRepo)
 	themeUsecase := usecase.NewThemeUsecase(txManager, userRepo, themeRepo)
 	userUsecase := usecase.NewUserUsecase(txManager, userRepo)
 	iconUsecase := usecase.NewIconUsecase(txManager, userRepo, iconRepo)
+	livestreamUsecase := usecase.NewLivestreamUsecase(txManager, livestreamRepo)
 
 	return &handlers{
-		tag:   handler.NewTagHandler(tagUsecase),
-		theme: handler.NewThemeHandler(themeUsecase),
-		user:  handler.NewUserHandler(userUsecase),
-		icon:  handler.NewIconHandler(iconUsecase, fallbackImagePath),
+		tag:        handler.NewTagHandler(tagUsecase),
+		theme:      handler.NewThemeHandler(themeUsecase),
+		user:       handler.NewUserHandler(userUsecase),
+		icon:       handler.NewIconHandler(iconUsecase, fallbackImagePath),
+		livestream: handler.NewLivestreamHandler(livestreamUsecase),
 	}, nil
 }

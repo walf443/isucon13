@@ -18,7 +18,7 @@ func registerRoutes(e *echo.Echo, h *handlers) {
 	e.GET("/api/livestream", getMyLivestreamsHandler)
 	e.GET("/api/user/:username/livestream", getUserLivestreamsHandler)
 	// get livestream
-	e.GET("/api/livestream/:livestream_id", getLivestreamHandler)
+	e.GET("/api/livestream/:livestream_id", h.livestream.GetLivestream)
 	// get polling livecomment timeline
 	e.GET("/api/livestream/:livestream_id/livecomment", getLivecommentsHandler)
 	// ライブコメント投稿

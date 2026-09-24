@@ -1,0 +1,64 @@
+package usecase
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain/repository"
+)
+
+func TestLivestreamUsecase_FindByID(t *testing.T) {
+	want := &model.Livestream{ID: 1, Title: "stream"}
+	repo := &fakeLivestreamRepository{livestream: want}
+	u := NewLivestreamUsecase(&fakeTxManager{}, repo)
+
+	got, err := u.FindByID(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != want {
+		t.Errorf("got %+v, want %+v", got, want)
+	}
+	if repo.gotID != 1 {
+		t.Errorf("id = %d, want 1", repo.gotID)
+	}
+}
+
+func TestLivestreamUsecase_FindByID_Errors(t *testing.T) {
+	boom := errors.New("boom")
+
+	tests := []struct {
+		name    string
+		repoErr error
+		check   func(t *testing.T, err error)
+	}{
+		{
+			name:    "livestream not found",
+			repoErr: repository.ErrNotFound,
+			check: func(t *testing.T, err error) {
+				if !errors.Is(err, ErrLivestreamNotFound) {
+					t.Errorf("err = %v, want ErrLivestreamNotFound", err)
+				}
+			},
+		},
+		{
+			name:    "unexpected error",
+			repoErr: boom,
+			check: func(t *testing.T, err error) {
+				if !errors.Is(err, boom) || errors.Is(err, ErrLivestreamNotFound) {
+					t.Errorf("err = %v, want wrapped %v", err, boom)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeLivestreamRepository{err: tt.repoErr})
+			_, err := u.FindByID(context.Background(), 1)
+			tt.check(t, err)
+		})
+	}
+}

@@ -10,3 +10,16 @@ type LivestreamModel struct {
 	StartAt      int64  `db:"start_at" json:"start_at"`
 	EndAt        int64  `db:"end_at" json:"end_at"`
 }
+
+// Livestream は配信者・タグを含めたライブ配信の情報。
+type Livestream struct {
+	ID           int64
+	Owner        User
+	Title        string
+	Description  string
+	PlaylistUrl  string
+	ThumbnailUrl string
+	Tags         []TagModel
+	StartAt      int64
+	EndAt        int64
+}
