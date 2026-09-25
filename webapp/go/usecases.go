@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
-	infra "github.com/isucon/isucon13/webapp/go/infra/mysql"
+	"github.com/isucon/isucon13/webapp/go/infra/mysql"
 	"github.com/isucon/isucon13/webapp/go/infra/powerdns"
 	"github.com/isucon/isucon13/webapp/go/infra/script"
 	"github.com/isucon/isucon13/webapp/go/interfaces/http/handler"
@@ -22,19 +22,19 @@ func newUsecases(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 	// アイコン未登録のユーザのアイコンのハッシュは常に同じなので、起動時に 1 回だけ計算する
 	defaultIconHash := model.HashIcon(fallbackIcon)
 
-	txManager := infra.NewTxManager(db)
+	txManager := mysql.NewTxManager(db)
 
-	tagRepo := infra.NewTagRepository()
-	userRepo := infra.NewUserRepository(defaultIconHash)
-	themeRepo := infra.NewThemeRepository()
-	iconRepo := infra.NewIconRepository()
-	livestreamRepo := infra.NewLivestreamRepository(defaultIconHash)
-	reactionRepo := infra.NewReactionRepository(defaultIconHash)
-	livecommentRepo := infra.NewLivecommentRepository(defaultIconHash)
-	livecommentReportRepo := infra.NewLivecommentReportRepository(defaultIconHash)
-	ngWordRepo := infra.NewNGWordRepository()
-	viewerRepo := infra.NewLivestreamViewersHistoryRepository()
-	reservationSlotRepo := infra.NewReservationSlotRepository()
+	tagRepo := mysql.NewTagRepository()
+	userRepo := mysql.NewUserRepository(defaultIconHash)
+	themeRepo := mysql.NewThemeRepository()
+	iconRepo := mysql.NewIconRepository()
+	livestreamRepo := mysql.NewLivestreamRepository(defaultIconHash)
+	reactionRepo := mysql.NewReactionRepository(defaultIconHash)
+	livecommentRepo := mysql.NewLivecommentRepository(defaultIconHash)
+	livecommentReportRepo := mysql.NewLivecommentReportRepository(defaultIconHash)
+	ngWordRepo := mysql.NewNGWordRepository()
+	viewerRepo := mysql.NewLivestreamViewersHistoryRepository()
+	reservationSlotRepo := mysql.NewReservationSlotRepository()
 
 	tagUsecase := usecase.NewTagUsecase(txManager, tagRepo)
 	themeUsecase := usecase.NewThemeUsecase(txManager, userRepo, themeRepo)
