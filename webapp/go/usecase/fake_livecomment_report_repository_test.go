@@ -7,41 +7,29 @@ import (
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
 )
 
+// fakeLivecommentReportRepository はテストで設定した関数に処理を委ねる LivecommentReportRepository。
+// 関数を設定していないメソッドを呼ぶと panic する (埋め込んだインターフェースは nil)。
 type fakeLivecommentReportRepository struct {
-	reportCount    int64
-	reportCountErr error
+	repository.LivecommentReportRepository
 
-	report    *model.LivecommentReport
-	reports   []*model.LivecommentReport
-	err       error
-	createID  model.LivecommentReportID
-	createErr error
-
-	calls           []string
-	gotID           model.LivecommentReportID
-	gotLivestreamID model.LivestreamID
-	gotCreated      *model.LivecommentReportModel
-}
-
-func (r *fakeLivecommentReportRepository) CountByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error) {
-	r.gotLivestreamID = livestreamID
-	return r.reportCount, r.reportCountErr
-}
-
-func (r *fakeLivecommentReportRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.LivecommentReportID) (*model.LivecommentReport, error) {
-	r.calls = append(r.calls, "FindWithDetailsByID")
-	r.gotID = id
-	return r.report, r.err
-}
-
-func (r *fakeLivecommentReportRepository) Create(ctx context.Context, q repository.Querier, report *model.LivecommentReportModel) (model.LivecommentReportID, error) {
-	r.calls = append(r.calls, "Create")
-	r.gotCreated = report
-	return r.createID, r.createErr
+	findAllWithDetailsByLivestreamID func(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.LivecommentReport, error)
+	findWithDetailsByID              func(ctx context.Context, q repository.Querier, id model.LivecommentReportID) (*model.LivecommentReport, error)
+	create                           func(ctx context.Context, q repository.Querier, report *model.LivecommentReportModel) (model.LivecommentReportID, error)
+	countByLivestreamID              func(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error)
 }
 
 func (r *fakeLivecommentReportRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.LivecommentReport, error) {
-	r.calls = append(r.calls, "FindAllWithDetailsByLivestreamID")
-	r.gotLivestreamID = livestreamID
-	return r.reports, r.err
+	return r.findAllWithDetailsByLivestreamID(ctx, q, livestreamID)
+}
+
+func (r *fakeLivecommentReportRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.LivecommentReportID) (*model.LivecommentReport, error) {
+	return r.findWithDetailsByID(ctx, q, id)
+}
+
+func (r *fakeLivecommentReportRepository) Create(ctx context.Context, q repository.Querier, report *model.LivecommentReportModel) (model.LivecommentReportID, error) {
+	return r.create(ctx, q, report)
+}
+
+func (r *fakeLivecommentReportRepository) CountByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+	return r.countByLivestreamID(ctx, q, livestreamID)
 }

@@ -216,7 +216,14 @@ func newTestLivestreamStatisticsRepos() (*fakeLivestreamRepository, *fakeLivecom
 			return 7, nil
 		},
 	}
-	reportRepo := &fakeLivecommentReportRepository{reportCount: 2}
+	reportRepo := &fakeLivecommentReportRepository{
+		countByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+			if livestreamID != 11 {
+				return 0, fmt.Errorf("unexpected livestreamID %d", livestreamID)
+			}
+			return 2, nil
+		},
+	}
 	return livestreamRepo, livecommentRepo, reactionRepo, viewerRepo, reportRepo
 }
 
@@ -242,8 +249,8 @@ func TestStatisticsUsecase_FindLivestreamStatistics(t *testing.T) {
 	if want := []string{"FindByID", "FindAll"}; !slices.Equal(livestreamRepo.calls, want) {
 		t.Errorf("livestream calls = %v, want %v", livestreamRepo.calls, want)
 	}
-	if livestreamRepo.gotID != 11 || livecommentRepo.gotMaxTipLivestreamID != 11 || reactionRepo.gotTotalLivestreamID != 11 || reportRepo.gotLivestreamID != 11 {
-		t.Errorf("livestream ids = %d, %d, %d, %d, want 11", livestreamRepo.gotID, livecommentRepo.gotMaxTipLivestreamID, reactionRepo.gotTotalLivestreamID, reportRepo.gotLivestreamID)
+	if livestreamRepo.gotID != 11 || livecommentRepo.gotMaxTipLivestreamID != 11 || reactionRepo.gotTotalLivestreamID != 11 {
+		t.Errorf("livestream ids = %d, %d, %d, want 11", livestreamRepo.gotID, livecommentRepo.gotMaxTipLivestreamID, reactionRepo.gotTotalLivestreamID)
 	}
 }
 
@@ -322,7 +329,7 @@ func TestStatisticsUsecase_FindLivestreamStatistics_Errors(t *testing.T) {
 		{
 			name: "count reports fails",
 			modify: func(_ *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository, rpr *fakeLivecommentReportRepository) {
-				rpr.reportCountErr = boom
+				rpr.countByLivestreamID = func(context.Context, repository.Querier, model.LivestreamID) (int64, error) { return 0, boom }
 			},
 			wantErr: boom,
 			wantMsg: "failed to count total spam reports: boom",
