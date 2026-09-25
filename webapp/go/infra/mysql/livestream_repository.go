@@ -4,19 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
-type livestreamRepository struct {
-	// defaultIconHash はアイコン未登録の配信者に使う既定のアイコンのハッシュ。
-	defaultIconHash domain.IconHash
-}
+type livestreamRepository struct{}
 
-func NewLivestreamRepository(defaultIconHash domain.IconHash) repository.LivestreamRepository {
-	return &livestreamRepository{defaultIconHash: defaultIconHash}
+func NewLivestreamRepository() repository.LivestreamRepository {
+	return &livestreamRepository{}
 }
 
 func (r *livestreamRepository) FindByID(ctx context.Context, q repository.Querier, id domain.LivestreamID) (*domain.LivestreamModel, error) {
@@ -71,60 +67,6 @@ func (r *livestreamRepository) FindAllOrderByIDDescLimited(ctx context.Context, 
 	return livestreamModels, nil
 }
 
-func (r *livestreamRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id domain.LivestreamID) (*domain.Livestream, error) {
-	livestreamModel, err := r.FindByID(ctx, q, id)
-	if err != nil {
-		return nil, err
-	}
-
-	livestreams, err := fillLivestreams(ctx, q, []*domain.LivestreamModel{livestreamModel}, r.defaultIconHash)
-	if err != nil {
-		return nil, err
-	}
-	return livestreams[0], nil
-}
-
-func (r *livestreamRepository) FindAllWithDetailsByUserID(ctx context.Context, q repository.Querier, userID domain.UserID) ([]*domain.Livestream, error) {
-	livestreamModels, err := r.FindAllByUserID(ctx, q, userID)
-	if err != nil {
-		return nil, err
-	}
-	return fillLivestreams(ctx, q, livestreamModels, r.defaultIconHash)
-}
-
-func (r *livestreamRepository) FindAllWithDetailsByTagIDs(ctx context.Context, q repository.Querier, tagIDs []domain.TagID) ([]*domain.Livestream, error) {
-	livestreamTagModels, err := NewLivestreamTagRepository().FindAllByTagIDs(ctx, q, tagIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	livestreamModels := make([]*domain.LivestreamModel, len(livestreamTagModels))
-	for i, livestreamTagModel := range livestreamTagModels {
-		var livestreamModel domain.LivestreamModel
-		if err := q.GetContext(ctx, &livestreamModel, "SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM livestreams WHERE id = ?", livestreamTagModel.LivestreamID); err != nil {
-			return nil, fmt.Errorf("failed to get livestream %d: %w", livestreamTagModel.LivestreamID, err)
-		}
-		livestreamModels[i] = &livestreamModel
-	}
-	return fillLivestreams(ctx, q, livestreamModels, r.defaultIconHash)
-}
-
-func (r *livestreamRepository) FindAllWithDetails(ctx context.Context, q repository.Querier) ([]*domain.Livestream, error) {
-	livestreamModels, err := r.FindAllOrderByIDDesc(ctx, q)
-	if err != nil {
-		return nil, err
-	}
-	return fillLivestreams(ctx, q, livestreamModels, r.defaultIconHash)
-}
-
-func (r *livestreamRepository) FindAllWithDetailsLimited(ctx context.Context, q repository.Querier, limit domain.Limit) ([]*domain.Livestream, error) {
-	livestreamModels, err := r.FindAllOrderByIDDescLimited(ctx, q, limit)
-	if err != nil {
-		return nil, err
-	}
-	return fillLivestreams(ctx, q, livestreamModels, r.defaultIconHash)
-}
-
 func (r *livestreamRepository) Create(ctx context.Context, q repository.Querier, livestream *domain.LivestreamModel) (domain.LivestreamID, error) {
 	rs, err := q.ExecContext(ctx, "INSERT INTO livestreams (user_id, title, description, playlist_url, thumbnail_url, start_at, end_at) VALUES(?, ?, ?, ?, ?, ?, ?)", livestream.UserID, livestream.Title, livestream.Description, livestream.PlaylistUrl, livestream.ThumbnailUrl, livestream.StartAt, livestream.EndAt)
 	if err != nil {
@@ -135,9 +77,4 @@ func (r *livestreamRepository) Create(ctx context.Context, q repository.Querier,
 		return 0, err
 	}
 	return domain.LivestreamID(id), nil
-}
-
-func (r *livestreamRepository) AddTag(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, tagID domain.TagID) error {
-	_, err := q.ExecContext(ctx, "INSERT INTO livestream_tags (livestream_id, tag_id) VALUES (?, ?)", livestreamID, tagID)
-	return err
 }

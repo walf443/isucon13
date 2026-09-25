@@ -13,17 +13,13 @@ import (
 type fakeLivestreamRepository struct {
 	repository.LivestreamRepository
 
-	findByID                   func(ctx context.Context, q repository.Querier, id domain.LivestreamID) (*domain.LivestreamModel, error)
-	findAll                    func(ctx context.Context, q repository.Querier) ([]*domain.LivestreamModel, error)
-	findAllByUserID            func(ctx context.Context, q repository.Querier, userID domain.UserID) ([]*domain.LivestreamModel, error)
-	findAllByIDAndUserID       func(ctx context.Context, q repository.Querier, id domain.LivestreamID, userID domain.UserID) ([]*domain.LivestreamModel, error)
-	findWithDetailsByID        func(ctx context.Context, q repository.Querier, id domain.LivestreamID) (*domain.Livestream, error)
-	findAllWithDetailsByUserID func(ctx context.Context, q repository.Querier, userID domain.UserID) ([]*domain.Livestream, error)
-	findAllWithDetailsByTagIDs func(ctx context.Context, q repository.Querier, tagIDs []domain.TagID) ([]*domain.Livestream, error)
-	findAllWithDetails         func(ctx context.Context, q repository.Querier) ([]*domain.Livestream, error)
-	findAllWithDetailsLimited  func(ctx context.Context, q repository.Querier, limit domain.Limit) ([]*domain.Livestream, error)
-	create                     func(ctx context.Context, q repository.Querier, livestream *domain.LivestreamModel) (domain.LivestreamID, error)
-	addTag                     func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, tagID domain.TagID) error
+	findByID                    func(ctx context.Context, q repository.Querier, id domain.LivestreamID) (*domain.LivestreamModel, error)
+	findAll                     func(ctx context.Context, q repository.Querier) ([]*domain.LivestreamModel, error)
+	findAllByUserID             func(ctx context.Context, q repository.Querier, userID domain.UserID) ([]*domain.LivestreamModel, error)
+	findAllByIDAndUserID        func(ctx context.Context, q repository.Querier, id domain.LivestreamID, userID domain.UserID) ([]*domain.LivestreamModel, error)
+	findAllOrderByIDDesc        func(ctx context.Context, q repository.Querier) ([]*domain.LivestreamModel, error)
+	findAllOrderByIDDescLimited func(ctx context.Context, q repository.Querier, limit domain.Limit) ([]*domain.LivestreamModel, error)
+	create                      func(ctx context.Context, q repository.Querier, livestream *domain.LivestreamModel) (domain.LivestreamID, error)
 }
 
 func (r *fakeLivestreamRepository) FindByID(ctx context.Context, q repository.Querier, id domain.LivestreamID) (*domain.LivestreamModel, error) {
@@ -42,32 +38,16 @@ func (r *fakeLivestreamRepository) FindAllByIDAndUserID(ctx context.Context, q r
 	return r.findAllByIDAndUserID(ctx, q, id, userID)
 }
 
-func (r *fakeLivestreamRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id domain.LivestreamID) (*domain.Livestream, error) {
-	return r.findWithDetailsByID(ctx, q, id)
+func (r *fakeLivestreamRepository) FindAllOrderByIDDesc(ctx context.Context, q repository.Querier) ([]*domain.LivestreamModel, error) {
+	return r.findAllOrderByIDDesc(ctx, q)
 }
 
-func (r *fakeLivestreamRepository) FindAllWithDetailsByUserID(ctx context.Context, q repository.Querier, userID domain.UserID) ([]*domain.Livestream, error) {
-	return r.findAllWithDetailsByUserID(ctx, q, userID)
-}
-
-func (r *fakeLivestreamRepository) FindAllWithDetailsByTagIDs(ctx context.Context, q repository.Querier, tagIDs []domain.TagID) ([]*domain.Livestream, error) {
-	return r.findAllWithDetailsByTagIDs(ctx, q, tagIDs)
-}
-
-func (r *fakeLivestreamRepository) FindAllWithDetails(ctx context.Context, q repository.Querier) ([]*domain.Livestream, error) {
-	return r.findAllWithDetails(ctx, q)
-}
-
-func (r *fakeLivestreamRepository) FindAllWithDetailsLimited(ctx context.Context, q repository.Querier, limit domain.Limit) ([]*domain.Livestream, error) {
-	return r.findAllWithDetailsLimited(ctx, q, limit)
+func (r *fakeLivestreamRepository) FindAllOrderByIDDescLimited(ctx context.Context, q repository.Querier, limit domain.Limit) ([]*domain.LivestreamModel, error) {
+	return r.findAllOrderByIDDescLimited(ctx, q, limit)
 }
 
 func (r *fakeLivestreamRepository) Create(ctx context.Context, q repository.Querier, livestream *domain.LivestreamModel) (domain.LivestreamID, error) {
 	return r.create(ctx, q, livestream)
-}
-
-func (r *fakeLivestreamRepository) AddTag(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, tagID domain.TagID) error {
-	return r.addTag(ctx, q, livestreamID, tagID)
 }
 
 // newLivestreamRepositoryFindingByID は ID id のライブ配信として livestream (失敗させる場合は err) を返す fakeLivestreamRepository を返す。

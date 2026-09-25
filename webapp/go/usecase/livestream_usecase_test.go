@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"reflect"
 	"slices"
 	"testing"
 
@@ -10,23 +11,38 @@ import (
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
-func TestLivestreamUsecase_FindByID(t *testing.T) {
-	want := &domain.Livestream{ID: 1, Title: "stream"}
-	repo := &fakeLivestreamRepository{
-		findWithDetailsByID: func(_ context.Context, _ repository.Querier, id domain.LivestreamID) (*domain.Livestream, error) {
-			if id != 1 {
-				t.Errorf("id = %d, want 1", id)
+// newLivestreamRepositoryWithModels は ID で models を引ける fakeLivestreamRepository を返す。
+// 見つからない ID には ErrNotFound を返し、引いた ID を calls に記録する。
+func newLivestreamRepositoryWithModels(calls *[]domain.LivestreamID, models ...*domain.LivestreamModel) *fakeLivestreamRepository {
+	return &fakeLivestreamRepository{
+		findByID: func(_ context.Context, _ repository.Querier, id domain.LivestreamID) (*domain.LivestreamModel, error) {
+			if calls != nil {
+				*calls = append(*calls, id)
 			}
-			return want, nil
+			for _, m := range models {
+				if m.ID == id {
+					return m, nil
+				}
+			}
+			return nil, repository.ErrNotFound
 		},
 	}
-	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, repo)
+}
+
+// newLivestreamUsecaseForTest は f のデータで組み立てる LivestreamUsecase を返す。
+func newLivestreamUsecaseForTest(f *livestreamFixture, userRepo *fakeUserRepository, tagRepo *fakeTagRepository, livestreamRepo *fakeLivestreamRepository, livestreamTagRepo *fakeLivestreamTagRepository) LivestreamUsecase {
+	return NewLivestreamUsecase(&fakeTxManager{}, userRepo, tagRepo, livestreamRepo, livestreamTagRepo, f.filler())
+}
+
+func TestLivestreamUsecase_FindByID(t *testing.T) {
+	f := testLivestreamFixture()
+	u := newLivestreamUsecaseForTest(f, nil, nil, newLivestreamRepositoryWithModels(nil, testLivestreamModel1), nil)
 
 	got, err := u.FindByID(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if got != want {
+	if want := f.livestream(testLivestreamModel1); !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
 }
@@ -35,92 +51,120 @@ func TestLivestreamUsecase_FindByID_Errors(t *testing.T) {
 	boom := errors.New("boom")
 
 	tests := []struct {
-		name    string
-		repoErr error
-		check   func(t *testing.T, err error)
+		name           string
+		livestreamRepo *fakeLivestreamRepository
+		// modify はデータを欠けさせる
+		modify  func(f *livestreamFixture)
+		wantErr error
+		wantMsg string
 	}{
 		{
-			name:    "livestream not found",
-			repoErr: repository.ErrNotFound,
-			check: func(t *testing.T, err error) {
-				if !errors.Is(err, ErrLivestreamNotFound) {
-					t.Errorf("err = %v, want ErrLivestreamNotFound", err)
-				}
-			},
+			name:           "livestream not found",
+			livestreamRepo: newLivestreamRepositoryWithModels(nil),
+			wantErr:        ErrLivestreamNotFound,
+			wantMsg:        ErrLivestreamNotFound.Error(),
 		},
 		{
-			name:    "unexpected error",
-			repoErr: boom,
-			check: func(t *testing.T, err error) {
-				if !errors.Is(err, boom) || errors.Is(err, ErrLivestreamNotFound) {
-					t.Errorf("err = %v, want wrapped %v", err, boom)
-				}
+			name: "get livestream fails",
+			livestreamRepo: &fakeLivestreamRepository{
+				findByID: func(context.Context, repository.Querier, domain.LivestreamID) (*domain.LivestreamModel, error) {
+					return nil, boom
+				},
 			},
+			wantErr: boom,
+			wantMsg: "failed to get livestream: boom",
+		},
+		{
+			// 配信者の欠損はデータ不整合なので 404 (ErrLivestreamNotFound) にしない
+			name:           "owner not found",
+			livestreamRepo: newLivestreamRepositoryWithModels(nil, testLivestreamModel1),
+			modify:         func(f *livestreamFixture) { delete(f.owners, 42) },
+			wantErr:        repository.ErrNotFound,
+			wantMsg:        "failed to get livestream: failed to get owner of livestream 1: not found",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repo := &fakeLivestreamRepository{
-				findWithDetailsByID: func(context.Context, repository.Querier, domain.LivestreamID) (*domain.Livestream, error) {
-					return nil, tt.repoErr
-				},
+			f := testLivestreamFixture()
+			if tt.modify != nil {
+				tt.modify(f)
 			}
-			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, repo)
+			u := newLivestreamUsecaseForTest(f, nil, nil, tt.livestreamRepo, nil)
 			_, err := u.FindByID(context.Background(), 1)
-			tt.check(t, err)
+			if !errors.Is(err, tt.wantErr) || err.Error() != tt.wantMsg {
+				t.Errorf("err = %v, want %q", err, tt.wantMsg)
+			}
+			if tt.wantErr != ErrLivestreamNotFound && errors.Is(err, ErrLivestreamNotFound) {
+				t.Errorf("err = %v, should not be ErrLivestreamNotFound", err)
+			}
 		})
 	}
 }
 
-// newLivestreamRepositoryFindingAllByUserID は配信者 userID のライブ配信として livestreams (失敗させる場合は err) を返す fakeLivestreamRepository を返す。
-func newLivestreamRepositoryFindingAllByUserID(t *testing.T, userID domain.UserID, livestreams []*domain.Livestream, err error) *fakeLivestreamRepository {
+// newLivestreamRepositoryFindingAllByUserID は配信者 userID のライブ配信として models (失敗させる場合は err) を返す fakeLivestreamRepository を返す。
+func newLivestreamRepositoryFindingAllByUserID(t *testing.T, userID domain.UserID, models []*domain.LivestreamModel, err error) *fakeLivestreamRepository {
 	return &fakeLivestreamRepository{
-		findAllWithDetailsByUserID: func(_ context.Context, _ repository.Querier, gotUserID domain.UserID) ([]*domain.Livestream, error) {
+		findAllByUserID: func(_ context.Context, _ repository.Querier, gotUserID domain.UserID) ([]*domain.LivestreamModel, error) {
 			if gotUserID != userID {
 				t.Errorf("userID = %d, want %d", gotUserID, userID)
 			}
-			return livestreams, err
+			return models, err
 		},
 	}
 }
 
 func TestLivestreamUsecase_FindAllByUserID(t *testing.T) {
-	want := []*domain.Livestream{{ID: 1}, {ID: 2}}
-	repo := newLivestreamRepositoryFindingAllByUserID(t, 42, want, nil)
-	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, repo)
+	f := testLivestreamFixture()
+	livestreamRepo := newLivestreamRepositoryFindingAllByUserID(t, 42, []*domain.LivestreamModel{testLivestreamModel2, testLivestreamModel1}, nil)
+	u := newLivestreamUsecaseForTest(f, nil, nil, livestreamRepo, nil)
 
 	got, err := u.FindAllByUserID(context.Background(), 42)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(got) != 2 || got[0] != want[0] || got[1] != want[1] {
+	// repository が返した順序のまま
+	if want := []*domain.Livestream{f.livestream(testLivestreamModel2), f.livestream(testLivestreamModel1)}; !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)
+	}
+}
+
+func TestLivestreamUsecase_FindAllByUserID_Empty(t *testing.T) {
+	livestreamRepo := newLivestreamRepositoryFindingAllByUserID(t, 42, nil, nil)
+	u := newLivestreamUsecaseForTest(testLivestreamFixture(), nil, nil, livestreamRepo, nil)
+
+	got, err := u.FindAllByUserID(context.Background(), 42)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// JSON で null ではなく [] にするため、空でも nil にしない
+	if got == nil || len(got) != 0 {
+		t.Errorf("got %#v, want empty non-nil slice", got)
 	}
 }
 
 func TestLivestreamUsecase_FindAllByUserID_Error(t *testing.T) {
 	boom := errors.New("boom")
-	repo := newLivestreamRepositoryFindingAllByUserID(t, 42, nil, boom)
-	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, repo)
+	livestreamRepo := newLivestreamRepositoryFindingAllByUserID(t, 42, nil, boom)
+	u := newLivestreamUsecaseForTest(testLivestreamFixture(), nil, nil, livestreamRepo, nil)
 
 	_, err := u.FindAllByUserID(context.Background(), 42)
-	if !errors.Is(err, boom) {
-		t.Fatalf("err = %v, want %v", err, boom)
+	if want := "failed to get livestreams: boom"; !errors.Is(err, boom) || err.Error() != want {
+		t.Errorf("err = %v, want %q", err, want)
 	}
 }
 
 func TestLivestreamUsecase_FindAllByUsername(t *testing.T) {
-	want := []*domain.Livestream{{ID: 1}}
+	f := testLivestreamFixture()
 	// ユーザ名から引いた ID で検索する
-	livestreamRepo := newLivestreamRepositoryFindingAllByUserID(t, 42, want, nil)
-	u := NewLivestreamUsecase(&fakeTxManager{}, newUserRepositoryFindingID(t, "alice", 42, nil), &fakeTagRepository{}, livestreamRepo)
+	livestreamRepo := newLivestreamRepositoryFindingAllByUserID(t, 42, []*domain.LivestreamModel{testLivestreamModel1}, nil)
+	u := newLivestreamUsecaseForTest(f, newUserRepositoryFindingID(t, "alice", 42, nil), nil, livestreamRepo, nil)
 
 	got, err := u.FindAllByUsername(context.Background(), "alice")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(got) != 1 || got[0] != want[0] {
+	if want := []*domain.Livestream{f.livestream(testLivestreamModel1)}; !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
 }
@@ -136,92 +180,93 @@ func TestLivestreamUsecase_FindAllByUsername_Errors(t *testing.T) {
 		// livestreamsErr はライブ配信の検索が返すエラー
 		livestreamsErr error
 		wantErr        error
+		wantMsg        string
 	}{
-		{
-			name:    "user not found",
-			userErr: repository.ErrNotFound,
-			wantErr: ErrUserNotFound,
-		},
-		{
-			name:    "user repository error",
-			userErr: boom,
-			wantErr: boom,
-		},
-		{
-			name:           "livestream repository error",
-			userID:         42,
-			livestreamsErr: boom,
-			wantErr:        boom,
-		},
+		{name: "user not found", userErr: repository.ErrNotFound, wantErr: ErrUserNotFound, wantMsg: ErrUserNotFound.Error()},
+		{name: "user repository error", userErr: boom, wantErr: boom, wantMsg: "failed to get user: boom"},
+		{name: "livestream repository error", userID: 42, livestreamsErr: boom, wantErr: boom, wantMsg: "failed to get livestreams: boom"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			livestreamRepo := newLivestreamRepositoryFindingAllByUserID(t, 42, nil, tt.livestreamsErr)
-			u := NewLivestreamUsecase(&fakeTxManager{}, newUserRepositoryFindingID(t, "alice", tt.userID, tt.userErr), &fakeTagRepository{}, livestreamRepo)
+			u := newLivestreamUsecaseForTest(testLivestreamFixture(), newUserRepositoryFindingID(t, "alice", tt.userID, tt.userErr), nil, livestreamRepo, nil)
 			_, err := u.FindAllByUsername(context.Background(), "alice")
-			if !errors.Is(err, tt.wantErr) {
-				t.Fatalf("err = %v, want %v", err, tt.wantErr)
+			if !errors.Is(err, tt.wantErr) || err.Error() != tt.wantMsg {
+				t.Errorf("err = %v, want %q", err, tt.wantMsg)
 			}
 		})
 	}
 }
 
-// newLivestreamRepositoryFindingAllByTagIDs はタグ 7 のライブ配信として livestreams (失敗させる場合は err) を返す fakeLivestreamRepository を返す。
-// 呼ばれた回数を calls に数える。
-func newLivestreamRepositoryFindingAllByTagIDs(t *testing.T, calls *int, livestreams []*domain.Livestream, err error) *fakeLivestreamRepository {
-	return &fakeLivestreamRepository{
-		findAllWithDetailsByTagIDs: func(_ context.Context, _ repository.Querier, tagIDs []domain.TagID) ([]*domain.Livestream, error) {
-			*calls++
-			if !slices.Equal(tagIDs, []domain.TagID{7}) {
-				t.Errorf("tagIDs = %v, want [7]", tagIDs)
+// newTagRepositoryFindingIDs はタグ名 "ゲーム実況" のタグの ID として tagIDs (失敗させる場合は err) を返す fakeTagRepository を返す。
+func newTagRepositoryFindingIDs(t *testing.T, tagIDs []domain.TagID, err error) *fakeTagRepository {
+	return &fakeTagRepository{
+		findIDsByName: func(_ context.Context, _ repository.Querier, name string) ([]domain.TagID, error) {
+			if name != "ゲーム実況" {
+				t.Errorf("tag name = %q", name)
 			}
-			return livestreams, err
+			return tagIDs, err
+		},
+	}
+}
+
+// newLivestreamTagRepositoryFindingByTagIDs はタグ 7, 8 の紐付けとして livestreamIDs のライブ配信の紐付け (失敗させる場合は err) を返す。
+// 呼ばれた回数を calls に数える。
+func newLivestreamTagRepositoryFindingByTagIDs(t *testing.T, calls *int, livestreamIDs []domain.LivestreamID, err error) *fakeLivestreamTagRepository {
+	return &fakeLivestreamTagRepository{
+		findAllByTagIDs: func(_ context.Context, _ repository.Querier, tagIDs []domain.TagID) ([]*domain.LivestreamTagModel, error) {
+			*calls++
+			if !slices.Equal(tagIDs, []domain.TagID{7, 8}) {
+				t.Errorf("tagIDs = %v, want [7 8]", tagIDs)
+			}
+			livestreamTags := make([]*domain.LivestreamTagModel, len(livestreamIDs))
+			for i, id := range livestreamIDs {
+				livestreamTags[i] = &domain.LivestreamTagModel{LivestreamID: id}
+			}
+			return livestreamTags, err
 		},
 	}
 }
 
 func TestLivestreamUsecase_FindAllByTagName(t *testing.T) {
-	want := []*domain.Livestream{{ID: 2}, {ID: 1}}
-	tagRepo := &fakeTagRepository{
-		findIDsByName: func(_ context.Context, _ repository.Querier, name string) ([]domain.TagID, error) {
-			if name != "ゲーム実況" {
-				t.Errorf("tag name = %q", name)
-			}
-			return []domain.TagID{7}, nil
-		},
-	}
-	var livestreamCalls int
-	livestreamRepo := newLivestreamRepositoryFindingAllByTagIDs(t, &livestreamCalls, want, nil)
-	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, tagRepo, livestreamRepo)
+	f := testLivestreamFixture()
+	var tagCalls int
+	// ライブ配信 1 にはタグ 7, 8 の両方が付いているので、紐付けごとに 2 回現れる (移行前と同じ)
+	livestreamTagRepo := newLivestreamTagRepositoryFindingByTagIDs(t, &tagCalls, []domain.LivestreamID{2, 1, 1}, nil)
+	var livestreamCalls []domain.LivestreamID
+	livestreamRepo := newLivestreamRepositoryWithModels(&livestreamCalls, testLivestreamModel1, testLivestreamModel2)
+	u := newLivestreamUsecaseForTest(f, nil, newTagRepositoryFindingIDs(t, []domain.TagID{7, 8}, nil), livestreamRepo, livestreamTagRepo)
 
 	got, err := u.FindAllByTagName(context.Background(), "ゲーム実況")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !slices.Equal(got, want) {
+	want := []*domain.Livestream{f.livestream(testLivestreamModel2), f.livestream(testLivestreamModel1), f.livestream(testLivestreamModel1)}
+	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)
+	}
+	// 同じライブ配信は 1 回だけ引く
+	if want := []domain.LivestreamID{2, 1}; !slices.Equal(livestreamCalls, want) {
+		t.Errorf("livestream calls = %v, want %v", livestreamCalls, want)
 	}
 }
 
 func TestLivestreamUsecase_FindAllByTagName_TagNotFound(t *testing.T) {
-	var livestreamCalls int
-	livestreamRepo := newLivestreamRepositoryFindingAllByTagIDs(t, &livestreamCalls, nil, nil)
-	tagRepo := &fakeTagRepository{
-		findIDsByName: func(context.Context, repository.Querier, string) ([]domain.TagID, error) { return nil, nil },
-	}
-	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, tagRepo, livestreamRepo)
+	var tagCalls int
+	livestreamTagRepo := newLivestreamTagRepositoryFindingByTagIDs(t, &tagCalls, nil, nil)
+	u := newLivestreamUsecaseForTest(testLivestreamFixture(), nil, newTagRepositoryFindingIDs(t, nil, nil), nil, livestreamTagRepo)
 
-	got, err := u.FindAllByTagName(context.Background(), "nothing")
+	got, err := u.FindAllByTagName(context.Background(), "ゲーム実況")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if got == nil || len(got) != 0 {
 		t.Errorf("got %#v, want empty non-nil slice", got)
 	}
-	// 空の IN () になるので livestream の検索はしない
-	if livestreamCalls != 0 {
-		t.Errorf("livestream calls = %d, want 0", livestreamCalls)
+	// 空の IN () になるので紐付けの検索はしない
+	if tagCalls != 0 {
+		t.Errorf("livestream tag calls = %d, want 0", tagCalls)
 	}
 }
 
@@ -230,44 +275,50 @@ func TestLivestreamUsecase_FindAllByTagName_Errors(t *testing.T) {
 
 	tests := []struct {
 		name string
-		// tagIDs, tagErr はタグの検索が返す値
-		tagIDs []domain.TagID
+		// tagErr はタグの検索が返すエラー
 		tagErr error
-		// livestreamsErr はライブ配信の検索が返すエラー
-		livestreamsErr error
+		// livestreamTagsErr は紐付けの検索が返すエラー
+		livestreamTagsErr error
+		// livestreamRepo はライブ配信を引く repository
+		livestreamRepo *fakeLivestreamRepository
+		wantErr        error
+		wantMsg        string
 	}{
-		{name: "tag repository error", tagErr: boom},
-		{name: "livestream repository error", tagIDs: []domain.TagID{7}, livestreamsErr: boom},
+		{name: "tag repository error", tagErr: boom, wantErr: boom, wantMsg: "failed to get tags: boom"},
+		{name: "livestream tag repository error", livestreamTagsErr: boom, wantErr: boom, wantMsg: "failed to get livestreams: boom"},
+		{
+			name:           "livestream not found",
+			livestreamRepo: newLivestreamRepositoryWithModels(nil),
+			wantErr:        repository.ErrNotFound,
+			wantMsg:        "failed to get livestreams: failed to get livestream 2: not found",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tagRepo := &fakeTagRepository{
-				findIDsByName: func(context.Context, repository.Querier, string) ([]domain.TagID, error) { return tt.tagIDs, tt.tagErr },
-			}
-			var livestreamCalls int
-			livestreamRepo := newLivestreamRepositoryFindingAllByTagIDs(t, &livestreamCalls, nil, tt.livestreamsErr)
-			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, tagRepo, livestreamRepo)
+			var tagCalls int
+			livestreamTagRepo := newLivestreamTagRepositoryFindingByTagIDs(t, &tagCalls, []domain.LivestreamID{2}, tt.livestreamTagsErr)
+			u := newLivestreamUsecaseForTest(testLivestreamFixture(), nil, newTagRepositoryFindingIDs(t, []domain.TagID{7, 8}, tt.tagErr), tt.livestreamRepo, livestreamTagRepo)
 			_, err := u.FindAllByTagName(context.Background(), "ゲーム実況")
-			if !errors.Is(err, boom) {
-				t.Fatalf("err = %v, want %v", err, boom)
+			if !errors.Is(err, tt.wantErr) || err.Error() != tt.wantMsg {
+				t.Errorf("err = %v, want %q", err, tt.wantMsg)
 			}
 		})
 	}
 }
 
-// newLivestreamRepositoryForFindAll は一覧取得で呼ばれたメソッドを calls に記録し、livestreams (失敗させる場合は err) を返す fakeLivestreamRepository を返す。
+// newLivestreamRepositoryForFindAll は一覧取得で呼ばれたメソッドを calls に記録し、models (失敗させる場合は err) を返す fakeLivestreamRepository を返す。
 // limit 付きの場合はその値を gotLimit に取り出す。
-func newLivestreamRepositoryForFindAll(calls *[]string, gotLimit *domain.Limit, livestreams []*domain.Livestream, err error) *fakeLivestreamRepository {
+func newLivestreamRepositoryForFindAll(calls *[]string, gotLimit *domain.Limit, models []*domain.LivestreamModel, err error) *fakeLivestreamRepository {
 	return &fakeLivestreamRepository{
-		findAllWithDetails: func(context.Context, repository.Querier) ([]*domain.Livestream, error) {
-			*calls = append(*calls, "FindAllWithDetails")
-			return livestreams, err
+		findAllOrderByIDDesc: func(context.Context, repository.Querier) ([]*domain.LivestreamModel, error) {
+			*calls = append(*calls, "FindAllOrderByIDDesc")
+			return models, err
 		},
-		findAllWithDetailsLimited: func(_ context.Context, _ repository.Querier, limit domain.Limit) ([]*domain.Livestream, error) {
-			*calls = append(*calls, "FindAllWithDetailsLimited")
+		findAllOrderByIDDescLimited: func(_ context.Context, _ repository.Querier, limit domain.Limit) ([]*domain.LivestreamModel, error) {
+			*calls = append(*calls, "FindAllOrderByIDDescLimited")
 			*gotLimit = limit
-			return livestreams, err
+			return models, err
 		},
 	}
 }
@@ -281,23 +332,23 @@ func TestLivestreamUsecase_FindAll(t *testing.T) {
 		wantCalls []string
 		wantLimit domain.Limit
 	}{
-		{name: "without limit", limit: nil, wantCalls: []string{"FindAllWithDetails"}},
-		{name: "with limit", limit: &limit, wantCalls: []string{"FindAllWithDetailsLimited"}, wantLimit: 5},
+		{name: "without limit", limit: nil, wantCalls: []string{"FindAllOrderByIDDesc"}},
+		{name: "with limit", limit: &limit, wantCalls: []string{"FindAllOrderByIDDescLimited"}, wantLimit: 5},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			want := []*domain.Livestream{{ID: 1}}
+			f := testLivestreamFixture()
 			var calls []string
 			var gotLimit domain.Limit
-			livestreamRepo := newLivestreamRepositoryForFindAll(&calls, &gotLimit, want, nil)
-			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, livestreamRepo)
+			livestreamRepo := newLivestreamRepositoryForFindAll(&calls, &gotLimit, []*domain.LivestreamModel{testLivestreamModel2, testLivestreamModel1}, nil)
+			u := newLivestreamUsecaseForTest(f, nil, nil, livestreamRepo, nil)
 
 			got, err := u.FindAll(context.Background(), tt.limit)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if !slices.Equal(got, want) {
+			if want := []*domain.Livestream{f.livestream(testLivestreamModel2), f.livestream(testLivestreamModel1)}; !reflect.DeepEqual(got, want) {
 				t.Errorf("got %+v, want %+v", got, want)
 			}
 			if !slices.Equal(calls, tt.wantCalls) {
@@ -315,10 +366,10 @@ func TestLivestreamUsecase_FindAll_Error(t *testing.T) {
 	var calls []string
 	var gotLimit domain.Limit
 	livestreamRepo := newLivestreamRepositoryForFindAll(&calls, &gotLimit, nil, boom)
-	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, livestreamRepo)
+	u := newLivestreamUsecaseForTest(testLivestreamFixture(), nil, nil, livestreamRepo, nil)
 
 	_, err := u.FindAll(context.Background(), nil)
-	if !errors.Is(err, boom) {
-		t.Fatalf("err = %v, want %v", err, boom)
+	if want := "failed to get livestreams: boom"; !errors.Is(err, boom) || err.Error() != want {
+		t.Errorf("err = %v, want %q", err, want)
 	}
 }

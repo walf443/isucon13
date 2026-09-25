@@ -28,7 +28,8 @@ func newUsecases(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 	userRepo := mysql.NewUserRepository()
 	themeRepo := mysql.NewThemeRepository()
 	iconRepo := mysql.NewIconRepository()
-	livestreamRepo := mysql.NewLivestreamRepository(defaultIconHash)
+	livestreamRepo := mysql.NewLivestreamRepository()
+	livestreamTagRepo := mysql.NewLivestreamTagRepository()
 	reactionRepo := mysql.NewReactionRepository(defaultIconHash)
 	livecommentRepo := mysql.NewLivecommentRepository(defaultIconHash)
 	livecommentReportRepo := mysql.NewLivecommentReportRepository(defaultIconHash)
@@ -37,6 +38,7 @@ func newUsecases(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 	reservationSlotRepo := mysql.NewReservationSlotRepository()
 
 	userFiller := usecase.NewUserFiller(themeRepo, iconRepo, defaultIconHash)
+	livestreamFiller := usecase.NewLivestreamFiller(userRepo, livestreamTagRepo, tagRepo, userFiller)
 
 	tagUsecase := usecase.NewTagUsecase(txManager, tagRepo)
 	themeUsecase := usecase.NewThemeUsecase(txManager, userRepo, themeRepo)
@@ -45,8 +47,8 @@ func newUsecases(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 	userUsecase := usecase.NewUserUsecase(txManager, userRepo, userFiller)
 	userRegistrationUsecase := usecase.NewUserRegistrationUsecase(txManager, userRepo, themeRepo, dnsRegistrar, userFiller)
 	iconUsecase := usecase.NewIconUsecase(txManager, userRepo, iconRepo)
-	livestreamUsecase := usecase.NewLivestreamUsecase(txManager, userRepo, tagRepo, livestreamRepo)
-	livestreamReservationUsecase := usecase.NewLivestreamReservationUsecase(txManager, livestreamRepo, reservationSlotRepo, logger)
+	livestreamUsecase := usecase.NewLivestreamUsecase(txManager, userRepo, tagRepo, livestreamRepo, livestreamTagRepo, livestreamFiller)
+	livestreamReservationUsecase := usecase.NewLivestreamReservationUsecase(txManager, livestreamRepo, livestreamTagRepo, reservationSlotRepo, livestreamFiller, logger)
 	reactionUsecase := usecase.NewReactionUsecase(txManager, reactionRepo)
 	livecommentUsecase := usecase.NewLivecommentUsecase(txManager, livestreamRepo, livecommentRepo, ngWordRepo, logger)
 	livecommentReportUsecase := usecase.NewLivecommentReportUsecase(txManager, livestreamRepo, livecommentRepo, livecommentReportRepo)

@@ -18,7 +18,7 @@ func TestLivestreamRepository_FindAll(t *testing.T) {
 	s1 := insertTestLivestream(t, tx, ownerID, "s1")
 	s2 := insertTestLivestream(t, tx, ownerID, "s2")
 
-	livestreams, err := NewLivestreamRepository("").FindAll(ctx, tx)
+	livestreams, err := NewLivestreamRepository().FindAll(ctx, tx)
 	if err != nil {
 		t.Fatalf("FindAll returned error: %v", err)
 	}

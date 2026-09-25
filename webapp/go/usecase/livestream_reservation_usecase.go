@@ -30,15 +30,19 @@ type ReserveLivestreamInput struct {
 type livestreamReservationUsecase struct {
 	txManager           repository.TxManager
 	livestreamRepo      repository.LivestreamRepository
+	livestreamTagRepo   repository.LivestreamTagRepository
 	reservationSlotRepo repository.ReservationSlotRepository
+	livestreamFiller    *LivestreamFiller
 	logger              Logger
 }
 
-func NewLivestreamReservationUsecase(txManager repository.TxManager, livestreamRepo repository.LivestreamRepository, reservationSlotRepo repository.ReservationSlotRepository, logger Logger) LivestreamReservationUsecase {
+func NewLivestreamReservationUsecase(txManager repository.TxManager, livestreamRepo repository.LivestreamRepository, livestreamTagRepo repository.LivestreamTagRepository, reservationSlotRepo repository.ReservationSlotRepository, livestreamFiller *LivestreamFiller, logger Logger) LivestreamReservationUsecase {
 	return &livestreamReservationUsecase{
 		txManager:           txManager,
 		livestreamRepo:      livestreamRepo,
+		livestreamTagRepo:   livestreamTagRepo,
 		reservationSlotRepo: reservationSlotRepo,
+		livestreamFiller:    livestreamFiller,
 		logger:              logger,
 	}
 }
@@ -90,15 +94,20 @@ func (u *livestreamReservationUsecase) Reserve(ctx context.Context, userID domai
 
 		// タグ追加
 		for _, tagID := range input.TagIDs {
-			if err := u.livestreamRepo.AddTag(ctx, q, livestreamID, tagID); err != nil {
+			if err := u.livestreamTagRepo.Create(ctx, q, livestreamID, tagID); err != nil {
 				return fmt.Errorf("failed to insert livestream tag: %w", err)
 			}
 		}
 
-		livestream, err = u.livestreamRepo.FindWithDetailsByID(ctx, q, livestreamID)
+		livestreamModel, err := u.livestreamRepo.FindByID(ctx, q, livestreamID)
 		if err != nil {
 			return fmt.Errorf("failed to fill livestream: %w", err)
 		}
+		livestreams, err := u.livestreamFiller.Fill(ctx, q, []*domain.LivestreamModel{livestreamModel})
+		if err != nil {
+			return fmt.Errorf("failed to fill livestream: %w", err)
+		}
+		livestream = livestreams[livestreamID]
 		return nil
 	})
 	if err != nil {

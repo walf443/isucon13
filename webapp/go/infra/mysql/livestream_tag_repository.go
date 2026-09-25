@@ -23,6 +23,11 @@ func (r *livestreamTagRepository) FindAllByLivestreamID(ctx context.Context, q r
 	return livestreamTags, nil
 }
 
+func (r *livestreamTagRepository) Create(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, tagID domain.TagID) error {
+	_, err := q.ExecContext(ctx, "INSERT INTO livestream_tags (livestream_id, tag_id) VALUES (?, ?)", livestreamID, tagID)
+	return err
+}
+
 func (r *livestreamTagRepository) FindAllByTagIDs(ctx context.Context, q repository.Querier, tagIDs []domain.TagID) ([]*domain.LivestreamTagModel, error) {
 	query, params, err := sqlx.In("SELECT id, livestream_id, tag_id FROM livestream_tags WHERE tag_id IN (?) ORDER BY livestream_id DESC", tagIDs)
 	if err != nil {

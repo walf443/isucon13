@@ -193,7 +193,7 @@ func TestLivestreamRepository_FindAllByUserID(t *testing.T) {
 	s2 := insertTestLivestream(t, tx, ownerID, "s2")
 	insertTestLivestream(t, tx, otherID, "other")
 
-	livestreams, err := NewLivestreamRepository("").FindAllByUserID(ctx, tx, ownerID)
+	livestreams, err := NewLivestreamRepository().FindAllByUserID(ctx, tx, ownerID)
 	if err != nil {
 		t.Fatalf("FindAllByUserID returned error: %v", err)
 	}
@@ -206,7 +206,7 @@ func TestLivestreamRepository_FindAllByUserID(t *testing.T) {
 		t.Errorf("ids = %v, want %v", ids, want)
 	}
 
-	if got, err := NewLivestreamRepository("").FindAllByUserID(ctx, tx, 999999); err != nil || len(got) != 0 {
+	if got, err := NewLivestreamRepository().FindAllByUserID(ctx, tx, 999999); err != nil || len(got) != 0 {
 		t.Errorf("FindAllByUserID(unknown) = %v, %v, want empty", got, err)
 	}
 }

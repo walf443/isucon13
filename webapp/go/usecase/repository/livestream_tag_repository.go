@@ -12,4 +12,6 @@ type LivestreamTagRepository interface {
 	// FindAllByTagIDs は指定したタグのいずれかの紐付けを、ライブ配信の ID の降順で返す。
 	// tagIDs は空であってはならない。
 	FindAllByTagIDs(ctx context.Context, q Querier, tagIDs []domain.TagID) ([]*domain.LivestreamTagModel, error)
+	// Create はライブ配信にタグを付ける。
+	Create(ctx context.Context, q Querier, livestreamID domain.LivestreamID, tagID domain.TagID) error
 }
