@@ -83,7 +83,7 @@ func TestStatisticsHandler_GetUserStatistics(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.GET("/api/user/:username/statistics", NewStatisticsHandler(tt.usecase).GetUserStatistics)
+			e.GET("/api/user/:username/statistics", newStatisticsHandler(tt.usecase).GetUserStatistics)
 
 			req := httptest.NewRequest(http.MethodGet, "/api/user/bob/statistics", nil)
 			if tt.cookie != nil {
@@ -169,7 +169,7 @@ func TestStatisticsHandler_GetLivestreamStatistics(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.GET("/api/livestream/:livestream_id/statistics", NewStatisticsHandler(tt.usecase).GetLivestreamStatistics)
+			e.GET("/api/livestream/:livestream_id/statistics", newStatisticsHandler(tt.usecase).GetLivestreamStatistics)
 
 			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
 			if tt.cookie != nil {

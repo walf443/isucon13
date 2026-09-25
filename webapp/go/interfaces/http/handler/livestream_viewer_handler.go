@@ -8,17 +8,17 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type LivestreamViewerHandler struct {
+type livestreamViewerHandler struct {
 	viewerUsecase usecase.LivestreamViewerUsecase
 }
 
-func NewLivestreamViewerHandler(viewerUsecase usecase.LivestreamViewerUsecase) *LivestreamViewerHandler {
-	return &LivestreamViewerHandler{viewerUsecase: viewerUsecase}
+func newLivestreamViewerHandler(viewerUsecase usecase.LivestreamViewerUsecase) *livestreamViewerHandler {
+	return &livestreamViewerHandler{viewerUsecase: viewerUsecase}
 }
 
 // ユーザ視聴開始 (viewer)
 // POST /api/livestream/:livestream_id/enter
-func (h *LivestreamViewerHandler) EnterLivestream(c echo.Context) error {
+func (h *livestreamViewerHandler) EnterLivestream(c echo.Context) error {
 	ctx := c.Request().Context()
 	if err := VerifyUserSession(c); err != nil {
 		// echo.NewHTTPErrorが返っているのでそのまま出力
@@ -45,7 +45,7 @@ func (h *LivestreamViewerHandler) EnterLivestream(c echo.Context) error {
 
 // ユーザ視聴終了 (viewer)
 // DELETE /api/livestream/:livestream_id/exit
-func (h *LivestreamViewerHandler) ExitLivestream(c echo.Context) error {
+func (h *livestreamViewerHandler) ExitLivestream(c echo.Context) error {
 	ctx := c.Request().Context()
 	if err := VerifyUserSession(c); err != nil {
 		// echo.NewHTTPErrorが返っているのでそのまま出力

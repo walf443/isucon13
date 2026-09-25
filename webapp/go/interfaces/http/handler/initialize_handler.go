@@ -11,17 +11,17 @@ type InitializeResponse struct {
 	Language string `json:"language"`
 }
 
-type InitializeHandler struct {
+type initializeHandler struct {
 	initializeUsecase usecase.InitializeUsecase
 }
 
-func NewInitializeHandler(initializeUsecase usecase.InitializeUsecase) *InitializeHandler {
-	return &InitializeHandler{initializeUsecase: initializeUsecase}
+func newInitializeHandler(initializeUsecase usecase.InitializeUsecase) *initializeHandler {
+	return &initializeHandler{initializeUsecase: initializeUsecase}
 }
 
 // 初期化
 // POST /api/initialize
-func (h *InitializeHandler) Initialize(c echo.Context) error {
+func (h *initializeHandler) Initialize(c echo.Context) error {
 	if err := h.initializeUsecase.Initialize(c.Request().Context()); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}

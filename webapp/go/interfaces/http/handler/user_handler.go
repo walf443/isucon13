@@ -56,18 +56,18 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-type UserHandler struct {
+type userHandler struct {
 	userUsecase usecase.UserUsecase
 	// now は現在時刻を返す。テストで差し替えられるようにしている。
 	now func() time.Time
 }
 
-func NewUserHandler(userUsecase usecase.UserUsecase) *UserHandler {
-	return &UserHandler{userUsecase: userUsecase, now: time.Now}
+func newUserHandler(userUsecase usecase.UserUsecase) *userHandler {
+	return &userHandler{userUsecase: userUsecase, now: time.Now}
 }
 
 // GET /api/user/:username
-func (h *UserHandler) GetUser(c echo.Context) error {
+func (h *userHandler) GetUser(c echo.Context) error {
 	ctx := c.Request().Context()
 	if err := VerifyUserSession(c); err != nil {
 		// echo.NewHTTPErrorが返っているのでそのまま出力
@@ -88,7 +88,7 @@ func (h *UserHandler) GetUser(c echo.Context) error {
 }
 
 // GET /api/user/me
-func (h *UserHandler) GetMe(c echo.Context) error {
+func (h *userHandler) GetMe(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	if err := VerifyUserSession(c); err != nil {
@@ -114,7 +114,7 @@ func (h *UserHandler) GetMe(c echo.Context) error {
 
 // ユーザ登録API
 // POST /api/register
-func (h *UserHandler) Register(c echo.Context) error {
+func (h *userHandler) Register(c echo.Context) error {
 	ctx := c.Request().Context()
 	defer c.Request().Body.Close()
 
@@ -142,7 +142,7 @@ func (h *UserHandler) Register(c echo.Context) error {
 
 // ユーザログインAPI
 // POST /api/login
-func (h *UserHandler) Login(c echo.Context) error {
+func (h *userHandler) Login(c echo.Context) error {
 	ctx := c.Request().Context()
 	defer c.Request().Body.Close()
 

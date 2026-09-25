@@ -164,7 +164,7 @@ func TestLivecommentHandler_GetLivecomments(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.GET("/api/livestream/:livestream_id/livecomment", NewLivecommentHandler(tt.usecase).GetLivecomments)
+			e.GET("/api/livestream/:livestream_id/livecomment", newLivecommentHandler(tt.usecase).GetLivecomments)
 
 			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
 			if tt.cookie != nil {
@@ -260,7 +260,7 @@ func TestLivecommentHandler_GetLivecommentReports(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.GET("/api/livestream/:livestream_id/report", NewLivecommentHandler(tt.usecase).GetLivecommentReports)
+			e.GET("/api/livestream/:livestream_id/report", newLivecommentHandler(tt.usecase).GetLivecommentReports)
 
 			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
 			if tt.cookie != nil {
@@ -360,7 +360,7 @@ func TestLivecommentHandler_PostLivecomment(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.POST("/api/livestream/:livestream_id/livecomment", NewLivecommentHandler(tt.usecase).PostLivecomment)
+			e.POST("/api/livestream/:livestream_id/livecomment", newLivecommentHandler(tt.usecase).PostLivecomment)
 
 			req := httptest.NewRequest(http.MethodPost, tt.path, strings.NewReader(tt.body))
 			req.Header.Set("Content-Type", "application/json")
@@ -463,7 +463,7 @@ func TestLivecommentHandler_PostLivecommentReport(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.POST("/api/livestream/:livestream_id/livecomment/:livecomment_id/report", NewLivecommentHandler(tt.usecase).PostLivecommentReport)
+			e.POST("/api/livestream/:livestream_id/livecomment/:livecomment_id/report", newLivecommentHandler(tt.usecase).PostLivecommentReport)
 
 			req := httptest.NewRequest(http.MethodPost, tt.path, nil)
 			if tt.cookie != nil {

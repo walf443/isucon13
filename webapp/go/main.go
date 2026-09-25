@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	"github.com/go-sql-driver/mysql"
+	"github.com/isucon/isucon13/webapp/go/interfaces/http/handler"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -125,12 +126,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	h, err := newHandlers(conn, fallbackImage, subdomainAddr, e.Logger)
+	usecases, err := newUsecases(conn, fallbackImage, subdomainAddr, e.Logger)
 	if err != nil {
 		e.Logger.Errorf("failed to initialize handlers: %v", err)
 		os.Exit(1)
 	}
-	registerRoutes(e, h)
+	handler.RegisterRoutes(e, usecases, fallbackImage)
 
 	e.HTTPErrorHandler = errorResponseHandler
 

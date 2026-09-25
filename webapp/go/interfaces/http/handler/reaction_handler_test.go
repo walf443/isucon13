@@ -144,7 +144,7 @@ func TestReactionHandler_GetReactions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.GET("/api/livestream/:livestream_id/reaction", NewReactionHandler(tt.usecase).GetReactions)
+			e.GET("/api/livestream/:livestream_id/reaction", newReactionHandler(tt.usecase).GetReactions)
 
 			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
 			if tt.cookie != nil {
@@ -232,7 +232,7 @@ func TestReactionHandler_PostReaction(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.POST("/api/livestream/:livestream_id/reaction", NewReactionHandler(tt.usecase).PostReaction)
+			e.POST("/api/livestream/:livestream_id/reaction", newReactionHandler(tt.usecase).PostReaction)
 
 			req := httptest.NewRequest(http.MethodPost, tt.path, strings.NewReader(tt.body))
 			req.Header.Set("Content-Type", "application/json")

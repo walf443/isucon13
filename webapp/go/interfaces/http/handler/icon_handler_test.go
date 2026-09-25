@@ -80,7 +80,7 @@ func TestIconHandler_GetIcon(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.GET("/api/user/:username/icon", NewIconHandler(tt.usecase, fallbackPath).GetIcon)
+			e.GET("/api/user/:username/icon", newIconHandler(tt.usecase, fallbackPath).GetIcon)
 
 			// セッション不要のエンドポイントなので Cookie は付けない
 			req := httptest.NewRequest(http.MethodGet, "/api/user/alice/icon", nil)
@@ -151,7 +151,7 @@ func TestIconHandler_PostIcon(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.POST("/api/icon", NewIconHandler(tt.usecase, "").PostIcon)
+			e.POST("/api/icon", newIconHandler(tt.usecase, "").PostIcon)
 
 			req := httptest.NewRequest(http.MethodPost, "/api/icon", strings.NewReader(tt.body))
 			req.Header.Set("Content-Type", "application/json")

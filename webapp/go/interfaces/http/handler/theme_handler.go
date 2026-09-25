@@ -14,17 +14,17 @@ type Theme struct {
 	DarkMode bool          `json:"dark_mode"`
 }
 
-type ThemeHandler struct {
+type themeHandler struct {
 	themeUsecase usecase.ThemeUsecase
 }
 
-func NewThemeHandler(themeUsecase usecase.ThemeUsecase) *ThemeHandler {
-	return &ThemeHandler{themeUsecase: themeUsecase}
+func newThemeHandler(themeUsecase usecase.ThemeUsecase) *themeHandler {
+	return &themeHandler{themeUsecase: themeUsecase}
 }
 
 // 配信者のテーマ取得API
 // GET /api/user/:username/theme
-func (h *ThemeHandler) GetStreamerTheme(c echo.Context) error {
+func (h *themeHandler) GetStreamerTheme(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	if err := VerifyUserSession(c); err != nil {

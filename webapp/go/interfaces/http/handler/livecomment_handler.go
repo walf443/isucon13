@@ -51,16 +51,16 @@ type PostLivecommentRequest struct {
 	Tip     int64  `json:"tip"`
 }
 
-type LivecommentHandler struct {
+type livecommentHandler struct {
 	livecommentUsecase usecase.LivecommentUsecase
 }
 
-func NewLivecommentHandler(livecommentUsecase usecase.LivecommentUsecase) *LivecommentHandler {
-	return &LivecommentHandler{livecommentUsecase: livecommentUsecase}
+func newLivecommentHandler(livecommentUsecase usecase.LivecommentUsecase) *livecommentHandler {
+	return &livecommentHandler{livecommentUsecase: livecommentUsecase}
 }
 
 // GET /api/livestream/:livestream_id/livecomment
-func (h *LivecommentHandler) GetLivecomments(c echo.Context) error {
+func (h *livecommentHandler) GetLivecomments(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	if err := VerifyUserSession(c); err != nil {
@@ -92,7 +92,7 @@ func (h *LivecommentHandler) GetLivecomments(c echo.Context) error {
 
 // (配信者向け)ライブコメントの報告一覧取得API
 // GET /api/livestream/:livestream_id/report
-func (h *LivecommentHandler) GetLivecommentReports(c echo.Context) error {
+func (h *livecommentHandler) GetLivecommentReports(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	if err := VerifyUserSession(c); err != nil {
@@ -126,7 +126,7 @@ func (h *LivecommentHandler) GetLivecommentReports(c echo.Context) error {
 
 // ライブコメント投稿
 // POST /api/livestream/:livestream_id/livecomment
-func (h *LivecommentHandler) PostLivecomment(c echo.Context) error {
+func (h *livecommentHandler) PostLivecomment(c echo.Context) error {
 	ctx := c.Request().Context()
 	defer c.Request().Body.Close()
 
@@ -165,7 +165,7 @@ func (h *LivecommentHandler) PostLivecomment(c echo.Context) error {
 
 // ライブコメント報告
 // POST /api/livestream/:livestream_id/livecomment/:livecomment_id/report
-func (h *LivecommentHandler) PostLivecommentReport(c echo.Context) error {
+func (h *livecommentHandler) PostLivecommentReport(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	if err := VerifyUserSession(c); err != nil {

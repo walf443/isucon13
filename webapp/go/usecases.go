@@ -12,27 +12,11 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// handlers はクリーンアーキテクチャへ移行済みの handler をまとめたもの。
-type handlers struct {
-	tag         *handler.TagHandler
-	theme       *handler.ThemeHandler
-	user        *handler.UserHandler
-	icon        *handler.IconHandler
-	livestream  *handler.LivestreamHandler
-	reaction    *handler.ReactionHandler
-	livecomment *handler.LivecommentHandler
-	ngWord      *handler.NGWordHandler
-	viewer      *handler.LivestreamViewerHandler
-	statistics  *handler.StatisticsHandler
-	payment     *handler.PaymentHandler
-	initialize  *handler.InitializeHandler
-}
-
-// newHandlers は repository・usecase・handler を組み立てる。
-func newHandlers(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress string, logger usecase.Logger) (*handlers, error) {
+// newUsecases は repository・usecase を組み立てる。
+func newUsecases(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress string, logger usecase.Logger) (handler.Usecases, error) {
 	fallbackIcon, err := os.ReadFile(fallbackImagePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read fallback image: %w", err)
+		return handler.Usecases{}, fmt.Errorf("failed to read fallback image: %w", err)
 	}
 
 	txManager := infra.NewTxManager(db)
@@ -64,18 +48,18 @@ func newHandlers(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 	paymentUsecase := usecase.NewPaymentUsecase(txManager, livecommentRepo)
 	initializeUsecase := usecase.NewInitializeUsecase(script.NewInitializer("../sql/init.sh"), logger)
 
-	return &handlers{
-		tag:         handler.NewTagHandler(tagUsecase),
-		theme:       handler.NewThemeHandler(themeUsecase),
-		user:        handler.NewUserHandler(userUsecase),
-		icon:        handler.NewIconHandler(iconUsecase, fallbackImagePath),
-		livestream:  handler.NewLivestreamHandler(livestreamUsecase),
-		reaction:    handler.NewReactionHandler(reactionUsecase),
-		livecomment: handler.NewLivecommentHandler(livecommentUsecase),
-		ngWord:      handler.NewNGWordHandler(ngWordUsecase),
-		viewer:      handler.NewLivestreamViewerHandler(viewerUsecase),
-		statistics:  handler.NewStatisticsHandler(statisticsUsecase),
-		payment:     handler.NewPaymentHandler(paymentUsecase),
-		initialize:  handler.NewInitializeHandler(initializeUsecase),
+	return handler.Usecases{
+		Tag:              tagUsecase,
+		Theme:            themeUsecase,
+		User:             userUsecase,
+		Icon:             iconUsecase,
+		Livestream:       livestreamUsecase,
+		Reaction:         reactionUsecase,
+		Livecomment:      livecommentUsecase,
+		NGWord:           ngWordUsecase,
+		LivestreamViewer: viewerUsecase,
+		Statistics:       statisticsUsecase,
+		Payment:          paymentUsecase,
+		Initialize:       initializeUsecase,
 	}, nil
 }

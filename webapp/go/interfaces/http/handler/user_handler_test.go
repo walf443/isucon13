@@ -95,7 +95,7 @@ func TestUserHandler_GetUser(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.GET("/api/user/:username", NewUserHandler(tt.usecase).GetUser)
+			e.GET("/api/user/:username", newUserHandler(tt.usecase).GetUser)
 
 			req := httptest.NewRequest(http.MethodGet, "/api/user/alice", nil)
 			if tt.cookie != nil {
@@ -166,7 +166,7 @@ func TestUserHandler_GetMe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.GET("/api/user/me", NewUserHandler(tt.usecase).GetMe)
+			e.GET("/api/user/me", newUserHandler(tt.usecase).GetMe)
 
 			req := httptest.NewRequest(http.MethodGet, "/api/user/me", nil)
 			if tt.cookie != nil {
@@ -233,7 +233,7 @@ func TestUserHandler_Register(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.POST("/api/register", NewUserHandler(tt.usecase).Register)
+			e.POST("/api/register", newUserHandler(tt.usecase).Register)
 
 			// セッションは不要
 			req := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(tt.body))
@@ -301,7 +301,7 @@ func TestUserHandler_Login(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			h := NewUserHandler(tt.usecase)
+			h := newUserHandler(tt.usecase)
 			h.now = func() time.Time { return now }
 			e.POST("/api/login", h.Login)
 

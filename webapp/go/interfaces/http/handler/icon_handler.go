@@ -18,18 +18,18 @@ type PostIconResponse struct {
 	ID model.IconID `json:"id"`
 }
 
-type IconHandler struct {
+type iconHandler struct {
 	iconUsecase usecase.IconUsecase
 	// fallbackImagePath はアイコン未登録のユーザに返す画像ファイルのパス。
 	fallbackImagePath string
 }
 
-func NewIconHandler(iconUsecase usecase.IconUsecase, fallbackImagePath string) *IconHandler {
-	return &IconHandler{iconUsecase: iconUsecase, fallbackImagePath: fallbackImagePath}
+func newIconHandler(iconUsecase usecase.IconUsecase, fallbackImagePath string) *iconHandler {
+	return &iconHandler{iconUsecase: iconUsecase, fallbackImagePath: fallbackImagePath}
 }
 
 // GET /api/user/:username/icon
-func (h *IconHandler) GetIcon(c echo.Context) error {
+func (h *iconHandler) GetIcon(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	username := c.Param("username")
@@ -49,7 +49,7 @@ func (h *IconHandler) GetIcon(c echo.Context) error {
 }
 
 // POST /api/icon
-func (h *IconHandler) PostIcon(c echo.Context) error {
+func (h *iconHandler) PostIcon(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	if err := VerifyUserSession(c); err != nil {

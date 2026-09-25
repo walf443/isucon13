@@ -58,16 +58,16 @@ type ReserveLivestreamRequest struct {
 	EndAt        int64   `json:"end_at"`
 }
 
-type LivestreamHandler struct {
+type livestreamHandler struct {
 	livestreamUsecase usecase.LivestreamUsecase
 }
 
-func NewLivestreamHandler(livestreamUsecase usecase.LivestreamUsecase) *LivestreamHandler {
-	return &LivestreamHandler{livestreamUsecase: livestreamUsecase}
+func newLivestreamHandler(livestreamUsecase usecase.LivestreamUsecase) *livestreamHandler {
+	return &livestreamHandler{livestreamUsecase: livestreamUsecase}
 }
 
 // GET /api/livestream/:livestream_id
-func (h *LivestreamHandler) GetLivestream(c echo.Context) error {
+func (h *livestreamHandler) GetLivestream(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	if err := VerifyUserSession(c); err != nil {
@@ -91,7 +91,7 @@ func (h *LivestreamHandler) GetLivestream(c echo.Context) error {
 }
 
 // GET /api/livestream
-func (h *LivestreamHandler) GetMyLivestreams(c echo.Context) error {
+func (h *livestreamHandler) GetMyLivestreams(c echo.Context) error {
 	ctx := c.Request().Context()
 	if err := VerifyUserSession(c); err != nil {
 		return err
@@ -111,7 +111,7 @@ func (h *LivestreamHandler) GetMyLivestreams(c echo.Context) error {
 }
 
 // GET /api/user/:username/livestream
-func (h *LivestreamHandler) GetUserLivestreams(c echo.Context) error {
+func (h *livestreamHandler) GetUserLivestreams(c echo.Context) error {
 	ctx := c.Request().Context()
 	if err := VerifyUserSession(c); err != nil {
 		return err
@@ -131,7 +131,7 @@ func (h *LivestreamHandler) GetUserLivestreams(c echo.Context) error {
 }
 
 // GET /api/livestream/search
-func (h *LivestreamHandler) SearchLivestreams(c echo.Context) error {
+func (h *livestreamHandler) SearchLivestreams(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	var livestreams []*model.Livestream
@@ -156,7 +156,7 @@ func (h *LivestreamHandler) SearchLivestreams(c echo.Context) error {
 }
 
 // POST /api/livestream/reservation
-func (h *LivestreamHandler) ReserveLivestream(c echo.Context) error {
+func (h *livestreamHandler) ReserveLivestream(c echo.Context) error {
 	ctx := c.Request().Context()
 	defer c.Request().Body.Close()
 

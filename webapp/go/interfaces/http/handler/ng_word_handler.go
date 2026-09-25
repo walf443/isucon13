@@ -22,16 +22,16 @@ type ModerateRequest struct {
 	NGWord string `json:"ng_word"`
 }
 
-type NGWordHandler struct {
+type ngWordHandler struct {
 	ngWordUsecase usecase.NGWordUsecase
 }
 
-func NewNGWordHandler(ngWordUsecase usecase.NGWordUsecase) *NGWordHandler {
-	return &NGWordHandler{ngWordUsecase: ngWordUsecase}
+func newNGWordHandler(ngWordUsecase usecase.NGWordUsecase) *ngWordHandler {
+	return &ngWordHandler{ngWordUsecase: ngWordUsecase}
 }
 
 // GET /api/livestream/:livestream_id/ngwords
-func (h *NGWordHandler) GetNGWords(c echo.Context) error {
+func (h *ngWordHandler) GetNGWords(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	if err := VerifyUserSession(c); err != nil {
@@ -69,7 +69,7 @@ func (h *NGWordHandler) GetNGWords(c echo.Context) error {
 
 // 配信者によるモデレーション (NGワード登録)
 // POST /api/livestream/:livestream_id/moderate
-func (h *NGWordHandler) Moderate(c echo.Context) error {
+func (h *ngWordHandler) Moderate(c echo.Context) error {
 	ctx := c.Request().Context()
 	defer c.Request().Body.Close()
 

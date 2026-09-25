@@ -51,7 +51,7 @@ func TestTagHandler_GetTags(t *testing.T) {
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 
-			if err := NewTagHandler(tt.usecase).GetTags(c); err != nil {
+			if err := newTagHandler(tt.usecase).GetTags(c); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			if rec.Code != tt.wantCode {
@@ -70,7 +70,7 @@ func TestTagHandler_GetTags_Error(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	err := NewTagHandler(&fakeTagUsecase{err: errors.New("boom")}).GetTags(c)
+	err := newTagHandler(&fakeTagUsecase{err: errors.New("boom")}).GetTags(c)
 
 	if he, ok := errors.AsType[*echo.HTTPError](err); !ok || he.Code != http.StatusInternalServerError {
 		t.Fatalf("err = %v, want 500 HTTPError", err)

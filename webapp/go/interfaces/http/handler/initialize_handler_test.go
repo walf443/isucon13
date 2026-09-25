@@ -41,7 +41,7 @@ func TestInitializeHandler_Initialize(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.POST("/api/initialize", NewInitializeHandler(tt.usecase).Initialize)
+			e.POST("/api/initialize", newInitializeHandler(tt.usecase).Initialize)
 
 			req := httptest.NewRequest(http.MethodPost, "/api/initialize", nil)
 			rec := httptest.NewRecorder()

@@ -95,7 +95,7 @@ func TestNGWordHandler_GetNGWords(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.GET("/api/livestream/:livestream_id/ngwords", NewNGWordHandler(tt.usecase).GetNGWords)
+			e.GET("/api/livestream/:livestream_id/ngwords", newNGWordHandler(tt.usecase).GetNGWords)
 
 			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
 			if tt.cookie != nil {
@@ -187,7 +187,7 @@ func TestNGWordHandler_Moderate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.POST("/api/livestream/:livestream_id/moderate", NewNGWordHandler(tt.usecase).Moderate)
+			e.POST("/api/livestream/:livestream_id/moderate", newNGWordHandler(tt.usecase).Moderate)
 
 			req := httptest.NewRequest(http.MethodPost, tt.path, strings.NewReader(tt.body))
 			req.Header.Set("Content-Type", "application/json")

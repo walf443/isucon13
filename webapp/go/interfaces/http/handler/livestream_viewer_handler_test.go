@@ -126,7 +126,7 @@ func TestLivestreamViewerHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			h := NewLivestreamViewerHandler(tt.usecase)
+			h := newLivestreamViewerHandler(tt.usecase)
 			e.POST("/api/livestream/:livestream_id/enter", h.EnterLivestream)
 			e.DELETE("/api/livestream/:livestream_id/exit", h.ExitLivestream)
 

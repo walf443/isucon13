@@ -47,16 +47,16 @@ func newLivestreamStatistics(s *model.LivestreamStatistics) LivestreamStatistics
 	}
 }
 
-type StatisticsHandler struct {
+type statisticsHandler struct {
 	statisticsUsecase usecase.StatisticsUsecase
 }
 
-func NewStatisticsHandler(statisticsUsecase usecase.StatisticsUsecase) *StatisticsHandler {
-	return &StatisticsHandler{statisticsUsecase: statisticsUsecase}
+func newStatisticsHandler(statisticsUsecase usecase.StatisticsUsecase) *statisticsHandler {
+	return &statisticsHandler{statisticsUsecase: statisticsUsecase}
 }
 
 // GET /api/user/:username/statistics
-func (h *StatisticsHandler) GetUserStatistics(c echo.Context) error {
+func (h *statisticsHandler) GetUserStatistics(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	if err := VerifyUserSession(c); err != nil {
@@ -79,7 +79,7 @@ func (h *StatisticsHandler) GetUserStatistics(c echo.Context) error {
 }
 
 // GET /api/livestream/:livestream_id/statistics
-func (h *StatisticsHandler) GetLivestreamStatistics(c echo.Context) error {
+func (h *statisticsHandler) GetLivestreamStatistics(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	if err := VerifyUserSession(c); err != nil {

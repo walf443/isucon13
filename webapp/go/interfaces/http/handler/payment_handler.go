@@ -11,17 +11,17 @@ type PaymentResult struct {
 	TotalTip int64 `json:"total_tip"`
 }
 
-type PaymentHandler struct {
+type paymentHandler struct {
 	paymentUsecase usecase.PaymentUsecase
 }
 
-func NewPaymentHandler(paymentUsecase usecase.PaymentUsecase) *PaymentHandler {
-	return &PaymentHandler{paymentUsecase: paymentUsecase}
+func newPaymentHandler(paymentUsecase usecase.PaymentUsecase) *paymentHandler {
+	return &paymentHandler{paymentUsecase: paymentUsecase}
 }
 
 // 課金情報
 // GET /api/payment
-func (h *PaymentHandler) GetPaymentResult(c echo.Context) error {
+func (h *paymentHandler) GetPaymentResult(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	// 移行前と同じくセッションは確認しない

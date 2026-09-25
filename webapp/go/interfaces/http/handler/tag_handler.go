@@ -17,16 +17,16 @@ type TagsResponse struct {
 	Tags []*Tag `json:"tags"`
 }
 
-type TagHandler struct {
+type tagHandler struct {
 	tagUsecase usecase.TagUsecase
 }
 
-func NewTagHandler(tagUsecase usecase.TagUsecase) *TagHandler {
-	return &TagHandler{tagUsecase: tagUsecase}
+func newTagHandler(tagUsecase usecase.TagUsecase) *tagHandler {
+	return &tagHandler{tagUsecase: tagUsecase}
 }
 
 // GET /api/tag
-func (h *TagHandler) GetTags(c echo.Context) error {
+func (h *tagHandler) GetTags(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	tagModels, err := h.tagUsecase.FindAll(ctx)

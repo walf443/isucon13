@@ -31,16 +31,16 @@ type PostReactionRequest struct {
 	EmojiName string `json:"emoji_name"`
 }
 
-type ReactionHandler struct {
+type reactionHandler struct {
 	reactionUsecase usecase.ReactionUsecase
 }
 
-func NewReactionHandler(reactionUsecase usecase.ReactionUsecase) *ReactionHandler {
-	return &ReactionHandler{reactionUsecase: reactionUsecase}
+func newReactionHandler(reactionUsecase usecase.ReactionUsecase) *reactionHandler {
+	return &reactionHandler{reactionUsecase: reactionUsecase}
 }
 
 // GET /api/livestream/:livestream_id/reaction
-func (h *ReactionHandler) GetReactions(c echo.Context) error {
+func (h *reactionHandler) GetReactions(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	if err := VerifyUserSession(c); err != nil {
@@ -71,7 +71,7 @@ func (h *ReactionHandler) GetReactions(c echo.Context) error {
 }
 
 // POST /api/livestream/:livestream_id/reaction
-func (h *ReactionHandler) PostReaction(c echo.Context) error {
+func (h *reactionHandler) PostReaction(c echo.Context) error {
 	ctx := c.Request().Context()
 	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {

@@ -74,7 +74,7 @@ func TestThemeHandler_GetStreamerTheme(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.GET("/api/user/:username/theme", NewThemeHandler(tt.usecase).GetStreamerTheme)
+			e.GET("/api/user/:username/theme", newThemeHandler(tt.usecase).GetStreamerTheme)
 
 			req := httptest.NewRequest(http.MethodGet, "/api/user/alice/theme", nil)
 			if tt.cookie != nil {

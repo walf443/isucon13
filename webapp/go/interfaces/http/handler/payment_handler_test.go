@@ -42,7 +42,7 @@ func TestPaymentHandler_GetPaymentResult(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.GET("/api/payment", NewPaymentHandler(tt.usecase).GetPaymentResult)
+			e.GET("/api/payment", newPaymentHandler(tt.usecase).GetPaymentResult)
 
 			req := httptest.NewRequest(http.MethodGet, "/api/payment", nil)
 			rec := httptest.NewRecorder()

@@ -145,7 +145,7 @@ func TestLivestreamHandler_GetLivestream(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.GET("/api/livestream/:livestream_id", NewLivestreamHandler(tt.usecase).GetLivestream)
+			e.GET("/api/livestream/:livestream_id", newLivestreamHandler(tt.usecase).GetLivestream)
 
 			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
 			if tt.cookie != nil {
@@ -219,7 +219,7 @@ func TestLivestreamHandler_GetMyLivestreams(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.GET("/api/livestream", NewLivestreamHandler(tt.usecase).GetMyLivestreams)
+			e.GET("/api/livestream", newLivestreamHandler(tt.usecase).GetMyLivestreams)
 
 			req := httptest.NewRequest(http.MethodGet, "/api/livestream", nil)
 			if tt.cookie != nil {
@@ -293,7 +293,7 @@ func TestLivestreamHandler_GetUserLivestreams(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.GET("/api/user/:username/livestream", NewLivestreamHandler(tt.usecase).GetUserLivestreams)
+			e.GET("/api/user/:username/livestream", newLivestreamHandler(tt.usecase).GetUserLivestreams)
 
 			req := httptest.NewRequest(http.MethodGet, "/api/user/alice/livestream", nil)
 			if tt.cookie != nil {
@@ -414,7 +414,7 @@ func TestLivestreamHandler_SearchLivestreams(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.GET("/api/livestream/search", NewLivestreamHandler(tt.usecase).SearchLivestreams)
+			e.GET("/api/livestream/search", newLivestreamHandler(tt.usecase).SearchLivestreams)
 
 			// セッション不要のエンドポイントなので Cookie は付けない
 			req := httptest.NewRequest(http.MethodGet, "/api/livestream/search"+tt.query, nil)
@@ -518,7 +518,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := newTestEcho()
-			e.POST("/api/livestream/reservation", NewLivestreamHandler(tt.usecase).ReserveLivestream)
+			e.POST("/api/livestream/reservation", newLivestreamHandler(tt.usecase).ReserveLivestream)
 
 			req := httptest.NewRequest(http.MethodPost, "/api/livestream/reservation", strings.NewReader(tt.body))
 			req.Header.Set("Content-Type", "application/json")
