@@ -101,7 +101,7 @@ func TestUserRepository_FindByID_NotFound(t *testing.T) {
 func TestUserRepository_CreateAndThemeRepository_Create(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)
-	userRepo := NewUserRepository(model.IconHash([]byte("fallback")))
+	userRepo := NewUserRepository(model.HashIcon([]byte("fallback")))
 
 	id, err := userRepo.Create(ctx, tx, &model.UserModel{Name: "alice", DisplayName: "Alice", Description: "hello", HashedPassword: "hashed"})
 	if err != nil {

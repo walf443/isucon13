@@ -2,11 +2,11 @@ package model
 
 import "testing"
 
-func TestIconHash(t *testing.T) {
+func TestHashIcon(t *testing.T) {
 	tests := []struct {
 		name  string
 		image []byte
-		want  string
+		want  IconHash
 	}{
 		{
 			name:  "empty image",
@@ -22,26 +22,26 @@ func TestIconHash(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := IconHash(tt.image); got != tt.want {
-				t.Errorf("IconHash(%q) = %s, want %s", tt.image, got, tt.want)
+			if got := HashIcon(tt.image); got != tt.want {
+				t.Errorf("HashIcon(%q) = %s, want %s", tt.image, got, tt.want)
 			}
 		})
 	}
 }
 
 func TestUserIconHash(t *testing.T) {
-	defaultIconHash := IconHash([]byte("default"))
+	defaultIconHash := HashIcon([]byte("default"))
 
 	tests := []struct {
 		name       string
 		image      []byte
 		registered bool
-		want       string
+		want       IconHash
 	}{
-		{name: "registered", image: []byte("icon"), registered: true, want: IconHash([]byte("icon"))},
+		{name: "registered", image: []byte("icon"), registered: true, want: HashIcon([]byte("icon"))},
 		{name: "not registered", image: nil, registered: false, want: defaultIconHash},
 		// 空の画像を登録している場合は既定のアイコンにはしない
-		{name: "registered empty image", image: []byte{}, registered: true, want: IconHash([]byte{})},
+		{name: "registered empty image", image: []byte{}, registered: true, want: HashIcon([]byte{})},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -13,10 +13,10 @@ import (
 
 type livestreamRepository struct {
 	// defaultIconHash はアイコン未登録の配信者に使う既定のアイコンのハッシュ。
-	defaultIconHash string
+	defaultIconHash model.IconHash
 }
 
-func NewLivestreamRepository(defaultIconHash string) repository.LivestreamRepository {
+func NewLivestreamRepository(defaultIconHash model.IconHash) repository.LivestreamRepository {
 	return &livestreamRepository{defaultIconHash: defaultIconHash}
 }
 

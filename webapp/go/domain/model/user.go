@@ -35,5 +35,5 @@ type User struct {
 	DisplayName string
 	Description string
 	Theme       ThemeModel
-	IconHash    string
+	IconHash    IconHash
 }

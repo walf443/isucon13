@@ -33,7 +33,7 @@ func newUser(u *model.User) User {
 			ID:       u.Theme.ID,
 			DarkMode: u.Theme.DarkMode,
 		},
-		IconHash: u.IconHash,
+		IconHash: string(u.IconHash),
 	}
 }
 

@@ -49,7 +49,7 @@ func TestLivestreamRepository_FindWithDetailsByID(t *testing.T) {
 	tag1 := insertTestTag(t, tx, livestreamID, "ゲーム実況")
 	tag2 := insertTestTag(t, tx, livestreamID, "雑談")
 
-	got, err := NewLivestreamRepository(model.IconHash(fallback)).FindWithDetailsByID(ctx, tx, livestreamID)
+	got, err := NewLivestreamRepository(model.HashIcon(fallback)).FindWithDetailsByID(ctx, tx, livestreamID)
 	if err != nil {
 		t.Fatalf("FindWithDetailsByID returned error: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestLivestreamRepository_FindWithDetailsByID(t *testing.T) {
 			DisplayName: "Display alice",
 			Description: "desc alice",
 			Theme:       model.ThemeModel{ID: themeID, UserID: ownerID, DarkMode: true},
-			IconHash:    model.IconHash(fallback),
+			IconHash:    model.HashIcon(fallback),
 		},
 		Title:        "stream1",
 		Description:  "desc stream1",

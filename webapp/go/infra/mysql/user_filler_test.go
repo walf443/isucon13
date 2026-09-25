@@ -36,17 +36,17 @@ func TestUserRepository_FindWithDetails(t *testing.T) {
 	tests := []struct {
 		name         string
 		icon         []byte
-		wantIconHash string
+		wantIconHash model.IconHash
 	}{
 		{
 			name:         "with registered icon",
 			icon:         []byte("icon"),
-			wantIconHash: model.IconHash([]byte("icon")),
+			wantIconHash: model.HashIcon([]byte("icon")),
 		},
 		{
 			name:         "without icon uses fallback",
 			icon:         nil,
-			wantIconHash: model.IconHash(fallback),
+			wantIconHash: model.HashIcon(fallback),
 		},
 	}
 
@@ -71,7 +71,7 @@ func TestUserRepository_FindWithDetails(t *testing.T) {
 				Theme:       model.ThemeModel{ID: themeID, UserID: userID, DarkMode: true},
 				IconHash:    tt.wantIconHash,
 			}
-			repo := NewUserRepository(model.IconHash(fallback))
+			repo := NewUserRepository(model.HashIcon(fallback))
 
 			byName, err := repo.FindWithDetailsByName(ctx, tx, "alice")
 			if err != nil {
@@ -139,7 +139,7 @@ func TestFillUsers(t *testing.T) {
 		{ID: aliceID, Name: "alice", DisplayName: "Display alice", Description: "desc alice"},
 	}
 
-	users, err := fillUsers(ctx, tx, userModels, model.IconHash(fallback))
+	users, err := fillUsers(ctx, tx, userModels, model.HashIcon(fallback))
 	if err != nil {
 		t.Fatalf("fillUsers returned error: %v", err)
 	}
@@ -151,7 +151,7 @@ func TestFillUsers(t *testing.T) {
 			DisplayName: "Display bob",
 			Description: "desc bob",
 			Theme:       model.ThemeModel{ID: bobThemeID, UserID: bobID, DarkMode: false},
-			IconHash:    model.IconHash(fallback),
+			IconHash:    model.HashIcon(fallback),
 		},
 		{
 			ID:          aliceID,
@@ -159,7 +159,7 @@ func TestFillUsers(t *testing.T) {
 			DisplayName: "Display alice",
 			Description: "desc alice",
 			Theme:       model.ThemeModel{ID: aliceThemeID, UserID: aliceID, DarkMode: true},
-			IconHash:    model.IconHash([]byte("alice icon")),
+			IconHash:    model.HashIcon([]byte("alice icon")),
 		},
 	}
 	if len(users) != len(want) {

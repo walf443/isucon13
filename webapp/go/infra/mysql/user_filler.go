@@ -14,7 +14,7 @@ import (
 // アイコンのハッシュは model.UserIconHash で決める (未登録の場合は defaultIconHash)。
 //
 // テーマが無いのはデータ不整合なので、repository.ErrNotFound (ユーザ不在) には変換しない。
-func fillUsers(ctx context.Context, q repository.Querier, userModels []*model.UserModel, defaultIconHash string) ([]*model.User, error) {
+func fillUsers(ctx context.Context, q repository.Querier, userModels []*model.UserModel, defaultIconHash model.IconHash) ([]*model.User, error) {
 	users := make([]*model.User, len(userModels))
 	for i, userModel := range userModels {
 		var theme model.ThemeModel

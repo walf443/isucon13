@@ -11,10 +11,10 @@ import (
 
 type livecommentReportRepository struct {
 	// defaultIconHash はアイコン未登録のユーザに使う既定のアイコンのハッシュ。
-	defaultIconHash string
+	defaultIconHash model.IconHash
 }
 
-func NewLivecommentReportRepository(defaultIconHash string) repository.LivecommentReportRepository {
+func NewLivecommentReportRepository(defaultIconHash model.IconHash) repository.LivecommentReportRepository {
 	return &livecommentReportRepository{defaultIconHash: defaultIconHash}
 }
 

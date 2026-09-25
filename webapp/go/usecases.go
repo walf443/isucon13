@@ -20,7 +20,7 @@ func newUsecases(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 		return handler.Usecases{}, fmt.Errorf("failed to read fallback image: %w", err)
 	}
 	// アイコン未登録のユーザのアイコンのハッシュは常に同じなので、起動時に 1 回だけ計算する
-	defaultIconHash := model.IconHash(fallbackIcon)
+	defaultIconHash := model.HashIcon(fallbackIcon)
 
 	txManager := infra.NewTxManager(db)
 

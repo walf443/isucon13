@@ -11,10 +11,10 @@ import (
 
 type reactionRepository struct {
 	// defaultIconHash はアイコン未登録のユーザに使う既定のアイコンのハッシュ。
-	defaultIconHash string
+	defaultIconHash model.IconHash
 }
 
-func NewReactionRepository(defaultIconHash string) repository.ReactionRepository {
+func NewReactionRepository(defaultIconHash model.IconHash) repository.ReactionRepository {
 	return &reactionRepository{defaultIconHash: defaultIconHash}
 }
 

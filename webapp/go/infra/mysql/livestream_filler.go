@@ -17,7 +17,7 @@ type livestreamTagModel struct {
 // fillLivestreams は livestreamModels に配信者・タグを埋めた model.Livestream を、同じ順序で返す。
 //
 // 配信者やタグが無いのはデータ不整合なので、repository.ErrNotFound (ライブ配信不在) には変換しない。
-func fillLivestreams(ctx context.Context, q repository.Querier, livestreamModels []*model.LivestreamModel, defaultIconHash string) ([]*model.Livestream, error) {
+func fillLivestreams(ctx context.Context, q repository.Querier, livestreamModels []*model.LivestreamModel, defaultIconHash model.IconHash) ([]*model.Livestream, error) {
 	ownerModels := make([]*model.UserModel, len(livestreamModels))
 	for i, livestreamModel := range livestreamModels {
 		var ownerModel model.UserModel

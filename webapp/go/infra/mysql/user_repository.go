@@ -11,10 +11,10 @@ import (
 
 type userRepository struct {
 	// defaultIconHash はアイコン未登録のユーザに使う既定のアイコンのハッシュ。
-	defaultIconHash string
+	defaultIconHash model.IconHash
 }
 
-func NewUserRepository(defaultIconHash string) repository.UserRepository {
+func NewUserRepository(defaultIconHash model.IconHash) repository.UserRepository {
 	return &userRepository{defaultIconHash: defaultIconHash}
 }
 
