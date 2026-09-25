@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/usecase"
@@ -44,12 +43,12 @@ func (h *NGWordHandler) GetNGWords(c echo.Context) error {
 		return err
 	}
 
-	livestreamID, err := strconv.Atoi(c.Param("livestream_id"))
+	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
 
-	ngWordModels, err := h.ngWordUsecase.FindAllByLivestreamID(ctx, userID, model.LivestreamID(livestreamID))
+	ngWordModels, err := h.ngWordUsecase.FindAllByLivestreamID(ctx, userID, livestreamID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -78,7 +77,7 @@ func (h *NGWordHandler) Moderate(c echo.Context) error {
 		return err
 	}
 
-	livestreamID, err := strconv.Atoi(c.Param("livestream_id"))
+	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
@@ -93,7 +92,7 @@ func (h *NGWordHandler) Moderate(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
 	}
 
-	wordID, err := h.ngWordUsecase.Moderate(ctx, userID, model.LivestreamID(livestreamID), req.NGWord)
+	wordID, err := h.ngWordUsecase.Moderate(ctx, userID, livestreamID, req.NGWord)
 	if errors.Is(err, usecase.ErrNotLivestreamOwner) {
 		return echo.NewHTTPError(http.StatusBadRequest, "A streamer can't moderate livestreams that other streamers own")
 	}

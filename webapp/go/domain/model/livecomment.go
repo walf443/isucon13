@@ -2,6 +2,11 @@ package model
 
 type LivecommentID = ID[LivecommentModel]
 
+// ParseLivecommentID は 10 進数の文字列をライブコメントの ID として読み取る。
+func ParseLivecommentID(s string) (LivecommentID, error) {
+	return ParseID[LivecommentModel](s)
+}
+
 type LivecommentModel struct {
 	ID           LivecommentID `db:"id"`
 	UserID       UserID        `db:"user_id"`

@@ -75,12 +75,12 @@ func (h *LivestreamHandler) GetLivestream(c echo.Context) error {
 		return err
 	}
 
-	livestreamID, err := strconv.Atoi(c.Param("livestream_id"))
+	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
 
-	livestream, err := h.livestreamUsecase.FindByID(ctx, model.LivestreamID(livestreamID))
+	livestream, err := h.livestreamUsecase.FindByID(ctx, livestreamID)
 	if errors.Is(err, usecase.ErrLivestreamNotFound) {
 		return echo.NewHTTPError(http.StatusNotFound, "not found livestream that has the given id")
 	}

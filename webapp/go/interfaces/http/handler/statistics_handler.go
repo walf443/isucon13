@@ -3,7 +3,6 @@ package handler
 import (
 	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/usecase"
@@ -87,12 +86,12 @@ func (h *StatisticsHandler) GetLivestreamStatistics(c echo.Context) error {
 		return err
 	}
 
-	id, err := strconv.Atoi(c.Param("livestream_id"))
+	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
 
-	stats, err := h.statisticsUsecase.FindLivestreamStatistics(ctx, model.LivestreamID(id))
+	stats, err := h.statisticsUsecase.FindLivestreamStatistics(ctx, livestreamID)
 	if errors.Is(err, usecase.ErrLivestreamNotFound) {
 		// 404 ではなく 400 (移行前と同じ)
 		return echo.NewHTTPError(http.StatusBadRequest, "cannot get stats of not found livestream")

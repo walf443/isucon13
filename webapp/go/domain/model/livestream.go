@@ -2,6 +2,11 @@ package model
 
 type LivestreamID = ID[LivestreamModel]
 
+// ParseLivestreamID は 10 進数の文字列をライブ配信の ID として読み取る。
+func ParseLivestreamID(s string) (LivestreamID, error) {
+	return ParseID[LivestreamModel](s)
+}
+
 type LivestreamModel struct {
 	ID           LivestreamID `db:"id" json:"id"`
 	UserID       UserID       `db:"user_id" json:"user_id"`

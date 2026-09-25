@@ -49,7 +49,7 @@ func (h *ReactionHandler) GetReactions(c echo.Context) error {
 		return err
 	}
 
-	livestreamID, err := strconv.Atoi(c.Param("livestream_id"))
+	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
@@ -64,7 +64,7 @@ func (h *ReactionHandler) GetReactions(c echo.Context) error {
 		limit = &limit64
 	}
 
-	reactionModels, err := h.reactionUsecase.FindAllByLivestreamID(ctx, model.LivestreamID(livestreamID), limit)
+	reactionModels, err := h.reactionUsecase.FindAllByLivestreamID(ctx, livestreamID, limit)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -79,7 +79,7 @@ func (h *ReactionHandler) GetReactions(c echo.Context) error {
 // POST /api/livestream/:livestream_id/reaction
 func (h *ReactionHandler) PostReaction(c echo.Context) error {
 	ctx := c.Request().Context()
-	livestreamID, err := strconv.Atoi(c.Param("livestream_id"))
+	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
@@ -99,7 +99,7 @@ func (h *ReactionHandler) PostReaction(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
 	}
 
-	reaction, err := h.reactionUsecase.Create(ctx, userID, model.LivestreamID(livestreamID), req.EmojiName)
+	reaction, err := h.reactionUsecase.Create(ctx, userID, livestreamID, req.EmojiName)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}

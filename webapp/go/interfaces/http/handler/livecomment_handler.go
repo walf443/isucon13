@@ -69,7 +69,7 @@ func (h *LivecommentHandler) GetLivecomments(c echo.Context) error {
 		return err
 	}
 
-	livestreamID, err := strconv.Atoi(c.Param("livestream_id"))
+	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
@@ -84,7 +84,7 @@ func (h *LivecommentHandler) GetLivecomments(c echo.Context) error {
 		limit = &limit64
 	}
 
-	livecommentModels, err := h.livecommentUsecase.FindAllByLivestreamID(ctx, model.LivestreamID(livestreamID), limit)
+	livecommentModels, err := h.livecommentUsecase.FindAllByLivestreamID(ctx, livestreamID, limit)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -105,7 +105,7 @@ func (h *LivecommentHandler) GetLivecommentReports(c echo.Context) error {
 		return err
 	}
 
-	livestreamID, err := strconv.Atoi(c.Param("livestream_id"))
+	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
@@ -115,7 +115,7 @@ func (h *LivecommentHandler) GetLivecommentReports(c echo.Context) error {
 		return err
 	}
 
-	reportModels, err := h.livecommentUsecase.FindAllReportsByLivestreamID(ctx, userID, model.LivestreamID(livestreamID))
+	reportModels, err := h.livecommentUsecase.FindAllReportsByLivestreamID(ctx, userID, livestreamID)
 	if errors.Is(err, usecase.ErrNotLivestreamOwner) {
 		return echo.NewHTTPError(http.StatusForbidden, "can't get other streamer's livecomment reports")
 	}
@@ -140,7 +140,7 @@ func (h *LivecommentHandler) PostLivecomment(c echo.Context) error {
 		return err
 	}
 
-	livestreamID, err := strconv.Atoi(c.Param("livestream_id"))
+	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
@@ -155,7 +155,7 @@ func (h *LivecommentHandler) PostLivecomment(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
 	}
 
-	livecomment, err := h.livecommentUsecase.Create(ctx, userID, model.LivestreamID(livestreamID), req.Comment, req.Tip)
+	livecomment, err := h.livecommentUsecase.Create(ctx, userID, livestreamID, req.Comment, req.Tip)
 	if errors.Is(err, usecase.ErrLivestreamNotFound) {
 		return echo.NewHTTPError(http.StatusNotFound, "livestream not found")
 	}
@@ -178,12 +178,12 @@ func (h *LivecommentHandler) PostLivecommentReport(c echo.Context) error {
 		return err
 	}
 
-	livestreamID, err := strconv.Atoi(c.Param("livestream_id"))
+	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
 
-	livecommentID, err := strconv.Atoi(c.Param("livecomment_id"))
+	livecommentID, err := model.ParseLivecommentID(c.Param("livecomment_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livecomment_id in path must be integer")
 	}
@@ -193,7 +193,7 @@ func (h *LivecommentHandler) PostLivecommentReport(c echo.Context) error {
 		return err
 	}
 
-	report, err := h.livecommentUsecase.Report(ctx, userID, model.LivestreamID(livestreamID), model.LivecommentID(livecommentID))
+	report, err := h.livecommentUsecase.Report(ctx, userID, livestreamID, livecommentID)
 	if errors.Is(err, usecase.ErrLivestreamNotFound) {
 		return echo.NewHTTPError(http.StatusNotFound, "livestream not found")
 	}

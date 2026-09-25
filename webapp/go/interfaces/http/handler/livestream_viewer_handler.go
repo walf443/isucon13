@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/usecase"
@@ -31,13 +30,13 @@ func (h *LivestreamViewerHandler) EnterLivestream(c echo.Context) error {
 		return err
 	}
 
-	livestreamID, err := strconv.Atoi(c.Param("livestream_id"))
+	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		// 他のエンドポイントと違い "in path" が無い (移行前と同じ)
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id must be integer")
 	}
 
-	if err := h.viewerUsecase.Enter(ctx, userID, model.LivestreamID(livestreamID)); err != nil {
+	if err := h.viewerUsecase.Enter(ctx, userID, livestreamID); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
@@ -58,12 +57,12 @@ func (h *LivestreamViewerHandler) ExitLivestream(c echo.Context) error {
 		return err
 	}
 
-	livestreamID, err := strconv.Atoi(c.Param("livestream_id"))
+	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
 
-	if err := h.viewerUsecase.Exit(ctx, userID, model.LivestreamID(livestreamID)); err != nil {
+	if err := h.viewerUsecase.Exit(ctx, userID, livestreamID); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
