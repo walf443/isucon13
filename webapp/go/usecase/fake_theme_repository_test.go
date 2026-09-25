@@ -7,20 +7,19 @@ import (
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
 )
 
+// fakeThemeRepository はテストで設定した関数に処理を委ねる ThemeRepository。
+// 関数を設定していないメソッドを呼ぶと panic する (埋め込んだインターフェースは nil)。
 type fakeThemeRepository struct {
-	theme      *model.ThemeModel
-	err        error
-	gotUserID  model.UserID
-	createErr  error
-	gotCreated *model.ThemeModel
-}
+	repository.ThemeRepository
 
-func (r *fakeThemeRepository) Create(ctx context.Context, q repository.Querier, theme *model.ThemeModel) error {
-	r.gotCreated = theme
-	return r.createErr
+	findByUserID func(ctx context.Context, q repository.Querier, userID model.UserID) (*model.ThemeModel, error)
+	create       func(ctx context.Context, q repository.Querier, theme *model.ThemeModel) error
 }
 
 func (r *fakeThemeRepository) FindByUserID(ctx context.Context, q repository.Querier, userID model.UserID) (*model.ThemeModel, error) {
-	r.gotUserID = userID
-	return r.theme, r.err
+	return r.findByUserID(ctx, q, userID)
+}
+
+func (r *fakeThemeRepository) Create(ctx context.Context, q repository.Querier, theme *model.ThemeModel) error {
+	return r.create(ctx, q, theme)
 }

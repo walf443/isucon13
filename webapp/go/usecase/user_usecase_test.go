@@ -90,7 +90,13 @@ func TestUserUsecase_Register(t *testing.T) {
 	want := &model.User{ID: 5, Name: "alice"}
 	txManager := &fakeTxManager{}
 	userRepo := &fakeUserRepository{createID: 5, userDetails: want}
-	themeRepo := &fakeThemeRepository{}
+	var createdTheme *model.ThemeModel
+	themeRepo := &fakeThemeRepository{
+		create: func(_ context.Context, _ repository.Querier, theme *model.ThemeModel) error {
+			createdTheme = theme
+			return nil
+		},
+	}
 	dns := &fakeDNSRecordRegistrar{}
 	u := NewUserUsecase(txManager, userRepo, themeRepo, dns)
 
@@ -119,8 +125,8 @@ func TestUserUsecase_Register(t *testing.T) {
 	if cost, err := bcrypt.Cost([]byte(created.HashedPassword)); err != nil || cost != bcrypt.MinCost {
 		t.Errorf("bcrypt cost = %d, %v, want %d", cost, err, bcrypt.MinCost)
 	}
-	if want := (model.ThemeModel{UserID: 5, DarkMode: true}); *themeRepo.gotCreated != want {
-		t.Errorf("theme = %+v, want %+v", *themeRepo.gotCreated, want)
+	if want := (model.ThemeModel{UserID: 5, DarkMode: true}); createdTheme == nil || *createdTheme != want {
+		t.Errorf("theme = %+v, want %+v", createdTheme, want)
 	}
 	if want := []string{"alice"}; !slices.Equal(dns.gotNames, want) {
 		t.Errorf("dns names = %v, want %v", dns.gotNames, want)
@@ -155,37 +161,36 @@ func TestUserUsecase_Register_Errors(t *testing.T) {
 	dnsErr := errors.New("Error: zone not found: exit status 1")
 
 	tests := []struct {
-		name      string
-		userRepo  *fakeUserRepository
-		themeRepo *fakeThemeRepository
-		dns       *fakeDNSRecordRegistrar
-		wantErr   error
-		wantMsg   string
-		wantCalls []string
-		wantDNS   []string
+		name     string
+		userRepo *fakeUserRepository
+		// themeCreateErr はテーマの登録が返すエラー
+		themeCreateErr error
+		dns            *fakeDNSRecordRegistrar
+		wantErr        error
+		wantMsg        string
+		wantCalls      []string
+		wantDNS        []string
 	}{
 		{
 			name:      "insert user fails",
 			userRepo:  &fakeUserRepository{createErr: boom},
-			themeRepo: &fakeThemeRepository{},
 			dns:       &fakeDNSRecordRegistrar{},
 			wantErr:   boom,
 			wantMsg:   "failed to insert user: boom",
 			wantCalls: []string{"Create"},
 		},
 		{
-			name:      "insert theme fails",
-			userRepo:  &fakeUserRepository{createID: 5},
-			themeRepo: &fakeThemeRepository{createErr: boom},
-			dns:       &fakeDNSRecordRegistrar{},
-			wantErr:   boom,
-			wantMsg:   "failed to insert user theme: boom",
-			wantCalls: []string{"Create"},
+			name:           "insert theme fails",
+			userRepo:       &fakeUserRepository{createID: 5},
+			themeCreateErr: boom,
+			dns:            &fakeDNSRecordRegistrar{},
+			wantErr:        boom,
+			wantMsg:        "failed to insert user theme: boom",
+			wantCalls:      []string{"Create"},
 		},
 		{
 			name:      "dns registration fails",
 			userRepo:  &fakeUserRepository{createID: 5},
-			themeRepo: &fakeThemeRepository{},
 			dns:       &fakeDNSRecordRegistrar{err: dnsErr},
 			wantErr:   dnsErr,
 			wantMsg:   dnsErr.Error(),
@@ -195,7 +200,6 @@ func TestUserUsecase_Register_Errors(t *testing.T) {
 		{
 			name:      "fill fails",
 			userRepo:  &fakeUserRepository{createID: 5, err: boom},
-			themeRepo: &fakeThemeRepository{},
 			dns:       &fakeDNSRecordRegistrar{},
 			wantErr:   boom,
 			wantMsg:   "failed to fill user: boom",
@@ -206,7 +210,10 @@ func TestUserUsecase_Register_Errors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u := NewUserUsecase(&fakeTxManager{}, tt.userRepo, tt.themeRepo, tt.dns)
+			themeRepo := &fakeThemeRepository{
+				create: func(context.Context, repository.Querier, *model.ThemeModel) error { return tt.themeCreateErr },
+			}
+			u := NewUserUsecase(&fakeTxManager{}, tt.userRepo, themeRepo, tt.dns)
 			_, err := u.Register(context.Background(), RegisterUserInput{Name: "alice", Password: "x"})
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
