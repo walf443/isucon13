@@ -8,13 +8,13 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type Tag struct {
+type tagResponse struct {
 	ID   model.TagID `json:"id"`
 	Name string      `json:"name"`
 }
 
-type TagsResponse struct {
-	Tags []*Tag `json:"tags"`
+type tagsResponse struct {
+	Tags []*tagResponse `json:"tags"`
 }
 
 type tagHandler struct {
@@ -34,14 +34,14 @@ func (h *tagHandler) GetTags(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	tags := make([]*Tag, len(tagModels))
+	tags := make([]*tagResponse, len(tagModels))
 	for i := range tagModels {
-		tags[i] = &Tag{
+		tags[i] = &tagResponse{
 			ID:   tagModels[i].ID,
 			Name: tagModels[i].Name,
 		}
 	}
-	return c.JSON(http.StatusOK, &TagsResponse{
+	return c.JSON(http.StatusOK, &tagsResponse{
 		Tags: tags,
 	})
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type Theme struct {
+type themeResponse struct {
 	ID       model.ThemeID `json:"id"`
 	DarkMode bool          `json:"dark_mode"`
 }
@@ -43,7 +43,7 @@ func (h *themeHandler) GetStreamerTheme(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(http.StatusOK, Theme{
+	return c.JSON(http.StatusOK, themeResponse{
 		ID:       themeModel.ID,
 		DarkMode: themeModel.DarkMode,
 	})

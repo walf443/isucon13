@@ -9,7 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type UserStatistics struct {
+type userStatisticsResponse struct {
 	Rank              int64  `json:"rank"`
 	ViewersCount      int64  `json:"viewers_count"`
 	TotalReactions    int64  `json:"total_reactions"`
@@ -18,8 +18,8 @@ type UserStatistics struct {
 	FavoriteEmoji     string `json:"favorite_emoji"`
 }
 
-func newUserStatistics(s *model.UserStatistics) UserStatistics {
-	return UserStatistics{
+func newUserStatistics(s *model.UserStatistics) userStatisticsResponse {
+	return userStatisticsResponse{
 		Rank:              s.Rank,
 		ViewersCount:      s.ViewersCount,
 		TotalReactions:    s.TotalReactions,
@@ -29,7 +29,7 @@ func newUserStatistics(s *model.UserStatistics) UserStatistics {
 	}
 }
 
-type LivestreamStatistics struct {
+type livestreamStatisticsResponse struct {
 	Rank           int64 `json:"rank"`
 	ViewersCount   int64 `json:"viewers_count"`
 	TotalReactions int64 `json:"total_reactions"`
@@ -37,8 +37,8 @@ type LivestreamStatistics struct {
 	MaxTip         int64 `json:"max_tip"`
 }
 
-func newLivestreamStatistics(s *model.LivestreamStatistics) LivestreamStatistics {
-	return LivestreamStatistics{
+func newLivestreamStatistics(s *model.LivestreamStatistics) livestreamStatisticsResponse {
+	return livestreamStatisticsResponse{
 		Rank:           s.Rank,
 		ViewersCount:   s.ViewersCount,
 		TotalReactions: s.TotalReactions,

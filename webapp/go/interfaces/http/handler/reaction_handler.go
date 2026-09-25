@@ -9,16 +9,16 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type Reaction struct {
-	ID         model.ReactionID `json:"id"`
-	EmojiName  string           `json:"emoji_name"`
-	User       User             `json:"user"`
-	Livestream Livestream       `json:"livestream"`
-	CreatedAt  int64            `json:"created_at"`
+type reactionResponse struct {
+	ID         model.ReactionID   `json:"id"`
+	EmojiName  string             `json:"emoji_name"`
+	User       userResponse       `json:"user"`
+	Livestream livestreamResponse `json:"livestream"`
+	CreatedAt  int64              `json:"created_at"`
 }
 
-func newReaction(r *model.Reaction) Reaction {
-	return Reaction{
+func newReaction(r *model.Reaction) reactionResponse {
+	return reactionResponse{
 		ID:         r.ID,
 		EmojiName:  r.EmojiName,
 		User:       newUser(&r.User),
@@ -27,7 +27,7 @@ func newReaction(r *model.Reaction) Reaction {
 	}
 }
 
-type PostReactionRequest struct {
+type postReactionRequest struct {
 	EmojiName string `json:"emoji_name"`
 }
 
@@ -63,7 +63,7 @@ func (h *reactionHandler) GetReactions(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	reactions := make([]Reaction, len(reactionModels))
+	reactions := make([]reactionResponse, len(reactionModels))
 	for i, r := range reactionModels {
 		reactions[i] = newReaction(r)
 	}
@@ -88,7 +88,7 @@ func (h *reactionHandler) PostReaction(c echo.Context) error {
 		return err
 	}
 
-	var req PostReactionRequest
+	var req postReactionRequest
 	if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
 	}

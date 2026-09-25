@@ -10,24 +10,24 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type Livestream struct {
+type livestreamResponse struct {
 	ID           model.LivestreamID `json:"id"`
-	Owner        User               `json:"owner"`
+	Owner        userResponse       `json:"owner"`
 	Title        string             `json:"title"`
 	Description  string             `json:"description"`
 	PlaylistUrl  string             `json:"playlist_url"`
 	ThumbnailUrl string             `json:"thumbnail_url"`
-	Tags         []Tag              `json:"tags"`
+	Tags         []tagResponse      `json:"tags"`
 	StartAt      int64              `json:"start_at"`
 	EndAt        int64              `json:"end_at"`
 }
 
-func newLivestream(l *model.Livestream) Livestream {
-	tags := make([]Tag, len(l.Tags))
+func newLivestream(l *model.Livestream) livestreamResponse {
+	tags := make([]tagResponse, len(l.Tags))
 	for i, tag := range l.Tags {
-		tags[i] = Tag{ID: tag.ID, Name: tag.Name}
+		tags[i] = tagResponse{ID: tag.ID, Name: tag.Name}
 	}
-	return Livestream{
+	return livestreamResponse{
 		ID:           l.ID,
 		Owner:        newUser(&l.Owner),
 		Title:        l.Title,
@@ -40,15 +40,15 @@ func newLivestream(l *model.Livestream) Livestream {
 	}
 }
 
-func newLivestreams(ls []*model.Livestream) []Livestream {
-	livestreams := make([]Livestream, len(ls))
+func newLivestreams(ls []*model.Livestream) []livestreamResponse {
+	livestreams := make([]livestreamResponse, len(ls))
 	for i, l := range ls {
 		livestreams[i] = newLivestream(l)
 	}
 	return livestreams
 }
 
-type ReserveLivestreamRequest struct {
+type reserveLivestreamRequest struct {
 	Tags         []int64 `json:"tags"`
 	Title        string  `json:"title"`
 	Description  string  `json:"description"`
@@ -171,7 +171,7 @@ func (h *livestreamHandler) ReserveLivestream(c echo.Context) error {
 		return err
 	}
 
-	var req ReserveLivestreamRequest
+	var req reserveLivestreamRequest
 	if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
 	}

@@ -14,22 +14,22 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type User struct {
-	ID          model.UserID `json:"id"`
-	Name        string       `json:"name"`
-	DisplayName string       `json:"display_name,omitempty"`
-	Description string       `json:"description,omitempty"`
-	Theme       Theme        `json:"theme,omitempty"`
-	IconHash    string       `json:"icon_hash,omitempty"`
+type userResponse struct {
+	ID          model.UserID  `json:"id"`
+	Name        string        `json:"name"`
+	DisplayName string        `json:"display_name,omitempty"`
+	Description string        `json:"description,omitempty"`
+	Theme       themeResponse `json:"theme,omitempty"`
+	IconHash    string        `json:"icon_hash,omitempty"`
 }
 
-func newUser(u *model.User) User {
-	return User{
+func newUser(u *model.User) userResponse {
+	return userResponse{
 		ID:          u.ID,
 		Name:        u.Name,
 		DisplayName: u.DisplayName,
 		Description: u.Description,
-		Theme: Theme{
+		Theme: themeResponse{
 			ID:       u.Theme.ID,
 			DarkMode: u.Theme.DarkMode,
 		},
@@ -37,20 +37,20 @@ func newUser(u *model.User) User {
 	}
 }
 
-type PostUserRequest struct {
+type postUserRequest struct {
 	Name        string `json:"name"`
 	DisplayName string `json:"display_name"`
 	Description string `json:"description"`
 	// Password is non-hashed password.
 	Password string               `json:"password"`
-	Theme    PostUserRequestTheme `json:"theme"`
+	Theme    postUserRequestTheme `json:"theme"`
 }
 
-type PostUserRequestTheme struct {
+type postUserRequestTheme struct {
 	DarkMode bool `json:"dark_mode"`
 }
 
-type LoginRequest struct {
+type loginRequest struct {
 	Username string `json:"username"`
 	// Password is non-hashed password.
 	Password string `json:"password"`
@@ -119,7 +119,7 @@ func (h *userHandler) Register(c echo.Context) error {
 	ctx := c.Request().Context()
 	defer c.Request().Body.Close()
 
-	req := PostUserRequest{}
+	req := postUserRequest{}
 	if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
 	}
@@ -147,7 +147,7 @@ func (h *userHandler) Login(c echo.Context) error {
 	ctx := c.Request().Context()
 	defer c.Request().Body.Close()
 
-	req := LoginRequest{}
+	req := loginRequest{}
 	if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
 	}

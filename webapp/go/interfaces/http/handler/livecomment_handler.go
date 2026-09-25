@@ -10,17 +10,17 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type Livecomment struct {
+type livecommentResponse struct {
 	ID         model.LivecommentID `json:"id"`
-	User       User                `json:"user"`
-	Livestream Livestream          `json:"livestream"`
+	User       userResponse        `json:"user"`
+	Livestream livestreamResponse  `json:"livestream"`
 	Comment    string              `json:"comment"`
 	Tip        int64               `json:"tip"`
 	CreatedAt  int64               `json:"created_at"`
 }
 
-func newLivecomment(l *model.Livecomment) Livecomment {
-	return Livecomment{
+func newLivecomment(l *model.Livecomment) livecommentResponse {
+	return livecommentResponse{
 		ID:         l.ID,
 		User:       newUser(&l.User),
 		Livestream: newLivestream(&l.Livestream),
@@ -30,15 +30,15 @@ func newLivecomment(l *model.Livecomment) Livecomment {
 	}
 }
 
-type LivecommentReport struct {
+type livecommentReportResponse struct {
 	ID          model.LivecommentReportID `json:"id"`
-	Reporter    User                      `json:"reporter"`
-	Livecomment Livecomment               `json:"livecomment"`
+	Reporter    userResponse              `json:"reporter"`
+	Livecomment livecommentResponse       `json:"livecomment"`
 	CreatedAt   int64                     `json:"created_at"`
 }
 
-func newLivecommentReport(r *model.LivecommentReport) LivecommentReport {
-	return LivecommentReport{
+func newLivecommentReport(r *model.LivecommentReport) livecommentReportResponse {
+	return livecommentReportResponse{
 		ID:          r.ID,
 		Reporter:    newUser(&r.Reporter),
 		Livecomment: newLivecomment(&r.Livecomment),
@@ -46,7 +46,7 @@ func newLivecommentReport(r *model.LivecommentReport) LivecommentReport {
 	}
 }
 
-type PostLivecommentRequest struct {
+type postLivecommentRequest struct {
 	Comment string `json:"comment"`
 	Tip     int64  `json:"tip"`
 }
@@ -84,7 +84,7 @@ func (h *livecommentHandler) GetLivecomments(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	livecomments := make([]Livecomment, len(livecommentModels))
+	livecomments := make([]livecommentResponse, len(livecommentModels))
 	for i, l := range livecommentModels {
 		livecomments[i] = newLivecomment(l)
 	}
@@ -118,7 +118,7 @@ func (h *livecommentHandler) GetLivecommentReports(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	reports := make([]LivecommentReport, len(reportModels))
+	reports := make([]livecommentReportResponse, len(reportModels))
 	for i, r := range reportModels {
 		reports[i] = newLivecommentReport(r)
 	}
@@ -145,7 +145,7 @@ func (h *livecommentHandler) PostLivecomment(c echo.Context) error {
 		return err
 	}
 
-	var req PostLivecommentRequest
+	var req postLivecommentRequest
 	if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
 	}

@@ -23,7 +23,7 @@ func newSessionStore(secret []byte) *sessions.CookieStore {
 	return cookieStore
 }
 
-type ErrorResponse struct {
+type errorResponse struct {
 	Error string `json:"error"`
 }
 
@@ -32,13 +32,13 @@ type ErrorResponse struct {
 func errorResponseHandler(err error, c echo.Context) {
 	c.Logger().Errorf("error at %s: %+v", c.Path(), err)
 	if he, ok := err.(*echo.HTTPError); ok {
-		if e := c.JSON(he.Code, &ErrorResponse{Error: err.Error()}); e != nil {
+		if e := c.JSON(he.Code, &errorResponse{Error: err.Error()}); e != nil {
 			c.Logger().Errorf("%+v", e)
 		}
 		return
 	}
 
-	if e := c.JSON(http.StatusInternalServerError, &ErrorResponse{Error: err.Error()}); e != nil {
+	if e := c.JSON(http.StatusInternalServerError, &errorResponse{Error: err.Error()}); e != nil {
 		c.Logger().Errorf("%+v", e)
 	}
 }

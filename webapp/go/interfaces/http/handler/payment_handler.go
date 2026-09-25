@@ -7,7 +7,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type PaymentResult struct {
+type paymentResultResponse struct {
 	TotalTip int64 `json:"total_tip"`
 }
 
@@ -30,7 +30,7 @@ func (h *paymentHandler) GetPaymentResult(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(http.StatusOK, &PaymentResult{
+	return c.JSON(http.StatusOK, &paymentResultResponse{
 		TotalTip: totalTip,
 	})
 }

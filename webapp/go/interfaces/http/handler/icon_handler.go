@@ -10,11 +10,11 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type PostIconRequest struct {
+type postIconRequest struct {
 	Image []byte `json:"image"`
 }
 
-type PostIconResponse struct {
+type postIconResponse struct {
 	ID model.IconID `json:"id"`
 }
 
@@ -62,7 +62,7 @@ func (h *iconHandler) PostIcon(c echo.Context) error {
 		return err
 	}
 
-	var req PostIconRequest
+	var req postIconRequest
 	if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
 	}
@@ -72,7 +72,7 @@ func (h *iconHandler) PostIcon(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(http.StatusCreated, &PostIconResponse{
+	return c.JSON(http.StatusCreated, &postIconResponse{
 		ID: iconID,
 	})
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type NGWord struct {
+type ngWordResponse struct {
 	ID           model.NGWordID     `json:"id"`
 	UserID       model.UserID       `json:"user_id"`
 	LivestreamID model.LivestreamID `json:"livestream_id"`
@@ -18,7 +18,7 @@ type NGWord struct {
 	CreatedAt    int64              `json:"created_at"`
 }
 
-type ModerateRequest struct {
+type moderateRequest struct {
 	NGWord string `json:"ng_word"`
 }
 
@@ -54,9 +54,9 @@ func (h *ngWordHandler) GetNGWords(c echo.Context) error {
 	}
 
 	// NG ワードが無い場合は [] ではなく null を返す (移行前と同じ)
-	var ngWords []NGWord
+	var ngWords []ngWordResponse
 	for _, w := range ngWordModels {
-		ngWords = append(ngWords, NGWord{
+		ngWords = append(ngWords, ngWordResponse{
 			ID:           w.ID,
 			UserID:       w.UserID,
 			LivestreamID: w.LivestreamID,
@@ -87,7 +87,7 @@ func (h *ngWordHandler) Moderate(c echo.Context) error {
 		return err
 	}
 
-	var req ModerateRequest
+	var req moderateRequest
 	if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
 	}

@@ -7,7 +7,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type InitializeResponse struct {
+type initializeResponse struct {
 	Language string `json:"language"`
 }
 
@@ -28,7 +28,7 @@ func (h *initializeHandler) Initialize(c echo.Context) error {
 
 	// レスポンスには影響しないが、移行前と同じくリクエストヘッダに付けている
 	c.Request().Header.Add("Content-Type", "application/json;charset=utf-8")
-	return c.JSON(http.StatusOK, InitializeResponse{
+	return c.JSON(http.StatusOK, initializeResponse{
 		Language: "golang",
 	})
 }
