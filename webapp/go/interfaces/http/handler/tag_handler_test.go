@@ -72,8 +72,7 @@ func TestTagHandler_GetTags_Error(t *testing.T) {
 
 	err := NewTagHandler(&fakeTagUsecase{err: errors.New("boom")}).GetTags(c)
 
-	var he *echo.HTTPError
-	if !errors.As(err, &he) || he.Code != http.StatusInternalServerError {
+	if he, ok := errors.AsType[*echo.HTTPError](err); !ok || he.Code != http.StatusInternalServerError {
 		t.Fatalf("err = %v, want 500 HTTPError", err)
 	}
 }
