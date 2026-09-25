@@ -4,12 +4,9 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
-	"time"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/usecase"
@@ -79,20 +76,9 @@ func TestIconHandler_GetIcon(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := newTestEcho()
-			e.GET("/api/user/:username/icon", newIconHandler(tt.usecase, fallbackPath).GetIcon)
-
 			// セッション不要のエンドポイントなので Cookie は付けない
-			req := httptest.NewRequest(http.MethodGet, "/api/user/alice/icon", nil)
-			rec := httptest.NewRecorder()
-			e.ServeHTTP(rec, req)
-
-			if rec.Code != tt.wantCode {
-				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
-			}
-			if tt.wantBody != "" && rec.Body.String() != tt.wantBody {
-				t.Errorf("body = %q, want %q", rec.Body.String(), tt.wantBody)
-			}
+			rec := serve(t, newIconHandler(tt.usecase, fallbackPath).GetIcon, testRequest{method: http.MethodGet, route: "/api/user/:username/icon", path: "/api/user/alice/icon"})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantContentType != "" && rec.Header().Get("Content-Type") != tt.wantContentType {
 				t.Errorf("Content-Type = %q, want %q", rec.Header().Get("Content-Type"), tt.wantContentType)
 			}
@@ -104,10 +90,6 @@ func TestIconHandler_GetIcon(t *testing.T) {
 }
 
 func TestIconHandler_PostIcon(t *testing.T) {
-	validCookie := func(t *testing.T) *http.Cookie {
-		return newSessionCookie(t, 42, time.Now().Add(time.Hour))
-	}
-
 	tests := []struct {
 		name     string
 		cookie   func(t *testing.T) *http.Cookie
@@ -118,7 +100,7 @@ func TestIconHandler_PostIcon(t *testing.T) {
 	}{
 		{
 			name:   "updates icon",
-			cookie: validCookie,
+			cookie: sessionAs(42),
 			// "new icon" を base64 エンコードしたもの
 			body:     `{"image":"bmV3IGljb24="}`,
 			usecase:  &fakeIconUsecase{iconID: 100},
@@ -134,14 +116,14 @@ func TestIconHandler_PostIcon(t *testing.T) {
 		},
 		{
 			name:     "returns 400 on invalid json",
-			cookie:   validCookie,
+			cookie:   sessionAs(42),
 			body:     `{`,
 			usecase:  &fakeIconUsecase{},
 			wantCode: http.StatusBadRequest,
 		},
 		{
 			name:     "returns 500 on unexpected error",
-			cookie:   validCookie,
+			cookie:   sessionAs(42),
 			body:     `{"image":"bmV3IGljb24="}`,
 			usecase:  &fakeIconUsecase{updateErr: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
@@ -150,23 +132,8 @@ func TestIconHandler_PostIcon(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := newTestEcho()
-			e.POST("/api/icon", newIconHandler(tt.usecase, "").PostIcon)
-
-			req := httptest.NewRequest(http.MethodPost, "/api/icon", strings.NewReader(tt.body))
-			req.Header.Set("Content-Type", "application/json")
-			if tt.cookie != nil {
-				req.AddCookie(tt.cookie(t))
-			}
-			rec := httptest.NewRecorder()
-			e.ServeHTTP(rec, req)
-
-			if rec.Code != tt.wantCode {
-				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
-			}
-			if tt.wantBody != "" && rec.Body.String() != tt.wantBody {
-				t.Errorf("body = %q, want %q", rec.Body.String(), tt.wantBody)
-			}
+			rec := serve(t, newIconHandler(tt.usecase, "").PostIcon, testRequest{method: http.MethodPost, route: "/api/icon", path: "/api/icon", body: tt.body, cookie: tt.cookie})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusCreated {
 				if tt.usecase.gotUserID != 42 || string(tt.usecase.gotImage) != "new icon" {
 					t.Errorf("userID = %d, image = %q", tt.usecase.gotUserID, tt.usecase.gotImage)

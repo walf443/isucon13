@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 )
 
@@ -40,19 +39,8 @@ func TestInitializeHandler_Initialize(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := newTestEcho()
-			e.POST("/api/initialize", newInitializeHandler(tt.usecase).Initialize)
-
-			req := httptest.NewRequest(http.MethodPost, "/api/initialize", nil)
-			rec := httptest.NewRecorder()
-			e.ServeHTTP(rec, req)
-
-			if rec.Code != tt.wantCode {
-				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
-			}
-			if rec.Body.String() != tt.wantBody {
-				t.Errorf("body = %s\nwant   %s", rec.Body.String(), tt.wantBody)
-			}
+			rec := serve(t, newInitializeHandler(tt.usecase).Initialize, testRequest{method: http.MethodPost, route: "/api/initialize", path: "/api/initialize"})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 		})
 	}
 }

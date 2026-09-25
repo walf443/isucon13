@@ -7,9 +7,7 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"slices"
-	"strings"
 	"testing"
-	"time"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/usecase"
@@ -65,9 +63,6 @@ func (u *fakeLivestreamUsecase) FindByID(ctx context.Context, id model.Livestrea
 }
 
 func TestLivestreamHandler_GetLivestream(t *testing.T) {
-	validCookie := func(t *testing.T) *http.Cookie {
-		return newSessionCookie(t, 1, time.Now().Add(time.Hour))
-	}
 	owner := model.User{
 		ID:          2,
 		Name:        "alice",
@@ -88,7 +83,7 @@ func TestLivestreamHandler_GetLivestream(t *testing.T) {
 		{
 			name:   "returns livestream",
 			path:   "/api/livestream/10",
-			cookie: validCookie,
+			cookie: sessionAs(1),
 			usecase: &fakeLivestreamUsecase{livestream: &model.Livestream{
 				ID:           10,
 				Owner:        owner,
@@ -107,7 +102,7 @@ func TestLivestreamHandler_GetLivestream(t *testing.T) {
 			// タグが無い場合も null ではなく [] を返す (移行前と同じ)
 			name:     "returns empty tags as array",
 			path:     "/api/livestream/10",
-			cookie:   validCookie,
+			cookie:   sessionAs(1),
 			usecase:  &fakeLivestreamUsecase{livestream: &model.Livestream{ID: 10, Owner: owner}},
 			wantCode: http.StatusOK,
 			wantBody: `{"id":10,"owner":{"id":2,"name":"alice","display_name":"Alice","description":"hello","theme":{"id":20,"dark_mode":true},"icon_hash":"abc"},"title":"","description":"","playlist_url":"","thumbnail_url":"","tags":[],"start_at":0,"end_at":0}` + "\n",
@@ -122,21 +117,21 @@ func TestLivestreamHandler_GetLivestream(t *testing.T) {
 		{
 			name:     "returns 400 when livestream_id is not integer",
 			path:     "/api/livestream/abc",
-			cookie:   validCookie,
+			cookie:   sessionAs(1),
 			usecase:  &fakeLivestreamUsecase{},
 			wantCode: http.StatusBadRequest,
 		},
 		{
 			name:     "returns 404 when livestream is not found",
 			path:     "/api/livestream/10",
-			cookie:   validCookie,
+			cookie:   sessionAs(1),
 			usecase:  &fakeLivestreamUsecase{err: usecase.ErrLivestreamNotFound},
 			wantCode: http.StatusNotFound,
 		},
 		{
 			name:     "returns 500 on unexpected error",
 			path:     "/api/livestream/10",
-			cookie:   validCookie,
+			cookie:   sessionAs(1),
 			usecase:  &fakeLivestreamUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
 		},
@@ -144,22 +139,8 @@ func TestLivestreamHandler_GetLivestream(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := newTestEcho()
-			e.GET("/api/livestream/:livestream_id", newLivestreamHandler(tt.usecase).GetLivestream)
-
-			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
-			if tt.cookie != nil {
-				req.AddCookie(tt.cookie(t))
-			}
-			rec := httptest.NewRecorder()
-			e.ServeHTTP(rec, req)
-
-			if rec.Code != tt.wantCode {
-				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
-			}
-			if tt.wantBody != "" && rec.Body.String() != tt.wantBody {
-				t.Errorf("body = %s\nwant   %s", rec.Body.String(), tt.wantBody)
-			}
+			rec := serve(t, newLivestreamHandler(tt.usecase).GetLivestream, testRequest{method: http.MethodGet, route: "/api/livestream/:livestream_id", path: tt.path, cookie: tt.cookie})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusOK && tt.usecase.gotID != 10 {
 				t.Errorf("id = %d, want 10", tt.usecase.gotID)
 			}
@@ -168,9 +149,6 @@ func TestLivestreamHandler_GetLivestream(t *testing.T) {
 }
 
 func TestLivestreamHandler_GetMyLivestreams(t *testing.T) {
-	validCookie := func(t *testing.T) *http.Cookie {
-		return newSessionCookie(t, 42, time.Now().Add(time.Hour))
-	}
 	owner := model.User{ID: 42, Name: "alice", Theme: model.ThemeModel{ID: 20, UserID: 42}, IconHash: "abc"}
 	ownerJSON := `{"id":42,"name":"alice","theme":{"id":20,"dark_mode":false},"icon_hash":"abc"}`
 
@@ -183,7 +161,7 @@ func TestLivestreamHandler_GetMyLivestreams(t *testing.T) {
 	}{
 		{
 			name:   "returns livestreams of logged-in user",
-			cookie: validCookie,
+			cookie: sessionAs(42),
 			usecase: &fakeLivestreamUsecase{livestreams: []*model.Livestream{
 				{ID: 1, Owner: owner, Title: "s1", Tags: []model.TagModel{{ID: 1, Name: "t1"}}},
 				{ID: 2, Owner: owner, Title: "s2"},
@@ -197,7 +175,7 @@ func TestLivestreamHandler_GetMyLivestreams(t *testing.T) {
 		{
 			// 配信が無い場合も null ではなく [] を返す (移行前と同じ)
 			name:     "returns empty array when no livestreams",
-			cookie:   validCookie,
+			cookie:   sessionAs(42),
 			usecase:  &fakeLivestreamUsecase{livestreams: nil},
 			wantCode: http.StatusOK,
 			wantBody: "[]\n",
@@ -210,7 +188,7 @@ func TestLivestreamHandler_GetMyLivestreams(t *testing.T) {
 		},
 		{
 			name:     "returns 500 on unexpected error",
-			cookie:   validCookie,
+			cookie:   sessionAs(42),
 			usecase:  &fakeLivestreamUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
 		},
@@ -218,22 +196,8 @@ func TestLivestreamHandler_GetMyLivestreams(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := newTestEcho()
-			e.GET("/api/livestream", newLivestreamHandler(tt.usecase).GetMyLivestreams)
-
-			req := httptest.NewRequest(http.MethodGet, "/api/livestream", nil)
-			if tt.cookie != nil {
-				req.AddCookie(tt.cookie(t))
-			}
-			rec := httptest.NewRecorder()
-			e.ServeHTTP(rec, req)
-
-			if rec.Code != tt.wantCode {
-				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
-			}
-			if tt.wantBody != "" && rec.Body.String() != tt.wantBody {
-				t.Errorf("body = %s\nwant   %s", rec.Body.String(), tt.wantBody)
-			}
+			rec := serve(t, newLivestreamHandler(tt.usecase).GetMyLivestreams, testRequest{method: http.MethodGet, route: "/api/livestream", path: "/api/livestream", cookie: tt.cookie})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusOK && tt.usecase.gotUserID != 42 {
 				t.Errorf("userID = %d, want 42", tt.usecase.gotUserID)
 			}
@@ -242,9 +206,6 @@ func TestLivestreamHandler_GetMyLivestreams(t *testing.T) {
 }
 
 func TestLivestreamHandler_GetUserLivestreams(t *testing.T) {
-	validCookie := func(t *testing.T) *http.Cookie {
-		return newSessionCookie(t, 1, time.Now().Add(time.Hour))
-	}
 	owner := model.User{ID: 42, Name: "alice", Theme: model.ThemeModel{ID: 20, UserID: 42}, IconHash: "abc"}
 
 	tests := []struct {
@@ -256,14 +217,14 @@ func TestLivestreamHandler_GetUserLivestreams(t *testing.T) {
 	}{
 		{
 			name:     "returns livestreams of the user",
-			cookie:   validCookie,
+			cookie:   sessionAs(1),
 			usecase:  &fakeLivestreamUsecase{livestreams: []*model.Livestream{{ID: 1, Owner: owner, Title: "s1"}}},
 			wantCode: http.StatusOK,
 			wantBody: `[{"id":1,"owner":{"id":42,"name":"alice","theme":{"id":20,"dark_mode":false},"icon_hash":"abc"},"title":"s1","description":"","playlist_url":"","thumbnail_url":"","tags":[],"start_at":0,"end_at":0}]` + "\n",
 		},
 		{
 			name:     "returns empty array when no livestreams",
-			cookie:   validCookie,
+			cookie:   sessionAs(1),
 			usecase:  &fakeLivestreamUsecase{livestreams: nil},
 			wantCode: http.StatusOK,
 			wantBody: "[]\n",
@@ -276,7 +237,7 @@ func TestLivestreamHandler_GetUserLivestreams(t *testing.T) {
 		},
 		{
 			name:     "returns 404 when user is not found",
-			cookie:   validCookie,
+			cookie:   sessionAs(1),
 			usecase:  &fakeLivestreamUsecase{err: usecase.ErrUserNotFound},
 			wantCode: http.StatusNotFound,
 			// このエンドポイントだけ 404 のメッセージが他と異なるので確認しておく (echo のデフォルトのエラーハンドラの形式)
@@ -284,7 +245,7 @@ func TestLivestreamHandler_GetUserLivestreams(t *testing.T) {
 		},
 		{
 			name:     "returns 500 on unexpected error",
-			cookie:   validCookie,
+			cookie:   sessionAs(1),
 			usecase:  &fakeLivestreamUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
 		},
@@ -292,22 +253,8 @@ func TestLivestreamHandler_GetUserLivestreams(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := newTestEcho()
-			e.GET("/api/user/:username/livestream", newLivestreamHandler(tt.usecase).GetUserLivestreams)
-
-			req := httptest.NewRequest(http.MethodGet, "/api/user/alice/livestream", nil)
-			if tt.cookie != nil {
-				req.AddCookie(tt.cookie(t))
-			}
-			rec := httptest.NewRecorder()
-			e.ServeHTTP(rec, req)
-
-			if rec.Code != tt.wantCode {
-				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
-			}
-			if tt.wantBody != "" && rec.Body.String() != tt.wantBody {
-				t.Errorf("body = %s\nwant   %s", rec.Body.String(), tt.wantBody)
-			}
+			rec := serve(t, newLivestreamHandler(tt.usecase).GetUserLivestreams, testRequest{method: http.MethodGet, route: "/api/user/:username/livestream", path: "/api/user/alice/livestream", cookie: tt.cookie})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusOK && tt.usecase.gotUsername != "alice" {
 				t.Errorf("username = %q, want %q", tt.usecase.gotUsername, "alice")
 			}
@@ -384,20 +331,9 @@ func TestLivestreamHandler_SearchLivestreams(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := newTestEcho()
-			e.GET("/api/livestream/search", newLivestreamHandler(tt.usecase).SearchLivestreams)
-
 			// セッション不要のエンドポイントなので Cookie は付けない
-			req := httptest.NewRequest(http.MethodGet, "/api/livestream/search"+tt.query, nil)
-			rec := httptest.NewRecorder()
-			e.ServeHTTP(rec, req)
-
-			if rec.Code != tt.wantCode {
-				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
-			}
-			if tt.wantBody != "" && rec.Body.String() != tt.wantBody {
-				t.Errorf("body = %s\nwant   %s", rec.Body.String(), tt.wantBody)
-			}
+			rec := serve(t, newLivestreamHandler(tt.usecase).SearchLivestreams, testRequest{method: http.MethodGet, route: "/api/livestream/search", path: "/api/livestream/search" + tt.query})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCalls != nil && !slices.Equal(tt.usecase.calls, tt.wantCalls) {
 				t.Errorf("calls = %v, want %v", tt.usecase.calls, tt.wantCalls)
 			}
@@ -414,21 +350,13 @@ func TestLivestreamHandler_SearchLivestreams(t *testing.T) {
 func TestLivestreamHandler_SearchLivestreams_Limit(t *testing.T) {
 	testLimitQueryParam(t, maxLivestreamsLimit, func(t *testing.T, limit string) (*httptest.ResponseRecorder, *model.Limit) {
 		u := &fakeLivestreamUsecase{}
-		e := newTestEcho()
-		e.GET("/api/livestream/search", newLivestreamHandler(u).SearchLivestreams)
-
 		// セッションは不要
-		req := httptest.NewRequest(http.MethodGet, "/api/livestream/search?limit="+limit, nil)
-		rec := httptest.NewRecorder()
-		e.ServeHTTP(rec, req)
+		rec := serve(t, newLivestreamHandler(u).SearchLivestreams, testRequest{method: http.MethodGet, route: "/api/livestream/search", path: "/api/livestream/search?limit=" + limit})
 		return rec, u.gotLimit
 	})
 }
 
 func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
-	validCookie := func(t *testing.T) *http.Cookie {
-		return newSessionCookie(t, 2, time.Now().Add(time.Hour))
-	}
 	owner := model.User{ID: 2, Name: "alice", Theme: model.ThemeModel{ID: 20, UserID: 2, DarkMode: true}, IconHash: "abc"}
 	reqBody := `{"tags":[1,3],"title":"stream","description":"desc","playlist_url":"https://example.com/p.m3u8","thumbnail_url":"https://example.com/t.jpg","start_at":1700874000,"end_at":1700877600}`
 
@@ -442,7 +370,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 	}{
 		{
 			name:   "reserves livestream",
-			cookie: validCookie,
+			cookie: sessionAs(2),
 			body:   reqBody,
 			usecase: &fakeLivestreamUsecase{livestream: &model.Livestream{
 				ID:           10,
@@ -467,7 +395,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 		},
 		{
 			name:     "returns 400 on invalid json",
-			cookie:   validCookie,
+			cookie:   sessionAs(2),
 			body:     `{`,
 			usecase:  &fakeLivestreamUsecase{},
 			wantCode: http.StatusBadRequest,
@@ -475,7 +403,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 		},
 		{
 			name:     "returns 400 on bad time range",
-			cookie:   validCookie,
+			cookie:   sessionAs(2),
 			body:     reqBody,
 			usecase:  &fakeLivestreamUsecase{err: usecase.ErrBadReservationTimeRange},
 			wantCode: http.StatusBadRequest,
@@ -484,7 +412,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 		{
 			// メッセージは usecase のエラーのものをそのまま返す
 			name:     "returns 400 when slot is unavailable",
-			cookie:   validCookie,
+			cookie:   sessionAs(2),
 			body:     reqBody,
 			usecase:  &fakeLivestreamUsecase{err: &usecase.ReservationSlotUnavailableError{StartAt: 1700874000, EndAt: 1700877600}},
 			wantCode: http.StatusBadRequest,
@@ -492,7 +420,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 		},
 		{
 			name:     "returns 500 on unexpected error",
-			cookie:   validCookie,
+			cookie:   sessionAs(2),
 			body:     reqBody,
 			usecase:  &fakeLivestreamUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
@@ -502,23 +430,8 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := newTestEcho()
-			e.POST("/api/livestream/reservation", newLivestreamHandler(tt.usecase).ReserveLivestream)
-
-			req := httptest.NewRequest(http.MethodPost, "/api/livestream/reservation", strings.NewReader(tt.body))
-			req.Header.Set("Content-Type", "application/json")
-			if tt.cookie != nil {
-				req.AddCookie(tt.cookie(t))
-			}
-			rec := httptest.NewRecorder()
-			e.ServeHTTP(rec, req)
-
-			if rec.Code != tt.wantCode {
-				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
-			}
-			if tt.wantBody != "" && rec.Body.String() != tt.wantBody {
-				t.Errorf("body = %s\nwant   %s", rec.Body.String(), tt.wantBody)
-			}
+			rec := serve(t, newLivestreamHandler(tt.usecase).ReserveLivestream, testRequest{method: http.MethodPost, route: "/api/livestream/reservation", path: "/api/livestream/reservation", body: tt.body, cookie: tt.cookie})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusCreated {
 				wantInput := usecase.ReserveLivestreamInput{
 					TagIDs:       []model.TagID{1, 3},

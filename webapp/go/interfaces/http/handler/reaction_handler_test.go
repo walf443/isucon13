@@ -5,9 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
-	"time"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 )
@@ -55,10 +53,6 @@ var (
 )
 
 func TestReactionHandler_GetReactions(t *testing.T) {
-	validCookie := func(t *testing.T) *http.Cookie {
-		return newSessionCookie(t, 1, time.Now().Add(time.Hour))
-	}
-
 	tests := []struct {
 		name      string
 		path      string
@@ -71,7 +65,7 @@ func TestReactionHandler_GetReactions(t *testing.T) {
 		{
 			name:     "returns reactions",
 			path:     "/api/livestream/10/reaction",
-			cookie:   validCookie,
+			cookie:   sessionAs(1),
 			usecase:  &fakeReactionUsecase{reactions: []*model.Reaction{testReaction}},
 			wantCode: http.StatusOK,
 			wantBody: "[" + testReactionJSON + "]\n",
@@ -79,7 +73,7 @@ func TestReactionHandler_GetReactions(t *testing.T) {
 		{
 			name:      "passes limit",
 			path:      "/api/livestream/10/reaction?limit=5",
-			cookie:    validCookie,
+			cookie:    sessionAs(1),
 			usecase:   &fakeReactionUsecase{},
 			wantCode:  http.StatusOK,
 			wantBody:  "[]\n",
@@ -95,14 +89,14 @@ func TestReactionHandler_GetReactions(t *testing.T) {
 		{
 			name:     "returns 400 when livestream_id is not integer",
 			path:     "/api/livestream/abc/reaction",
-			cookie:   validCookie,
+			cookie:   sessionAs(1),
 			usecase:  &fakeReactionUsecase{},
 			wantCode: http.StatusBadRequest,
 		},
 		{
 			name:     "returns 500 on unexpected error",
 			path:     "/api/livestream/10/reaction",
-			cookie:   validCookie,
+			cookie:   sessionAs(1),
 			usecase:  &fakeReactionUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
 		},
@@ -110,22 +104,8 @@ func TestReactionHandler_GetReactions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := newTestEcho()
-			e.GET("/api/livestream/:livestream_id/reaction", newReactionHandler(tt.usecase).GetReactions)
-
-			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
-			if tt.cookie != nil {
-				req.AddCookie(tt.cookie(t))
-			}
-			rec := httptest.NewRecorder()
-			e.ServeHTTP(rec, req)
-
-			if rec.Code != tt.wantCode {
-				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
-			}
-			if tt.wantBody != "" && rec.Body.String() != tt.wantBody {
-				t.Errorf("body = %s\nwant   %s", rec.Body.String(), tt.wantBody)
-			}
+			rec := serve(t, newReactionHandler(tt.usecase).GetReactions, testRequest{method: http.MethodGet, route: "/api/livestream/:livestream_id/reaction", path: tt.path, cookie: tt.cookie})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusOK {
 				if tt.usecase.gotLivestreamID != 10 {
 					t.Errorf("livestreamID = %d, want 10", tt.usecase.gotLivestreamID)
@@ -139,10 +119,6 @@ func TestReactionHandler_GetReactions(t *testing.T) {
 }
 
 func TestReactionHandler_PostReaction(t *testing.T) {
-	validCookie := func(t *testing.T) *http.Cookie {
-		return newSessionCookie(t, 1, time.Now().Add(time.Hour))
-	}
-
 	tests := []struct {
 		name     string
 		path     string
@@ -155,7 +131,7 @@ func TestReactionHandler_PostReaction(t *testing.T) {
 		{
 			name:     "creates reaction",
 			path:     "/api/livestream/10/reaction",
-			cookie:   validCookie,
+			cookie:   sessionAs(1),
 			body:     `{"emoji_name":"tada"}`,
 			usecase:  &fakeReactionUsecase{reaction: testReaction},
 			wantCode: http.StatusCreated,
@@ -181,7 +157,7 @@ func TestReactionHandler_PostReaction(t *testing.T) {
 		{
 			name:     "returns 400 on invalid json",
 			path:     "/api/livestream/10/reaction",
-			cookie:   validCookie,
+			cookie:   sessionAs(1),
 			body:     `{`,
 			usecase:  &fakeReactionUsecase{},
 			wantCode: http.StatusBadRequest,
@@ -189,7 +165,7 @@ func TestReactionHandler_PostReaction(t *testing.T) {
 		{
 			name:     "returns 500 on unexpected error",
 			path:     "/api/livestream/10/reaction",
-			cookie:   validCookie,
+			cookie:   sessionAs(1),
 			body:     `{"emoji_name":"tada"}`,
 			usecase:  &fakeReactionUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
@@ -198,23 +174,8 @@ func TestReactionHandler_PostReaction(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := newTestEcho()
-			e.POST("/api/livestream/:livestream_id/reaction", newReactionHandler(tt.usecase).PostReaction)
-
-			req := httptest.NewRequest(http.MethodPost, tt.path, strings.NewReader(tt.body))
-			req.Header.Set("Content-Type", "application/json")
-			if tt.cookie != nil {
-				req.AddCookie(tt.cookie(t))
-			}
-			rec := httptest.NewRecorder()
-			e.ServeHTTP(rec, req)
-
-			if rec.Code != tt.wantCode {
-				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
-			}
-			if tt.wantBody != "" && rec.Body.String() != tt.wantBody {
-				t.Errorf("body = %s\nwant   %s", rec.Body.String(), tt.wantBody)
-			}
+			rec := serve(t, newReactionHandler(tt.usecase).PostReaction, testRequest{method: http.MethodPost, route: "/api/livestream/:livestream_id/reaction", path: tt.path, body: tt.body, cookie: tt.cookie})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusCreated {
 				if tt.usecase.gotUserID != 1 || tt.usecase.gotLivestreamID != 10 || tt.usecase.gotEmojiName != "tada" {
 					t.Errorf("userID = %d, livestreamID = %d, emoji = %q", tt.usecase.gotUserID, tt.usecase.gotLivestreamID, tt.usecase.gotEmojiName)
@@ -227,13 +188,7 @@ func TestReactionHandler_PostReaction(t *testing.T) {
 func TestReactionHandler_GetReactions_Limit(t *testing.T) {
 	testLimitQueryParam(t, maxReactionsLimit, func(t *testing.T, limit string) (*httptest.ResponseRecorder, *model.Limit) {
 		u := &fakeReactionUsecase{}
-		e := newTestEcho()
-		e.GET("/api/livestream/:livestream_id/reaction", newReactionHandler(u).GetReactions)
-
-		req := httptest.NewRequest(http.MethodGet, "/api/livestream/10/reaction?limit="+limit, nil)
-		req.AddCookie(newSessionCookie(t, 1, time.Now().Add(time.Hour)))
-		rec := httptest.NewRecorder()
-		e.ServeHTTP(rec, req)
+		rec := serve(t, newReactionHandler(u).GetReactions, testRequest{method: http.MethodGet, route: "/api/livestream/:livestream_id/reaction", path: "/api/livestream/10/reaction?limit=" + limit, cookie: sessionAs(1)})
 		return rec, u.gotLimit
 	})
 }

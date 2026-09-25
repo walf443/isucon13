@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
@@ -47,10 +46,6 @@ func (u *fakeUserUsecase) FindByName(ctx context.Context, name string) (*model.U
 }
 
 func TestUserHandler_GetUser(t *testing.T) {
-	validCookie := func(t *testing.T) *http.Cookie {
-		return newSessionCookie(t, 1, time.Now().Add(time.Hour))
-	}
-
 	tests := []struct {
 		name     string
 		cookie   func(t *testing.T) *http.Cookie
@@ -60,7 +55,7 @@ func TestUserHandler_GetUser(t *testing.T) {
 	}{
 		{
 			name:   "returns user",
-			cookie: validCookie,
+			cookie: sessionAs(1),
 			usecase: &fakeUserUsecase{user: &model.User{
 				ID:          1,
 				Name:        "alice",
@@ -80,13 +75,13 @@ func TestUserHandler_GetUser(t *testing.T) {
 		},
 		{
 			name:     "returns 404 when user is not found",
-			cookie:   validCookie,
+			cookie:   sessionAs(1),
 			usecase:  &fakeUserUsecase{err: usecase.ErrUserNotFound},
 			wantCode: http.StatusNotFound,
 		},
 		{
 			name:     "returns 500 on unexpected error",
-			cookie:   validCookie,
+			cookie:   sessionAs(1),
 			usecase:  &fakeUserUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
 		},
@@ -94,22 +89,8 @@ func TestUserHandler_GetUser(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := newTestEcho()
-			e.GET("/api/user/:username", newUserHandler(tt.usecase).GetUser)
-
-			req := httptest.NewRequest(http.MethodGet, "/api/user/alice", nil)
-			if tt.cookie != nil {
-				req.AddCookie(tt.cookie(t))
-			}
-			rec := httptest.NewRecorder()
-			e.ServeHTTP(rec, req)
-
-			if rec.Code != tt.wantCode {
-				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
-			}
-			if tt.wantBody != "" && rec.Body.String() != tt.wantBody {
-				t.Errorf("body = %q, want %q", rec.Body.String(), tt.wantBody)
-			}
+			rec := serve(t, newUserHandler(tt.usecase).GetUser, testRequest{method: http.MethodGet, route: "/api/user/:username", path: "/api/user/alice", cookie: tt.cookie})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusOK && tt.usecase.gotName != "alice" {
 				t.Errorf("name = %q, want %q", tt.usecase.gotName, "alice")
 			}
@@ -118,10 +99,6 @@ func TestUserHandler_GetUser(t *testing.T) {
 }
 
 func TestUserHandler_GetMe(t *testing.T) {
-	validCookie := func(t *testing.T) *http.Cookie {
-		return newSessionCookie(t, 42, time.Now().Add(time.Hour))
-	}
-
 	tests := []struct {
 		name     string
 		cookie   func(t *testing.T) *http.Cookie
@@ -131,7 +108,7 @@ func TestUserHandler_GetMe(t *testing.T) {
 	}{
 		{
 			name:   "returns logged-in user",
-			cookie: validCookie,
+			cookie: sessionAs(42),
 			usecase: &fakeUserUsecase{user: &model.User{
 				ID:          42,
 				Name:        "alice",
@@ -151,13 +128,13 @@ func TestUserHandler_GetMe(t *testing.T) {
 		},
 		{
 			name:     "returns 404 when session user is not found",
-			cookie:   validCookie,
+			cookie:   sessionAs(42),
 			usecase:  &fakeUserUsecase{err: usecase.ErrUserNotFound},
 			wantCode: http.StatusNotFound,
 		},
 		{
 			name:     "returns 500 on unexpected error",
-			cookie:   validCookie,
+			cookie:   sessionAs(42),
 			usecase:  &fakeUserUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
 		},
@@ -165,22 +142,8 @@ func TestUserHandler_GetMe(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := newTestEcho()
-			e.GET("/api/user/me", newUserHandler(tt.usecase).GetMe)
-
-			req := httptest.NewRequest(http.MethodGet, "/api/user/me", nil)
-			if tt.cookie != nil {
-				req.AddCookie(tt.cookie(t))
-			}
-			rec := httptest.NewRecorder()
-			e.ServeHTTP(rec, req)
-
-			if rec.Code != tt.wantCode {
-				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
-			}
-			if tt.wantBody != "" && rec.Body.String() != tt.wantBody {
-				t.Errorf("body = %q, want %q", rec.Body.String(), tt.wantBody)
-			}
+			rec := serve(t, newUserHandler(tt.usecase).GetMe, testRequest{method: http.MethodGet, route: "/api/user/me", path: "/api/user/me", cookie: tt.cookie})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusOK && tt.usecase.gotID != 42 {
 				t.Errorf("id = %d, want 42", tt.usecase.gotID)
 			}
@@ -232,21 +195,9 @@ func TestUserHandler_Register(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := newTestEcho()
-			e.POST("/api/register", newUserHandler(tt.usecase).Register)
-
 			// セッションは不要
-			req := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(tt.body))
-			req.Header.Set("Content-Type", "application/json")
-			rec := httptest.NewRecorder()
-			e.ServeHTTP(rec, req)
-
-			if rec.Code != tt.wantCode {
-				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
-			}
-			if tt.wantBody != "" && rec.Body.String() != tt.wantBody {
-				t.Errorf("body = %s\nwant   %s", rec.Body.String(), tt.wantBody)
-			}
+			rec := serve(t, newUserHandler(tt.usecase).Register, testRequest{method: http.MethodPost, route: "/api/register", path: "/api/register", body: tt.body})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusCreated {
 				want := usecase.RegisterUserInput{Name: "alice", DisplayName: "Alice", Description: "hello", Password: "s3cret", DarkMode: true}
 				if tt.usecase.gotInput != want {
@@ -300,22 +251,10 @@ func TestUserHandler_Login(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := newTestEcho()
 			h := newUserHandler(tt.usecase)
 			h.now = func() time.Time { return now }
-			e.POST("/api/login", h.Login)
-
-			req := httptest.NewRequest(http.MethodPost, "/api/login", strings.NewReader(tt.body))
-			req.Header.Set("Content-Type", "application/json")
-			rec := httptest.NewRecorder()
-			e.ServeHTTP(rec, req)
-
-			if rec.Code != tt.wantCode {
-				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
-			}
-			if tt.wantBody != "" && rec.Body.String() != tt.wantBody {
-				t.Errorf("body = %s\nwant   %s", rec.Body.String(), tt.wantBody)
-			}
+			rec := serve(t, h.Login, testRequest{method: http.MethodPost, route: "/api/login", path: "/api/login", body: tt.body})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			cookies := rec.Result().Cookies()
 			if tt.wantCode != http.StatusOK {
 				if len(cookies) != 0 {

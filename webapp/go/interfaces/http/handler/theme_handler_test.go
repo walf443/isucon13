@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -24,10 +23,6 @@ func (u *fakeThemeUsecase) FindByUsername(ctx context.Context, username string) 
 }
 
 func TestThemeHandler_GetStreamerTheme(t *testing.T) {
-	validCookie := func(t *testing.T) *http.Cookie {
-		return newSessionCookie(t, 1, time.Now().Add(time.Hour))
-	}
-
 	tests := []struct {
 		name     string
 		cookie   func(t *testing.T) *http.Cookie
@@ -37,7 +32,7 @@ func TestThemeHandler_GetStreamerTheme(t *testing.T) {
 	}{
 		{
 			name:     "returns theme",
-			cookie:   validCookie,
+			cookie:   sessionAs(1),
 			usecase:  &fakeThemeUsecase{theme: &model.ThemeModel{ID: 10, UserID: 1, DarkMode: true}},
 			wantCode: http.StatusOK,
 			wantBody: `{"id":10,"dark_mode":true}` + "\n",
@@ -59,13 +54,13 @@ func TestThemeHandler_GetStreamerTheme(t *testing.T) {
 		},
 		{
 			name:     "returns 404 when user is not found",
-			cookie:   validCookie,
+			cookie:   sessionAs(1),
 			usecase:  &fakeThemeUsecase{err: usecase.ErrUserNotFound},
 			wantCode: http.StatusNotFound,
 		},
 		{
 			name:     "returns 500 on unexpected error",
-			cookie:   validCookie,
+			cookie:   sessionAs(1),
 			usecase:  &fakeThemeUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
 		},
@@ -73,22 +68,8 @@ func TestThemeHandler_GetStreamerTheme(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := newTestEcho()
-			e.GET("/api/user/:username/theme", newThemeHandler(tt.usecase).GetStreamerTheme)
-
-			req := httptest.NewRequest(http.MethodGet, "/api/user/alice/theme", nil)
-			if tt.cookie != nil {
-				req.AddCookie(tt.cookie(t))
-			}
-			rec := httptest.NewRecorder()
-			e.ServeHTTP(rec, req)
-
-			if rec.Code != tt.wantCode {
-				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
-			}
-			if tt.wantBody != "" && rec.Body.String() != tt.wantBody {
-				t.Errorf("body = %q, want %q", rec.Body.String(), tt.wantBody)
-			}
+			rec := serve(t, newThemeHandler(tt.usecase).GetStreamerTheme, testRequest{method: http.MethodGet, route: "/api/user/:username/theme", path: "/api/user/alice/theme", cookie: tt.cookie})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusOK && tt.usecase.gotUsername != "alice" {
 				t.Errorf("username = %q, want %q", tt.usecase.gotUsername, "alice")
 			}

@@ -4,10 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
-	"time"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/usecase"
@@ -37,10 +34,6 @@ func (u *fakeNGWordUsecase) FindAllByLivestreamID(ctx context.Context, userID mo
 }
 
 func TestNGWordHandler_GetNGWords(t *testing.T) {
-	validCookie := func(t *testing.T) *http.Cookie {
-		return newSessionCookie(t, 2, time.Now().Add(time.Hour))
-	}
-
 	tests := []struct {
 		name     string
 		path     string
@@ -52,7 +45,7 @@ func TestNGWordHandler_GetNGWords(t *testing.T) {
 		{
 			name:   "returns NG words",
 			path:   "/api/livestream/10/ngwords",
-			cookie: validCookie,
+			cookie: sessionAs(2),
 			usecase: &fakeNGWordUsecase{ngWords: []*model.NGWordModel{
 				{ID: 2, UserID: 2, LivestreamID: 10, Word: "bad2", CreatedAt: 200},
 				{ID: 1, UserID: 2, LivestreamID: 10, Word: "bad1", CreatedAt: 100},
@@ -64,7 +57,7 @@ func TestNGWordHandler_GetNGWords(t *testing.T) {
 			// NG ワードが無い場合は [] ではなく null を返す (移行前と同じ)
 			name:     "returns null when no NG words",
 			path:     "/api/livestream/10/ngwords",
-			cookie:   validCookie,
+			cookie:   sessionAs(2),
 			usecase:  &fakeNGWordUsecase{ngWords: nil},
 			wantCode: http.StatusOK,
 			wantBody: "null\n",
@@ -79,14 +72,14 @@ func TestNGWordHandler_GetNGWords(t *testing.T) {
 		{
 			name:     "returns 400 when livestream_id is not integer",
 			path:     "/api/livestream/abc/ngwords",
-			cookie:   validCookie,
+			cookie:   sessionAs(2),
 			usecase:  &fakeNGWordUsecase{},
 			wantCode: http.StatusBadRequest,
 		},
 		{
 			name:     "returns 500 on unexpected error",
 			path:     "/api/livestream/10/ngwords",
-			cookie:   validCookie,
+			cookie:   sessionAs(2),
 			usecase:  &fakeNGWordUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
 		},
@@ -94,22 +87,8 @@ func TestNGWordHandler_GetNGWords(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := newTestEcho()
-			e.GET("/api/livestream/:livestream_id/ngwords", newNGWordHandler(tt.usecase).GetNGWords)
-
-			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
-			if tt.cookie != nil {
-				req.AddCookie(tt.cookie(t))
-			}
-			rec := httptest.NewRecorder()
-			e.ServeHTTP(rec, req)
-
-			if rec.Code != tt.wantCode {
-				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
-			}
-			if tt.wantBody != "" && rec.Body.String() != tt.wantBody {
-				t.Errorf("body = %s\nwant   %s", rec.Body.String(), tt.wantBody)
-			}
+			rec := serve(t, newNGWordHandler(tt.usecase).GetNGWords, testRequest{method: http.MethodGet, route: "/api/livestream/:livestream_id/ngwords", path: tt.path, cookie: tt.cookie})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusOK && (tt.usecase.gotUserID != 2 || tt.usecase.gotLivestreamID != 10) {
 				t.Errorf("userID = %d, livestreamID = %d", tt.usecase.gotUserID, tt.usecase.gotLivestreamID)
 			}
@@ -118,10 +97,6 @@ func TestNGWordHandler_GetNGWords(t *testing.T) {
 }
 
 func TestNGWordHandler_Moderate(t *testing.T) {
-	validCookie := func(t *testing.T) *http.Cookie {
-		return newSessionCookie(t, 2, time.Now().Add(time.Hour))
-	}
-
 	tests := []struct {
 		name     string
 		path     string
@@ -134,7 +109,7 @@ func TestNGWordHandler_Moderate(t *testing.T) {
 		{
 			name:     "registers NG word",
 			path:     "/api/livestream/10/moderate",
-			cookie:   validCookie,
+			cookie:   sessionAs(2),
 			body:     `{"ng_word":"bad"}`,
 			usecase:  &fakeNGWordUsecase{wordID: 7},
 			wantCode: http.StatusCreated,
@@ -151,7 +126,7 @@ func TestNGWordHandler_Moderate(t *testing.T) {
 		{
 			name:     "returns 400 when livestream_id is not integer",
 			path:     "/api/livestream/abc/moderate",
-			cookie:   validCookie,
+			cookie:   sessionAs(2),
 			body:     `{"ng_word":"bad"}`,
 			usecase:  &fakeNGWordUsecase{},
 			wantCode: http.StatusBadRequest,
@@ -159,7 +134,7 @@ func TestNGWordHandler_Moderate(t *testing.T) {
 		{
 			name:     "returns 400 on invalid json",
 			path:     "/api/livestream/10/moderate",
-			cookie:   validCookie,
+			cookie:   sessionAs(2),
 			body:     `{`,
 			usecase:  &fakeNGWordUsecase{},
 			wantCode: http.StatusBadRequest,
@@ -168,7 +143,7 @@ func TestNGWordHandler_Moderate(t *testing.T) {
 			// 他の配信者のライブ配信は 403 ではなく 400 (移行前と同じ)
 			name:     "returns 400 when not the owner",
 			path:     "/api/livestream/10/moderate",
-			cookie:   validCookie,
+			cookie:   sessionAs(2),
 			body:     `{"ng_word":"bad"}`,
 			usecase:  &fakeNGWordUsecase{err: usecase.ErrNotLivestreamOwner},
 			wantCode: http.StatusBadRequest,
@@ -177,7 +152,7 @@ func TestNGWordHandler_Moderate(t *testing.T) {
 		{
 			name:     "returns 500 on unexpected error",
 			path:     "/api/livestream/10/moderate",
-			cookie:   validCookie,
+			cookie:   sessionAs(2),
 			body:     `{"ng_word":"bad"}`,
 			usecase:  &fakeNGWordUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
@@ -186,23 +161,8 @@ func TestNGWordHandler_Moderate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := newTestEcho()
-			e.POST("/api/livestream/:livestream_id/moderate", newNGWordHandler(tt.usecase).Moderate)
-
-			req := httptest.NewRequest(http.MethodPost, tt.path, strings.NewReader(tt.body))
-			req.Header.Set("Content-Type", "application/json")
-			if tt.cookie != nil {
-				req.AddCookie(tt.cookie(t))
-			}
-			rec := httptest.NewRecorder()
-			e.ServeHTTP(rec, req)
-
-			if rec.Code != tt.wantCode {
-				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
-			}
-			if tt.wantBody != "" && rec.Body.String() != tt.wantBody {
-				t.Errorf("body = %s\nwant   %s", rec.Body.String(), tt.wantBody)
-			}
+			rec := serve(t, newNGWordHandler(tt.usecase).Moderate, testRequest{method: http.MethodPost, route: "/api/livestream/:livestream_id/moderate", path: tt.path, body: tt.body, cookie: tt.cookie})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusCreated && (tt.usecase.gotUserID != 2 || tt.usecase.gotLivestreamID != 10 || tt.usecase.gotWord != "bad") {
 				t.Errorf("userID = %d, livestreamID = %d, word = %q", tt.usecase.gotUserID, tt.usecase.gotLivestreamID, tt.usecase.gotWord)
 			}

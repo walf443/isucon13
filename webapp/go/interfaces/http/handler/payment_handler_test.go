@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 )
 
@@ -41,19 +40,8 @@ func TestPaymentHandler_GetPaymentResult(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := newTestEcho()
-			e.GET("/api/payment", newPaymentHandler(tt.usecase).GetPaymentResult)
-
-			req := httptest.NewRequest(http.MethodGet, "/api/payment", nil)
-			rec := httptest.NewRecorder()
-			e.ServeHTTP(rec, req)
-
-			if rec.Code != tt.wantCode {
-				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
-			}
-			if rec.Body.String() != tt.wantBody {
-				t.Errorf("body = %s\nwant   %s", rec.Body.String(), tt.wantBody)
-			}
+			rec := serve(t, newPaymentHandler(tt.usecase).GetPaymentResult, testRequest{method: http.MethodGet, route: "/api/payment", path: "/api/payment"})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 		})
 	}
 }

@@ -4,9 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 )
@@ -34,10 +32,6 @@ func (u *fakeLivestreamViewerUsecase) Exit(ctx context.Context, userID model.Use
 }
 
 func TestLivestreamViewerHandler(t *testing.T) {
-	validCookie := func(t *testing.T) *http.Cookie {
-		return newSessionCookie(t, 1, time.Now().Add(time.Hour))
-	}
-
 	tests := []struct {
 		name       string
 		method     string
@@ -52,7 +46,7 @@ func TestLivestreamViewerHandler(t *testing.T) {
 			name:       "enter",
 			method:     http.MethodPost,
 			path:       "/api/livestream/10/enter",
-			cookie:     validCookie,
+			cookie:     sessionAs(1),
 			usecase:    &fakeLivestreamViewerUsecase{},
 			wantCode:   http.StatusOK,
 			wantCalled: "Enter",
@@ -70,7 +64,7 @@ func TestLivestreamViewerHandler(t *testing.T) {
 			name:     "enter returns 400 when livestream_id is not integer",
 			method:   http.MethodPost,
 			path:     "/api/livestream/abc/enter",
-			cookie:   validCookie,
+			cookie:   sessionAs(1),
 			usecase:  &fakeLivestreamViewerUsecase{},
 			wantCode: http.StatusBadRequest,
 			wantBody: `{"message":"livestream_id must be integer"}` + "\n",
@@ -79,7 +73,7 @@ func TestLivestreamViewerHandler(t *testing.T) {
 			name:       "enter returns 500 on unexpected error",
 			method:     http.MethodPost,
 			path:       "/api/livestream/10/enter",
-			cookie:     validCookie,
+			cookie:     sessionAs(1),
 			usecase:    &fakeLivestreamViewerUsecase{err: errors.New("boom")},
 			wantCode:   http.StatusInternalServerError,
 			wantBody:   `{"message":"boom"}` + "\n",
@@ -89,7 +83,7 @@ func TestLivestreamViewerHandler(t *testing.T) {
 			name:       "exit",
 			method:     http.MethodDelete,
 			path:       "/api/livestream/10/exit",
-			cookie:     validCookie,
+			cookie:     sessionAs(1),
 			usecase:    &fakeLivestreamViewerUsecase{},
 			wantCode:   http.StatusOK,
 			wantCalled: "Exit",
@@ -106,7 +100,7 @@ func TestLivestreamViewerHandler(t *testing.T) {
 			name:     "exit returns 400 when livestream_id is not integer",
 			method:   http.MethodDelete,
 			path:     "/api/livestream/abc/exit",
-			cookie:   validCookie,
+			cookie:   sessionAs(1),
 			usecase:  &fakeLivestreamViewerUsecase{},
 			wantCode: http.StatusBadRequest,
 			wantBody: `{"message":"livestream_id in path must be integer"}` + "\n",
@@ -115,7 +109,7 @@ func TestLivestreamViewerHandler(t *testing.T) {
 			name:       "exit returns 500 on unexpected error",
 			method:     http.MethodDelete,
 			path:       "/api/livestream/10/exit",
-			cookie:     validCookie,
+			cookie:     sessionAs(1),
 			usecase:    &fakeLivestreamViewerUsecase{err: errors.New("boom")},
 			wantCode:   http.StatusInternalServerError,
 			wantBody:   `{"message":"boom"}` + "\n",
@@ -125,24 +119,13 @@ func TestLivestreamViewerHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := newTestEcho()
 			h := newLivestreamViewerHandler(tt.usecase)
-			e.POST("/api/livestream/:livestream_id/enter", h.EnterLivestream)
-			e.DELETE("/api/livestream/:livestream_id/exit", h.ExitLivestream)
-
-			req := httptest.NewRequest(tt.method, tt.path, nil)
-			if tt.cookie != nil {
-				req.AddCookie(tt.cookie(t))
+			route, handle := "/api/livestream/:livestream_id/enter", h.EnterLivestream
+			if tt.method == http.MethodDelete {
+				route, handle = "/api/livestream/:livestream_id/exit", h.ExitLivestream
 			}
-			rec := httptest.NewRecorder()
-			e.ServeHTTP(rec, req)
-
-			if rec.Code != tt.wantCode {
-				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
-			}
-			if tt.wantBody != "" && rec.Body.String() != tt.wantBody {
-				t.Errorf("body = %s\nwant   %s", rec.Body.String(), tt.wantBody)
-			}
+			rec := serve(t, handle, testRequest{method: tt.method, route: route, path: tt.path, cookie: tt.cookie})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.usecase.called != tt.wantCalled {
 				t.Errorf("called = %q, want %q", tt.usecase.called, tt.wantCalled)
 			}
