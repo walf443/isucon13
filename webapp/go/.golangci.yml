@@ -29,6 +29,13 @@ linters:
               desc: usecase must not depend on infra
             - pkg: github.com/isucon/isucon13/webapp/go/interfaces
               desc: usecase must not depend on interfaces
+            # repository の interface (usecase/repository) も含め、DB の実装の型を持ち込まない
+            - pkg: database/sql
+              desc: usecase must not depend on database/sql
+            - pkg: github.com/jmoiron/sqlx
+              desc: usecase must not depend on sqlx
+            - pkg: github.com/go-sql-driver/mysql
+              desc: usecase must not depend on the MySQL driver
         infra:
           files:
             - "**/infra/**"
@@ -41,6 +48,9 @@ linters:
           deny:
             - pkg: github.com/isucon/isucon13/webapp/go/infra
               desc: interfaces must not depend on infra
+            # handler は usecase を通してデータにアクセスする
+            - pkg: github.com/isucon/isucon13/webapp/go/usecase/repository
+              desc: interfaces must access data through usecases, not repositories
   exclusions:
     presets:
       # defer xxx.Close() などの戻り値を見ない慣用的な書き方を errcheck の対象外にする
