@@ -162,3 +162,32 @@ func TestLivecommentRepository_CreateAndFindWithDetailsByID(t *testing.T) {
 		t.Errorf("err = %v, want ErrNotFound", err)
 	}
 }
+
+func TestLivecommentRepository_DeleteAllByLivestreamIDMatchingNGWord(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	ownerID := insertTestUser(t, tx, "alice")
+	viewerID := insertTestUser(t, tx, "bob")
+	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
+	otherLivestreamID := insertTestLivestream(t, tx, ownerID, "other")
+
+	hit := insertTestLivecomment(t, tx, viewerID, livestreamID, "this is bad", 100)
+	// LIKE による判定なので大文字小文字は区別しない (移行前と同じ)
+	hitUpper := insertTestLivecomment(t, tx, viewerID, livestreamID, "BAD!", 100)
+	safe := insertTestLivecomment(t, tx, viewerID, livestreamID, "good", 100)
+	// 他のライブ配信のライブコメントは消さない
+	otherLivestream := insertTestLivecomment(t, tx, viewerID, otherLivestreamID, "bad", 100)
+
+	if err := NewLivecommentRepository(nil).DeleteAllByLivestreamIDMatchingNGWord(ctx, tx, livestreamID, "bad"); err != nil {
+		t.Fatalf("DeleteAllByLivestreamIDMatchingNGWord returned error: %v", err)
+	}
+
+	var remaining []model.LivecommentID
+	if err := tx.SelectContext(ctx, &remaining, "SELECT id FROM livecomments ORDER BY id"); err != nil {
+		t.Fatalf("failed to get livecomments: %v", err)
+	}
+	if want := []model.LivecommentID{safe, otherLivestream}; !slices.Equal(remaining, want) {
+		t.Errorf("remaining = %v, want %v (deleted should be %v, %v)", remaining, want, hit, hitUpper)
+	}
+}

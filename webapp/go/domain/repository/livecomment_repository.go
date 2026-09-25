@@ -16,4 +16,7 @@ type LivecommentRepository interface {
 	FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q Querier, livestreamID model.LivestreamID, limit int64) ([]*model.Livecomment, error)
 	// Create はライブコメントを登録し、その ID を返す。
 	Create(ctx context.Context, q Querier, livecomment *model.LivecommentModel) (model.LivecommentID, error)
+	// DeleteAllByLivestreamIDMatchingNGWord は指定したライブ配信へのライブコメントのうち、NG ワード word に当たるものを削除する。
+	// 判定は NGWordRepository.Matches と同じく MySQL の LIKE '%word%' で行う。
+	DeleteAllByLivestreamIDMatchingNGWord(ctx context.Context, q Querier, livestreamID model.LivestreamID, word string) error
 }

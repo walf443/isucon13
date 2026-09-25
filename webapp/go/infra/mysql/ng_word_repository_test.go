@@ -85,3 +85,43 @@ func TestNGWordRepository_Matches(t *testing.T) {
 		})
 	}
 }
+
+func TestNGWordRepository_CreateAndFindAllByLivestreamID(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+	repo := NewNGWordRepository()
+
+	create := func(userID model.UserID, livestreamID model.LivestreamID, word string) model.NGWordID {
+		t.Helper()
+		id, err := repo.Create(ctx, tx, &model.NGWordModel{UserID: userID, LivestreamID: livestreamID, Word: word, CreatedAt: 100})
+		if err != nil {
+			t.Fatalf("Create returned error: %v", err)
+		}
+		return id
+	}
+	w1 := create(1, 10, "w1")
+	// 登録したユーザが違っても、同じライブ配信の NG ワードは全て返す
+	w2 := create(2, 10, "w2")
+	create(1, 20, "other livestream")
+
+	got, err := repo.FindAllByLivestreamID(ctx, tx, 10)
+	if err != nil {
+		t.Fatalf("FindAllByLivestreamID returned error: %v", err)
+	}
+	// ORDER BY が無いので順序には依存しない
+	gotIDs := make([]model.NGWordID, len(got))
+	for i, w := range got {
+		gotIDs[i] = w.ID
+	}
+	slices.Sort(gotIDs)
+	if want := []model.NGWordID{w1, w2}; !slices.Equal(gotIDs, want) {
+		t.Errorf("ids = %v, want %v", gotIDs, want)
+	}
+	for _, w := range got {
+		if w.ID == w1 {
+			if want := (model.NGWordModel{ID: w1, UserID: 1, LivestreamID: 10, Word: "w1", CreatedAt: 100}); *w != want {
+				t.Errorf("got %+v, want %+v", *w, want)
+			}
+		}
+	}
+}

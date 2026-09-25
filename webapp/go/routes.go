@@ -32,7 +32,7 @@ func registerRoutes(e *echo.Echo, h *handlers) {
 	// ライブコメント報告
 	e.POST("/api/livestream/:livestream_id/livecomment/:livecomment_id/report", reportLivecommentHandler)
 	// 配信者によるモデレーション (NGワード登録)
-	e.POST("/api/livestream/:livestream_id/moderate", moderateHandler)
+	e.POST("/api/livestream/:livestream_id/moderate", h.ngWord.Moderate)
 
 	// livestream_viewersにINSERTするため必要
 	// ユーザ視聴開始 (viewer)

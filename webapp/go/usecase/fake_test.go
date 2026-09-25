@@ -111,10 +111,11 @@ func (r *fakeIconRepository) DeleteByUserID(ctx context.Context, q repository.Qu
 }
 
 type fakeLivestreamRepository struct {
-	livestreamModel *model.LivestreamModel
-	livestream      *model.Livestream
-	livestreams     []*model.Livestream
-	err             error
+	livestreamModel  *model.LivestreamModel
+	livestreamModels []*model.LivestreamModel
+	livestream       *model.Livestream
+	livestreams      []*model.Livestream
+	err              error
 
 	gotID     model.LivestreamID
 	gotUserID model.UserID
@@ -128,6 +129,13 @@ func (r *fakeLivestreamRepository) FindByID(ctx context.Context, q repository.Qu
 	r.calls = append(r.calls, "FindByID")
 	r.gotID = id
 	return r.livestreamModel, r.err
+}
+
+func (r *fakeLivestreamRepository) FindAllByIDAndUserID(ctx context.Context, q repository.Querier, id model.LivestreamID, userID model.UserID) ([]*model.LivestreamModel, error) {
+	r.calls = append(r.calls, "FindAllByIDAndUserID")
+	r.gotID = id
+	r.gotUserID = userID
+	return r.livestreamModels, r.err
 }
 
 func (r *fakeLivestreamRepository) FindAllWithDetailsByTagIDs(ctx context.Context, q repository.Querier, tagIDs []model.TagID) ([]*model.Livestream, error) {
@@ -198,6 +206,10 @@ func (r *fakeReactionRepository) Create(ctx context.Context, q repository.Querie
 }
 
 type fakeLivecommentRepository struct {
+	deleteErr error
+	// deletedWords は DeleteAllByLivestreamIDMatchingNGWord に渡された NG ワード
+	deletedWords []string
+
 	livecomment  *model.Livecomment
 	livecomments []*model.Livecomment
 	err          error
@@ -215,6 +227,13 @@ func (r *fakeLivecommentRepository) FindWithDetailsByID(ctx context.Context, q r
 	r.calls = append(r.calls, "FindWithDetailsByID")
 	r.gotID = id
 	return r.livecomment, r.err
+}
+
+func (r *fakeLivecommentRepository) DeleteAllByLivestreamIDMatchingNGWord(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, word string) error {
+	r.calls = append(r.calls, "DeleteAllByLivestreamIDMatchingNGWord")
+	r.gotLivestreamID = livestreamID
+	r.deletedWords = append(r.deletedWords, word)
+	return r.deleteErr
 }
 
 func (r *fakeLivecommentRepository) Create(ctx context.Context, q repository.Querier, livecomment *model.LivecommentModel) (model.LivecommentID, error) {
@@ -251,8 +270,14 @@ func (r *fakeLivecommentReportRepository) FindAllWithDetailsByLivestreamID(ctx c
 }
 
 type fakeNGWordRepository struct {
-	ngWords []*model.NGWordModel
-	err     error
+	ngWords   []*model.NGWordModel
+	err       error
+	createID  model.NGWordID
+	createErr error
+
+	// calls は呼ばれたメソッド名を順に記録する
+	calls      []string
+	gotCreated *model.NGWordModel
 	// hitWords は Matches で当たりとする NG ワード
 	hitWords []string
 	matchErr error
@@ -261,6 +286,18 @@ type fakeNGWordRepository struct {
 	gotLivestreamID model.LivestreamID
 	gotComments     []string
 	matchedWords    []string
+}
+
+func (r *fakeNGWordRepository) FindAllByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.NGWordModel, error) {
+	r.calls = append(r.calls, "FindAllByLivestreamID")
+	r.gotLivestreamID = livestreamID
+	return r.ngWords, r.err
+}
+
+func (r *fakeNGWordRepository) Create(ctx context.Context, q repository.Querier, ngWord *model.NGWordModel) (model.NGWordID, error) {
+	r.calls = append(r.calls, "Create")
+	r.gotCreated = ngWord
+	return r.createID, r.createErr
 }
 
 func (r *fakeNGWordRepository) Matches(ctx context.Context, q repository.Querier, comment string, word string) (bool, error) {

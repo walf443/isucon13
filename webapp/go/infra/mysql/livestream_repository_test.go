@@ -289,3 +289,38 @@ func TestLivestreamRepository_FindByID(t *testing.T) {
 		t.Errorf("err = %v, want ErrNotFound", err)
 	}
 }
+
+func TestLivestreamRepository_FindAllByIDAndUserID(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	ownerID := insertTestUser(t, tx, "alice")
+	otherID := insertTestUser(t, tx, "bob")
+	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
+	repo := NewLivestreamRepository(nil)
+
+	got, err := repo.FindAllByIDAndUserID(ctx, tx, livestreamID, ownerID)
+	if err != nil {
+		t.Fatalf("FindAllByIDAndUserID returned error: %v", err)
+	}
+	if len(got) != 1 || got[0].ID != livestreamID || got[0].UserID != ownerID {
+		t.Errorf("got %+v, want the livestream %d", got, livestreamID)
+	}
+
+	for _, tt := range []struct {
+		name   string
+		id     model.LivestreamID
+		userID model.UserID
+	}{
+		{name: "other user", id: livestreamID, userID: otherID},
+		{name: "livestream not found", id: 999999, userID: ownerID},
+	} {
+		got, err := repo.FindAllByIDAndUserID(ctx, tx, tt.id, tt.userID)
+		if err != nil {
+			t.Fatalf("%s: FindAllByIDAndUserID returned error: %v", tt.name, err)
+		}
+		if len(got) != 0 {
+			t.Errorf("%s: got %+v, want empty", tt.name, got)
+		}
+	}
+}

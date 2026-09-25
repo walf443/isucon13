@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -15,6 +17,10 @@ type NGWord struct {
 	LivestreamID model.LivestreamID `json:"livestream_id"`
 	Word         string             `json:"word"`
 	CreatedAt    int64              `json:"created_at"`
+}
+
+type ModerateRequest struct {
+	NGWord string `json:"ng_word"`
 }
 
 type NGWordHandler struct {
@@ -60,4 +66,42 @@ func (h *NGWordHandler) GetNGWords(c echo.Context) error {
 		})
 	}
 	return c.JSON(http.StatusOK, ngWords)
+}
+
+// 配信者によるモデレーション (NGワード登録)
+// POST /api/livestream/:livestream_id/moderate
+func (h *NGWordHandler) Moderate(c echo.Context) error {
+	ctx := c.Request().Context()
+	defer c.Request().Body.Close()
+
+	if err := VerifyUserSession(c); err != nil {
+		return err
+	}
+
+	livestreamID, err := strconv.Atoi(c.Param("livestream_id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
+	}
+
+	userID, err := getSessionUserID(c)
+	if err != nil {
+		return err
+	}
+
+	var req ModerateRequest
+	if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
+	}
+
+	wordID, err := h.ngWordUsecase.Moderate(ctx, userID, model.LivestreamID(livestreamID), req.NGWord)
+	if errors.Is(err, usecase.ErrNotLivestreamOwner) {
+		return echo.NewHTTPError(http.StatusBadRequest, "A streamer can't moderate livestreams that other streamers own")
+	}
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusCreated, map[string]interface{}{
+		"word_id": wordID,
+	})
 }

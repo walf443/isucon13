@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
@@ -61,4 +62,31 @@ func (r *livecommentRepository) Create(ctx context.Context, q repository.Querier
 		return 0, err
 	}
 	return model.LivecommentID(id), nil
+}
+
+func (r *livecommentRepository) DeleteAllByLivestreamIDMatchingNGWord(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, word string) error {
+	// 移行前と同じクエリの流れ (全ライブコメントを取得し、1件ずつ条件付きで DELETE する) を保っている
+	var livecomments []*model.LivecommentModel
+	if err := q.SelectContext(ctx, &livecomments, "SELECT id, user_id, livestream_id, comment, tip, created_at FROM livecomments"); err != nil {
+		return fmt.Errorf("failed to get livecomments: %w", err)
+	}
+
+	for _, livecomment := range livecomments {
+		query := `
+			DELETE FROM livecomments
+			WHERE
+			id = ? AND
+			livestream_id = ? AND
+			(SELECT COUNT(*)
+			FROM
+			(SELECT ? AS text) AS texts
+			INNER JOIN
+			(SELECT CONCAT('%', ?, '%')	AS pattern) AS patterns
+			ON texts.text LIKE patterns.pattern) >= 1;
+			`
+		if _, err := q.ExecContext(ctx, query, livecomment.ID, livestreamID, livecomment.Comment, word); err != nil {
+			return fmt.Errorf("failed to delete old livecomments that hit spams: %w", err)
+		}
+	}
+	return nil
 }
