@@ -28,3 +28,26 @@ func TestIconHash(t *testing.T) {
 		})
 	}
 }
+
+func TestUserIconHash(t *testing.T) {
+	defaultImage := []byte("default")
+
+	tests := []struct {
+		name       string
+		image      []byte
+		registered bool
+		want       string
+	}{
+		{name: "registered", image: []byte("icon"), registered: true, want: IconHash([]byte("icon"))},
+		{name: "not registered", image: nil, registered: false, want: IconHash(defaultImage)},
+		// 空の画像を登録している場合は既定のアイコンにはしない
+		{name: "registered empty image", image: []byte{}, registered: true, want: IconHash([]byte{})},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := UserIconHash(tt.image, tt.registered, defaultImage); got != tt.want {
+				t.Errorf("UserIconHash() = %s, want %s", got, tt.want)
+			}
+		})
+	}
+}

@@ -17,3 +17,13 @@ type IconModel struct {
 func IconHash(image []byte) string {
 	return fmt.Sprintf("%x", sha256.Sum256(image))
 }
+
+// UserIconHash はユーザのアイコンのハッシュを返す。
+// アイコンを登録していない (registered が false) 場合は、既定のアイコン画像 defaultImage のハッシュを返す。
+// 空の画像を登録している場合は、登録済みとして空の画像のハッシュを返す (移行前と同じ)。
+func UserIconHash(image []byte, registered bool, defaultImage []byte) string {
+	if !registered {
+		return IconHash(defaultImage)
+	}
+	return IconHash(image)
+}

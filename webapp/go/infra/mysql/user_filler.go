@@ -11,7 +11,7 @@ import (
 )
 
 // fillUsers は userModels にテーマ・アイコンを埋めた model.User を、同じ順序で返す。
-// アイコンが未登録の場合は fallbackIcon のハッシュを使う。
+// アイコンのハッシュは model.UserIconHash で決める (未登録の場合は fallbackIcon のハッシュ)。
 //
 // テーマが無いのはデータ不整合なので、repository.ErrNotFound (ユーザ不在) には変換しない。
 func fillUsers(ctx context.Context, q repository.Querier, userModels []*model.UserModel, fallbackIcon []byte) ([]*model.User, error) {
@@ -23,9 +23,10 @@ func fillUsers(ctx context.Context, q repository.Querier, userModels []*model.Us
 		}
 
 		var image []byte
+		registered := true
 		err := q.GetContext(ctx, &image, "SELECT image FROM icons WHERE user_id = ?", userModel.ID)
 		if errors.Is(err, sql.ErrNoRows) {
-			image = fallbackIcon
+			registered = false
 		} else if err != nil {
 			return nil, fmt.Errorf("failed to get icon of user %d: %w", userModel.ID, err)
 		}
@@ -36,7 +37,7 @@ func fillUsers(ctx context.Context, q repository.Querier, userModels []*model.Us
 			DisplayName: userModel.DisplayName,
 			Description: userModel.Description,
 			Theme:       theme,
-			IconHash:    model.IconHash(image),
+			IconHash:    model.UserIconHash(image, registered, fallbackIcon),
 		}
 	}
 	return users, nil
