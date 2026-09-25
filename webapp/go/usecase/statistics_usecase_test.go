@@ -27,7 +27,14 @@ func newTestUserStatisticsRepos() (*fakeUserRepository, *fakeLivestreamRepositor
 			}, nil
 		},
 	}
-	livestreamRepo := &fakeLivestreamRepository{livestreamModels: []*model.LivestreamModel{{ID: 10, UserID: 2}, {ID: 11, UserID: 2}}}
+	livestreamRepo := &fakeLivestreamRepository{
+		findAllByUserID: func(_ context.Context, _ repository.Querier, userID model.UserID) ([]*model.LivestreamModel, error) {
+			if userID != 2 {
+				return nil, fmt.Errorf("unexpected livestream owner %d", userID)
+			}
+			return []*model.LivestreamModel{{ID: 10, UserID: 2}, {ID: 11, UserID: 2}}, nil
+		},
+	}
 	// スコアは リアクション数 + チップ合計: alice 30, bob 30, carol 5
 	tips := map[model.UserID]int64{1: 20, 2: 25, 3: 5}
 	livecomments := map[model.LivestreamID][]*model.LivecommentModel{
@@ -89,9 +96,6 @@ func TestStatisticsUsecase_FindUserStatistics(t *testing.T) {
 	}
 	if *got != want {
 		t.Errorf("got %+v, want %+v", *got, want)
-	}
-	if livestreamRepo.gotUserID != 2 {
-		t.Errorf("livestream owner = %d, want 2", livestreamRepo.gotUserID)
 	}
 }
 
@@ -173,7 +177,9 @@ func TestStatisticsUsecase_FindUserStatistics_Errors(t *testing.T) {
 		{
 			name: "get livestreams fails",
 			modify: func(_ *fakeUserRepository, lsr *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository) {
-				lsr.err = boom
+				lsr.findAllByUserID = func(context.Context, repository.Querier, model.UserID) ([]*model.LivestreamModel, error) {
+					return nil, boom
+				}
 			},
 			wantErr: boom,
 			wantMsg: "failed to get livestreams: boom",
@@ -225,8 +231,15 @@ func TestStatisticsUsecase_FindUserStatistics_Errors(t *testing.T) {
 
 func newTestLivestreamStatisticsRepos() (*fakeLivestreamRepository, *fakeLivecommentRepository, *fakeReactionRepository, *fakeLivestreamViewersHistoryRepository, *fakeLivecommentReportRepository) {
 	livestreamRepo := &fakeLivestreamRepository{
-		livestreamModel:  &model.LivestreamModel{ID: 11},
-		livestreamModels: []*model.LivestreamModel{{ID: 10}, {ID: 11}, {ID: 12}},
+		findByID: func(_ context.Context, _ repository.Querier, id model.LivestreamID) (*model.LivestreamModel, error) {
+			if id != 11 {
+				return nil, fmt.Errorf("unexpected livestreamID %d", id)
+			}
+			return &model.LivestreamModel{ID: 11}, nil
+		},
+		findAll: func(context.Context, repository.Querier) ([]*model.LivestreamModel, error) {
+			return []*model.LivestreamModel{{ID: 10}, {ID: 11}, {ID: 12}}, nil
+		},
 	}
 	// スコアは リアクション数 + チップ合計: 10 → 30, 11 → 30, 12 → 5
 	tips := map[model.LivestreamID]int64{10: 20, 11: 25, 12: 5}
@@ -274,6 +287,17 @@ func newTestLivestreamStatisticsRepos() (*fakeLivestreamRepository, *fakeLivecom
 
 func TestStatisticsUsecase_FindLivestreamStatistics(t *testing.T) {
 	livestreamRepo, livecommentRepo, reactionRepo, viewerRepo, reportRepo := newTestLivestreamStatisticsRepos()
+	// 呼ばれた順を確認するため、準備した関数を記録用の関数で包む
+	var livestreamCalls []string
+	findByID, findAll := livestreamRepo.findByID, livestreamRepo.findAll
+	livestreamRepo.findByID = func(ctx context.Context, q repository.Querier, id model.LivestreamID) (*model.LivestreamModel, error) {
+		livestreamCalls = append(livestreamCalls, "FindByID")
+		return findByID(ctx, q, id)
+	}
+	livestreamRepo.findAll = func(ctx context.Context, q repository.Querier) ([]*model.LivestreamModel, error) {
+		livestreamCalls = append(livestreamCalls, "FindAll")
+		return findAll(ctx, q)
+	}
 	u := NewStatisticsUsecase(&fakeTxManager{}, &fakeUserRepository{}, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo, reportRepo)
 
 	got, err := u.FindLivestreamStatistics(context.Background(), 11)
@@ -291,11 +315,9 @@ func TestStatisticsUsecase_FindLivestreamStatistics(t *testing.T) {
 	if *got != want {
 		t.Errorf("got %+v, want %+v", *got, want)
 	}
-	if want := []string{"FindByID", "FindAll"}; !slices.Equal(livestreamRepo.calls, want) {
-		t.Errorf("livestream calls = %v, want %v", livestreamRepo.calls, want)
-	}
-	if livestreamRepo.gotID != 11 {
-		t.Errorf("livestream id = %d, want 11", livestreamRepo.gotID)
+	// 対象のライブ配信の存在を確認してから、全ライブ配信を取得する
+	if want := []string{"FindByID", "FindAll"}; !slices.Equal(livestreamCalls, want) {
+		t.Errorf("livestream calls = %v, want %v", livestreamCalls, want)
 	}
 }
 
@@ -311,14 +333,18 @@ func TestStatisticsUsecase_FindLivestreamStatistics_Errors(t *testing.T) {
 		{
 			name: "livestream not found",
 			modify: func(lsr *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository, _ *fakeLivecommentReportRepository) {
-				lsr.err = repository.ErrNotFound
+				lsr.findByID = func(context.Context, repository.Querier, model.LivestreamID) (*model.LivestreamModel, error) {
+					return nil, repository.ErrNotFound
+				}
 			},
 			wantErr: ErrLivestreamNotFound,
 		},
 		{
 			name: "get livestream fails",
 			modify: func(lsr *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository, _ *fakeLivecommentReportRepository) {
-				lsr.err = boom
+				lsr.findByID = func(context.Context, repository.Querier, model.LivestreamID) (*model.LivestreamModel, error) {
+					return nil, boom
+				}
 			},
 			wantErr: boom,
 			wantMsg: "failed to get livestream: boom",
@@ -326,7 +352,7 @@ func TestStatisticsUsecase_FindLivestreamStatistics_Errors(t *testing.T) {
 		{
 			name: "get livestreams fails",
 			modify: func(lsr *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository, _ *fakeLivecommentReportRepository) {
-				lsr.findAllErr = boom
+				lsr.findAll = func(context.Context, repository.Querier) ([]*model.LivestreamModel, error) { return nil, boom }
 			},
 			wantErr: boom,
 			wantMsg: "failed to get livestreams: boom",

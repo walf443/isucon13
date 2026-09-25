@@ -87,7 +87,7 @@ func TestLivecommentUsecase_FindAllByLivestreamID_Error(t *testing.T) {
 
 func TestLivecommentUsecase_FindAllReportsByLivestreamID(t *testing.T) {
 	want := []*model.LivecommentReport{{ID: 1}}
-	livestreamRepo := &fakeLivestreamRepository{livestreamModel: &model.LivestreamModel{ID: 10, UserID: 1}}
+	livestreamRepo := newLivestreamRepositoryFindingByID(t, 10, &model.LivestreamModel{ID: 10, UserID: 1}, nil)
 	reportRepo := &fakeLivecommentReportRepository{
 		findAllWithDetailsByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID model.LivestreamID) ([]*model.LivecommentReport, error) {
 			if livestreamID != 10 {
@@ -105,25 +105,24 @@ func TestLivecommentUsecase_FindAllReportsByLivestreamID(t *testing.T) {
 	if !slices.Equal(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
-	if livestreamRepo.gotID != 10 {
-		t.Errorf("livestream id = %d, want 10", livestreamRepo.gotID)
-	}
 }
 
 func TestLivecommentUsecase_FindAllReportsByLivestreamID_Errors(t *testing.T) {
 	boom := errors.New("boom")
 
 	tests := []struct {
-		name           string
-		livestreamRepo *fakeLivestreamRepository
+		name string
+		// livestream, livestreamErr はライブ配信 10 を引いた結果
+		livestream    *model.LivestreamModel
+		livestreamErr error
 		// reportsErr は報告の取得が返すエラー
 		reportsErr      error
 		check           func(t *testing.T, err error)
 		wantReportCalls int
 	}{
 		{
-			name:           "not the owner",
-			livestreamRepo: &fakeLivestreamRepository{livestreamModel: &model.LivestreamModel{ID: 10, UserID: 2}},
+			name:       "not the owner",
+			livestream: &model.LivestreamModel{ID: 10, UserID: 2},
 			check: func(t *testing.T, err error) {
 				if !errors.Is(err, ErrNotLivestreamOwner) {
 					t.Errorf("err = %v, want ErrNotLivestreamOwner", err)
@@ -132,8 +131,8 @@ func TestLivecommentUsecase_FindAllReportsByLivestreamID_Errors(t *testing.T) {
 		},
 		{
 			// ライブ配信が無い場合は 404 用のエラーには変換しない (移行前と同じく 500)
-			name:           "livestream not found",
-			livestreamRepo: &fakeLivestreamRepository{err: repository.ErrNotFound},
+			name:          "livestream not found",
+			livestreamErr: repository.ErrNotFound,
 			check: func(t *testing.T, err error) {
 				if err == nil || errors.Is(err, ErrLivestreamNotFound) || errors.Is(err, ErrNotLivestreamOwner) {
 					t.Errorf("err = %v, want a plain error", err)
@@ -142,7 +141,7 @@ func TestLivecommentUsecase_FindAllReportsByLivestreamID_Errors(t *testing.T) {
 		},
 		{
 			name:            "report repository error",
-			livestreamRepo:  &fakeLivestreamRepository{livestreamModel: &model.LivestreamModel{ID: 10, UserID: 1}},
+			livestream:      &model.LivestreamModel{ID: 10, UserID: 1},
 			reportsErr:      boom,
 			wantReportCalls: 1,
 			check: func(t *testing.T, err error) {
@@ -162,7 +161,7 @@ func TestLivecommentUsecase_FindAllReportsByLivestreamID_Errors(t *testing.T) {
 					return nil, tt.reportsErr
 				},
 			}
-			u := NewLivecommentUsecase(&fakeTxManager{}, tt.livestreamRepo, &fakeLivecommentRepository{}, reportRepo, &fakeNGWordRepository{}, &fakeLogger{})
+			u := NewLivecommentUsecase(&fakeTxManager{}, newLivestreamRepositoryFindingByID(t, 10, tt.livestream, tt.livestreamErr), &fakeLivecommentRepository{}, reportRepo, &fakeNGWordRepository{}, &fakeLogger{})
 			_, err := u.FindAllReportsByLivestreamID(context.Background(), 1, 10)
 			tt.check(t, err)
 			if reportCalls != tt.wantReportCalls {
@@ -215,7 +214,7 @@ func newLivecommentRepositoryForCreate(t *testing.T, calls *[]string, created **
 
 func TestLivecommentUsecase_Create(t *testing.T) {
 	want := &model.Livecomment{ID: 100, Comment: "hello"}
-	livestreamRepo := &fakeLivestreamRepository{livestreamModel: &model.LivestreamModel{ID: 10, UserID: 2}}
+	livestreamRepo := newLivestreamRepositoryFindingByID(t, 10, &model.LivestreamModel{ID: 10, UserID: 2}, nil)
 	var livecommentCalls []string
 	var created *model.LivecommentModel
 	livecommentRepo := newLivecommentRepositoryForCreate(t, &livecommentCalls, &created, want, nil, nil)
@@ -253,8 +252,10 @@ func TestLivecommentUsecase_Create_Errors(t *testing.T) {
 	owned := &model.LivestreamModel{ID: 10, UserID: 2}
 
 	tests := []struct {
-		name           string
-		livestreamRepo *fakeLivestreamRepository
+		name string
+		// livestream, livestreamErr はライブ配信 10 を引いた結果
+		livestream    *model.LivestreamModel
+		livestreamErr error
 		// livecommentCreateErr, livecommentFillErr はライブコメントの登録・取り直しが返すエラー
 		livecommentCreateErr error
 		livecommentFillErr   error
@@ -267,40 +268,40 @@ func TestLivecommentUsecase_Create_Errors(t *testing.T) {
 		wantCalls  []string
 	}{
 		{
-			name:           "livestream not found",
-			livestreamRepo: &fakeLivestreamRepository{err: repository.ErrNotFound},
-			wantErr:        ErrLivestreamNotFound,
+			name:          "livestream not found",
+			livestreamErr: repository.ErrNotFound,
+			wantErr:       ErrLivestreamNotFound,
 		},
 		{
-			name:           "spam",
-			livestreamRepo: &fakeLivestreamRepository{livestreamModel: owned},
-			ngWords:        []*model.NGWordModel{{Word: "ok"}, {Word: "bad"}},
-			hitWords:       []string{"bad"},
-			wantErr:        ErrSpamLivecomment,
+			name:       "spam",
+			livestream: owned,
+			ngWords:    []*model.NGWordModel{{Word: "ok"}, {Word: "bad"}},
+			hitWords:   []string{"bad"},
+			wantErr:    ErrSpamLivecomment,
 		},
 		{
-			name:           "NG words repository error",
-			livestreamRepo: &fakeLivestreamRepository{livestreamModel: owned},
-			ngWordsErr:     boom,
-			wantErr:        boom,
+			name:       "NG words repository error",
+			livestream: owned,
+			ngWordsErr: boom,
+			wantErr:    boom,
 		},
 		{
-			name:           "match error",
-			livestreamRepo: &fakeLivestreamRepository{livestreamModel: owned},
-			ngWords:        []*model.NGWordModel{{Word: "bad"}},
-			matchErr:       boom,
-			wantErr:        boom,
+			name:       "match error",
+			livestream: owned,
+			ngWords:    []*model.NGWordModel{{Word: "bad"}},
+			matchErr:   boom,
+			wantErr:    boom,
 		},
 		{
 			name:                 "create fails",
-			livestreamRepo:       &fakeLivestreamRepository{livestreamModel: owned},
+			livestream:           owned,
 			livecommentCreateErr: boom,
 			wantErr:              boom,
 			wantCalls:            []string{"Create"},
 		},
 		{
 			name:               "fill fails",
-			livestreamRepo:     &fakeLivestreamRepository{livestreamModel: owned},
+			livestream:         owned,
 			livecommentFillErr: boom,
 			wantErr:            boom,
 			wantCalls:          []string{"Create", "FindWithDetailsByID"},
@@ -314,7 +315,7 @@ func TestLivecommentUsecase_Create_Errors(t *testing.T) {
 			var livecommentCalls []string
 			var created *model.LivecommentModel
 			livecommentRepo := newLivecommentRepositoryForCreate(t, &livecommentCalls, &created, nil, tt.livecommentCreateErr, tt.livecommentFillErr)
-			u := NewLivecommentUsecase(&fakeTxManager{}, tt.livestreamRepo, livecommentRepo, &fakeLivecommentReportRepository{}, ngWordRepo, &fakeLogger{})
+			u := NewLivecommentUsecase(&fakeTxManager{}, newLivestreamRepositoryFindingByID(t, 10, tt.livestream, tt.livestreamErr), livecommentRepo, &fakeLivecommentReportRepository{}, ngWordRepo, &fakeLogger{})
 			_, err := u.Create(context.Background(), 1, 10, "this is bad", 0)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
@@ -328,7 +329,7 @@ func TestLivecommentUsecase_Create_Errors(t *testing.T) {
 }
 
 func TestLivecommentUsecase_Create_LogsHitSpam(t *testing.T) {
-	livestreamRepo := &fakeLivestreamRepository{livestreamModel: &model.LivestreamModel{ID: 10, UserID: 2}}
+	livestreamRepo := newLivestreamRepositoryFindingByID(t, 10, &model.LivestreamModel{ID: 10, UserID: 2}, nil)
 	var matched []string
 	ngWordRepo := newNGWordRepositoryForCreate(t, []*model.NGWordModel{{Word: "ok"}, {Word: "bad"}, {Word: "never checked"}}, nil, []string{"bad"}, nil, &matched)
 	logger := &fakeLogger{}
@@ -368,7 +369,7 @@ func newReportRepositoryForReport(t *testing.T, calls *[]string, created **model
 
 func TestLivecommentUsecase_Report(t *testing.T) {
 	want := &model.LivecommentReport{ID: 7}
-	livestreamRepo := &fakeLivestreamRepository{livestreamModel: &model.LivestreamModel{ID: 10, UserID: 2}}
+	livestreamRepo := newLivestreamRepositoryFindingByID(t, 10, &model.LivestreamModel{ID: 10, UserID: 2}, nil)
 	livecommentFinds := 0
 	livecommentRepo := &fakeLivecommentRepository{
 		findByID: func(_ context.Context, _ repository.Querier, id model.LivecommentID) (*model.LivecommentModel, error) {
@@ -392,9 +393,6 @@ func TestLivecommentUsecase_Report(t *testing.T) {
 	if got != want {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
-	if livestreamRepo.gotID != 10 {
-		t.Errorf("livestream id = %d, want 10", livestreamRepo.gotID)
-	}
 	if livecommentFinds != 1 {
 		t.Errorf("livecomment finds = %d, want 1", livecommentFinds)
 	}
@@ -413,8 +411,10 @@ func TestLivecommentUsecase_Report_Errors(t *testing.T) {
 	livecomment := &model.LivecommentModel{ID: 50, LivestreamID: 10}
 
 	tests := []struct {
-		name           string
-		livestreamRepo *fakeLivestreamRepository
+		name string
+		// livestream, livestreamErr はライブ配信 10 を引いた結果
+		livestream    *model.LivestreamModel
+		livestreamErr error
 		// livecomment, livecommentErr はライブコメントの存在確認の結果
 		livecomment    *model.LivecommentModel
 		livecommentErr error
@@ -425,30 +425,30 @@ func TestLivecommentUsecase_Report_Errors(t *testing.T) {
 		wantReportCalls []string
 	}{
 		{
-			name:           "livestream not found",
-			livestreamRepo: &fakeLivestreamRepository{err: repository.ErrNotFound},
-			wantErr:        ErrLivestreamNotFound,
+			name:          "livestream not found",
+			livestreamErr: repository.ErrNotFound,
+			wantErr:       ErrLivestreamNotFound,
 		},
 		{
-			name:           "livestream repository error",
-			livestreamRepo: &fakeLivestreamRepository{err: boom},
-			wantErr:        boom,
+			name:          "livestream repository error",
+			livestreamErr: boom,
+			wantErr:       boom,
 		},
 		{
 			name:           "livecomment not found",
-			livestreamRepo: &fakeLivestreamRepository{livestreamModel: livestream},
+			livestream:     livestream,
 			livecommentErr: repository.ErrNotFound,
 			wantErr:        ErrLivecommentNotFound,
 		},
 		{
 			name:           "livecomment repository error",
-			livestreamRepo: &fakeLivestreamRepository{livestreamModel: livestream},
+			livestream:     livestream,
 			livecommentErr: boom,
 			wantErr:        boom,
 		},
 		{
 			name:            "create fails",
-			livestreamRepo:  &fakeLivestreamRepository{livestreamModel: livestream},
+			livestream:      livestream,
 			livecomment:     livecomment,
 			reportCreateErr: boom,
 			wantErr:         boom,
@@ -456,7 +456,7 @@ func TestLivecommentUsecase_Report_Errors(t *testing.T) {
 		},
 		{
 			name:            "fill fails",
-			livestreamRepo:  &fakeLivestreamRepository{livestreamModel: livestream},
+			livestream:      livestream,
 			livecomment:     livecomment,
 			reportFillErr:   boom,
 			wantErr:         boom,
@@ -477,7 +477,7 @@ func TestLivecommentUsecase_Report_Errors(t *testing.T) {
 					return tt.livecomment, tt.livecommentErr
 				},
 			}
-			u := NewLivecommentUsecase(&fakeTxManager{}, tt.livestreamRepo, livecommentRepo, reportRepo, &fakeNGWordRepository{}, &fakeLogger{})
+			u := NewLivecommentUsecase(&fakeTxManager{}, newLivestreamRepositoryFindingByID(t, 10, tt.livestream, tt.livestreamErr), livecommentRepo, reportRepo, &fakeNGWordRepository{}, &fakeLogger{})
 			_, err := u.Report(context.Background(), 3, 10, 50)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)

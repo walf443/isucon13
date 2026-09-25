@@ -12,7 +12,14 @@ import (
 
 func TestLivestreamUsecase_FindByID(t *testing.T) {
 	want := &model.Livestream{ID: 1, Title: "stream"}
-	repo := &fakeLivestreamRepository{livestream: want}
+	repo := &fakeLivestreamRepository{
+		findWithDetailsByID: func(_ context.Context, _ repository.Querier, id model.LivestreamID) (*model.Livestream, error) {
+			if id != 1 {
+				t.Errorf("id = %d, want 1", id)
+			}
+			return want, nil
+		},
+	}
 	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, repo, &fakeReservationSlotRepository{}, &fakeLogger{})
 
 	got, err := u.FindByID(context.Background(), 1)
@@ -21,9 +28,6 @@ func TestLivestreamUsecase_FindByID(t *testing.T) {
 	}
 	if got != want {
 		t.Errorf("got %+v, want %+v", got, want)
-	}
-	if repo.gotID != 1 {
-		t.Errorf("id = %d, want 1", repo.gotID)
 	}
 }
 
@@ -57,16 +61,33 @@ func TestLivestreamUsecase_FindByID_Errors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, &fakeLivestreamRepository{err: tt.repoErr}, &fakeReservationSlotRepository{}, &fakeLogger{})
+			repo := &fakeLivestreamRepository{
+				findWithDetailsByID: func(context.Context, repository.Querier, model.LivestreamID) (*model.Livestream, error) {
+					return nil, tt.repoErr
+				},
+			}
+			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, repo, &fakeReservationSlotRepository{}, &fakeLogger{})
 			_, err := u.FindByID(context.Background(), 1)
 			tt.check(t, err)
 		})
 	}
 }
 
+// newLivestreamRepositoryFindingAllByUserID は配信者 userID のライブ配信として livestreams (失敗させる場合は err) を返す fakeLivestreamRepository を返す。
+func newLivestreamRepositoryFindingAllByUserID(t *testing.T, userID model.UserID, livestreams []*model.Livestream, err error) *fakeLivestreamRepository {
+	return &fakeLivestreamRepository{
+		findAllWithDetailsByUserID: func(_ context.Context, _ repository.Querier, gotUserID model.UserID) ([]*model.Livestream, error) {
+			if gotUserID != userID {
+				t.Errorf("userID = %d, want %d", gotUserID, userID)
+			}
+			return livestreams, err
+		},
+	}
+}
+
 func TestLivestreamUsecase_FindAllByUserID(t *testing.T) {
 	want := []*model.Livestream{{ID: 1}, {ID: 2}}
-	repo := &fakeLivestreamRepository{livestreams: want}
+	repo := newLivestreamRepositoryFindingAllByUserID(t, 42, want, nil)
 	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, repo, &fakeReservationSlotRepository{}, &fakeLogger{})
 
 	got, err := u.FindAllByUserID(context.Background(), 42)
@@ -76,14 +97,12 @@ func TestLivestreamUsecase_FindAllByUserID(t *testing.T) {
 	if len(got) != 2 || got[0] != want[0] || got[1] != want[1] {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
-	if repo.gotUserID != 42 {
-		t.Errorf("userID = %d, want 42", repo.gotUserID)
-	}
 }
 
 func TestLivestreamUsecase_FindAllByUserID_Error(t *testing.T) {
 	boom := errors.New("boom")
-	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, &fakeLivestreamRepository{err: boom}, &fakeReservationSlotRepository{}, &fakeLogger{})
+	repo := newLivestreamRepositoryFindingAllByUserID(t, 42, nil, boom)
+	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, repo, &fakeReservationSlotRepository{}, &fakeLogger{})
 
 	_, err := u.FindAllByUserID(context.Background(), 42)
 	if !errors.Is(err, boom) {
@@ -93,7 +112,8 @@ func TestLivestreamUsecase_FindAllByUserID_Error(t *testing.T) {
 
 func TestLivestreamUsecase_FindAllByUsername(t *testing.T) {
 	want := []*model.Livestream{{ID: 1}}
-	livestreamRepo := &fakeLivestreamRepository{livestreams: want}
+	// ユーザ名から引いた ID で検索する
+	livestreamRepo := newLivestreamRepositoryFindingAllByUserID(t, 42, want, nil)
 	u := NewLivestreamUsecase(&fakeTxManager{}, newUserRepositoryFindingID(t, "alice", 42, nil), &fakeTagRepository{}, livestreamRepo, &fakeReservationSlotRepository{}, &fakeLogger{})
 
 	got, err := u.FindAllByUsername(context.Background(), "alice")
@@ -103,10 +123,6 @@ func TestLivestreamUsecase_FindAllByUsername(t *testing.T) {
 	if len(got) != 1 || got[0] != want[0] {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
-	// ユーザ名から引いた ID で検索する
-	if livestreamRepo.gotUserID != 42 {
-		t.Errorf("userID = %d, want 42", livestreamRepo.gotUserID)
-	}
 }
 
 func TestLivestreamUsecase_FindAllByUsername_Errors(t *testing.T) {
@@ -115,39 +131,53 @@ func TestLivestreamUsecase_FindAllByUsername_Errors(t *testing.T) {
 	tests := []struct {
 		name string
 		// userID, userErr はユーザ名から ID を引いた結果
-		userID         model.UserID
-		userErr        error
-		livestreamRepo *fakeLivestreamRepository
+		userID  model.UserID
+		userErr error
+		// livestreamsErr はライブ配信の検索が返すエラー
+		livestreamsErr error
 		wantErr        error
 	}{
 		{
-			name:           "user not found",
-			userErr:        repository.ErrNotFound,
-			livestreamRepo: &fakeLivestreamRepository{},
-			wantErr:        ErrUserNotFound,
+			name:    "user not found",
+			userErr: repository.ErrNotFound,
+			wantErr: ErrUserNotFound,
 		},
 		{
-			name:           "user repository error",
-			userErr:        boom,
-			livestreamRepo: &fakeLivestreamRepository{},
-			wantErr:        boom,
+			name:    "user repository error",
+			userErr: boom,
+			wantErr: boom,
 		},
 		{
 			name:           "livestream repository error",
 			userID:         42,
-			livestreamRepo: &fakeLivestreamRepository{err: boom},
+			livestreamsErr: boom,
 			wantErr:        boom,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u := NewLivestreamUsecase(&fakeTxManager{}, newUserRepositoryFindingID(t, "alice", tt.userID, tt.userErr), &fakeTagRepository{}, tt.livestreamRepo, &fakeReservationSlotRepository{}, &fakeLogger{})
+			livestreamRepo := newLivestreamRepositoryFindingAllByUserID(t, 42, nil, tt.livestreamsErr)
+			u := NewLivestreamUsecase(&fakeTxManager{}, newUserRepositoryFindingID(t, "alice", tt.userID, tt.userErr), &fakeTagRepository{}, livestreamRepo, &fakeReservationSlotRepository{}, &fakeLogger{})
 			_, err := u.FindAllByUsername(context.Background(), "alice")
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+// newLivestreamRepositoryFindingAllByTagIDs はタグ 7 のライブ配信として livestreams (失敗させる場合は err) を返す fakeLivestreamRepository を返す。
+// 呼ばれた回数を calls に数える。
+func newLivestreamRepositoryFindingAllByTagIDs(t *testing.T, calls *int, livestreams []*model.Livestream, err error) *fakeLivestreamRepository {
+	return &fakeLivestreamRepository{
+		findAllWithDetailsByTagIDs: func(_ context.Context, _ repository.Querier, tagIDs []model.TagID) ([]*model.Livestream, error) {
+			*calls++
+			if !slices.Equal(tagIDs, []model.TagID{7}) {
+				t.Errorf("tagIDs = %v, want [7]", tagIDs)
+			}
+			return livestreams, err
+		},
 	}
 }
 
@@ -161,7 +191,8 @@ func TestLivestreamUsecase_FindAllByTagName(t *testing.T) {
 			return []model.TagID{7}, nil
 		},
 	}
-	livestreamRepo := &fakeLivestreamRepository{livestreams: want}
+	var livestreamCalls int
+	livestreamRepo := newLivestreamRepositoryFindingAllByTagIDs(t, &livestreamCalls, want, nil)
 	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, tagRepo, livestreamRepo, &fakeReservationSlotRepository{}, &fakeLogger{})
 
 	got, err := u.FindAllByTagName(context.Background(), "ゲーム実況")
@@ -171,13 +202,11 @@ func TestLivestreamUsecase_FindAllByTagName(t *testing.T) {
 	if !slices.Equal(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
-	if !slices.Equal(livestreamRepo.gotTagIDs, []model.TagID{7}) {
-		t.Errorf("tagIDs = %v, want [7]", livestreamRepo.gotTagIDs)
-	}
 }
 
 func TestLivestreamUsecase_FindAllByTagName_TagNotFound(t *testing.T) {
-	livestreamRepo := &fakeLivestreamRepository{}
+	var livestreamCalls int
+	livestreamRepo := newLivestreamRepositoryFindingAllByTagIDs(t, &livestreamCalls, nil, nil)
 	tagRepo := &fakeTagRepository{
 		findIDsByName: func(context.Context, repository.Querier, string) ([]model.TagID, error) { return nil, nil },
 	}
@@ -191,8 +220,8 @@ func TestLivestreamUsecase_FindAllByTagName_TagNotFound(t *testing.T) {
 		t.Errorf("got %#v, want empty non-nil slice", got)
 	}
 	// 空の IN () になるので livestream の検索はしない
-	if len(livestreamRepo.calls) != 0 {
-		t.Errorf("calls = %v, want none", livestreamRepo.calls)
+	if livestreamCalls != 0 {
+		t.Errorf("livestream calls = %d, want 0", livestreamCalls)
 	}
 }
 
@@ -202,12 +231,13 @@ func TestLivestreamUsecase_FindAllByTagName_Errors(t *testing.T) {
 	tests := []struct {
 		name string
 		// tagIDs, tagErr はタグの検索が返す値
-		tagIDs         []model.TagID
-		tagErr         error
-		livestreamRepo *fakeLivestreamRepository
+		tagIDs []model.TagID
+		tagErr error
+		// livestreamsErr はライブ配信の検索が返すエラー
+		livestreamsErr error
 	}{
-		{name: "tag repository error", tagErr: boom, livestreamRepo: &fakeLivestreamRepository{}},
-		{name: "livestream repository error", tagIDs: []model.TagID{7}, livestreamRepo: &fakeLivestreamRepository{err: boom}},
+		{name: "tag repository error", tagErr: boom},
+		{name: "livestream repository error", tagIDs: []model.TagID{7}, livestreamsErr: boom},
 	}
 
 	for _, tt := range tests {
@@ -215,12 +245,30 @@ func TestLivestreamUsecase_FindAllByTagName_Errors(t *testing.T) {
 			tagRepo := &fakeTagRepository{
 				findIDsByName: func(context.Context, repository.Querier, string) ([]model.TagID, error) { return tt.tagIDs, tt.tagErr },
 			}
-			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, tagRepo, tt.livestreamRepo, &fakeReservationSlotRepository{}, &fakeLogger{})
+			var livestreamCalls int
+			livestreamRepo := newLivestreamRepositoryFindingAllByTagIDs(t, &livestreamCalls, nil, tt.livestreamsErr)
+			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, tagRepo, livestreamRepo, &fakeReservationSlotRepository{}, &fakeLogger{})
 			_, err := u.FindAllByTagName(context.Background(), "ゲーム実況")
 			if !errors.Is(err, boom) {
 				t.Fatalf("err = %v, want %v", err, boom)
 			}
 		})
+	}
+}
+
+// newLivestreamRepositoryForFindAll は一覧取得で呼ばれたメソッドを calls に記録し、livestreams (失敗させる場合は err) を返す fakeLivestreamRepository を返す。
+// limit 付きの場合はその値を gotLimit に取り出す。
+func newLivestreamRepositoryForFindAll(calls *[]string, gotLimit *model.Limit, livestreams []*model.Livestream, err error) *fakeLivestreamRepository {
+	return &fakeLivestreamRepository{
+		findAllWithDetails: func(context.Context, repository.Querier) ([]*model.Livestream, error) {
+			*calls = append(*calls, "FindAllWithDetails")
+			return livestreams, err
+		},
+		findAllWithDetailsLimited: func(_ context.Context, _ repository.Querier, limit model.Limit) ([]*model.Livestream, error) {
+			*calls = append(*calls, "FindAllWithDetailsLimited")
+			*gotLimit = limit
+			return livestreams, err
+		},
 	}
 }
 
@@ -240,7 +288,9 @@ func TestLivestreamUsecase_FindAll(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			want := []*model.Livestream{{ID: 1}}
-			livestreamRepo := &fakeLivestreamRepository{livestreams: want}
+			var calls []string
+			var gotLimit model.Limit
+			livestreamRepo := newLivestreamRepositoryForFindAll(&calls, &gotLimit, want, nil)
 			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, livestreamRepo, &fakeReservationSlotRepository{}, &fakeLogger{})
 
 			got, err := u.FindAll(context.Background(), tt.limit)
@@ -250,11 +300,11 @@ func TestLivestreamUsecase_FindAll(t *testing.T) {
 			if !slices.Equal(got, want) {
 				t.Errorf("got %+v, want %+v", got, want)
 			}
-			if !slices.Equal(livestreamRepo.calls, tt.wantCalls) {
-				t.Errorf("calls = %v, want %v", livestreamRepo.calls, tt.wantCalls)
+			if !slices.Equal(calls, tt.wantCalls) {
+				t.Errorf("calls = %v, want %v", calls, tt.wantCalls)
 			}
-			if livestreamRepo.gotLimit != tt.wantLimit {
-				t.Errorf("limit = %d, want %d", livestreamRepo.gotLimit, tt.wantLimit)
+			if gotLimit != tt.wantLimit {
+				t.Errorf("limit = %d, want %d", gotLimit, tt.wantLimit)
 			}
 		})
 	}
@@ -262,7 +312,10 @@ func TestLivestreamUsecase_FindAll(t *testing.T) {
 
 func TestLivestreamUsecase_FindAll_Error(t *testing.T) {
 	boom := errors.New("boom")
-	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, &fakeLivestreamRepository{err: boom}, &fakeReservationSlotRepository{}, &fakeLogger{})
+	var calls []string
+	var gotLimit model.Limit
+	livestreamRepo := newLivestreamRepositoryForFindAll(&calls, &gotLimit, nil, boom)
+	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, livestreamRepo, &fakeReservationSlotRepository{}, &fakeLogger{})
 
 	_, err := u.FindAll(context.Background(), nil)
 	if !errors.Is(err, boom) {
@@ -317,9 +370,48 @@ func newReservationSlotRepositoryForReserve(t *testing.T, calls *[]string, resul
 	}
 }
 
+// livestreamReserveResults は予約の処理でライブ配信の repository が返す値。
+type livestreamReserveResults struct {
+	// livestream は ID 100 で読み直したライブ配信
+	livestream *model.Livestream
+	createErr  error
+	addTagErr  error
+	fillErr    error
+}
+
+// newLivestreamRepositoryForReserve は results を返し、呼ばれたメソッドを順に calls へ記録する fakeLivestreamRepository を返す。
+// 登録したライブ配信は created に、付けたタグの ID は addedTagIDs に取り出す。登録したライブ配信の ID は 100 とする。
+func newLivestreamRepositoryForReserve(t *testing.T, calls *[]string, created **model.LivestreamModel, addedTagIDs *[]model.TagID, results livestreamReserveResults) *fakeLivestreamRepository {
+	return &fakeLivestreamRepository{
+		create: func(_ context.Context, _ repository.Querier, livestream *model.LivestreamModel) (model.LivestreamID, error) {
+			*calls = append(*calls, "Create")
+			*created = livestream
+			return 100, results.createErr
+		},
+		addTag: func(_ context.Context, _ repository.Querier, livestreamID model.LivestreamID, tagID model.TagID) error {
+			*calls = append(*calls, "AddTag")
+			*addedTagIDs = append(*addedTagIDs, tagID)
+			if livestreamID != 100 {
+				t.Errorf("tag added to livestream %d, want 100", livestreamID)
+			}
+			return results.addTagErr
+		},
+		findWithDetailsByID: func(_ context.Context, _ repository.Querier, id model.LivestreamID) (*model.Livestream, error) {
+			*calls = append(*calls, "FindWithDetailsByID")
+			if id != 100 {
+				t.Errorf("re-read id = %d, want 100", id)
+			}
+			return results.livestream, results.fillErr
+		},
+	}
+}
+
 func TestLivestreamUsecase_Reserve(t *testing.T) {
 	want := &model.Livestream{ID: 100, Title: "stream"}
-	livestreamRepo := &fakeLivestreamRepository{createID: 100, livestream: want}
+	var livestreamCalls []string
+	var created *model.LivestreamModel
+	var addedTagIDs []model.TagID
+	livestreamRepo := newLivestreamRepositoryForReserve(t, &livestreamCalls, &created, &addedTagIDs, livestreamReserveResults{livestream: want})
 	var slotCalls []string
 	slotRepo := newReservationSlotRepositoryForReserve(t, &slotCalls, reservationSlotResults{
 		slots: []*model.ReservationSlotModel{
@@ -354,17 +446,14 @@ func TestLivestreamUsecase_Reserve(t *testing.T) {
 		StartAt:      1700874000,
 		EndAt:        1700881200,
 	}
-	if *livestreamRepo.gotCreated != wantCreated {
-		t.Errorf("created = %+v, want %+v", *livestreamRepo.gotCreated, wantCreated)
+	if created == nil || *created != wantCreated {
+		t.Errorf("created = %+v, want %+v", created, wantCreated)
 	}
-	if want := []string{"Create", "AddTag", "AddTag", "FindWithDetailsByID"}; !slices.Equal(livestreamRepo.calls, want) {
-		t.Errorf("livestream calls = %v, want %v", livestreamRepo.calls, want)
+	if want := []string{"Create", "AddTag", "AddTag", "FindWithDetailsByID"}; !slices.Equal(livestreamCalls, want) {
+		t.Errorf("livestream calls = %v, want %v", livestreamCalls, want)
 	}
-	if want := []model.TagID{3, 5}; !slices.Equal(livestreamRepo.addedTagIDs, want) {
-		t.Errorf("tag ids = %v, want %v", livestreamRepo.addedTagIDs, want)
-	}
-	if livestreamRepo.gotID != 100 {
-		t.Errorf("re-read id = %d, want 100", livestreamRepo.gotID)
+	if want := []model.TagID{3, 5}; !slices.Equal(addedTagIDs, want) {
+		t.Errorf("tag ids = %v, want %v", addedTagIDs, want)
 	}
 }
 
@@ -388,7 +477,11 @@ func TestLivestreamUsecase_Reserve_TimeRange(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var slotCalls []string
 			slotRepo := newReservationSlotRepositoryForReserve(t, &slotCalls, reservationSlotResults{}, tt.startAt, tt.endAt)
-			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, &fakeLivestreamRepository{}, slotRepo, &fakeLogger{})
+			var livestreamCalls []string
+			var created *model.LivestreamModel
+			var addedTagIDs []model.TagID
+			livestreamRepo := newLivestreamRepositoryForReserve(t, &livestreamCalls, &created, &addedTagIDs, livestreamReserveResults{})
+			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, livestreamRepo, slotRepo, &fakeLogger{})
 
 			input := testReserveInput
 			input.StartAt = tt.startAt
@@ -413,10 +506,10 @@ func TestLivestreamUsecase_Reserve_Errors(t *testing.T) {
 	available := map[int64]int64{1700874000: 5, 1700877600: 3}
 
 	tests := []struct {
-		name           string
-		slotResults    reservationSlotResults
-		livestreamRepo *fakeLivestreamRepository
-		wantErr        error
+		name              string
+		slotResults       reservationSlotResults
+		livestreamResults livestreamReserveResults
+		wantErr           error
 		// wantUnavailable は *ReservationSlotUnavailableError を期待するかどうか
 		wantUnavailable     bool
 		wantLivestreamCalls []string
@@ -424,37 +517,33 @@ func TestLivestreamUsecase_Reserve_Errors(t *testing.T) {
 		wantWarnLines       []string
 	}{
 		{
-			name:           "slot list fails",
-			slotResults:    reservationSlotResults{findAllErr: boom},
-			livestreamRepo: &fakeLivestreamRepository{},
-			wantErr:        boom,
-			wantWarnLines:  []string{"予約枠一覧取得でエラー発生: boom"},
+			name:          "slot list fails",
+			slotResults:   reservationSlotResults{findAllErr: boom},
+			wantErr:       boom,
+			wantWarnLines: []string{"予約枠一覧取得でエラー発生: boom"},
 		},
 		{
-			name:           "slot count fails",
-			slotResults:    reservationSlotResults{slots: slots, findSlotErr: boom},
-			livestreamRepo: &fakeLivestreamRepository{},
-			wantErr:        boom,
+			name:        "slot count fails",
+			slotResults: reservationSlotResults{slots: slots, findSlotErr: boom},
+			wantErr:     boom,
 		},
 		{
 			// 残数の判定は FOR UPDATE で取得した値ではなく、取り直した値で行う (移行前と同じ)
 			name:            "slot is full",
 			slotResults:     reservationSlotResults{slots: slots, counts: map[int64]int64{1700874000: 5, 1700877600: 0}},
-			livestreamRepo:  &fakeLivestreamRepository{},
 			wantUnavailable: true,
 			wantLogLines:    []string{"1700874000 ~ 1700877600予約枠の残数 = 5\n", "1700877600 ~ 1700881200予約枠の残数 = 3\n"},
 		},
 		{
-			name:           "decrement fails",
-			slotResults:    reservationSlotResults{slots: slots, counts: available, decrementErr: boom},
-			livestreamRepo: &fakeLivestreamRepository{},
-			wantErr:        boom,
-			wantLogLines:   []string{"1700874000 ~ 1700877600予約枠の残数 = 5\n", "1700877600 ~ 1700881200予約枠の残数 = 3\n"},
+			name:         "decrement fails",
+			slotResults:  reservationSlotResults{slots: slots, counts: available, decrementErr: boom},
+			wantErr:      boom,
+			wantLogLines: []string{"1700874000 ~ 1700877600予約枠の残数 = 5\n", "1700877600 ~ 1700881200予約枠の残数 = 3\n"},
 		},
 		{
 			name:                "create fails",
 			slotResults:         reservationSlotResults{slots: slots, counts: available},
-			livestreamRepo:      &fakeLivestreamRepository{createErr: boom},
+			livestreamResults:   livestreamReserveResults{createErr: boom},
 			wantErr:             boom,
 			wantLivestreamCalls: []string{"Create"},
 			wantLogLines:        []string{"1700874000 ~ 1700877600予約枠の残数 = 5\n", "1700877600 ~ 1700881200予約枠の残数 = 3\n"},
@@ -462,7 +551,7 @@ func TestLivestreamUsecase_Reserve_Errors(t *testing.T) {
 		{
 			name:                "add tag fails",
 			slotResults:         reservationSlotResults{slots: slots, counts: available},
-			livestreamRepo:      &fakeLivestreamRepository{createID: 100, addTagErr: boom},
+			livestreamResults:   livestreamReserveResults{addTagErr: boom},
 			wantErr:             boom,
 			wantLivestreamCalls: []string{"Create", "AddTag"},
 			wantLogLines:        []string{"1700874000 ~ 1700877600予約枠の残数 = 5\n", "1700877600 ~ 1700881200予約枠の残数 = 3\n"},
@@ -470,7 +559,7 @@ func TestLivestreamUsecase_Reserve_Errors(t *testing.T) {
 		{
 			name:                "fill fails",
 			slotResults:         reservationSlotResults{slots: slots, counts: available},
-			livestreamRepo:      &fakeLivestreamRepository{createID: 100, err: boom},
+			livestreamResults:   livestreamReserveResults{fillErr: boom},
 			wantErr:             boom,
 			wantLivestreamCalls: []string{"Create", "AddTag", "AddTag", "FindWithDetailsByID"},
 			wantLogLines:        []string{"1700874000 ~ 1700877600予約枠の残数 = 5\n", "1700877600 ~ 1700881200予約枠の残数 = 3\n"},
@@ -482,7 +571,11 @@ func TestLivestreamUsecase_Reserve_Errors(t *testing.T) {
 			logger := &fakeLogger{}
 			var slotCalls []string
 			slotRepo := newReservationSlotRepositoryForReserve(t, &slotCalls, tt.slotResults, testReserveInput.StartAt, testReserveInput.EndAt)
-			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, tt.livestreamRepo, slotRepo, logger)
+			var livestreamCalls []string
+			var created *model.LivestreamModel
+			var addedTagIDs []model.TagID
+			livestreamRepo := newLivestreamRepositoryForReserve(t, &livestreamCalls, &created, &addedTagIDs, tt.livestreamResults)
+			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, livestreamRepo, slotRepo, logger)
 			_, err := u.Reserve(context.Background(), 1, testReserveInput)
 			if tt.wantUnavailable {
 				unavailable, ok := errors.AsType[*ReservationSlotUnavailableError](err)
@@ -500,8 +593,8 @@ func TestLivestreamUsecase_Reserve_Errors(t *testing.T) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
 			}
 			// 予約枠を確保できなかった場合はライブ配信を登録しない
-			if !slices.Equal(tt.livestreamRepo.calls, tt.wantLivestreamCalls) {
-				t.Errorf("livestream calls = %v, want %v", tt.livestreamRepo.calls, tt.wantLivestreamCalls)
+			if !slices.Equal(livestreamCalls, tt.wantLivestreamCalls) {
+				t.Errorf("livestream calls = %v, want %v", livestreamCalls, tt.wantLivestreamCalls)
 			}
 			if !slices.Equal(logger.lines, tt.wantLogLines) {
 				t.Errorf("log lines = %q, want %q", logger.lines, tt.wantLogLines)

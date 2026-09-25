@@ -47,6 +47,19 @@ func TestNGWordUsecase_FindAllByLivestreamID_Error(t *testing.T) {
 	}
 }
 
+// newLivestreamRepositoryForModerate は、ライブ配信 10 かつ配信者がユーザ 2 のライブ配信として livestreams (失敗させる場合は err) を返す fakeLivestreamRepository を返す。
+func newLivestreamRepositoryForModerate(t *testing.T, livestreams []*model.LivestreamModel, err error) *fakeLivestreamRepository {
+	return &fakeLivestreamRepository{
+		// 配信者自身のライブ配信かを、ライブ配信 ID とセッションのユーザ ID で検索して確認する
+		findAllByIDAndUserID: func(_ context.Context, _ repository.Querier, id model.LivestreamID, userID model.UserID) ([]*model.LivestreamModel, error) {
+			if id != 10 || userID != 2 {
+				t.Errorf("livestream searched by id = %d, userID = %d", id, userID)
+			}
+			return livestreams, err
+		},
+	}
+}
+
 // newLivecommentRepositoryForModerate は、ライブ配信 10 のライブコメントを NG ワードで削除する fakeLivecommentRepository を返す。
 // 削除に使った NG ワードは deletedWords に記録し、削除は err を返す。
 func newLivecommentRepositoryForModerate(t *testing.T, deletedWords *[]string, err error) *fakeLivecommentRepository {
@@ -81,7 +94,7 @@ func newNGWordRepositoryForModerate(t *testing.T, calls *[]string, created **mod
 }
 
 func TestNGWordUsecase_Moderate(t *testing.T) {
-	livestreamRepo := &fakeLivestreamRepository{livestreamModels: []*model.LivestreamModel{{ID: 10, UserID: 2}}}
+	livestreamRepo := newLivestreamRepositoryForModerate(t, []*model.LivestreamModel{{ID: 10, UserID: 2}}, nil)
 	var deletedWords []string
 	livecommentRepo := newLivecommentRepositoryForModerate(t, &deletedWords, nil)
 	var ngWordCalls []string
@@ -97,10 +110,6 @@ func TestNGWordUsecase_Moderate(t *testing.T) {
 	}
 	if wordID != 7 {
 		t.Errorf("wordID = %d, want 7", wordID)
-	}
-	// 配信者自身のライブ配信かを、ライブ配信 ID とセッションのユーザ ID で検索して確認する
-	if livestreamRepo.gotID != 10 || livestreamRepo.gotUserID != 2 {
-		t.Errorf("livestream searched by id = %d, userID = %d", livestreamRepo.gotID, livestreamRepo.gotUserID)
 	}
 	wantCreated := model.NGWordModel{UserID: 2, LivestreamID: 10, Word: "new", CreatedAt: 1700000000}
 	if created == nil || *created != wantCreated {
@@ -120,8 +129,10 @@ func TestNGWordUsecase_Moderate_Errors(t *testing.T) {
 	owned := []*model.LivestreamModel{{ID: 10, UserID: 2}}
 
 	tests := []struct {
-		name           string
-		livestreamRepo *fakeLivestreamRepository
+		name string
+		// ownedLivestreams, livestreamErr は配信者自身のライブ配信を検索した結果
+		ownedLivestreams []*model.LivestreamModel
+		livestreamErr    error
 		// deleteErr はライブコメントの削除が返すエラー
 		deleteErr error
 		// ngWords, ngWordCreateErr は NG ワードの取り直し・登録が返す値
@@ -132,29 +143,28 @@ func TestNGWordUsecase_Moderate_Errors(t *testing.T) {
 	}{
 		{
 			// 他の配信者のライブ配信・存在しないライブ配信のどちらも、検索結果が空になる
-			name:           "not the owner",
-			livestreamRepo: &fakeLivestreamRepository{livestreamModels: nil},
-			wantErr:        ErrNotLivestreamOwner,
+			name:    "not the owner",
+			wantErr: ErrNotLivestreamOwner,
 		},
 		{
-			name:           "livestream repository error",
-			livestreamRepo: &fakeLivestreamRepository{err: boom},
-			wantErr:        boom,
+			name:          "livestream repository error",
+			livestreamErr: boom,
+			wantErr:       boom,
 		},
 		{
-			name:            "create fails",
-			livestreamRepo:  &fakeLivestreamRepository{livestreamModels: owned},
-			ngWordCreateErr: boom,
-			wantErr:         boom,
-			wantNGWordCalls: []string{"Create"},
+			name:             "create fails",
+			ownedLivestreams: owned,
+			ngWordCreateErr:  boom,
+			wantErr:          boom,
+			wantNGWordCalls:  []string{"Create"},
 		},
 		{
-			name:            "delete fails",
-			livestreamRepo:  &fakeLivestreamRepository{livestreamModels: owned},
-			deleteErr:       boom,
-			ngWords:         []*model.NGWordModel{{Word: "bad"}},
-			wantErr:         boom,
-			wantNGWordCalls: []string{"Create", "FindAllByLivestreamID"},
+			name:             "delete fails",
+			ownedLivestreams: owned,
+			deleteErr:        boom,
+			ngWords:          []*model.NGWordModel{{Word: "bad"}},
+			wantErr:          boom,
+			wantNGWordCalls:  []string{"Create", "FindAllByLivestreamID"},
 		},
 	}
 
@@ -165,7 +175,7 @@ func TestNGWordUsecase_Moderate_Errors(t *testing.T) {
 			ngWordRepo := newNGWordRepositoryForModerate(t, &ngWordCalls, &created, tt.ngWords, tt.ngWordCreateErr)
 			var deletedWords []string
 			livecommentRepo := newLivecommentRepositoryForModerate(t, &deletedWords, tt.deleteErr)
-			u := NewNGWordUsecase(&fakeTxManager{}, tt.livestreamRepo, livecommentRepo, ngWordRepo)
+			u := NewNGWordUsecase(&fakeTxManager{}, newLivestreamRepositoryForModerate(t, tt.ownedLivestreams, tt.livestreamErr), livecommentRepo, ngWordRepo)
 			_, err := u.Moderate(context.Background(), 2, 10, "bad")
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
