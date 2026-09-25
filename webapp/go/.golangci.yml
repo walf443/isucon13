@@ -1,0 +1,47 @@
+version: "2"
+
+linters:
+  # 標準の linter (errcheck, govet, ineffassign, staticcheck, unused) に加えて有効にする
+  enable:
+    - depguard
+  settings:
+    depguard:
+      # 層の依存方向を守らせる
+      # domain <- usecase <- infra / interfaces (infra と interfaces は互いに依存しない)
+      rules:
+        domain:
+          files:
+            - "**/domain/**"
+          deny:
+            - pkg: github.com/isucon/isucon13/webapp/go/usecase
+              desc: domain must not depend on usecase
+            - pkg: github.com/isucon/isucon13/webapp/go/infra
+              desc: domain must not depend on infra
+            - pkg: github.com/isucon/isucon13/webapp/go/interfaces
+              desc: domain must not depend on interfaces
+            - pkg: database/sql
+              desc: domain must not depend on database/sql
+        usecase:
+          files:
+            - "**/usecase/**"
+          deny:
+            - pkg: github.com/isucon/isucon13/webapp/go/infra
+              desc: usecase must not depend on infra
+            - pkg: github.com/isucon/isucon13/webapp/go/interfaces
+              desc: usecase must not depend on interfaces
+        infra:
+          files:
+            - "**/infra/**"
+          deny:
+            - pkg: github.com/isucon/isucon13/webapp/go/interfaces
+              desc: infra must not depend on interfaces
+        interfaces:
+          files:
+            - "**/interfaces/**"
+          deny:
+            - pkg: github.com/isucon/isucon13/webapp/go/infra
+              desc: interfaces must not depend on infra
+  exclusions:
+    presets:
+      # defer xxx.Close() などの戻り値を見ない慣用的な書き方を errcheck の対象外にする
+      - std-error-handling
