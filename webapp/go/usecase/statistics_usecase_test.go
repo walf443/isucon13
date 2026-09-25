@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 	"testing"
 
@@ -33,7 +34,12 @@ func newTestUserStatisticsRepos() (*fakeUserRepository, *fakeLivestreamRepositor
 		countByOwnerName: 5,
 		favoriteEmoji:    "smile",
 	}
-	viewerRepo := &fakeLivestreamViewersHistoryRepository{countsByLivestreamID: map[model.LivestreamID]int64{10: 3, 11: 4}}
+	viewerCounts := map[model.LivestreamID]int64{10: 3, 11: 4}
+	viewerRepo := &fakeLivestreamViewersHistoryRepository{
+		countByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+			return viewerCounts[livestreamID], nil
+		},
+	}
 	return userRepo, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo
 }
 
@@ -156,7 +162,7 @@ func TestStatisticsUsecase_FindUserStatistics_Errors(t *testing.T) {
 		{
 			name: "count viewers fails",
 			modify: func(_ *fakeUserRepository, _ *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, vr *fakeLivestreamViewersHistoryRepository) {
-				vr.countErr = boom
+				vr.countByLivestreamID = func(context.Context, repository.Querier, model.LivestreamID) (int64, error) { return 0, boom }
 			},
 			wantErr: boom,
 			wantMsg: "failed to get livestream_view_history: boom",
@@ -202,7 +208,14 @@ func newTestLivestreamStatisticsRepos() (*fakeLivestreamRepository, *fakeLivecom
 		countsByLivestreamID: map[model.LivestreamID]int64{10: 10, 11: 5, 12: 0},
 		totalByLivestreamID:  5,
 	}
-	viewerRepo := &fakeLivestreamViewersHistoryRepository{viewersCount: 7}
+	viewerRepo := &fakeLivestreamViewersHistoryRepository{
+		countViewersByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+			if livestreamID != 11 {
+				return 0, fmt.Errorf("unexpected livestreamID %d", livestreamID)
+			}
+			return 7, nil
+		},
+	}
 	reportRepo := &fakeLivecommentReportRepository{reportCount: 2}
 	return livestreamRepo, livecommentRepo, reactionRepo, viewerRepo, reportRepo
 }
@@ -229,8 +242,8 @@ func TestStatisticsUsecase_FindLivestreamStatistics(t *testing.T) {
 	if want := []string{"FindByID", "FindAll"}; !slices.Equal(livestreamRepo.calls, want) {
 		t.Errorf("livestream calls = %v, want %v", livestreamRepo.calls, want)
 	}
-	if livestreamRepo.gotID != 11 || viewerRepo.gotViewersLivestream != 11 || livecommentRepo.gotMaxTipLivestreamID != 11 || reactionRepo.gotTotalLivestreamID != 11 || reportRepo.gotLivestreamID != 11 {
-		t.Errorf("livestream ids = %d, %d, %d, %d, %d, want 11", livestreamRepo.gotID, viewerRepo.gotViewersLivestream, livecommentRepo.gotMaxTipLivestreamID, reactionRepo.gotTotalLivestreamID, reportRepo.gotLivestreamID)
+	if livestreamRepo.gotID != 11 || livecommentRepo.gotMaxTipLivestreamID != 11 || reactionRepo.gotTotalLivestreamID != 11 || reportRepo.gotLivestreamID != 11 {
+		t.Errorf("livestream ids = %d, %d, %d, %d, want 11", livestreamRepo.gotID, livecommentRepo.gotMaxTipLivestreamID, reactionRepo.gotTotalLivestreamID, reportRepo.gotLivestreamID)
 	}
 }
 
@@ -285,7 +298,7 @@ func TestStatisticsUsecase_FindLivestreamStatistics_Errors(t *testing.T) {
 		{
 			name: "count viewers fails",
 			modify: func(_ *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, vr *fakeLivestreamViewersHistoryRepository, _ *fakeLivecommentReportRepository) {
-				vr.viewersCountErr = boom
+				vr.countViewersByLivestreamID = func(context.Context, repository.Querier, model.LivestreamID) (int64, error) { return 0, boom }
 			},
 			wantErr: boom,
 			wantMsg: "failed to count livestream viewers: boom",
