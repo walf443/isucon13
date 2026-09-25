@@ -14,6 +14,8 @@ type LivecommentRepository interface {
 	FindAllWithDetailsByLivestreamID(ctx context.Context, q Querier, livestreamID model.LivestreamID) ([]*model.Livecomment, error)
 	// FindAllWithDetailsByLivestreamIDLimited は指定したライブ配信へのライブコメントを、作成日時の降順で最大 limit 件返す。
 	FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q Querier, livestreamID model.LivestreamID, limit int64) ([]*model.Livecomment, error)
+	// FindByID はライブコメントが存在しない場合 ErrNotFound を返す。
+	FindByID(ctx context.Context, q Querier, id model.LivecommentID) (*model.LivecommentModel, error)
 	// Create はライブコメントを登録し、その ID を返す。
 	Create(ctx context.Context, q Querier, livecomment *model.LivecommentModel) (model.LivecommentID, error)
 	// DeleteAllByLivestreamIDMatchingNGWord は指定したライブ配信へのライブコメントのうち、NG ワード word に当たるものを削除する。

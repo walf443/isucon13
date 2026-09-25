@@ -206,6 +206,9 @@ func (r *fakeReactionRepository) Create(ctx context.Context, q repository.Querie
 }
 
 type fakeLivecommentRepository struct {
+	livecommentModel *model.LivecommentModel
+	findErr          error
+
 	deleteErr error
 	// deletedWords は DeleteAllByLivestreamIDMatchingNGWord に渡された NG ワード
 	deletedWords []string
@@ -221,6 +224,12 @@ type fakeLivecommentRepository struct {
 	calls           []string
 	gotLivestreamID model.LivestreamID
 	gotLimit        int64
+}
+
+func (r *fakeLivecommentRepository) FindByID(ctx context.Context, q repository.Querier, id model.LivecommentID) (*model.LivecommentModel, error) {
+	r.calls = append(r.calls, "FindByID")
+	r.gotID = id
+	return r.livecommentModel, r.findErr
 }
 
 func (r *fakeLivecommentRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.LivecommentID) (*model.Livecomment, error) {
@@ -256,11 +265,28 @@ func (r *fakeLivecommentRepository) FindAllWithDetailsByLivestreamIDLimited(ctx 
 }
 
 type fakeLivecommentReportRepository struct {
-	reports []*model.LivecommentReport
-	err     error
+	report    *model.LivecommentReport
+	reports   []*model.LivecommentReport
+	err       error
+	createID  model.LivecommentReportID
+	createErr error
 
 	calls           []string
+	gotID           model.LivecommentReportID
 	gotLivestreamID model.LivestreamID
+	gotCreated      *model.LivecommentReportModel
+}
+
+func (r *fakeLivecommentReportRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.LivecommentReportID) (*model.LivecommentReport, error) {
+	r.calls = append(r.calls, "FindWithDetailsByID")
+	r.gotID = id
+	return r.report, r.err
+}
+
+func (r *fakeLivecommentReportRepository) Create(ctx context.Context, q repository.Querier, report *model.LivecommentReportModel) (model.LivecommentReportID, error) {
+	r.calls = append(r.calls, "Create")
+	r.gotCreated = report
+	return r.createID, r.createErr
 }
 
 func (r *fakeLivecommentReportRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.LivecommentReport, error) {

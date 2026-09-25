@@ -35,6 +35,18 @@ func (r *livecommentRepository) FindAllWithDetailsByLivestreamIDLimited(ctx cont
 	return fillLivecomments(ctx, q, livecommentModels, r.fallbackIcon)
 }
 
+func (r *livecommentRepository) FindByID(ctx context.Context, q repository.Querier, id model.LivecommentID) (*model.LivecommentModel, error) {
+	var livecommentModel model.LivecommentModel
+	err := q.GetContext(ctx, &livecommentModel, "SELECT id, user_id, livestream_id, comment, tip, created_at FROM livecomments WHERE id = ?", id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, repository.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &livecommentModel, nil
+}
+
 func (r *livecommentRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.LivecommentID) (*model.Livecomment, error) {
 	var livecommentModel model.LivecommentModel
 	err := q.GetContext(ctx, &livecommentModel, "SELECT id, user_id, livestream_id, comment, tip, created_at FROM livecomments WHERE id = ?", id)

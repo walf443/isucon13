@@ -30,7 +30,7 @@ func registerRoutes(e *echo.Echo, h *handlers) {
 	e.GET("/api/livestream/:livestream_id/report", h.livecomment.GetLivecommentReports)
 	e.GET("/api/livestream/:livestream_id/ngwords", h.ngWord.GetNGWords)
 	// ライブコメント報告
-	e.POST("/api/livestream/:livestream_id/livecomment/:livecomment_id/report", reportLivecommentHandler)
+	e.POST("/api/livestream/:livestream_id/livecomment/:livecomment_id/report", h.livecomment.PostLivecommentReport)
 	// 配信者によるモデレーション (NGワード登録)
 	e.POST("/api/livestream/:livestream_id/moderate", h.ngWord.Moderate)
 

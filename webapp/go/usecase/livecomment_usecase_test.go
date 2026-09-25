@@ -258,3 +258,110 @@ func TestLivecommentUsecase_Create_LogsHitSpam(t *testing.T) {
 		t.Errorf("log lines = %q, want %q", logger.lines, want)
 	}
 }
+
+func TestLivecommentUsecase_Report(t *testing.T) {
+	want := &model.LivecommentReport{ID: 7}
+	livestreamRepo := &fakeLivestreamRepository{livestreamModel: &model.LivestreamModel{ID: 10, UserID: 2}}
+	livecommentRepo := &fakeLivecommentRepository{livecommentModel: &model.LivecommentModel{ID: 50, LivestreamID: 10}}
+	reportRepo := &fakeLivecommentReportRepository{createID: 7, report: want}
+	u := NewLivecommentUsecase(&fakeTxManager{}, livestreamRepo, livecommentRepo, reportRepo, &fakeNGWordRepository{}, &fakeLogger{}).(*livecommentUsecase)
+	u.now = func() time.Time { return time.Unix(1700000000, 0) }
+
+	got, err := u.Report(context.Background(), 3, 10, 50)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != want {
+		t.Errorf("got %+v, want %+v", got, want)
+	}
+	if livestreamRepo.gotID != 10 {
+		t.Errorf("livestream id = %d, want 10", livestreamRepo.gotID)
+	}
+	if want := []string{"FindByID"}; !slices.Equal(livecommentRepo.calls, want) || livecommentRepo.gotID != 50 {
+		t.Errorf("livecomment calls = %v, id = %d", livecommentRepo.calls, livecommentRepo.gotID)
+	}
+	wantCreated := model.LivecommentReportModel{UserID: 3, LivestreamID: 10, LivecommentID: 50, CreatedAt: 1700000000}
+	if *reportRepo.gotCreated != wantCreated {
+		t.Errorf("created = %+v, want %+v", *reportRepo.gotCreated, wantCreated)
+	}
+	if want := []string{"Create", "FindWithDetailsByID"}; !slices.Equal(reportRepo.calls, want) {
+		t.Errorf("report calls = %v, want %v", reportRepo.calls, want)
+	}
+	if reportRepo.gotID != 7 {
+		t.Errorf("re-read id = %d, want 7", reportRepo.gotID)
+	}
+}
+
+func TestLivecommentUsecase_Report_Errors(t *testing.T) {
+	boom := errors.New("boom")
+	livestream := &model.LivestreamModel{ID: 10, UserID: 2}
+	livecomment := &model.LivecommentModel{ID: 50, LivestreamID: 10}
+
+	tests := []struct {
+		name            string
+		livestreamRepo  *fakeLivestreamRepository
+		livecommentRepo *fakeLivecommentRepository
+		reportRepo      *fakeLivecommentReportRepository
+		wantErr         error
+		wantReportCalls []string
+	}{
+		{
+			name:            "livestream not found",
+			livestreamRepo:  &fakeLivestreamRepository{err: repository.ErrNotFound},
+			livecommentRepo: &fakeLivecommentRepository{},
+			reportRepo:      &fakeLivecommentReportRepository{},
+			wantErr:         ErrLivestreamNotFound,
+		},
+		{
+			name:            "livestream repository error",
+			livestreamRepo:  &fakeLivestreamRepository{err: boom},
+			livecommentRepo: &fakeLivecommentRepository{},
+			reportRepo:      &fakeLivecommentReportRepository{},
+			wantErr:         boom,
+		},
+		{
+			name:            "livecomment not found",
+			livestreamRepo:  &fakeLivestreamRepository{livestreamModel: livestream},
+			livecommentRepo: &fakeLivecommentRepository{findErr: repository.ErrNotFound},
+			reportRepo:      &fakeLivecommentReportRepository{},
+			wantErr:         ErrLivecommentNotFound,
+		},
+		{
+			name:            "livecomment repository error",
+			livestreamRepo:  &fakeLivestreamRepository{livestreamModel: livestream},
+			livecommentRepo: &fakeLivecommentRepository{findErr: boom},
+			reportRepo:      &fakeLivecommentReportRepository{},
+			wantErr:         boom,
+		},
+		{
+			name:            "create fails",
+			livestreamRepo:  &fakeLivestreamRepository{livestreamModel: livestream},
+			livecommentRepo: &fakeLivecommentRepository{livecommentModel: livecomment},
+			reportRepo:      &fakeLivecommentReportRepository{createErr: boom},
+			wantErr:         boom,
+			wantReportCalls: []string{"Create"},
+		},
+		{
+			name:            "fill fails",
+			livestreamRepo:  &fakeLivestreamRepository{livestreamModel: livestream},
+			livecommentRepo: &fakeLivecommentRepository{livecommentModel: livecomment},
+			reportRepo:      &fakeLivecommentReportRepository{createID: 7, err: boom},
+			wantErr:         boom,
+			wantReportCalls: []string{"Create", "FindWithDetailsByID"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			u := NewLivecommentUsecase(&fakeTxManager{}, tt.livestreamRepo, tt.livecommentRepo, tt.reportRepo, &fakeNGWordRepository{}, &fakeLogger{})
+			_, err := u.Report(context.Background(), 3, 10, 50)
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("err = %v, want %v", err, tt.wantErr)
+			}
+			// ライブ配信やライブコメントが無い場合は報告を登録しない
+			if !slices.Equal(tt.reportRepo.calls, tt.wantReportCalls) {
+				t.Errorf("report calls = %v, want %v", tt.reportRepo.calls, tt.wantReportCalls)
+			}
+		})
+	}
+}

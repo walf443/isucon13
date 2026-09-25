@@ -168,3 +168,41 @@ func (h *LivecommentHandler) PostLivecomment(c echo.Context) error {
 
 	return c.JSON(http.StatusCreated, newLivecomment(livecomment))
 }
+
+// ライブコメント報告
+// POST /api/livestream/:livestream_id/livecomment/:livecomment_id/report
+func (h *LivecommentHandler) PostLivecommentReport(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	if err := VerifyUserSession(c); err != nil {
+		return err
+	}
+
+	livestreamID, err := strconv.Atoi(c.Param("livestream_id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
+	}
+
+	livecommentID, err := strconv.Atoi(c.Param("livecomment_id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "livecomment_id in path must be integer")
+	}
+
+	userID, err := getSessionUserID(c)
+	if err != nil {
+		return err
+	}
+
+	report, err := h.livecommentUsecase.Report(ctx, userID, model.LivestreamID(livestreamID), model.LivecommentID(livecommentID))
+	if errors.Is(err, usecase.ErrLivestreamNotFound) {
+		return echo.NewHTTPError(http.StatusNotFound, "livestream not found")
+	}
+	if errors.Is(err, usecase.ErrLivecommentNotFound) {
+		return echo.NewHTTPError(http.StatusNotFound, "livecomment not found")
+	}
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusCreated, newLivecommentReport(report))
+}
