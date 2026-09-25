@@ -3,32 +3,12 @@ package handler
 import (
 	"bytes"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/labstack/echo/v4"
 )
-
-// newSessionCookieWithValues は values を持つセッションの Cookie を返す。
-func newSessionCookieWithValues(t *testing.T, values map[any]any) *http.Cookie {
-	t.Helper()
-
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	rec := httptest.NewRecorder()
-	sess, err := testSessionStore.Get(req, defaultSessionIDKey)
-	if err != nil {
-		t.Fatalf("failed to get session: %v", err)
-	}
-	for k, v := range values {
-		sess.Values[k] = v
-	}
-	if err := sess.Save(req, rec); err != nil {
-		t.Fatalf("failed to save session: %v", err)
-	}
-	return rec.Result().Cookies()[0]
-}
 
 func TestRequireSession(t *testing.T) {
 	now := time.Unix(1700000000, 0)

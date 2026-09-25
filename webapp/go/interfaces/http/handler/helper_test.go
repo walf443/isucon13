@@ -27,6 +27,17 @@ func newTestEcho() *echo.Echo {
 // newSessionCookie は指定したユーザでログイン済みのセッション Cookie を返す。
 func newSessionCookie(t *testing.T, userID int64, expires time.Time) *http.Cookie {
 	t.Helper()
+	return newSessionCookieWithValues(t, map[any]any{
+		defaultSessionIDKey:      "test-session-id",
+		defaultUserIDKey:         userID,
+		defaultUsernameKey:       "test-user",
+		defaultSessionExpiresKey: expires.Unix(),
+	})
+}
+
+// newSessionCookieWithValues は values を持つセッションの Cookie を返す。
+func newSessionCookieWithValues(t *testing.T, values map[any]any) *http.Cookie {
+	t.Helper()
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
@@ -34,10 +45,12 @@ func newSessionCookie(t *testing.T, userID int64, expires time.Time) *http.Cooki
 	if err != nil {
 		t.Fatalf("failed to get session: %v", err)
 	}
-	sess.Values[defaultSessionIDKey] = "test-session-id"
-	sess.Values[defaultUserIDKey] = userID
-	sess.Values[defaultUsernameKey] = "test-user"
-	sess.Values[defaultSessionExpiresKey] = expires.Unix()
+	// ストアの Domain (*.u.isucon.dev) は Cookie の属性として不正で、保存のたびに net/http が警告を出すので外す
+	// (sess.Options はストアの設定のコピーなので、ストアには影響しない)
+	sess.Options.Domain = ""
+	for k, v := range values {
+		sess.Values[k] = v
+	}
 	if err := sess.Save(req, rec); err != nil {
 		t.Fatalf("failed to save session: %v", err)
 	}
