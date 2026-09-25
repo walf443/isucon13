@@ -1,6 +1,9 @@
 package usecase
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 // ErrUserNotFound は指定されたユーザが存在しないことを表す。
 var ErrUserNotFound = errors.New("user not found")
@@ -17,11 +20,18 @@ var ErrIconNotFound = errors.New("icon not found")
 // ErrLivestreamNotFound は指定されたライブ配信が存在しないことを表す。
 var ErrLivestreamNotFound = errors.New("livestream not found")
 
-// ErrBadReservationTimeRange は予約区間が予約可能期間 (ReservationTermStartAt 〜 ReservationTermEndAt) に掛かっていないことを表す。
+// ErrBadReservationTimeRange は予約区間が予約可能期間に掛かっていないことを表す。
 var ErrBadReservationTimeRange = errors.New("bad reservation time range")
 
-// ErrReservationSlotUnavailable は予約区間に空きの無い予約枠があることを表す。
-var ErrReservationSlotUnavailable = errors.New("reservation slot is unavailable")
+// ReservationSlotUnavailableError は予約区間 StartAt 〜 EndAt に空きの無い予約枠があることを表す。
+type ReservationSlotUnavailableError struct {
+	StartAt int64
+	EndAt   int64
+}
+
+func (e *ReservationSlotUnavailableError) Error() string {
+	return fmt.Sprintf("予約期間 %d ~ %dに対して、予約区間 %d ~ %dが予約できません", reservationTermStartAt.Unix(), reservationTermEndAt.Unix(), e.StartAt, e.EndAt)
+}
 
 // ErrLivecommentNotFound は指定されたライブコメントが存在しないことを表す。
 var ErrLivecommentNotFound = errors.New("livecomment not found")

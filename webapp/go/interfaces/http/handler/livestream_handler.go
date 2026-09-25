@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -198,8 +197,8 @@ func (h *LivestreamHandler) ReserveLivestream(c echo.Context) error {
 	if errors.Is(err, usecase.ErrBadReservationTimeRange) {
 		return echo.NewHTTPError(http.StatusBadRequest, "bad reservation time range")
 	}
-	if errors.Is(err, usecase.ErrReservationSlotUnavailable) {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("予約期間 %d ~ %dに対して、予約区間 %d ~ %dが予約できません", usecase.ReservationTermStartAt.Unix(), usecase.ReservationTermEndAt.Unix(), req.StartAt, req.EndAt))
+	if unavailable, ok := errors.AsType[*usecase.ReservationSlotUnavailableError](err); ok {
+		return echo.NewHTTPError(http.StatusBadRequest, unavailable.Error())
 	}
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())

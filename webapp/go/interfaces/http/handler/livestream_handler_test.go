@@ -474,11 +474,11 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 			wantBody: `{"message":"bad reservation time range"}` + "\n",
 		},
 		{
-			// メッセージには予約可能期間とリクエストの予約区間を含める (移行前と同じ)
+			// メッセージは usecase のエラーのものをそのまま返す
 			name:     "returns 400 when slot is unavailable",
 			cookie:   validCookie,
 			body:     reqBody,
-			usecase:  &fakeLivestreamUsecase{err: usecase.ErrReservationSlotUnavailable},
+			usecase:  &fakeLivestreamUsecase{err: &usecase.ReservationSlotUnavailableError{StartAt: 1700874000, EndAt: 1700877600}},
 			wantCode: http.StatusBadRequest,
 			wantBody: `{"message":"予約期間 1700874000 ~ 1732496400に対して、予約区間 1700874000 ~ 1700877600が予約できません"}` + "\n",
 		},

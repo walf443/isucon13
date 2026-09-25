@@ -25,7 +25,7 @@ type LivestreamUsecase interface {
 	FindAll(ctx context.Context, limit *int64) ([]*model.Livestream, error)
 	// Reserve はライブ配信を予約し、配信者・タグを含めて返す。
 	// 予約区間が予約可能期間に掛かっていない場合 ErrBadReservationTimeRange、
-	// 予約区間に空きの無い予約枠がある場合 ErrReservationSlotUnavailable を返す。
+	// 予約区間に空きの無い予約枠がある場合 *ReservationSlotUnavailableError を返す。
 	Reserve(ctx context.Context, userID model.UserID, input ReserveLivestreamInput) (*model.Livestream, error)
 }
 
@@ -42,8 +42,8 @@ type ReserveLivestreamInput struct {
 
 // 予約可能期間 (2023/11/25 10:00 JST からの1年間)
 var (
-	ReservationTermStartAt = time.Date(2023, 11, 25, 1, 0, 0, 0, time.UTC)
-	ReservationTermEndAt   = time.Date(2024, 11, 25, 1, 0, 0, 0, time.UTC)
+	reservationTermStartAt = time.Date(2023, 11, 25, 1, 0, 0, 0, time.UTC)
+	reservationTermEndAt   = time.Date(2024, 11, 25, 1, 0, 0, 0, time.UTC)
 )
 
 type livestreamUsecase struct {
@@ -178,7 +178,7 @@ func (u *livestreamUsecase) Reserve(ctx context.Context, userID model.UserID, in
 			reserveStartAt = time.Unix(input.StartAt, 0)
 			reserveEndAt   = time.Unix(input.EndAt, 0)
 		)
-		if (reserveStartAt.Equal(ReservationTermEndAt) || reserveStartAt.After(ReservationTermEndAt)) || (reserveEndAt.Equal(ReservationTermStartAt) || reserveEndAt.Before(ReservationTermStartAt)) {
+		if (reserveStartAt.Equal(reservationTermEndAt) || reserveStartAt.After(reservationTermEndAt)) || (reserveEndAt.Equal(reservationTermStartAt) || reserveEndAt.Before(reservationTermStartAt)) {
 			return ErrBadReservationTimeRange
 		}
 
@@ -197,7 +197,7 @@ func (u *livestreamUsecase) Reserve(ctx context.Context, userID model.UserID, in
 			// 移行前と同じく、ログには FOR UPDATE で取得した時点の残数を出す
 			u.logger.Infof("%d ~ %d予約枠の残数 = %d\n", slot.StartAt, slot.EndAt, slot.Slot)
 			if count < 1 {
-				return ErrReservationSlotUnavailable
+				return &ReservationSlotUnavailableError{StartAt: input.StartAt, EndAt: input.EndAt}
 			}
 		}
 

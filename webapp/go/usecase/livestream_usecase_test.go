@@ -368,10 +368,12 @@ func TestLivestreamUsecase_Reserve_Errors(t *testing.T) {
 	available := map[int64]int64{1700874000: 5, 1700877600: 3}
 
 	tests := []struct {
-		name                string
-		slotRepo            *fakeReservationSlotRepository
-		livestreamRepo      *fakeLivestreamRepository
-		wantErr             error
+		name           string
+		slotRepo       *fakeReservationSlotRepository
+		livestreamRepo *fakeLivestreamRepository
+		wantErr        error
+		// wantUnavailable は *ReservationSlotUnavailableError を期待するかどうか
+		wantUnavailable     bool
 		wantLivestreamCalls []string
 		wantLogLines        []string
 		wantWarnLines       []string
@@ -391,11 +393,11 @@ func TestLivestreamUsecase_Reserve_Errors(t *testing.T) {
 		},
 		{
 			// 残数の判定は FOR UPDATE で取得した値ではなく、取り直した値で行う (移行前と同じ)
-			name:           "slot is full",
-			slotRepo:       &fakeReservationSlotRepository{slots: slots, counts: map[int64]int64{1700874000: 5, 1700877600: 0}},
-			livestreamRepo: &fakeLivestreamRepository{},
-			wantErr:        ErrReservationSlotUnavailable,
-			wantLogLines:   []string{"1700874000 ~ 1700877600予約枠の残数 = 5\n", "1700877600 ~ 1700881200予約枠の残数 = 3\n"},
+			name:            "slot is full",
+			slotRepo:        &fakeReservationSlotRepository{slots: slots, counts: map[int64]int64{1700874000: 5, 1700877600: 0}},
+			livestreamRepo:  &fakeLivestreamRepository{},
+			wantUnavailable: true,
+			wantLogLines:    []string{"1700874000 ~ 1700877600予約枠の残数 = 5\n", "1700877600 ~ 1700881200予約枠の残数 = 3\n"},
 		},
 		{
 			name:           "decrement fails",
@@ -435,7 +437,19 @@ func TestLivestreamUsecase_Reserve_Errors(t *testing.T) {
 			logger := &fakeLogger{}
 			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, tt.livestreamRepo, tt.slotRepo, logger)
 			_, err := u.Reserve(context.Background(), 1, testReserveInput)
-			if !errors.Is(err, tt.wantErr) {
+			if tt.wantUnavailable {
+				unavailable, ok := errors.AsType[*ReservationSlotUnavailableError](err)
+				if !ok {
+					t.Fatalf("err = %v, want *ReservationSlotUnavailableError", err)
+				}
+				if unavailable.StartAt != testReserveInput.StartAt || unavailable.EndAt != testReserveInput.EndAt {
+					t.Errorf("unavailable = %+v", unavailable)
+				}
+				// メッセージには予約可能期間とリクエストの予約区間を含める (移行前と同じ)
+				if want := "予約期間 1700874000 ~ 1732496400に対して、予約区間 1700874000 ~ 1700881200が予約できません"; err.Error() != want {
+					t.Errorf("err = %q, want %q", err.Error(), want)
+				}
+			} else if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
 			}
 			// 予約枠を確保できなかった場合はライブ配信を登録しない
