@@ -30,10 +30,11 @@ type userRegistrationUsecase struct {
 	userRepo     repository.UserRepository
 	themeRepo    repository.ThemeRepository
 	dnsRegistrar DNSRecordRegistrar
+	userFiller   *UserFiller
 }
 
-func NewUserRegistrationUsecase(txManager repository.TxManager, userRepo repository.UserRepository, themeRepo repository.ThemeRepository, dnsRegistrar DNSRecordRegistrar) UserRegistrationUsecase {
-	return &userRegistrationUsecase{txManager: txManager, userRepo: userRepo, themeRepo: themeRepo, dnsRegistrar: dnsRegistrar}
+func NewUserRegistrationUsecase(txManager repository.TxManager, userRepo repository.UserRepository, themeRepo repository.ThemeRepository, dnsRegistrar DNSRecordRegistrar, userFiller *UserFiller) UserRegistrationUsecase {
+	return &userRegistrationUsecase{txManager: txManager, userRepo: userRepo, themeRepo: themeRepo, dnsRegistrar: dnsRegistrar, userFiller: userFiller}
 }
 
 func (u *userRegistrationUsecase) Register(ctx context.Context, input RegisterUserInput) (*domain.User, error) {
@@ -71,10 +72,15 @@ func (u *userRegistrationUsecase) Register(ctx context.Context, input RegisterUs
 			return err
 		}
 
-		user, err = u.userRepo.FindWithDetailsByID(ctx, q, userID)
+		userModel, err := u.userRepo.FindByID(ctx, q, userID)
 		if err != nil {
 			return fmt.Errorf("failed to fill user: %w", err)
 		}
+		users, err := u.userFiller.Fill(ctx, q, []*domain.UserModel{userModel})
+		if err != nil {
+			return fmt.Errorf("failed to fill user: %w", err)
+		}
+		user = users[userID]
 		return nil
 	})
 	if err != nil {

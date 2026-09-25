@@ -12,29 +12,34 @@ import (
 
 // newUserRepositoryForRegister は Register で呼ばれるメソッドを、呼ばれた順に calls へ記録する fakeUserRepository を返す。
 // 登録したユーザは created に取り出し、ID 5 で読み直したユーザとして user を返す。
-func newUserRepositoryForRegister(t *testing.T, calls *[]string, created **domain.UserModel, user *domain.User, createErr, fillErr error) *fakeUserRepository {
+func newUserRepositoryForRegister(t *testing.T, calls *[]string, created **domain.UserModel, user *domain.UserModel, createErr, findErr error) *fakeUserRepository {
 	return &fakeUserRepository{
 		create: func(_ context.Context, _ repository.Querier, u *domain.UserModel) (domain.UserID, error) {
 			*calls = append(*calls, "Create")
 			*created = u
 			return 5, createErr
 		},
-		findWithDetailsByID: func(_ context.Context, _ repository.Querier, id domain.UserID) (*domain.User, error) {
-			*calls = append(*calls, "FindWithDetailsByID")
+		findByID: func(_ context.Context, _ repository.Querier, id domain.UserID) (*domain.UserModel, error) {
+			*calls = append(*calls, "FindByID")
 			if id != 5 {
 				t.Errorf("re-read id = %d, want 5", id)
 			}
-			return user, fillErr
+			return user, findErr
 		},
 	}
 }
 
+// registeredUserFiller は登録したユーザ (ID 5) のテーマを返す UserFiller を返す。
+func registeredUserFiller() *UserFiller {
+	return newUserFillerForTest(map[domain.UserID]*domain.ThemeModel{5: {ID: 50, UserID: 5, DarkMode: true}}, nil, nil)
+}
+
 func TestUserRegistrationUsecase_Register(t *testing.T) {
-	want := &domain.User{ID: 5, Name: "alice"}
+	want := domain.User{ID: 5, Name: "alice", DisplayName: "Alice", Description: "hello", Theme: domain.ThemeModel{ID: 50, UserID: 5, DarkMode: true}, IconHash: "default-hash"}
 	txManager := &fakeTxManager{}
 	var userCalls []string
 	var created *domain.UserModel
-	userRepo := newUserRepositoryForRegister(t, &userCalls, &created, want, nil, nil)
+	userRepo := newUserRepositoryForRegister(t, &userCalls, &created, &domain.UserModel{ID: 5, Name: "alice", DisplayName: "Alice", Description: "hello"}, nil, nil)
 	var createdTheme *domain.ThemeModel
 	themeRepo := &fakeThemeRepository{
 		create: func(_ context.Context, _ repository.Querier, theme *domain.ThemeModel) error {
@@ -49,7 +54,7 @@ func TestUserRegistrationUsecase_Register(t *testing.T) {
 			return nil
 		},
 	}
-	u := NewUserRegistrationUsecase(txManager, userRepo, themeRepo, dns)
+	u := NewUserRegistrationUsecase(txManager, userRepo, themeRepo, dns, registeredUserFiller())
 
 	got, err := u.Register(context.Background(), RegisterUserInput{
 		Name:        "alice",
@@ -61,8 +66,8 @@ func TestUserRegistrationUsecase_Register(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if got != want {
-		t.Errorf("got %+v, want %+v", got, want)
+	if *got != want {
+		t.Errorf("got %+v, want %+v", *got, want)
 	}
 
 	if created == nil {
@@ -81,7 +86,7 @@ func TestUserRegistrationUsecase_Register(t *testing.T) {
 	if want := []string{"alice"}; !slices.Equal(dnsNames, want) {
 		t.Errorf("dns names = %v, want %v", dnsNames, want)
 	}
-	if want := []string{"Create", "FindWithDetailsByID"}; !slices.Equal(userCalls, want) {
+	if want := []string{"Create", "FindByID"}; !slices.Equal(userCalls, want) {
 		t.Errorf("user calls = %v, want %v", userCalls, want)
 	}
 	if txManager.runs != 1 {
@@ -100,7 +105,7 @@ func TestUserRegistrationUsecase_Register_ReservedUsername(t *testing.T) {
 			return nil
 		},
 	}
-	u := NewUserRegistrationUsecase(txManager, userRepo, &fakeThemeRepository{}, dns)
+	u := NewUserRegistrationUsecase(txManager, userRepo, &fakeThemeRepository{}, dns, nil)
 
 	_, err := u.Register(context.Background(), RegisterUserInput{Name: "pipe", Password: "x"})
 	reserved, ok := errors.AsType[*ReservedUsernameError](err)
@@ -127,17 +132,19 @@ func TestUserRegistrationUsecase_Register_Errors(t *testing.T) {
 
 	tests := []struct {
 		name string
-		// userCreateErr, userFillErr はユーザの登録・取り直しが返すエラー
+		// userCreateErr, userFindErr はユーザの登録・取り直しが返すエラー
 		userCreateErr error
-		userFillErr   error
+		userFindErr   error
 		// themeCreateErr はテーマの登録が返すエラー
 		themeCreateErr error
 		// dnsErr は DNS の登録が返すエラー
-		dnsErr    error
-		wantErr   error
-		wantMsg   string
-		wantCalls []string
-		wantDNS   []string
+		dnsErr error
+		// themeMissing が true なら、読み直したユーザのテーマが見つからない
+		themeMissing bool
+		wantErr      error
+		wantMsg      string
+		wantCalls    []string
+		wantDNS      []string
 	}{
 		{
 			name:          "insert user fails",
@@ -162,12 +169,20 @@ func TestUserRegistrationUsecase_Register_Errors(t *testing.T) {
 			wantDNS:   []string{"alice"},
 		},
 		{
-			name:        "fill fails",
-			userFillErr: boom,
+			name:        "re-read user fails",
+			userFindErr: boom,
 			wantErr:     boom,
 			wantMsg:     "failed to fill user: boom",
-			wantCalls:   []string{"Create", "FindWithDetailsByID"},
+			wantCalls:   []string{"Create", "FindByID"},
 			wantDNS:     []string{"alice"},
+		},
+		{
+			name:         "fill fails",
+			themeMissing: true,
+			wantErr:      repository.ErrNotFound,
+			wantMsg:      "failed to fill user: failed to get theme of user 5: not found",
+			wantCalls:    []string{"Create", "FindByID"},
+			wantDNS:      []string{"alice"},
 		},
 	}
 
@@ -185,8 +200,12 @@ func TestUserRegistrationUsecase_Register_Errors(t *testing.T) {
 			}
 			var userCalls []string
 			var created *domain.UserModel
-			userRepo := newUserRepositoryForRegister(t, &userCalls, &created, nil, tt.userCreateErr, tt.userFillErr)
-			u := NewUserRegistrationUsecase(&fakeTxManager{}, userRepo, themeRepo, dns)
+			userRepo := newUserRepositoryForRegister(t, &userCalls, &created, &domain.UserModel{ID: 5, Name: "alice"}, tt.userCreateErr, tt.userFindErr)
+			userFiller := registeredUserFiller()
+			if tt.themeMissing {
+				userFiller = newUserFillerForTest(nil, nil, nil)
+			}
+			u := NewUserRegistrationUsecase(&fakeTxManager{}, userRepo, themeRepo, dns, userFiller)
 			_, err := u.Register(context.Background(), RegisterUserInput{Name: "alice", Password: "x"})
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)

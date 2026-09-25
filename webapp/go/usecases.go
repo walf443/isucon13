@@ -25,7 +25,7 @@ func newUsecases(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 	txManager := mysql.NewTxManager(db)
 
 	tagRepo := mysql.NewTagRepository()
-	userRepo := mysql.NewUserRepository(defaultIconHash)
+	userRepo := mysql.NewUserRepository()
 	themeRepo := mysql.NewThemeRepository()
 	iconRepo := mysql.NewIconRepository()
 	livestreamRepo := mysql.NewLivestreamRepository(defaultIconHash)
@@ -36,12 +36,14 @@ func newUsecases(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 	viewerRepo := mysql.NewLivestreamViewersHistoryRepository()
 	reservationSlotRepo := mysql.NewReservationSlotRepository()
 
+	userFiller := usecase.NewUserFiller(themeRepo, iconRepo, defaultIconHash)
+
 	tagUsecase := usecase.NewTagUsecase(txManager, tagRepo)
 	themeUsecase := usecase.NewThemeUsecase(txManager, userRepo, themeRepo)
 	dnsRegistrar := powerdns.NewDNSRecordRegistrar(powerDNSSubdomainAddress)
 
-	userUsecase := usecase.NewUserUsecase(txManager, userRepo)
-	userRegistrationUsecase := usecase.NewUserRegistrationUsecase(txManager, userRepo, themeRepo, dnsRegistrar)
+	userUsecase := usecase.NewUserUsecase(txManager, userRepo, userFiller)
+	userRegistrationUsecase := usecase.NewUserRegistrationUsecase(txManager, userRepo, themeRepo, dnsRegistrar, userFiller)
 	iconUsecase := usecase.NewIconUsecase(txManager, userRepo, iconRepo)
 	livestreamUsecase := usecase.NewLivestreamUsecase(txManager, userRepo, tagRepo, livestreamRepo)
 	livestreamReservationUsecase := usecase.NewLivestreamReservationUsecase(txManager, livestreamRepo, reservationSlotRepo, logger)

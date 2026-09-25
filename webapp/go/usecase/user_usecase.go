@@ -20,37 +20,44 @@ type UserUsecase interface {
 }
 
 type userUsecase struct {
-	txManager repository.TxManager
-	userRepo  repository.UserRepository
+	txManager  repository.TxManager
+	userRepo   repository.UserRepository
+	userFiller *UserFiller
 }
 
-func NewUserUsecase(txManager repository.TxManager, userRepo repository.UserRepository) UserUsecase {
-	return &userUsecase{txManager: txManager, userRepo: userRepo}
+func NewUserUsecase(txManager repository.TxManager, userRepo repository.UserRepository, userFiller *UserFiller) UserUsecase {
+	return &userUsecase{txManager: txManager, userRepo: userRepo, userFiller: userFiller}
 }
 
 func (u *userUsecase) FindByID(ctx context.Context, id domain.UserID) (*domain.User, error) {
-	return u.findUser(ctx, func(q repository.Querier) (*domain.User, error) {
-		return u.userRepo.FindWithDetailsByID(ctx, q, id)
+	return u.findUser(ctx, func(q repository.Querier) (*domain.UserModel, error) {
+		return u.userRepo.FindByID(ctx, q, id)
 	})
 }
 
 func (u *userUsecase) FindByName(ctx context.Context, name string) (*domain.User, error) {
-	return u.findUser(ctx, func(q repository.Querier) (*domain.User, error) {
-		return u.userRepo.FindWithDetailsByName(ctx, q, name)
+	return u.findUser(ctx, func(q repository.Querier) (*domain.UserModel, error) {
+		return u.userRepo.FindByName(ctx, q, name)
 	})
 }
 
-func (u *userUsecase) findUser(ctx context.Context, find func(q repository.Querier) (*domain.User, error)) (*domain.User, error) {
+func (u *userUsecase) findUser(ctx context.Context, find func(q repository.Querier) (*domain.UserModel, error)) (*domain.User, error) {
 	var user *domain.User
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
-		var err error
-		user, err = find(q)
+		userModel, err := find(q)
+		// ユーザ不在 (404) にするのはユーザ自体が無い場合だけ。テーマ欠損などは 500 にする
 		if errors.Is(err, repository.ErrNotFound) {
 			return ErrUserNotFound
 		}
 		if err != nil {
 			return fmt.Errorf("failed to get user: %w", err)
 		}
+
+		users, err := u.userFiller.Fill(ctx, q, []*domain.UserModel{userModel})
+		if err != nil {
+			return fmt.Errorf("failed to get user: %w", err)
+		}
+		user = users[userModel.ID]
 		return nil
 	})
 	if err != nil {

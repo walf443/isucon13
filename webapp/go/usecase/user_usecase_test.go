@@ -10,45 +10,52 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// aliceModel と aliceUser は、テーマ・アイコンを埋める前後のユーザ alice。
+var (
+	aliceModel = &domain.UserModel{ID: 1, Name: "alice", DisplayName: "Alice", Description: "hi"}
+	aliceTheme = &domain.ThemeModel{ID: 10, UserID: 1, DarkMode: true}
+	aliceUser  = domain.User{ID: 1, Name: "alice", DisplayName: "Alice", Description: "hi", Theme: *aliceTheme, IconHash: "default-hash"}
+)
+
 func TestUserUsecase_FindByName(t *testing.T) {
-	want := &domain.User{ID: 1, Name: "alice", Theme: domain.ThemeModel{ID: 10, UserID: 1}, IconHash: "abc"}
 	userRepo := &fakeUserRepository{
-		findWithDetailsByName: func(_ context.Context, _ repository.Querier, name string) (*domain.User, error) {
+		findByName: func(_ context.Context, _ repository.Querier, name string) (*domain.UserModel, error) {
 			if name != "alice" {
 				t.Errorf("name = %q, want %q", name, "alice")
 			}
-			return want, nil
+			return aliceModel, nil
 		},
 	}
-	u := NewUserUsecase(&fakeTxManager{}, userRepo)
+	userFiller := newUserFillerForTest(map[domain.UserID]*domain.ThemeModel{1: aliceTheme}, nil, nil)
+	u := NewUserUsecase(&fakeTxManager{}, userRepo, userFiller)
 
 	user, err := u.FindByName(context.Background(), "alice")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if user != want {
-		t.Errorf("user = %+v, want %+v", user, want)
+	if *user != aliceUser {
+		t.Errorf("user = %+v, want %+v", *user, aliceUser)
 	}
 }
 
 func TestUserUsecase_FindByID(t *testing.T) {
-	want := &domain.User{ID: 1, Name: "alice"}
 	userRepo := &fakeUserRepository{
-		findWithDetailsByID: func(_ context.Context, _ repository.Querier, id domain.UserID) (*domain.User, error) {
+		findByID: func(_ context.Context, _ repository.Querier, id domain.UserID) (*domain.UserModel, error) {
 			if id != 1 {
 				t.Errorf("id = %d, want 1", id)
 			}
-			return want, nil
+			return aliceModel, nil
 		},
 	}
-	u := NewUserUsecase(&fakeTxManager{}, userRepo)
+	userFiller := newUserFillerForTest(map[domain.UserID]*domain.ThemeModel{1: aliceTheme}, nil, nil)
+	u := NewUserUsecase(&fakeTxManager{}, userRepo, userFiller)
 
 	user, err := u.FindByID(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if user != want {
-		t.Errorf("user = %+v, want %+v", user, want)
+	if *user != aliceUser {
+		t.Errorf("user = %+v, want %+v", *user, aliceUser)
 	}
 }
 
@@ -56,43 +63,51 @@ func TestUserUsecase_Errors(t *testing.T) {
 	boom := errors.New("boom")
 
 	tests := []struct {
-		name    string
-		repoErr error
-		check   func(t *testing.T, err error)
+		name string
+		// user, userErr はユーザを引いた結果
+		user    *domain.UserModel
+		userErr error
+		// themes はユーザの ID ごとのテーマ (無ければテーマ欠損)
+		themes  map[domain.UserID]*domain.ThemeModel
+		wantErr error
+		wantMsg string
 	}{
+		{name: "user not found", userErr: repository.ErrNotFound, wantErr: ErrUserNotFound, wantMsg: ErrUserNotFound.Error()},
+		{name: "get user fails", userErr: boom, wantErr: boom, wantMsg: "failed to get user: boom"},
 		{
-			name:    "user not found",
-			repoErr: repository.ErrNotFound,
-			check: func(t *testing.T, err error) {
-				if !errors.Is(err, ErrUserNotFound) {
-					t.Errorf("err = %v, want ErrUserNotFound", err)
-				}
-			},
-		},
-		{
-			// テーマ欠損などの repository のエラーは 404 にしない
-			name:    "unexpected error",
-			repoErr: boom,
-			check: func(t *testing.T, err error) {
-				if !errors.Is(err, boom) || errors.Is(err, ErrUserNotFound) {
-					t.Errorf("err = %v, want wrapped %v", err, boom)
-				}
-			},
+			// テーマ欠損はデータ不整合なので 404 (ErrUserNotFound) にしない
+			name:    "theme not found",
+			user:    aliceModel,
+			wantErr: repository.ErrNotFound,
+			wantMsg: "failed to get user: failed to get theme of user 1: not found",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			userRepo := &fakeUserRepository{
-				findWithDetailsByName: func(context.Context, repository.Querier, string) (*domain.User, error) { return nil, tt.repoErr },
-				findWithDetailsByID:   func(context.Context, repository.Querier, domain.UserID) (*domain.User, error) { return nil, tt.repoErr },
+				findByName: func(context.Context, repository.Querier, string) (*domain.UserModel, error) {
+					return tt.user, tt.userErr
+				},
+				findByID: func(context.Context, repository.Querier, domain.UserID) (*domain.UserModel, error) {
+					return tt.user, tt.userErr
+				},
 			}
-			u := NewUserUsecase(&fakeTxManager{}, userRepo)
+			u := NewUserUsecase(&fakeTxManager{}, userRepo, newUserFillerForTest(tt.themes, nil, nil))
 
+			check := func(err error) {
+				t.Helper()
+				if !errors.Is(err, tt.wantErr) || err.Error() != tt.wantMsg {
+					t.Errorf("err = %v, want %q", err, tt.wantMsg)
+				}
+				if tt.wantErr != ErrUserNotFound && errors.Is(err, ErrUserNotFound) {
+					t.Errorf("err = %v, should not be ErrUserNotFound", err)
+				}
+			}
 			_, err := u.FindByName(context.Background(), "alice")
-			tt.check(t, err)
+			check(err)
 			_, err = u.FindByID(context.Background(), 1)
-			tt.check(t, err)
+			check(err)
 		})
 	}
 }
@@ -140,7 +155,7 @@ func TestUserUsecase_Login(t *testing.T) {
 					return tt.user, tt.userErr
 				},
 			}
-			u := NewUserUsecase(txManager, userRepo)
+			u := NewUserUsecase(txManager, userRepo, nil)
 			got, err := u.Login(context.Background(), "alice", tt.password)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)

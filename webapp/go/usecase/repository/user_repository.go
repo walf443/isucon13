@@ -17,11 +17,4 @@ type UserRepository interface {
 	Create(ctx context.Context, q Querier, user *domain.UserModel) (domain.UserID, error)
 	// FindAll は全てのユーザを返す。
 	FindAll(ctx context.Context, q Querier) ([]*domain.UserModel, error)
-
-	// FindWithDetailsByID はテーマ・アイコンを含めたユーザを返す。
-	// ユーザが存在しない場合 ErrNotFound を返す。テーマが無い場合は ErrNotFound ではないエラーを返す。
-	FindWithDetailsByID(ctx context.Context, q Querier, id domain.UserID) (*domain.User, error)
-	// FindWithDetailsByName はテーマ・アイコンを含めたユーザを返す。
-	// ユーザが存在しない場合 ErrNotFound を返す。テーマが無い場合は ErrNotFound ではないエラーを返す。
-	FindWithDetailsByName(ctx context.Context, q Querier, name string) (*domain.User, error)
 }

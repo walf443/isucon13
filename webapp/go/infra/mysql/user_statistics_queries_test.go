@@ -35,7 +35,7 @@ func TestUserRepository_FindAll(t *testing.T) {
 	aliceID := insertTestUser(t, tx, "alice")
 	bobID := insertTestUser(t, tx, "bob")
 
-	users, err := NewUserRepository("").FindAll(ctx, tx)
+	users, err := NewUserRepository().FindAll(ctx, tx)
 	if err != nil {
 		t.Fatalf("FindAll returned error: %v", err)
 	}
