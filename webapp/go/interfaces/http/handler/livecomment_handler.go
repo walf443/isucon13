@@ -64,7 +64,7 @@ func newLivecommentHandler(livecommentUsecase usecase.LivecommentUsecase, report
 func (h *livecommentHandler) GetLivecomments(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	if err := VerifyUserSession(c); err != nil {
+	if err := verifyUserSession(c); err != nil {
 		// echo.NewHTTPErrorが返っているのでそのまま出力
 		return err
 	}
@@ -96,7 +96,7 @@ func (h *livecommentHandler) GetLivecomments(c echo.Context) error {
 func (h *livecommentHandler) GetLivecommentReports(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	if err := VerifyUserSession(c); err != nil {
+	if err := verifyUserSession(c); err != nil {
 		return err
 	}
 
@@ -131,7 +131,7 @@ func (h *livecommentHandler) PostLivecomment(c echo.Context) error {
 	ctx := c.Request().Context()
 	defer c.Request().Body.Close()
 
-	if err := VerifyUserSession(c); err != nil {
+	if err := verifyUserSession(c); err != nil {
 		return err
 	}
 
@@ -169,7 +169,7 @@ func (h *livecommentHandler) PostLivecomment(c echo.Context) error {
 func (h *livecommentHandler) PostLivecommentReport(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	if err := VerifyUserSession(c); err != nil {
+	if err := verifyUserSession(c); err != nil {
 		return err
 	}
 

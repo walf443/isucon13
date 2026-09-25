@@ -71,7 +71,7 @@ func newLivestreamHandler(livestreamUsecase usecase.LivestreamUsecase, reservati
 func (h *livestreamHandler) GetLivestream(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	if err := VerifyUserSession(c); err != nil {
+	if err := verifyUserSession(c); err != nil {
 		return err
 	}
 
@@ -94,7 +94,7 @@ func (h *livestreamHandler) GetLivestream(c echo.Context) error {
 // GET /api/livestream
 func (h *livestreamHandler) GetMyLivestreams(c echo.Context) error {
 	ctx := c.Request().Context()
-	if err := VerifyUserSession(c); err != nil {
+	if err := verifyUserSession(c); err != nil {
 		return err
 	}
 
@@ -114,7 +114,7 @@ func (h *livestreamHandler) GetMyLivestreams(c echo.Context) error {
 // GET /api/user/:username/livestream
 func (h *livestreamHandler) GetUserLivestreams(c echo.Context) error {
 	ctx := c.Request().Context()
-	if err := VerifyUserSession(c); err != nil {
+	if err := verifyUserSession(c); err != nil {
 		return err
 	}
 
@@ -161,7 +161,7 @@ func (h *livestreamHandler) ReserveLivestream(c echo.Context) error {
 	ctx := c.Request().Context()
 	defer c.Request().Body.Close()
 
-	if err := VerifyUserSession(c); err != nil {
+	if err := verifyUserSession(c); err != nil {
 		// echo.NewHTTPErrorが返っているのでそのまま出力
 		return err
 	}

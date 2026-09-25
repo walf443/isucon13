@@ -70,7 +70,7 @@ func newUserHandler(userUsecase usecase.UserUsecase, registrationUsecase usecase
 // GET /api/user/:username
 func (h *userHandler) GetUser(c echo.Context) error {
 	ctx := c.Request().Context()
-	if err := VerifyUserSession(c); err != nil {
+	if err := verifyUserSession(c); err != nil {
 		// echo.NewHTTPErrorが返っているのでそのまま出力
 		return err
 	}
@@ -92,7 +92,7 @@ func (h *userHandler) GetUser(c echo.Context) error {
 func (h *userHandler) GetMe(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	if err := VerifyUserSession(c); err != nil {
+	if err := verifyUserSession(c); err != nil {
 		// echo.NewHTTPErrorが返っているのでそのまま出力
 		return err
 	}
@@ -164,7 +164,7 @@ func (h *userHandler) Login(c echo.Context) error {
 
 	sessionID := uuid.NewString()
 
-	sess, err := session.Get(DefaultSessionIDKey, c)
+	sess, err := session.Get(defaultSessionIDKey, c)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, "failed to get session")
 	}
@@ -174,11 +174,11 @@ func (h *userHandler) Login(c echo.Context) error {
 		MaxAge: int(60000),
 		Path:   "/",
 	}
-	sess.Values[DefaultSessionIDKey] = sessionID
-	// VerifyUserSession などは int64 として取り出すので、model.UserID ではなく int64 で保存する
-	sess.Values[DefaultUserIDKey] = int64(user.ID)
-	sess.Values[DefaultUsernameKey] = user.Name
-	sess.Values[DefaultSessionExpiresKey] = sessionEndAt.Unix()
+	sess.Values[defaultSessionIDKey] = sessionID
+	// verifyUserSession などは int64 として取り出すので、model.UserID ではなく int64 で保存する
+	sess.Values[defaultUserIDKey] = int64(user.ID)
+	sess.Values[defaultUsernameKey] = user.Name
+	sess.Values[defaultSessionExpiresKey] = sessionEndAt.Unix()
 
 	if err := sess.Save(c.Request(), c.Response()); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save session: "+err.Error())

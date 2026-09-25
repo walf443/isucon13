@@ -34,7 +34,7 @@ func newNGWordHandler(ngWordUsecase usecase.NGWordUsecase) *ngWordHandler {
 func (h *ngWordHandler) GetNGWords(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	if err := VerifyUserSession(c); err != nil {
+	if err := verifyUserSession(c); err != nil {
 		return err
 	}
 
@@ -73,7 +73,7 @@ func (h *ngWordHandler) Moderate(c echo.Context) error {
 	ctx := c.Request().Context()
 	defer c.Request().Body.Close()
 
-	if err := VerifyUserSession(c); err != nil {
+	if err := verifyUserSession(c); err != nil {
 		return err
 	}
 

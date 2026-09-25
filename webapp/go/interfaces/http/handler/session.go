@@ -10,24 +10,24 @@ import (
 )
 
 const (
-	DefaultSessionIDKey      = "SESSIONID"
-	DefaultSessionExpiresKey = "EXPIRES"
-	DefaultUserIDKey         = "USERID"
-	DefaultUsernameKey       = "USERNAME"
+	defaultSessionIDKey      = "SESSIONID"
+	defaultSessionExpiresKey = "EXPIRES"
+	defaultUserIDKey         = "USERID"
+	defaultUsernameKey       = "USERNAME"
 )
 
-func VerifyUserSession(c echo.Context) error {
-	sess, err := session.Get(DefaultSessionIDKey, c)
+func verifyUserSession(c echo.Context) error {
+	sess, err := session.Get(defaultSessionIDKey, c)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, "failed to get session")
 	}
 
-	sessionExpires, ok := sess.Values[DefaultSessionExpiresKey]
+	sessionExpires, ok := sess.Values[defaultSessionExpiresKey]
 	if !ok {
 		return echo.NewHTTPError(http.StatusForbidden, "failed to get EXPIRES value from session")
 	}
 
-	_, ok = sess.Values[DefaultUserIDKey].(int64)
+	_, ok = sess.Values[defaultUserIDKey].(int64)
 	if !ok {
 		return echo.NewHTTPError(http.StatusUnauthorized, "failed to get USERID value from session")
 	}
@@ -41,13 +41,13 @@ func VerifyUserSession(c echo.Context) error {
 }
 
 // getSessionUserID はセッションからログイン中のユーザIDを取り出す。
-// VerifyUserSession で検証済みであることを前提とする。
+// verifyUserSession で検証済みであることを前提とする。
 func getSessionUserID(c echo.Context) (model.UserID, error) {
-	sess, err := session.Get(DefaultSessionIDKey, c)
+	sess, err := session.Get(defaultSessionIDKey, c)
 	if err != nil {
 		return 0, echo.NewHTTPError(http.StatusUnauthorized, "failed to get session")
 	}
-	userID, ok := sess.Values[DefaultUserIDKey].(int64)
+	userID, ok := sess.Values[defaultUserIDKey].(int64)
 	if !ok {
 		return 0, echo.NewHTTPError(http.StatusUnauthorized, "failed to get USERID value from session")
 	}

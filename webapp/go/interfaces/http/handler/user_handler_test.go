@@ -272,35 +272,35 @@ func TestUserHandler_Login(t *testing.T) {
 				t.Fatalf("len(cookies) = %d, want 1", len(cookies))
 			}
 			cookie := cookies[0]
-			if cookie.Name != DefaultSessionIDKey || cookie.Domain != "u.isucon.dev" || cookie.Path != "/" || cookie.MaxAge != 60000 {
+			if cookie.Name != defaultSessionIDKey || cookie.Domain != "u.isucon.dev" || cookie.Path != "/" || cookie.MaxAge != 60000 {
 				t.Errorf("cookie = %+v", cookie)
 			}
 
 			// 発行したセッションを読み直して中身を確認する
 			sessReq := httptest.NewRequest(http.MethodGet, "/", nil)
 			sessReq.AddCookie(cookie)
-			sess, err := testSessionStore.Get(sessReq, DefaultSessionIDKey)
+			sess, err := testSessionStore.Get(sessReq, defaultSessionIDKey)
 			if err != nil {
 				t.Fatalf("failed to decode session: %v", err)
 			}
-			// VerifyUserSession などが int64 として取り出せること (model.UserID のままだと認証が全て失敗する)
-			if userID, ok := sess.Values[DefaultUserIDKey].(int64); !ok || userID != 5 {
-				t.Errorf("USERID = %#v, want int64(5)", sess.Values[DefaultUserIDKey])
+			// verifyUserSession などが int64 として取り出せること (model.UserID のままだと認証が全て失敗する)
+			if userID, ok := sess.Values[defaultUserIDKey].(int64); !ok || userID != 5 {
+				t.Errorf("USERID = %#v, want int64(5)", sess.Values[defaultUserIDKey])
 			}
-			if sess.Values[DefaultUsernameKey] != "alice" {
-				t.Errorf("USERNAME = %#v, want alice", sess.Values[DefaultUsernameKey])
+			if sess.Values[defaultUsernameKey] != "alice" {
+				t.Errorf("USERNAME = %#v, want alice", sess.Values[defaultUsernameKey])
 			}
-			if sess.Values[DefaultSessionExpiresKey] != now.Add(time.Hour).Unix() {
-				t.Errorf("EXPIRES = %#v, want %d", sess.Values[DefaultSessionExpiresKey], now.Add(time.Hour).Unix())
+			if sess.Values[defaultSessionExpiresKey] != now.Add(time.Hour).Unix() {
+				t.Errorf("EXPIRES = %#v, want %d", sess.Values[defaultSessionExpiresKey], now.Add(time.Hour).Unix())
 			}
-			if sid, ok := sess.Values[DefaultSessionIDKey].(string); !ok || sid == "" {
-				t.Errorf("SESSIONID = %#v, want non-empty string", sess.Values[DefaultSessionIDKey])
+			if sid, ok := sess.Values[defaultSessionIDKey].(string); !ok || sid == "" {
+				t.Errorf("SESSIONID = %#v, want non-empty string", sess.Values[defaultSessionIDKey])
 			}
 
 			// 発行したセッションで認証が通ること
 			verifyEcho := newTestEcho()
 			verifyEcho.GET("/verify", func(c echo.Context) error {
-				if err := VerifyUserSession(c); err != nil {
+				if err := verifyUserSession(c); err != nil {
 					return err
 				}
 				userID, err := getSessionUserID(c)

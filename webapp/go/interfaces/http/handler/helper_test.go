@@ -30,14 +30,14 @@ func newSessionCookie(t *testing.T, userID int64, expires time.Time) *http.Cooki
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
-	sess, err := testSessionStore.Get(req, DefaultSessionIDKey)
+	sess, err := testSessionStore.Get(req, defaultSessionIDKey)
 	if err != nil {
 		t.Fatalf("failed to get session: %v", err)
 	}
-	sess.Values[DefaultSessionIDKey] = "test-session-id"
-	sess.Values[DefaultUserIDKey] = userID
-	sess.Values[DefaultUsernameKey] = "test-user"
-	sess.Values[DefaultSessionExpiresKey] = expires.Unix()
+	sess.Values[defaultSessionIDKey] = "test-session-id"
+	sess.Values[defaultUserIDKey] = userID
+	sess.Values[defaultUsernameKey] = "test-user"
+	sess.Values[defaultSessionExpiresKey] = expires.Unix()
 	if err := sess.Save(req, rec); err != nil {
 		t.Fatalf("failed to save session: %v", err)
 	}

@@ -59,7 +59,7 @@ func newStatisticsHandler(statisticsUsecase usecase.StatisticsUsecase) *statisti
 func (h *statisticsHandler) GetUserStatistics(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	if err := VerifyUserSession(c); err != nil {
+	if err := verifyUserSession(c); err != nil {
 		// echo.NewHTTPErrorが返っているのでそのまま出力
 		return err
 	}
@@ -82,7 +82,7 @@ func (h *statisticsHandler) GetUserStatistics(c echo.Context) error {
 func (h *statisticsHandler) GetLivestreamStatistics(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	if err := VerifyUserSession(c); err != nil {
+	if err := verifyUserSession(c); err != nil {
 		return err
 	}
 

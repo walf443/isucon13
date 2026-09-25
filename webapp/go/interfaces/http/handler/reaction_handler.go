@@ -43,7 +43,7 @@ func newReactionHandler(reactionUsecase usecase.ReactionUsecase) *reactionHandle
 func (h *reactionHandler) GetReactions(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	if err := VerifyUserSession(c); err != nil {
+	if err := verifyUserSession(c); err != nil {
 		// echo.NewHTTPErrorが返っているのでそのまま出力
 		return err
 	}
@@ -78,7 +78,7 @@ func (h *reactionHandler) PostReaction(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
 
-	if err := VerifyUserSession(c); err != nil {
+	if err := verifyUserSession(c); err != nil {
 		// echo.NewHTTPErrorが返っているのでそのまま出力
 		return err
 	}
