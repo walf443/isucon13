@@ -18,7 +18,7 @@ func TestLivestreamRepository_FindAll(t *testing.T) {
 	s1 := insertTestLivestream(t, tx, ownerID, "s1")
 	s2 := insertTestLivestream(t, tx, ownerID, "s2")
 
-	livestreams, err := NewLivestreamRepository(nil).FindAll(ctx, tx)
+	livestreams, err := NewLivestreamRepository("").FindAll(ctx, tx)
 	if err != nil {
 		t.Fatalf("FindAll returned error: %v", err)
 	}
@@ -63,13 +63,13 @@ func TestLivestreamStatisticsQueries(t *testing.T) {
 		}
 	}
 
-	reportRepo := NewLivecommentReportRepository(nil)
+	reportRepo := NewLivecommentReportRepository("")
 	if _, err := reportRepo.Create(ctx, tx, &model.LivecommentReportModel{UserID: ownerID, LivestreamID: stream, LivecommentID: c1, CreatedAt: 100}); err != nil {
 		t.Fatalf("failed to insert report: %v", err)
 	}
 
-	reactionRepo := NewReactionRepository(nil)
-	livecommentRepo := NewLivecommentRepository(nil)
+	reactionRepo := NewReactionRepository("")
+	livecommentRepo := NewLivecommentRepository("")
 
 	tests := []struct {
 		name  string

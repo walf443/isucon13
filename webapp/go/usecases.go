@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/isucon/isucon13/webapp/go/domain/model"
 	infra "github.com/isucon/isucon13/webapp/go/infra/mysql"
 	"github.com/isucon/isucon13/webapp/go/infra/powerdns"
 	"github.com/isucon/isucon13/webapp/go/infra/script"
@@ -18,17 +19,19 @@ func newUsecases(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 	if err != nil {
 		return handler.Usecases{}, fmt.Errorf("failed to read fallback image: %w", err)
 	}
+	// アイコン未登録のユーザのアイコンのハッシュは常に同じなので、起動時に 1 回だけ計算する
+	defaultIconHash := model.IconHash(fallbackIcon)
 
 	txManager := infra.NewTxManager(db)
 
 	tagRepo := infra.NewTagRepository()
-	userRepo := infra.NewUserRepository(fallbackIcon)
+	userRepo := infra.NewUserRepository(defaultIconHash)
 	themeRepo := infra.NewThemeRepository()
 	iconRepo := infra.NewIconRepository()
-	livestreamRepo := infra.NewLivestreamRepository(fallbackIcon)
-	reactionRepo := infra.NewReactionRepository(fallbackIcon)
-	livecommentRepo := infra.NewLivecommentRepository(fallbackIcon)
-	livecommentReportRepo := infra.NewLivecommentReportRepository(fallbackIcon)
+	livestreamRepo := infra.NewLivestreamRepository(defaultIconHash)
+	reactionRepo := infra.NewReactionRepository(defaultIconHash)
+	livecommentRepo := infra.NewLivecommentRepository(defaultIconHash)
+	livecommentReportRepo := infra.NewLivecommentReportRepository(defaultIconHash)
 	ngWordRepo := infra.NewNGWordRepository()
 	viewerRepo := infra.NewLivestreamViewersHistoryRepository()
 	reservationSlotRepo := infra.NewReservationSlotRepository()

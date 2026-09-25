@@ -10,12 +10,12 @@ import (
 )
 
 type reactionRepository struct {
-	// fallbackIcon はアイコン未登録のユーザに使う画像。
-	fallbackIcon []byte
+	// defaultIconHash はアイコン未登録のユーザに使う既定のアイコンのハッシュ。
+	defaultIconHash string
 }
 
-func NewReactionRepository(fallbackIcon []byte) repository.ReactionRepository {
-	return &reactionRepository{fallbackIcon: fallbackIcon}
+func NewReactionRepository(defaultIconHash string) repository.ReactionRepository {
+	return &reactionRepository{defaultIconHash: defaultIconHash}
 }
 
 func (r *reactionRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.ReactionID) (*model.Reaction, error) {
@@ -28,7 +28,7 @@ func (r *reactionRepository) FindWithDetailsByID(ctx context.Context, q reposito
 		return nil, err
 	}
 
-	reactions, err := fillReactions(ctx, q, []*model.ReactionModel{&reactionModel}, r.fallbackIcon)
+	reactions, err := fillReactions(ctx, q, []*model.ReactionModel{&reactionModel}, r.defaultIconHash)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +40,7 @@ func (r *reactionRepository) FindAllWithDetailsByLivestreamID(ctx context.Contex
 	if err := q.SelectContext(ctx, &reactionModels, "SELECT id, emoji_name, user_id, livestream_id, created_at FROM reactions WHERE livestream_id = ? ORDER BY created_at DESC", livestreamID); err != nil {
 		return nil, err
 	}
-	return fillReactions(ctx, q, reactionModels, r.fallbackIcon)
+	return fillReactions(ctx, q, reactionModels, r.defaultIconHash)
 }
 
 func (r *reactionRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, limit model.Limit) ([]*model.Reaction, error) {
@@ -48,7 +48,7 @@ func (r *reactionRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context
 	if err := q.SelectContext(ctx, &reactionModels, "SELECT id, emoji_name, user_id, livestream_id, created_at FROM reactions WHERE livestream_id = ? ORDER BY created_at DESC LIMIT ?", livestreamID, limit); err != nil {
 		return nil, err
 	}
-	return fillReactions(ctx, q, reactionModels, r.fallbackIcon)
+	return fillReactions(ctx, q, reactionModels, r.defaultIconHash)
 }
 
 func (r *reactionRepository) Create(ctx context.Context, q repository.Querier, reaction *model.ReactionModel) (model.ReactionID, error) {

@@ -11,10 +11,10 @@ import (
 )
 
 // fillUsers は userModels にテーマ・アイコンを埋めた model.User を、同じ順序で返す。
-// アイコンのハッシュは model.UserIconHash で決める (未登録の場合は fallbackIcon のハッシュ)。
+// アイコンのハッシュは model.UserIconHash で決める (未登録の場合は defaultIconHash)。
 //
 // テーマが無いのはデータ不整合なので、repository.ErrNotFound (ユーザ不在) には変換しない。
-func fillUsers(ctx context.Context, q repository.Querier, userModels []*model.UserModel, fallbackIcon []byte) ([]*model.User, error) {
+func fillUsers(ctx context.Context, q repository.Querier, userModels []*model.UserModel, defaultIconHash string) ([]*model.User, error) {
 	users := make([]*model.User, len(userModels))
 	for i, userModel := range userModels {
 		var theme model.ThemeModel
@@ -37,7 +37,7 @@ func fillUsers(ctx context.Context, q repository.Querier, userModels []*model.Us
 			DisplayName: userModel.DisplayName,
 			Description: userModel.Description,
 			Theme:       theme,
-			IconHash:    model.UserIconHash(image, registered, fallbackIcon),
+			IconHash:    model.UserIconHash(image, registered, defaultIconHash),
 		}
 	}
 	return users, nil

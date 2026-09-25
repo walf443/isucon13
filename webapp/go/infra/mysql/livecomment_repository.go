@@ -11,12 +11,12 @@ import (
 )
 
 type livecommentRepository struct {
-	// fallbackIcon はアイコン未登録のユーザに使う画像。
-	fallbackIcon []byte
+	// defaultIconHash はアイコン未登録のユーザに使う既定のアイコンのハッシュ。
+	defaultIconHash string
 }
 
-func NewLivecommentRepository(fallbackIcon []byte) repository.LivecommentRepository {
-	return &livecommentRepository{fallbackIcon: fallbackIcon}
+func NewLivecommentRepository(defaultIconHash string) repository.LivecommentRepository {
+	return &livecommentRepository{defaultIconHash: defaultIconHash}
 }
 
 func (r *livecommentRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.Livecomment, error) {
@@ -24,7 +24,7 @@ func (r *livecommentRepository) FindAllWithDetailsByLivestreamID(ctx context.Con
 	if err := q.SelectContext(ctx, &livecommentModels, "SELECT id, user_id, livestream_id, comment, tip, created_at FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC", livestreamID); err != nil {
 		return nil, err
 	}
-	return fillLivecomments(ctx, q, livecommentModels, r.fallbackIcon)
+	return fillLivecomments(ctx, q, livecommentModels, r.defaultIconHash)
 }
 
 func (r *livecommentRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, limit model.Limit) ([]*model.Livecomment, error) {
@@ -32,7 +32,7 @@ func (r *livecommentRepository) FindAllWithDetailsByLivestreamIDLimited(ctx cont
 	if err := q.SelectContext(ctx, &livecommentModels, "SELECT id, user_id, livestream_id, comment, tip, created_at FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC LIMIT ?", livestreamID, limit); err != nil {
 		return nil, err
 	}
-	return fillLivecomments(ctx, q, livecommentModels, r.fallbackIcon)
+	return fillLivecomments(ctx, q, livecommentModels, r.defaultIconHash)
 }
 
 func (r *livecommentRepository) FindByID(ctx context.Context, q repository.Querier, id model.LivecommentID) (*model.LivecommentModel, error) {
@@ -57,7 +57,7 @@ func (r *livecommentRepository) FindWithDetailsByID(ctx context.Context, q repos
 		return nil, err
 	}
 
-	livecomments, err := fillLivecomments(ctx, q, []*model.LivecommentModel{&livecommentModel}, r.fallbackIcon)
+	livecomments, err := fillLivecomments(ctx, q, []*model.LivecommentModel{&livecommentModel}, r.defaultIconHash)
 	if err != nil {
 		return nil, err
 	}

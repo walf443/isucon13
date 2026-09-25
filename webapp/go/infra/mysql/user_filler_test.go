@@ -71,7 +71,7 @@ func TestUserRepository_FindWithDetails(t *testing.T) {
 				Theme:       model.ThemeModel{ID: themeID, UserID: userID, DarkMode: true},
 				IconHash:    tt.wantIconHash,
 			}
-			repo := NewUserRepository(fallback)
+			repo := NewUserRepository(model.IconHash(fallback))
 
 			byName, err := repo.FindWithDetailsByName(ctx, tx, "alice")
 			if err != nil {
@@ -95,7 +95,7 @@ func TestUserRepository_FindWithDetails(t *testing.T) {
 func TestUserRepository_FindWithDetails_UserNotFound(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)
-	repo := NewUserRepository(nil)
+	repo := NewUserRepository("")
 
 	if _, err := repo.FindWithDetailsByName(ctx, tx, "nobody"); !errors.Is(err, repository.ErrNotFound) {
 		t.Errorf("FindWithDetailsByName err = %v, want ErrNotFound", err)
@@ -111,7 +111,7 @@ func TestUserRepository_FindWithDetails_ThemeNotFound(t *testing.T) {
 	insertTestUser(t, tx, "alice")
 
 	// テーマ欠損はデータ不整合なので、ユーザ不在 (ErrNotFound) とは区別する
-	_, err := NewUserRepository(nil).FindWithDetailsByName(ctx, tx, "alice")
+	_, err := NewUserRepository("").FindWithDetailsByName(ctx, tx, "alice")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -139,7 +139,7 @@ func TestFillUsers(t *testing.T) {
 		{ID: aliceID, Name: "alice", DisplayName: "Display alice", Description: "desc alice"},
 	}
 
-	users, err := fillUsers(ctx, tx, userModels, fallback)
+	users, err := fillUsers(ctx, tx, userModels, model.IconHash(fallback))
 	if err != nil {
 		t.Fatalf("fillUsers returned error: %v", err)
 	}
@@ -175,7 +175,7 @@ func TestFillUsers(t *testing.T) {
 func TestFillUsers_Empty(t *testing.T) {
 	tx := beginTestTx(t)
 
-	users, err := fillUsers(context.Background(), tx, nil, nil)
+	users, err := fillUsers(context.Background(), tx, nil, "")
 	if err != nil {
 		t.Fatalf("fillUsers returned error: %v", err)
 	}

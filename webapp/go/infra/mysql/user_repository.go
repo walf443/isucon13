@@ -10,12 +10,12 @@ import (
 )
 
 type userRepository struct {
-	// fallbackIcon はアイコン未登録のユーザに使う画像。
-	fallbackIcon []byte
+	// defaultIconHash はアイコン未登録のユーザに使う既定のアイコンのハッシュ。
+	defaultIconHash string
 }
 
-func NewUserRepository(fallbackIcon []byte) repository.UserRepository {
-	return &userRepository{fallbackIcon: fallbackIcon}
+func NewUserRepository(defaultIconHash string) repository.UserRepository {
+	return &userRepository{defaultIconHash: defaultIconHash}
 }
 
 func (r *userRepository) FindIDByName(ctx context.Context, q repository.Querier, name string) (model.UserID, error) {
@@ -71,7 +71,7 @@ func (r *userRepository) FindWithDetailsByName(ctx context.Context, q repository
 }
 
 func (r *userRepository) fillUser(ctx context.Context, q repository.Querier, userModel *model.UserModel) (*model.User, error) {
-	users, err := fillUsers(ctx, q, []*model.UserModel{userModel}, r.fallbackIcon)
+	users, err := fillUsers(ctx, q, []*model.UserModel{userModel}, r.defaultIconHash)
 	if err != nil {
 		return nil, err
 	}

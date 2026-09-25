@@ -10,12 +10,12 @@ import (
 )
 
 type livecommentReportRepository struct {
-	// fallbackIcon はアイコン未登録のユーザに使う画像。
-	fallbackIcon []byte
+	// defaultIconHash はアイコン未登録のユーザに使う既定のアイコンのハッシュ。
+	defaultIconHash string
 }
 
-func NewLivecommentReportRepository(fallbackIcon []byte) repository.LivecommentReportRepository {
-	return &livecommentReportRepository{fallbackIcon: fallbackIcon}
+func NewLivecommentReportRepository(defaultIconHash string) repository.LivecommentReportRepository {
+	return &livecommentReportRepository{defaultIconHash: defaultIconHash}
 }
 
 func (r *livecommentReportRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.LivecommentReport, error) {
@@ -23,7 +23,7 @@ func (r *livecommentReportRepository) FindAllWithDetailsByLivestreamID(ctx conte
 	if err := q.SelectContext(ctx, &reportModels, "SELECT id, user_id, livestream_id, livecomment_id, created_at FROM livecomment_reports WHERE livestream_id = ?", livestreamID); err != nil {
 		return nil, err
 	}
-	return fillLivecommentReports(ctx, q, reportModels, r.fallbackIcon)
+	return fillLivecommentReports(ctx, q, reportModels, r.defaultIconHash)
 }
 
 func (r *livecommentReportRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.LivecommentReportID) (*model.LivecommentReport, error) {
@@ -36,7 +36,7 @@ func (r *livecommentReportRepository) FindWithDetailsByID(ctx context.Context, q
 		return nil, err
 	}
 
-	reports, err := fillLivecommentReports(ctx, q, []*model.LivecommentReportModel{&reportModel}, r.fallbackIcon)
+	reports, err := fillLivecommentReports(ctx, q, []*model.LivecommentReportModel{&reportModel}, r.defaultIconHash)
 	if err != nil {
 		return nil, err
 	}

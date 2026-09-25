@@ -12,12 +12,12 @@ import (
 )
 
 type livestreamRepository struct {
-	// fallbackIcon はアイコン未登録の配信者に使う画像。
-	fallbackIcon []byte
+	// defaultIconHash はアイコン未登録の配信者に使う既定のアイコンのハッシュ。
+	defaultIconHash string
 }
 
-func NewLivestreamRepository(fallbackIcon []byte) repository.LivestreamRepository {
-	return &livestreamRepository{fallbackIcon: fallbackIcon}
+func NewLivestreamRepository(defaultIconHash string) repository.LivestreamRepository {
+	return &livestreamRepository{defaultIconHash: defaultIconHash}
 }
 
 func (r *livestreamRepository) FindByID(ctx context.Context, q repository.Querier, id model.LivestreamID) (*model.LivestreamModel, error) {
@@ -66,7 +66,7 @@ func (r *livestreamRepository) FindWithDetailsByID(ctx context.Context, q reposi
 		return nil, err
 	}
 
-	livestreams, err := fillLivestreams(ctx, q, []*model.LivestreamModel{&livestreamModel}, r.fallbackIcon)
+	livestreams, err := fillLivestreams(ctx, q, []*model.LivestreamModel{&livestreamModel}, r.defaultIconHash)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (r *livestreamRepository) FindAllWithDetailsByUserID(ctx context.Context, q
 	if err := q.SelectContext(ctx, &livestreamModels, "SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM livestreams WHERE user_id = ?", userID); err != nil {
 		return nil, err
 	}
-	return fillLivestreams(ctx, q, livestreamModels, r.fallbackIcon)
+	return fillLivestreams(ctx, q, livestreamModels, r.defaultIconHash)
 }
 
 func (r *livestreamRepository) FindAllWithDetailsByTagIDs(ctx context.Context, q repository.Querier, tagIDs []model.TagID) ([]*model.Livestream, error) {
@@ -99,7 +99,7 @@ func (r *livestreamRepository) FindAllWithDetailsByTagIDs(ctx context.Context, q
 		}
 		livestreamModels[i] = &livestreamModel
 	}
-	return fillLivestreams(ctx, q, livestreamModels, r.fallbackIcon)
+	return fillLivestreams(ctx, q, livestreamModels, r.defaultIconHash)
 }
 
 func (r *livestreamRepository) FindAllWithDetails(ctx context.Context, q repository.Querier) ([]*model.Livestream, error) {
@@ -107,7 +107,7 @@ func (r *livestreamRepository) FindAllWithDetails(ctx context.Context, q reposit
 	if err := q.SelectContext(ctx, &livestreamModels, "SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM livestreams ORDER BY id DESC"); err != nil {
 		return nil, err
 	}
-	return fillLivestreams(ctx, q, livestreamModels, r.fallbackIcon)
+	return fillLivestreams(ctx, q, livestreamModels, r.defaultIconHash)
 }
 
 func (r *livestreamRepository) FindAllWithDetailsLimited(ctx context.Context, q repository.Querier, limit model.Limit) ([]*model.Livestream, error) {
@@ -115,7 +115,7 @@ func (r *livestreamRepository) FindAllWithDetailsLimited(ctx context.Context, q 
 	if err := q.SelectContext(ctx, &livestreamModels, "SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM livestreams ORDER BY id DESC LIMIT ?", limit); err != nil {
 		return nil, err
 	}
-	return fillLivestreams(ctx, q, livestreamModels, r.fallbackIcon)
+	return fillLivestreams(ctx, q, livestreamModels, r.defaultIconHash)
 }
 
 func (r *livestreamRepository) Create(ctx context.Context, q repository.Querier, livestream *model.LivestreamModel) (model.LivestreamID, error) {

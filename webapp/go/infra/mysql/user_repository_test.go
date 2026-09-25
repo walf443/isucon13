@@ -20,7 +20,7 @@ func TestUserRepository_FindIDByName(t *testing.T) {
 	lastID, _ := res.LastInsertId()
 	wantID := model.UserID(lastID)
 
-	id, err := NewUserRepository(nil).FindIDByName(ctx, tx, "alice")
+	id, err := NewUserRepository("").FindIDByName(ctx, tx, "alice")
 	if err != nil {
 		t.Fatalf("FindIDByName returned error: %v", err)
 	}
@@ -32,7 +32,7 @@ func TestUserRepository_FindIDByName(t *testing.T) {
 func TestUserRepository_FindIDByName_NotFound(t *testing.T) {
 	tx := beginTestTx(t)
 
-	_, err := NewUserRepository(nil).FindIDByName(context.Background(), tx, "nobody")
+	_, err := NewUserRepository("").FindIDByName(context.Background(), tx, "nobody")
 	if !errors.Is(err, repository.ErrNotFound) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
 	}
@@ -49,7 +49,7 @@ func TestUserRepository_FindByName(t *testing.T) {
 	lastID, _ := res.LastInsertId()
 	wantID := model.UserID(lastID)
 
-	user, err := NewUserRepository(nil).FindByName(ctx, tx, "alice")
+	user, err := NewUserRepository("").FindByName(ctx, tx, "alice")
 	if err != nil {
 		t.Fatalf("FindByName returned error: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestUserRepository_FindByName(t *testing.T) {
 func TestUserRepository_FindByName_NotFound(t *testing.T) {
 	tx := beginTestTx(t)
 
-	_, err := NewUserRepository(nil).FindByName(context.Background(), tx, "nobody")
+	_, err := NewUserRepository("").FindByName(context.Background(), tx, "nobody")
 	if !errors.Is(err, repository.ErrNotFound) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
 	}
@@ -79,7 +79,7 @@ func TestUserRepository_FindByID(t *testing.T) {
 	lastID, _ := res.LastInsertId()
 	id := model.UserID(lastID)
 
-	user, err := NewUserRepository(nil).FindByID(ctx, tx, id)
+	user, err := NewUserRepository("").FindByID(ctx, tx, id)
 	if err != nil {
 		t.Fatalf("FindByID returned error: %v", err)
 	}
@@ -92,7 +92,7 @@ func TestUserRepository_FindByID(t *testing.T) {
 func TestUserRepository_FindByID_NotFound(t *testing.T) {
 	tx := beginTestTx(t)
 
-	_, err := NewUserRepository(nil).FindByID(context.Background(), tx, 999999)
+	_, err := NewUserRepository("").FindByID(context.Background(), tx, 999999)
 	if !errors.Is(err, repository.ErrNotFound) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
 	}
@@ -101,7 +101,7 @@ func TestUserRepository_FindByID_NotFound(t *testing.T) {
 func TestUserRepository_CreateAndThemeRepository_Create(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)
-	userRepo := NewUserRepository([]byte("fallback"))
+	userRepo := NewUserRepository(model.IconHash([]byte("fallback")))
 
 	id, err := userRepo.Create(ctx, tx, &model.UserModel{Name: "alice", DisplayName: "Alice", Description: "hello", HashedPassword: "hashed"})
 	if err != nil {

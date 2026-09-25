@@ -49,7 +49,7 @@ func TestLivestreamRepository_FindWithDetailsByID(t *testing.T) {
 	tag1 := insertTestTag(t, tx, livestreamID, "ゲーム実況")
 	tag2 := insertTestTag(t, tx, livestreamID, "雑談")
 
-	got, err := NewLivestreamRepository(fallback).FindWithDetailsByID(ctx, tx, livestreamID)
+	got, err := NewLivestreamRepository(model.IconHash(fallback)).FindWithDetailsByID(ctx, tx, livestreamID)
 	if err != nil {
 		t.Fatalf("FindWithDetailsByID returned error: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestLivestreamRepository_FindWithDetailsByID_NoTags(t *testing.T) {
 	insertTestTheme(t, tx, ownerID, false)
 	livestreamID := insertTestLivestream(t, tx, ownerID, "stream1")
 
-	got, err := NewLivestreamRepository(nil).FindWithDetailsByID(ctx, tx, livestreamID)
+	got, err := NewLivestreamRepository("").FindWithDetailsByID(ctx, tx, livestreamID)
 	if err != nil {
 		t.Fatalf("FindWithDetailsByID returned error: %v", err)
 	}
@@ -97,7 +97,7 @@ func TestLivestreamRepository_FindWithDetailsByID_NoTags(t *testing.T) {
 func TestLivestreamRepository_FindWithDetailsByID_NotFound(t *testing.T) {
 	tx := beginTestTx(t)
 
-	_, err := NewLivestreamRepository(nil).FindWithDetailsByID(context.Background(), tx, 999999)
+	_, err := NewLivestreamRepository("").FindWithDetailsByID(context.Background(), tx, 999999)
 	if !errors.Is(err, repository.ErrNotFound) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
 	}
@@ -108,7 +108,7 @@ func TestLivestreamRepository_FindWithDetailsByID_OwnerNotFound(t *testing.T) {
 	livestreamID := insertTestLivestream(t, tx, 999999, "orphan")
 
 	// 配信者の欠損はデータ不整合なので、ライブ配信不在 (ErrNotFound) とは区別する
-	_, err := NewLivestreamRepository(nil).FindWithDetailsByID(context.Background(), tx, livestreamID)
+	_, err := NewLivestreamRepository("").FindWithDetailsByID(context.Background(), tx, livestreamID)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -136,7 +136,7 @@ func TestFillLivestreams(t *testing.T) {
 		{ID: aliceStreamID, UserID: aliceID, Title: "alice-stream"},
 	}
 
-	livestreams, err := fillLivestreams(ctx, tx, livestreamModels, nil)
+	livestreams, err := fillLivestreams(ctx, tx, livestreamModels, "")
 	if err != nil {
 		t.Fatalf("fillLivestreams returned error: %v", err)
 	}
@@ -165,7 +165,7 @@ func TestLivestreamRepository_FindAllWithDetailsByUserID(t *testing.T) {
 	stream2 := insertTestLivestream(t, tx, aliceID, "alice-2")
 	insertTestLivestream(t, tx, bobID, "bob-1")
 
-	repo := NewLivestreamRepository(nil)
+	repo := NewLivestreamRepository("")
 
 	got, err := repo.FindAllWithDetailsByUserID(ctx, tx, aliceID)
 	if err != nil {
@@ -217,7 +217,7 @@ func TestLivestreamRepository_FindAllWithDetailsByTagIDs(t *testing.T) {
 	}
 	insertTestTag(t, tx, stream2, "雑談")
 
-	got, err := NewLivestreamRepository(nil).FindAllWithDetailsByTagIDs(ctx, tx, []model.TagID{gameTag.ID})
+	got, err := NewLivestreamRepository("").FindAllWithDetailsByTagIDs(ctx, tx, []model.TagID{gameTag.ID})
 	if err != nil {
 		t.Fatalf("FindAllWithDetailsByTagIDs returned error: %v", err)
 	}
@@ -239,7 +239,7 @@ func TestLivestreamRepository_FindAllWithDetails(t *testing.T) {
 	stream1 := insertTestLivestream(t, tx, ownerID, "s1")
 	stream2 := insertTestLivestream(t, tx, ownerID, "s2")
 	stream3 := insertTestLivestream(t, tx, ownerID, "s3")
-	repo := NewLivestreamRepository(nil)
+	repo := NewLivestreamRepository("")
 
 	all, err := repo.FindAllWithDetails(ctx, tx)
 	if err != nil {
@@ -265,7 +265,7 @@ func TestLivestreamRepository_FindByID(t *testing.T) {
 
 	ownerID := insertTestUser(t, tx, "alice")
 	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
-	repo := NewLivestreamRepository(nil)
+	repo := NewLivestreamRepository("")
 
 	got, err := repo.FindByID(ctx, tx, livestreamID)
 	if err != nil {
@@ -297,7 +297,7 @@ func TestLivestreamRepository_FindAllByIDAndUserID(t *testing.T) {
 	ownerID := insertTestUser(t, tx, "alice")
 	otherID := insertTestUser(t, tx, "bob")
 	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
-	repo := NewLivestreamRepository(nil)
+	repo := NewLivestreamRepository("")
 
 	got, err := repo.FindAllByIDAndUserID(ctx, tx, livestreamID, ownerID)
 	if err != nil {
@@ -328,7 +328,7 @@ func TestLivestreamRepository_FindAllByIDAndUserID(t *testing.T) {
 func TestLivestreamRepository_CreateAndAddTag(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)
-	repo := NewLivestreamRepository(nil)
+	repo := NewLivestreamRepository("")
 
 	ownerID := insertTestUser(t, tx, "alice")
 	insertTestTheme(t, tx, ownerID, true)

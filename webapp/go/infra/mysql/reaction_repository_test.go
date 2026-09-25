@@ -27,7 +27,7 @@ func TestReactionRepository_CreateAndFindWithDetailsByID(t *testing.T) {
 	viewerID := insertTestUser(t, tx, "bob")
 	insertTestTheme(t, tx, viewerID, false)
 	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
-	repo := NewReactionRepository(nil)
+	repo := NewReactionRepository("")
 
 	id, err := repo.Create(ctx, tx, &model.ReactionModel{UserID: viewerID, LivestreamID: livestreamID, EmojiName: "tada", CreatedAt: 1700000000})
 	if err != nil {
@@ -52,7 +52,7 @@ func TestReactionRepository_CreateAndFindWithDetailsByID(t *testing.T) {
 func TestReactionRepository_FindWithDetailsByID_NotFound(t *testing.T) {
 	tx := beginTestTx(t)
 
-	_, err := NewReactionRepository(nil).FindWithDetailsByID(context.Background(), tx, 999999)
+	_, err := NewReactionRepository("").FindWithDetailsByID(context.Background(), tx, 999999)
 	if !errors.Is(err, repository.ErrNotFound) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
 	}
@@ -64,7 +64,7 @@ func TestReactionRepository_FindWithDetailsByID_LivestreamNotFound(t *testing.T)
 
 	userID := insertTestUser(t, tx, "bob")
 	insertTestTheme(t, tx, userID, false)
-	repo := NewReactionRepository(nil)
+	repo := NewReactionRepository("")
 	id, err := repo.Create(ctx, tx, &model.ReactionModel{UserID: userID, LivestreamID: 999999, EmojiName: "tada", CreatedAt: 1})
 	if err != nil {
 		t.Fatalf("Create returned error: %v", err)
@@ -88,7 +88,7 @@ func TestReactionRepository_FindAllWithDetailsByLivestreamID(t *testing.T) {
 	insertTestTheme(t, tx, userID, false)
 	livestreamID := insertTestLivestream(t, tx, userID, "stream")
 	otherLivestreamID := insertTestLivestream(t, tx, userID, "other")
-	repo := NewReactionRepository(nil)
+	repo := NewReactionRepository("")
 
 	create := func(livestreamID model.LivestreamID, createdAt int64) model.ReactionID {
 		t.Helper()

@@ -11,7 +11,7 @@ import (
 // fillLivecomments は livecommentModels にコメントしたユーザ・ライブ配信を埋めた model.Livecomment を、同じ順序で返す。
 //
 // ユーザやライブ配信が無いのはデータ不整合なので、repository.ErrNotFound には変換しない。
-func fillLivecomments(ctx context.Context, q repository.Querier, livecommentModels []*model.LivecommentModel, fallbackIcon []byte) ([]*model.Livecomment, error) {
+func fillLivecomments(ctx context.Context, q repository.Querier, livecommentModels []*model.LivecommentModel, defaultIconHash string) ([]*model.Livecomment, error) {
 	userModels := make([]*model.UserModel, len(livecommentModels))
 	livestreamModels := make([]*model.LivestreamModel, len(livecommentModels))
 	for i, livecommentModel := range livecommentModels {
@@ -28,11 +28,11 @@ func fillLivecomments(ctx context.Context, q repository.Querier, livecommentMode
 		livestreamModels[i] = &livestreamModel
 	}
 
-	users, err := fillUsers(ctx, q, userModels, fallbackIcon)
+	users, err := fillUsers(ctx, q, userModels, defaultIconHash)
 	if err != nil {
 		return nil, err
 	}
-	livestreams, err := fillLivestreams(ctx, q, livestreamModels, fallbackIcon)
+	livestreams, err := fillLivestreams(ctx, q, livestreamModels, defaultIconHash)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func fillLivecomments(ctx context.Context, q repository.Querier, livecommentMode
 // fillLivecommentReports は reportModels に報告したユーザ・報告されたライブコメントを埋めた model.LivecommentReport を、同じ順序で返す。
 //
 // ユーザやライブコメントが無いのはデータ不整合なので、repository.ErrNotFound には変換しない。
-func fillLivecommentReports(ctx context.Context, q repository.Querier, reportModels []*model.LivecommentReportModel, fallbackIcon []byte) ([]*model.LivecommentReport, error) {
+func fillLivecommentReports(ctx context.Context, q repository.Querier, reportModels []*model.LivecommentReportModel, defaultIconHash string) ([]*model.LivecommentReport, error) {
 	reporterModels := make([]*model.UserModel, len(reportModels))
 	livecommentModels := make([]*model.LivecommentModel, len(reportModels))
 	for i, reportModel := range reportModels {
@@ -71,11 +71,11 @@ func fillLivecommentReports(ctx context.Context, q repository.Querier, reportMod
 		livecommentModels[i] = &livecommentModel
 	}
 
-	reporters, err := fillUsers(ctx, q, reporterModels, fallbackIcon)
+	reporters, err := fillUsers(ctx, q, reporterModels, defaultIconHash)
 	if err != nil {
 		return nil, err
 	}
-	livecomments, err := fillLivecomments(ctx, q, livecommentModels, fallbackIcon)
+	livecomments, err := fillLivecomments(ctx, q, livecommentModels, defaultIconHash)
 	if err != nil {
 		return nil, err
 	}

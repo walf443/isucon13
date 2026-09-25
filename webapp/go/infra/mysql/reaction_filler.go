@@ -11,7 +11,7 @@ import (
 // fillReactions は reactionModels にユーザ・ライブ配信を埋めた model.Reaction を、同じ順序で返す。
 //
 // ユーザやライブ配信が無いのはデータ不整合なので、repository.ErrNotFound には変換しない。
-func fillReactions(ctx context.Context, q repository.Querier, reactionModels []*model.ReactionModel, fallbackIcon []byte) ([]*model.Reaction, error) {
+func fillReactions(ctx context.Context, q repository.Querier, reactionModels []*model.ReactionModel, defaultIconHash string) ([]*model.Reaction, error) {
 	userModels := make([]*model.UserModel, len(reactionModels))
 	livestreamModels := make([]*model.LivestreamModel, len(reactionModels))
 	for i, reactionModel := range reactionModels {
@@ -28,11 +28,11 @@ func fillReactions(ctx context.Context, q repository.Querier, reactionModels []*
 		livestreamModels[i] = &livestreamModel
 	}
 
-	users, err := fillUsers(ctx, q, userModels, fallbackIcon)
+	users, err := fillUsers(ctx, q, userModels, defaultIconHash)
 	if err != nil {
 		return nil, err
 	}
-	livestreams, err := fillLivestreams(ctx, q, livestreamModels, fallbackIcon)
+	livestreams, err := fillLivestreams(ctx, q, livestreamModels, defaultIconHash)
 	if err != nil {
 		return nil, err
 	}
