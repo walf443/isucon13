@@ -97,8 +97,12 @@ func send(t *testing.T, e *echo.Echo, req testRequest) *httptest.ResponseRecorde
 
 // assertResponse はステータスコードと、wantBody が空でなければ本文を確認する。
 // ステータスコードが違う場合はテストを止める。
+// 同じステータスコードを返す分岐が複数あっても区別できるように、エラーレスポンス (4xx/5xx) では wantBody を必須にする。
 func assertResponse(t *testing.T, rec *httptest.ResponseRecorder, wantCode int, wantBody string) {
 	t.Helper()
+	if wantCode >= http.StatusBadRequest && wantBody == "" {
+		t.Errorf("wantBody is required for error responses (code = %d, body: %s)", wantCode, rec.Body.String())
+	}
 	if rec.Code != wantCode {
 		t.Fatalf("code = %d, want %d (body: %s)", rec.Code, wantCode, rec.Body.String())
 	}
