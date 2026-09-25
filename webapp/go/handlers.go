@@ -17,6 +17,7 @@ type handlers struct {
 	user       *handler.UserHandler
 	icon       *handler.IconHandler
 	livestream *handler.LivestreamHandler
+	reaction   *handler.ReactionHandler
 }
 
 // newHandlers は repository・usecase・handler を組み立てる。
@@ -33,12 +34,14 @@ func newHandlers(db *sqlx.DB, fallbackImagePath string) (*handlers, error) {
 	themeRepo := infra.NewThemeRepository()
 	iconRepo := infra.NewIconRepository()
 	livestreamRepo := infra.NewLivestreamRepository(fallbackIcon)
+	reactionRepo := infra.NewReactionRepository(fallbackIcon)
 
 	tagUsecase := usecase.NewTagUsecase(txManager, tagRepo)
 	themeUsecase := usecase.NewThemeUsecase(txManager, userRepo, themeRepo)
 	userUsecase := usecase.NewUserUsecase(txManager, userRepo)
 	iconUsecase := usecase.NewIconUsecase(txManager, userRepo, iconRepo)
 	livestreamUsecase := usecase.NewLivestreamUsecase(txManager, userRepo, tagRepo, livestreamRepo)
+	reactionUsecase := usecase.NewReactionUsecase(txManager, reactionRepo)
 
 	return &handlers{
 		tag:        handler.NewTagHandler(tagUsecase),
@@ -46,5 +49,6 @@ func newHandlers(db *sqlx.DB, fallbackImagePath string) (*handlers, error) {
 		user:       handler.NewUserHandler(userUsecase),
 		icon:       handler.NewIconHandler(iconUsecase, fallbackImagePath),
 		livestream: handler.NewLivestreamHandler(livestreamUsecase),
+		reaction:   handler.NewReactionHandler(reactionUsecase),
 	}, nil
 }

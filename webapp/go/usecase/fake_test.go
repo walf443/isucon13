@@ -147,3 +147,43 @@ func (r *fakeLivestreamRepository) FindWithDetailsByID(ctx context.Context, q re
 	r.gotID = id
 	return r.livestream, r.err
 }
+
+type fakeReactionRepository struct {
+	reaction  *model.Reaction
+	reactions []*model.Reaction
+	err       error
+	createID  int64
+	createErr error
+
+	// calls は呼ばれたメソッド名を順に記録する
+	calls           []string
+	gotID           int64
+	gotLivestreamID int64
+	gotLimit        int64
+	gotCreated      *model.ReactionModel
+}
+
+func (r *fakeReactionRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id int64) (*model.Reaction, error) {
+	r.calls = append(r.calls, "FindWithDetailsByID")
+	r.gotID = id
+	return r.reaction, r.err
+}
+
+func (r *fakeReactionRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID int64) ([]*model.Reaction, error) {
+	r.calls = append(r.calls, "FindAllWithDetailsByLivestreamID")
+	r.gotLivestreamID = livestreamID
+	return r.reactions, r.err
+}
+
+func (r *fakeReactionRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID int64, limit int64) ([]*model.Reaction, error) {
+	r.calls = append(r.calls, "FindAllWithDetailsByLivestreamIDLimited")
+	r.gotLivestreamID = livestreamID
+	r.gotLimit = limit
+	return r.reactions, r.err
+}
+
+func (r *fakeReactionRepository) Create(ctx context.Context, q repository.Querier, reaction *model.ReactionModel) (int64, error) {
+	r.calls = append(r.calls, "Create")
+	r.gotCreated = reaction
+	return r.createID, r.createErr
+}

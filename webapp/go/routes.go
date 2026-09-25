@@ -23,8 +23,8 @@ func registerRoutes(e *echo.Echo, h *handlers) {
 	e.GET("/api/livestream/:livestream_id/livecomment", getLivecommentsHandler)
 	// ライブコメント投稿
 	e.POST("/api/livestream/:livestream_id/livecomment", postLivecommentHandler)
-	e.POST("/api/livestream/:livestream_id/reaction", postReactionHandler)
-	e.GET("/api/livestream/:livestream_id/reaction", getReactionsHandler)
+	e.POST("/api/livestream/:livestream_id/reaction", h.reaction.PostReaction)
+	e.GET("/api/livestream/:livestream_id/reaction", h.reaction.GetReactions)
 
 	// (配信者向け)ライブコメントの報告一覧取得API
 	e.GET("/api/livestream/:livestream_id/report", getLivecommentReportsHandler)
