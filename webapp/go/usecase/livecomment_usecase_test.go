@@ -144,11 +144,34 @@ func TestLivecommentUsecase_FindAllReportsByLivestreamID_Errors(t *testing.T) {
 	}
 }
 
+// newNGWordRepositoryForCreate はスパム判定用の fakeNGWordRepository を返す。
+// 配信者 (userID 2) のライブ配信 10 の NG ワードとして ngWords (取得に失敗させる場合は findErr) を返し、
+// Matches では hitWords に含まれる NG ワードを当たりとする (matchErr を設定した場合はエラー)。判定した NG ワードは matched に記録する。
+func newNGWordRepositoryForCreate(t *testing.T, ngWords []*model.NGWordModel, findErr error, hitWords []string, matchErr error, matched *[]string) *fakeNGWordRepository {
+	return &fakeNGWordRepository{
+		findAllByUserIDAndLivestreamID: func(_ context.Context, _ repository.Querier, userID model.UserID, livestreamID model.LivestreamID) ([]*model.NGWordModel, error) {
+			// NG ワードは投稿者ではなく配信者のものを使う
+			if userID != 2 || livestreamID != 10 {
+				t.Errorf("NG words of userID = %d, livestreamID = %d, want 2, 10", userID, livestreamID)
+			}
+			return ngWords, findErr
+		},
+		matches: func(_ context.Context, _ repository.Querier, comment string, word string) (bool, error) {
+			*matched = append(*matched, word)
+			if matchErr != nil {
+				return false, matchErr
+			}
+			return slices.Contains(hitWords, word), nil
+		},
+	}
+}
+
 func TestLivecommentUsecase_Create(t *testing.T) {
 	want := &model.Livecomment{ID: 100, Comment: "hello"}
 	livestreamRepo := &fakeLivestreamRepository{livestreamModel: &model.LivestreamModel{ID: 10, UserID: 2}}
 	livecommentRepo := &fakeLivecommentRepository{createID: 100, livecomment: want}
-	ngWordRepo := &fakeNGWordRepository{ngWords: []*model.NGWordModel{{Word: "bad"}, {Word: "evil"}}}
+	var matched []string
+	ngWordRepo := newNGWordRepositoryForCreate(t, []*model.NGWordModel{{Word: "bad"}, {Word: "evil"}}, nil, nil, nil, &matched)
 	logger := &fakeLogger{}
 	u := NewLivecommentUsecase(&fakeTxManager{}, livestreamRepo, livecommentRepo, &fakeLivecommentReportRepository{}, ngWordRepo, logger).(*livecommentUsecase)
 	u.now = func() time.Time { return time.Unix(1700000000, 0) }
@@ -160,12 +183,8 @@ func TestLivecommentUsecase_Create(t *testing.T) {
 	if got != want {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
-	// NG ワードは投稿者ではなく配信者のものを使う
-	if ngWordRepo.gotUserID != 2 || ngWordRepo.gotLivestreamID != 10 {
-		t.Errorf("NG words of userID = %d, livestreamID = %d, want 2, 10", ngWordRepo.gotUserID, ngWordRepo.gotLivestreamID)
-	}
-	if want := []string{"bad", "evil"}; !slices.Equal(ngWordRepo.matchedWords, want) {
-		t.Errorf("matched words = %v, want %v", ngWordRepo.matchedWords, want)
+	if want := []string{"bad", "evil"}; !slices.Equal(matched, want) {
+		t.Errorf("matched words = %v, want %v", matched, want)
 	}
 	// NG ワードごとに判定結果をログに出す (移行前と同じ形式)
 	if want := []string{"[hitSpam=0] comment = hello", "[hitSpam=0] comment = hello"}; !slices.Equal(logger.lines, want) {
@@ -191,43 +210,47 @@ func TestLivecommentUsecase_Create_Errors(t *testing.T) {
 		name            string
 		livestreamRepo  *fakeLivestreamRepository
 		livecommentRepo *fakeLivecommentRepository
-		ngWordRepo      *fakeNGWordRepository
-		wantErr         error
-		wantCalls       []string
+		// ngWords, ngWordsErr, hitWords, matchErr はスパム判定の NG ワードの取得・判定の結果
+		ngWords    []*model.NGWordModel
+		ngWordsErr error
+		hitWords   []string
+		matchErr   error
+		wantErr    error
+		wantCalls  []string
 	}{
 		{
 			name:            "livestream not found",
 			livestreamRepo:  &fakeLivestreamRepository{err: repository.ErrNotFound},
 			livecommentRepo: &fakeLivecommentRepository{},
-			ngWordRepo:      &fakeNGWordRepository{},
 			wantErr:         ErrLivestreamNotFound,
 		},
 		{
 			name:            "spam",
 			livestreamRepo:  &fakeLivestreamRepository{livestreamModel: owned},
 			livecommentRepo: &fakeLivecommentRepository{},
-			ngWordRepo:      &fakeNGWordRepository{ngWords: []*model.NGWordModel{{Word: "ok"}, {Word: "bad"}}, hitWords: []string{"bad"}},
+			ngWords:         []*model.NGWordModel{{Word: "ok"}, {Word: "bad"}},
+			hitWords:        []string{"bad"},
 			wantErr:         ErrSpamLivecomment,
 		},
 		{
 			name:            "NG words repository error",
 			livestreamRepo:  &fakeLivestreamRepository{livestreamModel: owned},
 			livecommentRepo: &fakeLivecommentRepository{},
-			ngWordRepo:      &fakeNGWordRepository{err: boom},
+			ngWordsErr:      boom,
 			wantErr:         boom,
 		},
 		{
 			name:            "match error",
 			livestreamRepo:  &fakeLivestreamRepository{livestreamModel: owned},
 			livecommentRepo: &fakeLivecommentRepository{},
-			ngWordRepo:      &fakeNGWordRepository{ngWords: []*model.NGWordModel{{Word: "bad"}}, matchErr: boom},
+			ngWords:         []*model.NGWordModel{{Word: "bad"}},
+			matchErr:        boom,
 			wantErr:         boom,
 		},
 		{
 			name:            "create fails",
 			livestreamRepo:  &fakeLivestreamRepository{livestreamModel: owned},
 			livecommentRepo: &fakeLivecommentRepository{createErr: boom},
-			ngWordRepo:      &fakeNGWordRepository{},
 			wantErr:         boom,
 			wantCalls:       []string{"Create"},
 		},
@@ -235,7 +258,6 @@ func TestLivecommentUsecase_Create_Errors(t *testing.T) {
 			name:            "fill fails",
 			livestreamRepo:  &fakeLivestreamRepository{livestreamModel: owned},
 			livecommentRepo: &fakeLivecommentRepository{createID: 100, err: boom},
-			ngWordRepo:      &fakeNGWordRepository{},
 			wantErr:         boom,
 			wantCalls:       []string{"Create", "FindWithDetailsByID"},
 		},
@@ -243,7 +265,9 @@ func TestLivecommentUsecase_Create_Errors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u := NewLivecommentUsecase(&fakeTxManager{}, tt.livestreamRepo, tt.livecommentRepo, &fakeLivecommentReportRepository{}, tt.ngWordRepo, &fakeLogger{})
+			var matched []string
+			ngWordRepo := newNGWordRepositoryForCreate(t, tt.ngWords, tt.ngWordsErr, tt.hitWords, tt.matchErr, &matched)
+			u := NewLivecommentUsecase(&fakeTxManager{}, tt.livestreamRepo, tt.livecommentRepo, &fakeLivecommentReportRepository{}, ngWordRepo, &fakeLogger{})
 			_, err := u.Create(context.Background(), 1, 10, "this is bad", 0)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
@@ -258,7 +282,8 @@ func TestLivecommentUsecase_Create_Errors(t *testing.T) {
 
 func TestLivecommentUsecase_Create_LogsHitSpam(t *testing.T) {
 	livestreamRepo := &fakeLivestreamRepository{livestreamModel: &model.LivestreamModel{ID: 10, UserID: 2}}
-	ngWordRepo := &fakeNGWordRepository{ngWords: []*model.NGWordModel{{Word: "ok"}, {Word: "bad"}, {Word: "never checked"}}, hitWords: []string{"bad"}}
+	var matched []string
+	ngWordRepo := newNGWordRepositoryForCreate(t, []*model.NGWordModel{{Word: "ok"}, {Word: "bad"}, {Word: "never checked"}}, nil, []string{"bad"}, nil, &matched)
 	logger := &fakeLogger{}
 	u := NewLivecommentUsecase(&fakeTxManager{}, livestreamRepo, &fakeLivecommentRepository{}, &fakeLivecommentReportRepository{}, ngWordRepo, logger)
 
@@ -269,6 +294,9 @@ func TestLivecommentUsecase_Create_LogsHitSpam(t *testing.T) {
 	// 当たった NG ワードまでログを出し、そこで判定を打ち切る
 	if want := []string{"[hitSpam=0] comment = this is bad", "[hitSpam=1] comment = this is bad"}; !slices.Equal(logger.lines, want) {
 		t.Errorf("log lines = %q, want %q", logger.lines, want)
+	}
+	if want := []string{"ok", "bad"}; !slices.Equal(matched, want) {
+		t.Errorf("matched words = %v, want %v", matched, want)
 	}
 }
 
