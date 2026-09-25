@@ -40,6 +40,14 @@ func (r *livestreamRepository) FindAllByIDAndUserID(ctx context.Context, q repos
 	return livestreamModels, nil
 }
 
+func (r *livestreamRepository) FindAllByUserID(ctx context.Context, q repository.Querier, userID model.UserID) ([]*model.LivestreamModel, error) {
+	var livestreamModels []*model.LivestreamModel
+	if err := q.SelectContext(ctx, &livestreamModels, "SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM livestreams WHERE user_id = ?", userID); err != nil {
+		return nil, err
+	}
+	return livestreamModels, nil
+}
+
 func (r *livestreamRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.LivestreamID) (*model.Livestream, error) {
 	var livestreamModel model.LivestreamModel
 	err := q.GetContext(ctx, &livestreamModel, "SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM livestreams WHERE id = ?", id)

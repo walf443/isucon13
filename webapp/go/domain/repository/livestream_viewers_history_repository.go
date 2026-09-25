@@ -11,4 +11,6 @@ type LivestreamViewersHistoryRepository interface {
 	Create(ctx context.Context, q Querier, viewer *model.LivestreamViewersHistoryModel) error
 	// DeleteByUserIDAndLivestreamID は指定したユーザのライブ配信の視聴履歴を全て削除する。
 	DeleteByUserIDAndLivestreamID(ctx context.Context, q Querier, userID model.UserID, livestreamID model.LivestreamID) error
+	// CountByLivestreamID はライブ配信の視聴履歴の件数を返す。
+	CountByLivestreamID(ctx context.Context, q Querier, livestreamID model.LivestreamID) (int64, error)
 }

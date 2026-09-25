@@ -11,6 +11,8 @@ type LivestreamRepository interface {
 	FindByID(ctx context.Context, q Querier, id model.LivestreamID) (*model.LivestreamModel, error)
 	// FindAllByIDAndUserID は指定した ID かつ指定したユーザが配信者のライブ配信を返す。該当が無ければ空のスライスを返す。
 	FindAllByIDAndUserID(ctx context.Context, q Querier, id model.LivestreamID, userID model.UserID) ([]*model.LivestreamModel, error)
+	// FindAllByUserID は指定したユーザが配信者のライブ配信を返す (順序は不定)。
+	FindAllByUserID(ctx context.Context, q Querier, userID model.UserID) ([]*model.LivestreamModel, error)
 	// FindWithDetailsByID は配信者・タグを含めたライブ配信を返す。
 	// ライブ配信が存在しない場合 ErrNotFound を返す。配信者やタグが欠けている場合は ErrNotFound ではないエラーを返す。
 	FindWithDetailsByID(ctx context.Context, q Querier, id model.LivestreamID) (*model.Livestream, error)

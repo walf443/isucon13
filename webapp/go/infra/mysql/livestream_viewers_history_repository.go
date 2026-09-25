@@ -22,3 +22,11 @@ func (r *livestreamViewersHistoryRepository) DeleteByUserIDAndLivestreamID(ctx c
 	_, err := q.ExecContext(ctx, "DELETE FROM livestream_viewers_history WHERE user_id = ? AND livestream_id = ?", userID, livestreamID)
 	return err
 }
+
+func (r *livestreamViewersHistoryRepository) CountByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+	var cnt int64
+	if err := q.GetContext(ctx, &cnt, "SELECT COUNT(*) FROM livestream_viewers_history WHERE livestream_id = ?", livestreamID); err != nil {
+		return 0, err
+	}
+	return cnt, nil
+}

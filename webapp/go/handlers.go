@@ -21,6 +21,7 @@ type handlers struct {
 	livecomment *handler.LivecommentHandler
 	ngWord      *handler.NGWordHandler
 	viewer      *handler.LivestreamViewerHandler
+	statistics  *handler.StatisticsHandler
 }
 
 // newHandlers は repository・usecase・handler を組み立てる。
@@ -53,6 +54,7 @@ func newHandlers(db *sqlx.DB, fallbackImagePath string, logger usecase.Logger) (
 	livecommentUsecase := usecase.NewLivecommentUsecase(txManager, livestreamRepo, livecommentRepo, livecommentReportRepo, ngWordRepo, logger)
 	ngWordUsecase := usecase.NewNGWordUsecase(txManager, livestreamRepo, livecommentRepo, ngWordRepo)
 	viewerUsecase := usecase.NewLivestreamViewerUsecase(txManager, viewerRepo)
+	statisticsUsecase := usecase.NewStatisticsUsecase(txManager, userRepo, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo)
 
 	return &handlers{
 		tag:         handler.NewTagHandler(tagUsecase),
@@ -64,5 +66,6 @@ func newHandlers(db *sqlx.DB, fallbackImagePath string, logger usecase.Logger) (
 		livecomment: handler.NewLivecommentHandler(livecommentUsecase),
 		ngWord:      handler.NewNGWordHandler(ngWordUsecase),
 		viewer:      handler.NewLivestreamViewerHandler(viewerUsecase),
+		statistics:  handler.NewStatisticsHandler(statisticsUsecase),
 	}, nil
 }

@@ -102,3 +102,25 @@ func (r *livecommentRepository) DeleteAllByLivestreamIDMatchingNGWord(ctx contex
 	}
 	return nil
 }
+
+func (r *livecommentRepository) FindAllByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.LivecommentModel, error) {
+	var livecomments []*model.LivecommentModel
+	if err := q.SelectContext(ctx, &livecomments, "SELECT id, user_id, livestream_id, comment, tip, created_at FROM livecomments WHERE livestream_id = ?", livestreamID); err != nil {
+		return nil, err
+	}
+	return livecomments, nil
+}
+
+func (r *livecommentRepository) SumTipByLivestreamOwnerID(ctx context.Context, q repository.Querier, userID model.UserID) (int64, error) {
+	var tips int64
+	// クエリ文字列は移行前のまま (空白も含めて) にしている
+	query := `
+		SELECT IFNULL(SUM(l2.tip), 0) FROM users u
+		INNER JOIN livestreams l ON l.user_id = u.id	
+		INNER JOIN livecomments l2 ON l2.livestream_id = l.id
+		WHERE u.id = ?`
+	if err := q.GetContext(ctx, &tips, query, userID); err != nil {
+		return 0, err
+	}
+	return tips, nil
+}

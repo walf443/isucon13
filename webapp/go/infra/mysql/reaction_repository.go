@@ -62,3 +62,54 @@ func (r *reactionRepository) Create(ctx context.Context, q repository.Querier, r
 	}
 	return model.ReactionID(id), nil
 }
+
+func (r *reactionRepository) CountByLivestreamOwnerID(ctx context.Context, q repository.Querier, userID model.UserID) (int64, error) {
+	var reactions int64
+	// クエリ文字列は移行前のまま (空白も含めて) にしている
+	query := `
+		SELECT COUNT(*) FROM users u
+		INNER JOIN livestreams l ON l.user_id = u.id
+		INNER JOIN reactions r ON r.livestream_id = l.id
+		WHERE u.id = ?`
+	if err := q.GetContext(ctx, &reactions, query, userID); err != nil {
+		return 0, err
+	}
+	return reactions, nil
+}
+
+func (r *reactionRepository) CountByLivestreamOwnerName(ctx context.Context, q repository.Querier, name string) (int64, error) {
+	var reactions int64
+	// クエリ文字列は移行前のまま (空白も含めて) にしている
+	query := `SELECT COUNT(*) FROM users u 
+    INNER JOIN livestreams l ON l.user_id = u.id 
+    INNER JOIN reactions r ON r.livestream_id = l.id
+    WHERE u.name = ?
+	`
+	if err := q.GetContext(ctx, &reactions, query, name); err != nil {
+		return 0, err
+	}
+	return reactions, nil
+}
+
+func (r *reactionRepository) FindFavoriteEmojiByLivestreamOwnerName(ctx context.Context, q repository.Querier, name string) (string, error) {
+	var favoriteEmoji string
+	// クエリ文字列は移行前のまま (空白も含めて) にしている
+	query := `
+	SELECT r.emoji_name
+	FROM users u
+	INNER JOIN livestreams l ON l.user_id = u.id
+	INNER JOIN reactions r ON r.livestream_id = l.id
+	WHERE u.name = ?
+	GROUP BY emoji_name
+	ORDER BY COUNT(*) DESC, emoji_name DESC
+	LIMIT 1
+	`
+	err := q.GetContext(ctx, &favoriteEmoji, query, name)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", repository.ErrNotFound
+	}
+	if err != nil {
+		return "", err
+	}
+	return favoriteEmoji, nil
+}

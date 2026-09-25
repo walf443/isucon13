@@ -37,9 +37,15 @@ type fakeUserRepository struct {
 	user        *model.UserModel
 	userDetails *model.User
 	err         error
+	users       []*model.UserModel
+	findAllErr  error
 
 	gotID   model.UserID
 	gotName string
+}
+
+func (r *fakeUserRepository) FindAll(ctx context.Context, q repository.Querier) ([]*model.UserModel, error) {
+	return r.users, r.findAllErr
 }
 
 func (r *fakeUserRepository) FindIDByName(ctx context.Context, q repository.Querier, name string) (model.UserID, error) {
@@ -150,6 +156,12 @@ func (r *fakeLivestreamRepository) FindByID(ctx context.Context, q repository.Qu
 	return r.livestreamModel, r.err
 }
 
+func (r *fakeLivestreamRepository) FindAllByUserID(ctx context.Context, q repository.Querier, userID model.UserID) ([]*model.LivestreamModel, error) {
+	r.calls = append(r.calls, "FindAllByUserID")
+	r.gotUserID = userID
+	return r.livestreamModels, r.err
+}
+
 func (r *fakeLivestreamRepository) FindAllByIDAndUserID(ctx context.Context, q repository.Querier, id model.LivestreamID, userID model.UserID) ([]*model.LivestreamModel, error) {
 	r.calls = append(r.calls, "FindAllByIDAndUserID")
 	r.gotID = id
@@ -198,6 +210,29 @@ type fakeReactionRepository struct {
 	gotLivestreamID model.LivestreamID
 	gotLimit        int64
 	gotCreated      *model.ReactionModel
+
+	// countsByOwnerID は CountByLivestreamOwnerID が返すリアクション数
+	countsByOwnerID  map[model.UserID]int64
+	countByOwnerErr  error
+	countByOwnerName int64
+	countByNameErr   error
+	favoriteEmoji    string
+	favoriteEmojiErr error
+	gotOwnerNames    []string
+}
+
+func (r *fakeReactionRepository) CountByLivestreamOwnerID(ctx context.Context, q repository.Querier, userID model.UserID) (int64, error) {
+	return r.countsByOwnerID[userID], r.countByOwnerErr
+}
+
+func (r *fakeReactionRepository) CountByLivestreamOwnerName(ctx context.Context, q repository.Querier, name string) (int64, error) {
+	r.gotOwnerNames = append(r.gotOwnerNames, name)
+	return r.countByOwnerName, r.countByNameErr
+}
+
+func (r *fakeReactionRepository) FindFavoriteEmojiByLivestreamOwnerName(ctx context.Context, q repository.Querier, name string) (string, error) {
+	r.gotOwnerNames = append(r.gotOwnerNames, name)
+	return r.favoriteEmoji, r.favoriteEmojiErr
 }
 
 func (r *fakeReactionRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.ReactionID) (*model.Reaction, error) {
@@ -228,6 +263,12 @@ func (r *fakeReactionRepository) Create(ctx context.Context, q repository.Querie
 type fakeLivecommentRepository struct {
 	livecommentModel *model.LivecommentModel
 	findErr          error
+	// livecommentModelsByLivestreamID は FindAllByLivestreamID が返すライブコメント
+	livecommentModelsByLivestreamID map[model.LivestreamID][]*model.LivecommentModel
+	findAllByLivestreamIDErr        error
+	// tipsByOwnerID は SumTipByLivestreamOwnerID が返すチップ合計
+	tipsByOwnerID map[model.UserID]int64
+	sumTipErr     error
 
 	deleteErr error
 	// deletedWords は DeleteAllByLivestreamIDMatchingNGWord に渡された NG ワード
@@ -244,6 +285,14 @@ type fakeLivecommentRepository struct {
 	calls           []string
 	gotLivestreamID model.LivestreamID
 	gotLimit        int64
+}
+
+func (r *fakeLivecommentRepository) FindAllByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.LivecommentModel, error) {
+	return r.livecommentModelsByLivestreamID[livestreamID], r.findAllByLivestreamIDErr
+}
+
+func (r *fakeLivecommentRepository) SumTipByLivestreamOwnerID(ctx context.Context, q repository.Querier, userID model.UserID) (int64, error) {
+	return r.tipsByOwnerID[userID], r.sumTipErr
 }
 
 func (r *fakeLivecommentRepository) FindByID(ctx context.Context, q repository.Querier, id model.LivecommentID) (*model.LivecommentModel, error) {
@@ -317,10 +366,17 @@ func (r *fakeLivecommentReportRepository) FindAllWithDetailsByLivestreamID(ctx c
 
 type fakeLivestreamViewersHistoryRepository struct {
 	err error
+	// countsByLivestreamID は CountByLivestreamID が返す視聴履歴の件数
+	countsByLivestreamID map[model.LivestreamID]int64
+	countErr             error
 
 	gotCreated      *model.LivestreamViewersHistoryModel
 	gotUserID       model.UserID
 	gotLivestreamID model.LivestreamID
+}
+
+func (r *fakeLivestreamViewersHistoryRepository) CountByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+	return r.countsByLivestreamID[livestreamID], r.countErr
 }
 
 func (r *fakeLivestreamViewersHistoryRepository) Create(ctx context.Context, q repository.Querier, viewer *model.LivestreamViewersHistoryModel) error {

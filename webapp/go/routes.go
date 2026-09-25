@@ -46,7 +46,7 @@ func registerRoutes(e *echo.Echo, h *handlers) {
 	e.GET("/api/user/me", h.user.GetMe)
 	// フロントエンドで、配信予約のコラボレーターを指定する際に必要
 	e.GET("/api/user/:username", h.user.GetUser)
-	e.GET("/api/user/:username/statistics", getUserStatisticsHandler)
+	e.GET("/api/user/:username/statistics", h.statistics.GetUserStatistics)
 	e.GET("/api/user/:username/icon", h.icon.GetIcon)
 	e.POST("/api/icon", h.icon.PostIcon)
 

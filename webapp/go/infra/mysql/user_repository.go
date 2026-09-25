@@ -77,3 +77,11 @@ func (r *userRepository) fillUser(ctx context.Context, q repository.Querier, use
 	}
 	return users[0], nil
 }
+
+func (r *userRepository) FindAll(ctx context.Context, q repository.Querier) ([]*model.UserModel, error) {
+	var users []*model.UserModel
+	if err := q.SelectContext(ctx, &users, "SELECT id, name, display_name, description, password FROM users"); err != nil {
+		return nil, err
+	}
+	return users, nil
+}
