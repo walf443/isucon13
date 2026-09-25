@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/http"
 	"os"
 	"strconv"
 
@@ -17,8 +16,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
-	"github.com/gorilla/sessions"
-	"github.com/labstack/echo-contrib/session"
 	echolog "github.com/labstack/gommon/log"
 )
 
@@ -106,9 +103,6 @@ func main() {
 	e.Debug = true
 	e.Logger.SetLevel(echolog.DEBUG)
 	e.Use(middleware.Logger())
-	cookieStore := sessions.NewCookieStore(secret)
-	cookieStore.Options.Domain = "*.u.isucon.dev"
-	e.Use(session.Middleware(cookieStore))
 	// e.Use(middleware.Recover())
 
 	// DB接続
@@ -131,32 +125,13 @@ func main() {
 		e.Logger.Errorf("failed to initialize handlers: %v", err)
 		os.Exit(1)
 	}
-	handler.RegisterRoutes(e, usecases, fallbackImage)
-
-	e.HTTPErrorHandler = errorResponseHandler
+	// セッション・ルーティング・エラーレスポンスの設定
+	handler.Setup(e, secret, usecases, fallbackImage)
 
 	// HTTPサーバ起動
 	listenAddr := net.JoinHostPort("", strconv.Itoa(listenPort))
 	if err := e.Start(listenAddr); err != nil {
 		e.Logger.Errorf("failed to start HTTP server: %v", err)
 		os.Exit(1)
-	}
-}
-
-type ErrorResponse struct {
-	Error string `json:"error"`
-}
-
-func errorResponseHandler(err error, c echo.Context) {
-	c.Logger().Errorf("error at %s: %+v", c.Path(), err)
-	if he, ok := err.(*echo.HTTPError); ok {
-		if e := c.JSON(he.Code, &ErrorResponse{Error: err.Error()}); e != nil {
-			c.Logger().Errorf("%+v", e)
-		}
-		return
-	}
-
-	if e := c.JSON(http.StatusInternalServerError, &ErrorResponse{Error: err.Error()}); e != nil {
-		c.Logger().Errorf("%+v", e)
 	}
 }

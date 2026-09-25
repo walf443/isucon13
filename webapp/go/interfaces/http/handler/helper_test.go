@@ -9,18 +9,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gorilla/sessions"
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 )
 
-var testSessionStore = sessions.NewCookieStore([]byte("test-secret"))
+var testSessionStore = newSessionStore([]byte("test-secret"))
 
-// newTestEcho は本番と同じセッションミドルウェアを持つ echo を返す。
+// newTestEcho は本番と同じセッションミドルウェアとエラーレスポンスを持つ echo を返す。
 func newTestEcho() *echo.Echo {
 	e := echo.New()
 	e.Use(session.Middleware(testSessionStore))
+	e.HTTPErrorHandler = errorResponseHandler
 	return e
 }
 
@@ -107,12 +107,17 @@ func assertResponse(t *testing.T, rec *httptest.ResponseRecorder, wantCode int, 
 	}
 }
 
+// errorBody は errorResponseHandler が echo.HTTPError から作るレスポンスの本文を返す。
+func errorBody(code int, message string) string {
+	return fmt.Sprintf(`{"error":"code=%d, message=%s"}`, code, message) + "\n"
+}
+
 // testLimitQueryParam は limit クエリパラメータの検証を、境界値を含めて確認する。
 // max はその API の limit の上限。do は limit クエリに値を付けてリクエストし、レスポンスと usecase に渡った limit を返す。
 func testLimitQueryParam(t *testing.T, max model.Limit, do func(t *testing.T, limit string) (*httptest.ResponseRecorder, *model.Limit)) {
 	t.Helper()
-	outOfRange := fmt.Sprintf(`{"message":"limit query parameter must be between 1 and %d"}`, max) + "\n"
-	notInteger := `{"message":"limit query parameter must be integer"}` + "\n"
+	outOfRange := errorBody(http.StatusBadRequest, fmt.Sprintf("limit query parameter must be between 1 and %d", max))
+	notInteger := errorBody(http.StatusBadRequest, "limit query parameter must be integer")
 	maxStr := strconv.FormatInt(int64(max), 10)
 	overMaxStr := strconv.FormatInt(int64(max)+1, 10)
 

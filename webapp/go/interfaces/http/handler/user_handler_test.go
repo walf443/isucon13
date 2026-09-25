@@ -162,14 +162,14 @@ func TestUserHandler_Register(t *testing.T) {
 			body:     `{`,
 			usecase:  &fakeUserUsecase{},
 			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"failed to decode the request body as json"}` + "\n",
+			wantBody: errorBody(http.StatusBadRequest, "failed to decode the request body as json"),
 		},
 		{
 			name:     "returns 400 for reserved username",
 			body:     `{"name":"pipe","password":"x"}`,
 			usecase:  &fakeUserUsecase{err: usecase.ErrReservedUsername},
 			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"the username 'pipe' is reserved"}` + "\n",
+			wantBody: errorBody(http.StatusBadRequest, "the username 'pipe' is reserved"),
 		},
 		{
 			// DNS の登録エラーなどは usecase のメッセージをそのまま返す
@@ -177,7 +177,7 @@ func TestUserHandler_Register(t *testing.T) {
 			body:     reqBody,
 			usecase:  &fakeUserUsecase{err: errors.New("Error: zone not found: exit status 1")},
 			wantCode: http.StatusInternalServerError,
-			wantBody: `{"message":"Error: zone not found: exit status 1"}` + "\n",
+			wantBody: errorBody(http.StatusInternalServerError, "Error: zone not found: exit status 1"),
 		},
 	}
 
@@ -219,21 +219,21 @@ func TestUserHandler_Login(t *testing.T) {
 			body:     `{`,
 			usecase:  &fakeUserUsecase{},
 			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"failed to decode the request body as json"}` + "\n",
+			wantBody: errorBody(http.StatusBadRequest, "failed to decode the request body as json"),
 		},
 		{
 			name:     "returns 401 on invalid credentials",
 			body:     `{"username":"alice","password":"wrong"}`,
 			usecase:  &fakeUserUsecase{err: usecase.ErrInvalidCredentials},
 			wantCode: http.StatusUnauthorized,
-			wantBody: `{"message":"invalid username or password"}` + "\n",
+			wantBody: errorBody(http.StatusUnauthorized, "invalid username or password"),
 		},
 		{
 			name:     "returns 500 on unexpected error",
 			body:     `{"username":"alice","password":"s3cret"}`,
 			usecase:  &fakeUserUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
-			wantBody: `{"message":"boom"}` + "\n",
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 

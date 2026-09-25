@@ -57,14 +57,14 @@ func TestStatisticsHandler_GetUserStatistics(t *testing.T) {
 			cookie:   sessionAs(1),
 			usecase:  &fakeStatisticsUsecase{err: usecase.ErrUserNotFound},
 			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"not found user that has the given username"}` + "\n",
+			wantBody: errorBody(http.StatusBadRequest, "not found user that has the given username"),
 		},
 		{
 			name:     "returns 500 on unexpected error",
 			cookie:   sessionAs(1),
 			usecase:  &fakeStatisticsUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
-			wantBody: `{"message":"boom"}` + "\n",
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 
@@ -108,7 +108,7 @@ func TestStatisticsHandler_GetLivestreamStatistics(t *testing.T) {
 			cookie:   sessionAs(1),
 			usecase:  &fakeStatisticsUsecase{},
 			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"livestream_id in path must be integer"}` + "\n",
+			wantBody: errorBody(http.StatusBadRequest, "livestream_id in path must be integer"),
 		},
 		{
 			// 404 ではなく 400 (移行前と同じ)
@@ -117,7 +117,7 @@ func TestStatisticsHandler_GetLivestreamStatistics(t *testing.T) {
 			cookie:   sessionAs(1),
 			usecase:  &fakeStatisticsUsecase{err: usecase.ErrLivestreamNotFound},
 			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"cannot get stats of not found livestream"}` + "\n",
+			wantBody: errorBody(http.StatusBadRequest, "cannot get stats of not found livestream"),
 		},
 		{
 			name:     "returns 500 on unexpected error",
@@ -125,7 +125,7 @@ func TestStatisticsHandler_GetLivestreamStatistics(t *testing.T) {
 			cookie:   sessionAs(1),
 			usecase:  &fakeStatisticsUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
-			wantBody: `{"message":"boom"}` + "\n",
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 

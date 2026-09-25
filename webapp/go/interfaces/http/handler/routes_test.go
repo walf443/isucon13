@@ -106,7 +106,7 @@ func TestRegisterRoutes_RequireSession(t *testing.T) {
 				}
 				return
 			}
-			assertResponse(t, rec, http.StatusForbidden, `{"message":"failed to get EXPIRES value from session"}`+"\n")
+			assertResponse(t, rec, http.StatusForbidden, errorBody(http.StatusForbidden, "failed to get EXPIRES value from session"))
 		})
 	}
 	for key := range public {

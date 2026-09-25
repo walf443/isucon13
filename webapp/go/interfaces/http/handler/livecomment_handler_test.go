@@ -184,7 +184,7 @@ func TestLivecommentHandler_GetLivecommentReports(t *testing.T) {
 			cookie:   sessionAs(2),
 			usecase:  &fakeLivecommentUsecase{err: usecase.ErrNotLivestreamOwner},
 			wantCode: http.StatusForbidden,
-			wantBody: `{"message":"can't get other streamer's livecomment reports"}` + "\n",
+			wantBody: errorBody(http.StatusForbidden, "can't get other streamer's livecomment reports"),
 		},
 		{
 			name:     "returns 500 on unexpected error",
@@ -248,7 +248,7 @@ func TestLivecommentHandler_PostLivecomment(t *testing.T) {
 			body:     `{"comment":"hello","tip":100}`,
 			usecase:  &fakeLivecommentUsecase{err: usecase.ErrLivestreamNotFound},
 			wantCode: http.StatusNotFound,
-			wantBody: `{"message":"livestream not found"}` + "\n",
+			wantBody: errorBody(http.StatusNotFound, "livestream not found"),
 		},
 		{
 			name:     "returns 400 when judged as spam",
@@ -257,7 +257,7 @@ func TestLivecommentHandler_PostLivecomment(t *testing.T) {
 			body:     `{"comment":"bad","tip":0}`,
 			usecase:  &fakeLivecommentUsecase{err: usecase.ErrSpamLivecomment},
 			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"このコメントがスパム判定されました"}` + "\n",
+			wantBody: errorBody(http.StatusBadRequest, "このコメントがスパム判定されました"),
 		},
 		{
 			name:     "returns 500 on unexpected error",
@@ -312,7 +312,7 @@ func TestLivecommentHandler_PostLivecommentReport(t *testing.T) {
 			cookie:   sessionAs(3),
 			usecase:  &fakeLivecommentUsecase{},
 			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"livestream_id in path must be integer"}` + "\n",
+			wantBody: errorBody(http.StatusBadRequest, "livestream_id in path must be integer"),
 		},
 		{
 			name:     "returns 400 when livecomment_id is not integer",
@@ -320,7 +320,7 @@ func TestLivecommentHandler_PostLivecommentReport(t *testing.T) {
 			cookie:   sessionAs(3),
 			usecase:  &fakeLivecommentUsecase{},
 			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"livecomment_id in path must be integer"}` + "\n",
+			wantBody: errorBody(http.StatusBadRequest, "livecomment_id in path must be integer"),
 		},
 		{
 			name:     "returns 404 when livestream is not found",
@@ -328,7 +328,7 @@ func TestLivecommentHandler_PostLivecommentReport(t *testing.T) {
 			cookie:   sessionAs(3),
 			usecase:  &fakeLivecommentUsecase{err: usecase.ErrLivestreamNotFound},
 			wantCode: http.StatusNotFound,
-			wantBody: `{"message":"livestream not found"}` + "\n",
+			wantBody: errorBody(http.StatusNotFound, "livestream not found"),
 		},
 		{
 			name:     "returns 404 when livecomment is not found",
@@ -336,7 +336,7 @@ func TestLivecommentHandler_PostLivecommentReport(t *testing.T) {
 			cookie:   sessionAs(3),
 			usecase:  &fakeLivecommentUsecase{err: usecase.ErrLivecommentNotFound},
 			wantCode: http.StatusNotFound,
-			wantBody: `{"message":"livecomment not found"}` + "\n",
+			wantBody: errorBody(http.StatusNotFound, "livecomment not found"),
 		},
 		{
 			name:     "returns 500 on unexpected error",

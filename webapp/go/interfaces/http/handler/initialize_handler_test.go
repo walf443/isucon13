@@ -33,7 +33,7 @@ func TestInitializeHandler_Initialize(t *testing.T) {
 			name:     "returns 500 on failure",
 			usecase:  &fakeInitializeUsecase{err: errors.New("failed to initialize: exit status 1")},
 			wantCode: http.StatusInternalServerError,
-			wantBody: `{"message":"failed to initialize: exit status 1"}` + "\n",
+			wantBody: errorBody(http.StatusInternalServerError, "failed to initialize: exit status 1"),
 		},
 	}
 

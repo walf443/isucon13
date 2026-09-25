@@ -132,7 +132,7 @@ func TestNGWordHandler_Moderate(t *testing.T) {
 			body:     `{"ng_word":"bad"}`,
 			usecase:  &fakeNGWordUsecase{err: usecase.ErrNotLivestreamOwner},
 			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"A streamer can't moderate livestreams that other streamers own"}` + "\n",
+			wantBody: errorBody(http.StatusBadRequest, "A streamer can't moderate livestreams that other streamers own"),
 		},
 		{
 			name:     "returns 500 on unexpected error",

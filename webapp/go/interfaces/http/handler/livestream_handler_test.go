@@ -222,7 +222,7 @@ func TestLivestreamHandler_GetUserLivestreams(t *testing.T) {
 			usecase:  &fakeLivestreamUsecase{err: usecase.ErrUserNotFound},
 			wantCode: http.StatusNotFound,
 			// このエンドポイントだけ 404 のメッセージが他と異なるので確認しておく (echo のデフォルトのエラーハンドラの形式)
-			wantBody: `{"message":"user not found"}` + "\n",
+			wantBody: errorBody(http.StatusNotFound, "user not found"),
 		},
 		{
 			name:     "returns 500 on unexpected error",
@@ -373,7 +373,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 			body:     `{`,
 			usecase:  &fakeLivestreamUsecase{},
 			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"failed to decode the request body as json"}` + "\n",
+			wantBody: errorBody(http.StatusBadRequest, "failed to decode the request body as json"),
 		},
 		{
 			name:     "returns 400 on bad time range",
@@ -381,7 +381,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 			body:     reqBody,
 			usecase:  &fakeLivestreamUsecase{err: usecase.ErrBadReservationTimeRange},
 			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"bad reservation time range"}` + "\n",
+			wantBody: errorBody(http.StatusBadRequest, "bad reservation time range"),
 		},
 		{
 			// メッセージは usecase のエラーのものをそのまま返す
@@ -390,7 +390,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 			body:     reqBody,
 			usecase:  &fakeLivestreamUsecase{err: &usecase.ReservationSlotUnavailableError{StartAt: 1700874000, EndAt: 1700877600}},
 			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"予約期間 1700874000 ~ 1732496400に対して、予約区間 1700874000 ~ 1700877600が予約できません"}` + "\n",
+			wantBody: errorBody(http.StatusBadRequest, "予約期間 1700874000 ~ 1732496400に対して、予約区間 1700874000 ~ 1700877600が予約できません"),
 		},
 		{
 			name:     "returns 500 on unexpected error",
@@ -398,7 +398,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 			body:     reqBody,
 			usecase:  &fakeLivestreamUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
-			wantBody: `{"message":"boom"}` + "\n",
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 

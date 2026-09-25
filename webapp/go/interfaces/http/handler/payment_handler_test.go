@@ -34,7 +34,7 @@ func TestPaymentHandler_GetPaymentResult(t *testing.T) {
 			name:     "returns 500 on unexpected error",
 			usecase:  &fakePaymentUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
-			wantBody: `{"message":"boom"}` + "\n",
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 

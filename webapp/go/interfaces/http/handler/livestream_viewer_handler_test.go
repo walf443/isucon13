@@ -59,7 +59,7 @@ func TestLivestreamViewerHandler(t *testing.T) {
 			cookie:   sessionAs(1),
 			usecase:  &fakeLivestreamViewerUsecase{},
 			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"livestream_id must be integer"}` + "\n",
+			wantBody: errorBody(http.StatusBadRequest, "livestream_id must be integer"),
 		},
 		{
 			name:       "enter returns 500 on unexpected error",
@@ -68,7 +68,7 @@ func TestLivestreamViewerHandler(t *testing.T) {
 			cookie:     sessionAs(1),
 			usecase:    &fakeLivestreamViewerUsecase{err: errors.New("boom")},
 			wantCode:   http.StatusInternalServerError,
-			wantBody:   `{"message":"boom"}` + "\n",
+			wantBody:   errorBody(http.StatusInternalServerError, "boom"),
 			wantCalled: "Enter",
 		},
 		{
@@ -87,7 +87,7 @@ func TestLivestreamViewerHandler(t *testing.T) {
 			cookie:   sessionAs(1),
 			usecase:  &fakeLivestreamViewerUsecase{},
 			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"livestream_id in path must be integer"}` + "\n",
+			wantBody: errorBody(http.StatusBadRequest, "livestream_id in path must be integer"),
 		},
 		{
 			name:       "exit returns 500 on unexpected error",
@@ -96,7 +96,7 @@ func TestLivestreamViewerHandler(t *testing.T) {
 			cookie:     sessionAs(1),
 			usecase:    &fakeLivestreamViewerUsecase{err: errors.New("boom")},
 			wantCode:   http.StatusInternalServerError,
-			wantBody:   `{"message":"boom"}` + "\n",
+			wantBody:   errorBody(http.StatusInternalServerError, "boom"),
 			wantCalled: "Exit",
 		},
 	}
