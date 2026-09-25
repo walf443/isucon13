@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/isucon/isucon13/webapp/go/domain/repository"
+	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 // sqlxQuerier は *sqlx.DB と *sqlx.Tx の両方が満たすインターフェース。

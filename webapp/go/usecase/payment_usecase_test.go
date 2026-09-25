@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/repository"
+	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 func TestPaymentUsecase_FindTotalTip(t *testing.T) {

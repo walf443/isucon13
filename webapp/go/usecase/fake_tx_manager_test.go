@@ -3,7 +3,7 @@ package usecase
 import (
 	"context"
 
-	"github.com/isucon/isucon13/webapp/go/domain/repository"
+	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 type fakeTxManager struct {

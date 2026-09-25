@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
-	"github.com/isucon/isucon13/webapp/go/domain/repository"
+	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 // fillUsers は userModels にテーマ・アイコンを埋めた model.User を、同じ順序で返す。

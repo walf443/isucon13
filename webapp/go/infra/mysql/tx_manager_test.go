@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/repository"
+	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 // txManager は実際にコミットするので、他のテストと干渉しない user_id を使い、終了時に削除する。

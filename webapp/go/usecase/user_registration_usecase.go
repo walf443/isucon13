@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
-	"github.com/isucon/isucon13/webapp/go/domain/repository"
+	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 // UserRegistrationUsecase はユーザの登録を扱う。

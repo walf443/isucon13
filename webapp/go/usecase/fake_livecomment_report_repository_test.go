@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
-	"github.com/isucon/isucon13/webapp/go/domain/repository"
+	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 // fakeLivecommentReportRepository はテストで設定した関数に処理を委ねる LivecommentReportRepository。

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
-	"github.com/isucon/isucon13/webapp/go/domain/repository"
+	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 // fillReactions は reactionModels にユーザ・ライブ配信を埋めた model.Reaction を、同じ順序で返す。

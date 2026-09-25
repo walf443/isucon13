@@ -7,7 +7,7 @@ import (
 	"sort"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
-	"github.com/isucon/isucon13/webapp/go/domain/repository"
+	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 type StatisticsUsecase interface {

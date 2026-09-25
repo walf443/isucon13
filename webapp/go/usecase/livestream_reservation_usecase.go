@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
-	"github.com/isucon/isucon13/webapp/go/domain/repository"
+	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 // LivestreamReservationUsecase はライブ配信の予約を扱う。

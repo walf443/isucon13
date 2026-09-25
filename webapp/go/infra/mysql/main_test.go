@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/isucon/isucon13/webapp/go/domain/repository"
+	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 	"github.com/jmoiron/sqlx"
 	"github.com/testcontainers/testcontainers-go/modules/mysql"
 )

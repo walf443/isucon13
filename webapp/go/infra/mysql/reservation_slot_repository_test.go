@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
-	"github.com/isucon/isucon13/webapp/go/domain/repository"
+	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 func insertTestReservationSlot(t *testing.T, tx repository.Querier, slot int64, startAt int64, endAt int64) model.ReservationSlotID {

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
-	"github.com/isucon/isucon13/webapp/go/domain/repository"
+	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 // newReactionRepositoryForFindAll は一覧取得で呼ばれたメソッドを calls に記録し、reactions (取得に失敗させる場合は err) を返す fakeReactionRepository を返す。

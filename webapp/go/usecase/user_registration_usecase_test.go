@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
-	"github.com/isucon/isucon13/webapp/go/domain/repository"
+	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 // newUserRepositoryForRegister は Register で呼ばれるメソッドを、呼ばれた順に calls へ記録する fakeUserRepository を返す。

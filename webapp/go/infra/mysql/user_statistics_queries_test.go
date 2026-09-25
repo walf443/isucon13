@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
-	"github.com/isucon/isucon13/webapp/go/domain/repository"
+	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 // ユーザ統計情報 (GET /api/user/:username/statistics) で使う集計系のクエリのテスト

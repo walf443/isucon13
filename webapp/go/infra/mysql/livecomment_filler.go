@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
-	"github.com/isucon/isucon13/webapp/go/domain/repository"
+	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 // fillLivecomments は livecommentModels にコメントしたユーザ・ライブ配信を埋めた model.Livecomment を、同じ順序で返す。

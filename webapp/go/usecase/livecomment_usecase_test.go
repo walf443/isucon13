@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
-	"github.com/isucon/isucon13/webapp/go/domain/repository"
+	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 // newLivecommentRepositoryForFindAll は一覧取得で呼ばれたメソッドを calls に記録し、livecomments (取得に失敗させる場合は err) を返す fakeLivecommentRepository を返す。

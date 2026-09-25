@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
-	"github.com/isucon/isucon13/webapp/go/domain/repository"
+	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 func insertTestLivecomment(t *testing.T, tx repository.Querier, userID model.UserID, livestreamID model.LivestreamID, comment string, createdAt int64) model.LivecommentID {
