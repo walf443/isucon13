@@ -42,7 +42,8 @@ func newUsecases(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 
 	userUsecase := usecase.NewUserUsecase(txManager, userRepo, themeRepo, dnsRegistrar)
 	iconUsecase := usecase.NewIconUsecase(txManager, userRepo, iconRepo)
-	livestreamUsecase := usecase.NewLivestreamUsecase(txManager, userRepo, tagRepo, livestreamRepo, reservationSlotRepo, logger)
+	livestreamUsecase := usecase.NewLivestreamUsecase(txManager, userRepo, tagRepo, livestreamRepo)
+	livestreamReservationUsecase := usecase.NewLivestreamReservationUsecase(txManager, livestreamRepo, reservationSlotRepo, logger)
 	reactionUsecase := usecase.NewReactionUsecase(txManager, reactionRepo)
 	livecommentUsecase := usecase.NewLivecommentUsecase(txManager, livestreamRepo, livecommentRepo, livecommentReportRepo, ngWordRepo, logger)
 	ngWordUsecase := usecase.NewNGWordUsecase(txManager, livestreamRepo, livecommentRepo, ngWordRepo)
@@ -52,17 +53,18 @@ func newUsecases(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 	initializeUsecase := usecase.NewInitializeUsecase(script.NewInitializer("../sql/init.sh"), logger)
 
 	return handler.Usecases{
-		Tag:              tagUsecase,
-		Theme:            themeUsecase,
-		User:             userUsecase,
-		Icon:             iconUsecase,
-		Livestream:       livestreamUsecase,
-		Reaction:         reactionUsecase,
-		Livecomment:      livecommentUsecase,
-		NGWord:           ngWordUsecase,
-		LivestreamViewer: viewerUsecase,
-		Statistics:       statisticsUsecase,
-		Payment:          paymentUsecase,
-		Initialize:       initializeUsecase,
+		Tag:                   tagUsecase,
+		Theme:                 themeUsecase,
+		User:                  userUsecase,
+		Icon:                  iconUsecase,
+		Livestream:            livestreamUsecase,
+		LivestreamReservation: livestreamReservationUsecase,
+		Reaction:              reactionUsecase,
+		Livecomment:           livecommentUsecase,
+		NGWord:                ngWordUsecase,
+		LivestreamViewer:      viewerUsecase,
+		Statistics:            statisticsUsecase,
+		Payment:               paymentUsecase,
+		Initialize:            initializeUsecase,
 	}, nil
 }

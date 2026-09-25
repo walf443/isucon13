@@ -7,18 +7,19 @@ import (
 
 // Usecases は handler が使う usecase をまとめたもの。
 type Usecases struct {
-	Tag              usecase.TagUsecase
-	Theme            usecase.ThemeUsecase
-	User             usecase.UserUsecase
-	Icon             usecase.IconUsecase
-	Livestream       usecase.LivestreamUsecase
-	Reaction         usecase.ReactionUsecase
-	Livecomment      usecase.LivecommentUsecase
-	NGWord           usecase.NGWordUsecase
-	LivestreamViewer usecase.LivestreamViewerUsecase
-	Statistics       usecase.StatisticsUsecase
-	Payment          usecase.PaymentUsecase
-	Initialize       usecase.InitializeUsecase
+	Tag                   usecase.TagUsecase
+	Theme                 usecase.ThemeUsecase
+	User                  usecase.UserUsecase
+	Icon                  usecase.IconUsecase
+	Livestream            usecase.LivestreamUsecase
+	LivestreamReservation usecase.LivestreamReservationUsecase
+	Reaction              usecase.ReactionUsecase
+	Livecomment           usecase.LivecommentUsecase
+	NGWord                usecase.NGWordUsecase
+	LivestreamViewer      usecase.LivestreamViewerUsecase
+	Statistics            usecase.StatisticsUsecase
+	Payment               usecase.PaymentUsecase
+	Initialize            usecase.InitializeUsecase
 }
 
 // RegisterRoutes は handler を組み立てて e にルーティングを登録する。
@@ -28,7 +29,7 @@ func RegisterRoutes(e *echo.Echo, u Usecases, fallbackImagePath string) {
 	theme := newThemeHandler(u.Theme)
 	user := newUserHandler(u.User)
 	icon := newIconHandler(u.Icon, fallbackImagePath)
-	livestream := newLivestreamHandler(u.Livestream)
+	livestream := newLivestreamHandler(u.Livestream, u.LivestreamReservation)
 	reaction := newReactionHandler(u.Reaction)
 	livecomment := newLivecommentHandler(u.Livecomment)
 	ngWord := newNGWordHandler(u.NGWord)

@@ -23,13 +23,19 @@ type fakeLivestreamUsecase struct {
 	gotUsername string
 	gotTagName  string
 	gotLimit    *model.Limit
-	gotInput    usecase.ReserveLivestreamInput
 	// calls は呼ばれたメソッド名を順に記録する
 	calls []string
 }
 
-func (u *fakeLivestreamUsecase) Reserve(ctx context.Context, userID model.UserID, input usecase.ReserveLivestreamInput) (*model.Livestream, error) {
-	u.calls = append(u.calls, "Reserve")
+type fakeLivestreamReservationUsecase struct {
+	livestream *model.Livestream
+	err        error
+
+	gotUserID model.UserID
+	gotInput  usecase.ReserveLivestreamInput
+}
+
+func (u *fakeLivestreamReservationUsecase) Reserve(ctx context.Context, userID model.UserID, input usecase.ReserveLivestreamInput) (*model.Livestream, error) {
 	u.gotUserID = userID
 	u.gotInput = input
 	return u.livestream, u.err
@@ -132,7 +138,7 @@ func TestLivestreamHandler_GetLivestream(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rec := serve(t, newLivestreamHandler(tt.usecase).GetLivestream, testRequest{method: http.MethodGet, route: "/api/livestream/:livestream_id", path: tt.path, cookie: tt.cookie})
+			rec := serve(t, newLivestreamHandler(tt.usecase, nil).GetLivestream, testRequest{method: http.MethodGet, route: "/api/livestream/:livestream_id", path: tt.path, cookie: tt.cookie})
 			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusOK && tt.usecase.gotID != 10 {
 				t.Errorf("id = %d, want 10", tt.usecase.gotID)
@@ -183,7 +189,7 @@ func TestLivestreamHandler_GetMyLivestreams(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rec := serve(t, newLivestreamHandler(tt.usecase).GetMyLivestreams, testRequest{method: http.MethodGet, route: "/api/livestream", path: "/api/livestream", cookie: tt.cookie})
+			rec := serve(t, newLivestreamHandler(tt.usecase, nil).GetMyLivestreams, testRequest{method: http.MethodGet, route: "/api/livestream", path: "/api/livestream", cookie: tt.cookie})
 			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusOK && tt.usecase.gotUserID != 42 {
 				t.Errorf("userID = %d, want 42", tt.usecase.gotUserID)
@@ -234,7 +240,7 @@ func TestLivestreamHandler_GetUserLivestreams(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rec := serve(t, newLivestreamHandler(tt.usecase).GetUserLivestreams, testRequest{method: http.MethodGet, route: "/api/user/:username/livestream", path: "/api/user/alice/livestream", cookie: tt.cookie})
+			rec := serve(t, newLivestreamHandler(tt.usecase, nil).GetUserLivestreams, testRequest{method: http.MethodGet, route: "/api/user/:username/livestream", path: "/api/user/alice/livestream", cookie: tt.cookie})
 			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusOK && tt.usecase.gotUsername != "alice" {
 				t.Errorf("username = %q, want %q", tt.usecase.gotUsername, "alice")
@@ -313,7 +319,7 @@ func TestLivestreamHandler_SearchLivestreams(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// セッション不要のエンドポイントなので Cookie は付けない
-			rec := serve(t, newLivestreamHandler(tt.usecase).SearchLivestreams, testRequest{method: http.MethodGet, route: "/api/livestream/search", path: "/api/livestream/search" + tt.query})
+			rec := serve(t, newLivestreamHandler(tt.usecase, nil).SearchLivestreams, testRequest{method: http.MethodGet, route: "/api/livestream/search", path: "/api/livestream/search" + tt.query})
 			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCalls != nil && !slices.Equal(tt.usecase.calls, tt.wantCalls) {
 				t.Errorf("calls = %v, want %v", tt.usecase.calls, tt.wantCalls)
@@ -332,7 +338,7 @@ func TestLivestreamHandler_SearchLivestreams_Limit(t *testing.T) {
 	testLimitQueryParam(t, maxLivestreamsLimit, func(t *testing.T, limit string) (*httptest.ResponseRecorder, *model.Limit) {
 		u := &fakeLivestreamUsecase{}
 		// セッションは不要
-		rec := serve(t, newLivestreamHandler(u).SearchLivestreams, testRequest{method: http.MethodGet, route: "/api/livestream/search", path: "/api/livestream/search?limit=" + limit})
+		rec := serve(t, newLivestreamHandler(u, nil).SearchLivestreams, testRequest{method: http.MethodGet, route: "/api/livestream/search", path: "/api/livestream/search?limit=" + limit})
 		return rec, u.gotLimit
 	})
 }
@@ -345,7 +351,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 		name     string
 		cookie   func(t *testing.T) *http.Cookie
 		body     string
-		usecase  *fakeLivestreamUsecase
+		usecase  *fakeLivestreamReservationUsecase
 		wantCode int
 		wantBody string
 	}{
@@ -353,7 +359,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 			name:   "reserves livestream",
 			cookie: sessionAs(2),
 			body:   reqBody,
-			usecase: &fakeLivestreamUsecase{livestream: &model.Livestream{
+			usecase: &fakeLivestreamReservationUsecase{livestream: &model.Livestream{
 				ID:           10,
 				Owner:        owner,
 				Title:        "stream",
@@ -371,7 +377,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 			name:     "returns 400 on invalid json",
 			cookie:   sessionAs(2),
 			body:     `{`,
-			usecase:  &fakeLivestreamUsecase{},
+			usecase:  &fakeLivestreamReservationUsecase{},
 			wantCode: http.StatusBadRequest,
 			wantBody: errorBody(http.StatusBadRequest, "failed to decode the request body as json"),
 		},
@@ -379,7 +385,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 			name:     "returns 400 on bad time range",
 			cookie:   sessionAs(2),
 			body:     reqBody,
-			usecase:  &fakeLivestreamUsecase{err: usecase.ErrBadReservationTimeRange},
+			usecase:  &fakeLivestreamReservationUsecase{err: usecase.ErrBadReservationTimeRange},
 			wantCode: http.StatusBadRequest,
 			wantBody: errorBody(http.StatusBadRequest, "bad reservation time range"),
 		},
@@ -388,7 +394,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 			name:     "returns 400 when slot is unavailable",
 			cookie:   sessionAs(2),
 			body:     reqBody,
-			usecase:  &fakeLivestreamUsecase{err: &usecase.ReservationSlotUnavailableError{Period: model.ReservationPeriod{StartAt: 1700874000, EndAt: 1700877600}}},
+			usecase:  &fakeLivestreamReservationUsecase{err: &usecase.ReservationSlotUnavailableError{Period: model.ReservationPeriod{StartAt: 1700874000, EndAt: 1700877600}}},
 			wantCode: http.StatusBadRequest,
 			wantBody: errorBody(http.StatusBadRequest, "予約期間 1700874000 ~ 1732496400に対して、予約区間 1700874000 ~ 1700877600が予約できません"),
 		},
@@ -396,7 +402,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 			name:     "returns 500 on unexpected error",
 			cookie:   sessionAs(2),
 			body:     reqBody,
-			usecase:  &fakeLivestreamUsecase{err: errors.New("boom")},
+			usecase:  &fakeLivestreamReservationUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
 			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
@@ -404,7 +410,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rec := serve(t, newLivestreamHandler(tt.usecase).ReserveLivestream, testRequest{method: http.MethodPost, route: "/api/livestream/reservation", path: "/api/livestream/reservation", body: tt.body, cookie: tt.cookie})
+			rec := serve(t, newLivestreamHandler(nil, tt.usecase).ReserveLivestream, testRequest{method: http.MethodPost, route: "/api/livestream/reservation", path: "/api/livestream/reservation", body: tt.body, cookie: tt.cookie})
 			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusCreated {
 				wantInput := usecase.ReserveLivestreamInput{

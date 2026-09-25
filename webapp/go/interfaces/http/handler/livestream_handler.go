@@ -59,11 +59,12 @@ type ReserveLivestreamRequest struct {
 }
 
 type livestreamHandler struct {
-	livestreamUsecase usecase.LivestreamUsecase
+	livestreamUsecase  usecase.LivestreamUsecase
+	reservationUsecase usecase.LivestreamReservationUsecase
 }
 
-func newLivestreamHandler(livestreamUsecase usecase.LivestreamUsecase) *livestreamHandler {
-	return &livestreamHandler{livestreamUsecase: livestreamUsecase}
+func newLivestreamHandler(livestreamUsecase usecase.LivestreamUsecase, reservationUsecase usecase.LivestreamReservationUsecase) *livestreamHandler {
+	return &livestreamHandler{livestreamUsecase: livestreamUsecase, reservationUsecase: reservationUsecase}
 }
 
 // GET /api/livestream/:livestream_id
@@ -180,7 +181,7 @@ func (h *livestreamHandler) ReserveLivestream(c echo.Context) error {
 		tagIDs[i] = model.TagID(tagID)
 	}
 
-	livestream, err := h.livestreamUsecase.Reserve(ctx, userID, usecase.ReserveLivestreamInput{
+	livestream, err := h.reservationUsecase.Reserve(ctx, userID, usecase.ReserveLivestreamInput{
 		TagIDs:       tagIDs,
 		Title:        req.Title,
 		Description:  req.Description,
