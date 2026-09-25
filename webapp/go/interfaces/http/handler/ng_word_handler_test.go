@@ -1,0 +1,161 @@
+package handler
+
+import (
+	"context"
+	"errors"
+	"net/http"
+	"testing"
+
+	"github.com/isucon/isucon13/webapp/go/domain"
+	"github.com/isucon/isucon13/webapp/go/usecase"
+)
+
+type fakeNGWordUsecase struct {
+	ngWords []*domain.NGWordModel
+	wordID  domain.NGWordID
+	err     error
+	gotWord string
+
+	gotUserID       domain.UserID
+	gotLivestreamID domain.LivestreamID
+}
+
+func (u *fakeNGWordUsecase) Moderate(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, word string) (domain.NGWordID, error) {
+	u.gotUserID = userID
+	u.gotLivestreamID = livestreamID
+	u.gotWord = word
+	return u.wordID, u.err
+}
+
+func (u *fakeNGWordUsecase) FindAllByLivestreamID(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.NGWordModel, error) {
+	u.gotUserID = userID
+	u.gotLivestreamID = livestreamID
+	return u.ngWords, u.err
+}
+
+func TestNGWordHandler_GetNGWords(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		cookie   func(t *testing.T) *http.Cookie
+		usecase  *fakeNGWordUsecase
+		wantCode int
+		wantBody string
+	}{
+		{
+			name:   "returns NG words",
+			path:   "/api/livestream/10/ngwords",
+			cookie: sessionAs(2),
+			usecase: &fakeNGWordUsecase{ngWords: []*domain.NGWordModel{
+				{ID: 2, UserID: 2, LivestreamID: 10, Word: "bad2", CreatedAt: 200},
+				{ID: 1, UserID: 2, LivestreamID: 10, Word: "bad1", CreatedAt: 100},
+			}},
+			wantCode: http.StatusOK,
+			wantBody: `[{"id":2,"user_id":2,"livestream_id":10,"word":"bad2","created_at":200},{"id":1,"user_id":2,"livestream_id":10,"word":"bad1","created_at":100}]` + "\n",
+		},
+		{
+			// NG ワードが無い場合は [] ではなく null を返す (移行前と同じ)
+			name:     "returns null when no NG words",
+			path:     "/api/livestream/10/ngwords",
+			cookie:   sessionAs(2),
+			usecase:  &fakeNGWordUsecase{ngWords: nil},
+			wantCode: http.StatusOK,
+			wantBody: "null\n",
+		},
+		{
+			name:     "returns 400 when livestream_id is not integer",
+			path:     "/api/livestream/abc/ngwords",
+			cookie:   sessionAs(2),
+			usecase:  &fakeNGWordUsecase{},
+			wantCode: http.StatusBadRequest,
+			wantBody: errorBody(http.StatusBadRequest, "livestream_id in path must be integer"),
+		},
+		{
+			name:     "returns 500 on unexpected error",
+			path:     "/api/livestream/10/ngwords",
+			cookie:   sessionAs(2),
+			usecase:  &fakeNGWordUsecase{err: errors.New("boom")},
+			wantCode: http.StatusInternalServerError,
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := serve(t, newNGWordHandler(tt.usecase).GetNGWords, testRequest{method: http.MethodGet, route: "/api/livestream/:livestream_id/ngwords", path: tt.path, cookie: tt.cookie})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
+			if tt.wantCode == http.StatusOK && (tt.usecase.gotUserID != 2 || tt.usecase.gotLivestreamID != 10) {
+				t.Errorf("userID = %d, livestreamID = %d", tt.usecase.gotUserID, tt.usecase.gotLivestreamID)
+			}
+		})
+	}
+}
+
+func TestNGWordHandler_Moderate(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		cookie   func(t *testing.T) *http.Cookie
+		body     string
+		usecase  *fakeNGWordUsecase
+		wantCode int
+		wantBody string
+	}{
+		{
+			name:     "registers NG word",
+			path:     "/api/livestream/10/moderate",
+			cookie:   sessionAs(2),
+			body:     `{"ng_word":"bad"}`,
+			usecase:  &fakeNGWordUsecase{wordID: 7},
+			wantCode: http.StatusCreated,
+			wantBody: `{"word_id":7}` + "\n",
+		},
+		{
+			name:     "returns 400 when livestream_id is not integer",
+			path:     "/api/livestream/abc/moderate",
+			cookie:   sessionAs(2),
+			body:     `{"ng_word":"bad"}`,
+			usecase:  &fakeNGWordUsecase{},
+			wantCode: http.StatusBadRequest,
+			wantBody: errorBody(http.StatusBadRequest, "livestream_id in path must be integer"),
+		},
+		{
+			name:     "returns 400 on invalid json",
+			path:     "/api/livestream/10/moderate",
+			cookie:   sessionAs(2),
+			body:     `{`,
+			usecase:  &fakeNGWordUsecase{},
+			wantCode: http.StatusBadRequest,
+			wantBody: errorBody(http.StatusBadRequest, "failed to decode the request body as json"),
+		},
+		{
+			// 他の配信者のライブ配信は 403 ではなく 400 (移行前と同じ)
+			name:     "returns 400 when not the owner",
+			path:     "/api/livestream/10/moderate",
+			cookie:   sessionAs(2),
+			body:     `{"ng_word":"bad"}`,
+			usecase:  &fakeNGWordUsecase{err: usecase.ErrNotLivestreamOwner},
+			wantCode: http.StatusBadRequest,
+			wantBody: errorBody(http.StatusBadRequest, "A streamer can't moderate livestreams that other streamers own"),
+		},
+		{
+			name:     "returns 500 on unexpected error",
+			path:     "/api/livestream/10/moderate",
+			cookie:   sessionAs(2),
+			body:     `{"ng_word":"bad"}`,
+			usecase:  &fakeNGWordUsecase{err: errors.New("boom")},
+			wantCode: http.StatusInternalServerError,
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := serve(t, newNGWordHandler(tt.usecase).Moderate, testRequest{method: http.MethodPost, route: "/api/livestream/:livestream_id/moderate", path: tt.path, body: tt.body, cookie: tt.cookie})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
+			if tt.wantCode == http.StatusCreated && (tt.usecase.gotUserID != 2 || tt.usecase.gotLivestreamID != 10 || tt.usecase.gotWord != "bad") {
+				t.Errorf("userID = %d, livestreamID = %d, word = %q", tt.usecase.gotUserID, tt.usecase.gotLivestreamID, tt.usecase.gotWord)
+			}
+		})
+	}
+}
