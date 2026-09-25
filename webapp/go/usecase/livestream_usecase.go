@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
@@ -39,12 +38,6 @@ type ReserveLivestreamInput struct {
 	StartAt      int64
 	EndAt        int64
 }
-
-// 予約可能期間 (2023/11/25 10:00 JST からの1年間)
-var (
-	reservationTermStartAt = time.Date(2023, 11, 25, 1, 0, 0, 0, time.UTC)
-	reservationTermEndAt   = time.Date(2024, 11, 25, 1, 0, 0, 0, time.UTC)
-)
 
 type livestreamUsecase struct {
 	txManager           repository.TxManager
@@ -173,18 +166,14 @@ func (u *livestreamUsecase) Reserve(ctx context.Context, userID model.UserID, in
 	var livestream *model.Livestream
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		// 移行前はトランザクション開始後に期間をチェックしていたので、同じくトランザクション内で行う
-		// 2023/11/25 10:00からの１年間の期間内であるかチェック
-		var (
-			reserveStartAt = time.Unix(input.StartAt, 0)
-			reserveEndAt   = time.Unix(input.EndAt, 0)
-		)
-		if (reserveStartAt.Equal(reservationTermEndAt) || reserveStartAt.After(reservationTermEndAt)) || (reserveEndAt.Equal(reservationTermStartAt) || reserveEndAt.Before(reservationTermStartAt)) {
+		period := model.ReservationPeriod{StartAt: input.StartAt, EndAt: input.EndAt}
+		if !period.IsReservable() {
 			return ErrBadReservationTimeRange
 		}
 
 		// 予約枠をみて、予約が可能か調べる
 		// NOTE: 並列な予約のoverbooking防止にFOR UPDATEが必要
-		slots, err := u.reservationSlotRepo.FindAllByRangeForUpdate(ctx, q, input.StartAt, input.EndAt)
+		slots, err := u.reservationSlotRepo.FindAllByRangeForUpdate(ctx, q, period)
 		if err != nil {
 			u.logger.Warnf("予約枠一覧取得でエラー発生: %+v", err)
 			return fmt.Errorf("failed to get reservation_slots: %w", err)
@@ -197,11 +186,11 @@ func (u *livestreamUsecase) Reserve(ctx context.Context, userID model.UserID, in
 			// 移行前と同じく、ログには FOR UPDATE で取得した時点の残数を出す
 			u.logger.Infof("%d ~ %d予約枠の残数 = %d\n", slot.StartAt, slot.EndAt, slot.Slot)
 			if count < 1 {
-				return &ReservationSlotUnavailableError{StartAt: input.StartAt, EndAt: input.EndAt}
+				return &ReservationSlotUnavailableError{Period: period}
 			}
 		}
 
-		if err := u.reservationSlotRepo.DecrementSlotsByRange(ctx, q, input.StartAt, input.EndAt); err != nil {
+		if err := u.reservationSlotRepo.DecrementSlotsByRange(ctx, q, period); err != nil {
 			return fmt.Errorf("failed to update reservation_slot: %w", err)
 		}
 

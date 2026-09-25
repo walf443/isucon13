@@ -35,7 +35,7 @@ func TestReservationSlotRepository_FindAllByRangeForUpdate(t *testing.T) {
 	second := insertTestReservationSlot(t, tx, 3, testSlotBase+testSlotHour, testSlotBase+2*testSlotHour)
 	after := insertTestReservationSlot(t, tx, 5, testSlotBase+2*testSlotHour, testSlotBase+3*testSlotHour)
 
-	slots, err := NewReservationSlotRepository().FindAllByRangeForUpdate(ctx, tx, testSlotBase, testSlotBase+2*testSlotHour)
+	slots, err := NewReservationSlotRepository().FindAllByRangeForUpdate(ctx, tx, model.ReservationPeriod{StartAt: testSlotBase, EndAt: testSlotBase + 2*testSlotHour})
 	if err != nil {
 		t.Fatalf("FindAllByRangeForUpdate returned error: %v", err)
 	}
@@ -84,7 +84,7 @@ func TestReservationSlotRepository_DecrementSlotsByRange(t *testing.T) {
 	second := insertTestReservationSlot(t, tx, 3, testSlotBase+testSlotHour, testSlotBase+2*testSlotHour)
 	after := insertTestReservationSlot(t, tx, 5, testSlotBase+2*testSlotHour, testSlotBase+3*testSlotHour)
 
-	if err := NewReservationSlotRepository().DecrementSlotsByRange(ctx, tx, testSlotBase, testSlotBase+2*testSlotHour); err != nil {
+	if err := NewReservationSlotRepository().DecrementSlotsByRange(ctx, tx, model.ReservationPeriod{StartAt: testSlotBase, EndAt: testSlotBase + 2*testSlotHour}); err != nil {
 		t.Fatalf("DecrementSlotsByRange returned error: %v", err)
 	}
 

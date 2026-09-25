@@ -13,9 +13,9 @@ func NewReservationSlotRepository() repository.ReservationSlotRepository {
 	return &reservationSlotRepository{}
 }
 
-func (r *reservationSlotRepository) FindAllByRangeForUpdate(ctx context.Context, q repository.Querier, startAt int64, endAt int64) ([]*model.ReservationSlotModel, error) {
+func (r *reservationSlotRepository) FindAllByRangeForUpdate(ctx context.Context, q repository.Querier, period model.ReservationPeriod) ([]*model.ReservationSlotModel, error) {
 	var slots []*model.ReservationSlotModel
-	if err := q.SelectContext(ctx, &slots, "SELECT id, slot, start_at, end_at FROM reservation_slots WHERE start_at >= ? AND end_at <= ? FOR UPDATE", startAt, endAt); err != nil {
+	if err := q.SelectContext(ctx, &slots, "SELECT id, slot, start_at, end_at FROM reservation_slots WHERE start_at >= ? AND end_at <= ? FOR UPDATE", period.StartAt, period.EndAt); err != nil {
 		return nil, err
 	}
 	return slots, nil
@@ -29,7 +29,7 @@ func (r *reservationSlotRepository) FindSlotByStartAtAndEndAt(ctx context.Contex
 	return count, nil
 }
 
-func (r *reservationSlotRepository) DecrementSlotsByRange(ctx context.Context, q repository.Querier, startAt int64, endAt int64) error {
-	_, err := q.ExecContext(ctx, "UPDATE reservation_slots SET slot = slot - 1 WHERE start_at >= ? AND end_at <= ?", startAt, endAt)
+func (r *reservationSlotRepository) DecrementSlotsByRange(ctx context.Context, q repository.Querier, period model.ReservationPeriod) error {
+	_, err := q.ExecContext(ctx, "UPDATE reservation_slots SET slot = slot - 1 WHERE start_at >= ? AND end_at <= ?", period.StartAt, period.EndAt)
 	return err
 }

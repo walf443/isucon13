@@ -323,6 +323,9 @@ func TestLivestreamUsecase_FindAll_Error(t *testing.T) {
 	}
 }
 
+// testReservePeriod は testReserveInput の予約区間。
+var testReservePeriod = model.ReservationPeriod{StartAt: 1700874000, EndAt: 1700881200}
+
 // 予約可能期間は 1700874000 (2023/11/25 10:00 JST) 〜 1732496400 (2024/11/25 10:00 JST)
 var testReserveInput = ReserveLivestreamInput{
 	TagIDs:       []model.TagID{3, 5},
@@ -330,8 +333,8 @@ var testReserveInput = ReserveLivestreamInput{
 	Description:  "desc",
 	PlaylistUrl:  "https://example.com/playlist.m3u8",
 	ThumbnailUrl: "https://example.com/thumbnail.png",
-	StartAt:      1700874000,
-	EndAt:        1700881200,
+	StartAt:      testReservePeriod.StartAt,
+	EndAt:        testReservePeriod.EndAt,
 }
 
 // reservationSlotResults は予約の処理で予約枠の repository が返す値。
@@ -345,26 +348,26 @@ type reservationSlotResults struct {
 }
 
 // newReservationSlotRepositoryForReserve は results を返し、呼ばれたメソッドを順に calls へ記録する fakeReservationSlotRepository を返す。
-// 予約枠の検索・残数の減算は予約区間 startAt 〜 endAt で呼ばれることを確認する。
-func newReservationSlotRepositoryForReserve(t *testing.T, calls *[]string, results reservationSlotResults, startAt, endAt int64) *fakeReservationSlotRepository {
-	checkRange := func(method string, gotStartAt, gotEndAt int64) {
-		if gotStartAt != startAt || gotEndAt != endAt {
-			t.Errorf("%s range = %d ~ %d, want %d ~ %d", method, gotStartAt, gotEndAt, startAt, endAt)
+// 予約枠の検索・残数の減算は予約区間 period で呼ばれることを確認する。
+func newReservationSlotRepositoryForReserve(t *testing.T, calls *[]string, results reservationSlotResults, period model.ReservationPeriod) *fakeReservationSlotRepository {
+	checkPeriod := func(method string, got model.ReservationPeriod) {
+		if got != period {
+			t.Errorf("%s period = %+v, want %+v", method, got, period)
 		}
 	}
 	return &fakeReservationSlotRepository{
-		findAllByRangeForUpdate: func(_ context.Context, _ repository.Querier, gotStartAt int64, gotEndAt int64) ([]*model.ReservationSlotModel, error) {
+		findAllByRangeForUpdate: func(_ context.Context, _ repository.Querier, got model.ReservationPeriod) ([]*model.ReservationSlotModel, error) {
 			*calls = append(*calls, "FindAllByRangeForUpdate")
-			checkRange("FindAllByRangeForUpdate", gotStartAt, gotEndAt)
+			checkPeriod("FindAllByRangeForUpdate", got)
 			return results.slots, results.findAllErr
 		},
 		findSlotByStartAtAndEndAt: func(_ context.Context, _ repository.Querier, slotStartAt int64, _ int64) (int64, error) {
 			*calls = append(*calls, "FindSlotByStartAtAndEndAt")
 			return results.counts[slotStartAt], results.findSlotErr
 		},
-		decrementSlotsByRange: func(_ context.Context, _ repository.Querier, gotStartAt int64, gotEndAt int64) error {
+		decrementSlotsByRange: func(_ context.Context, _ repository.Querier, got model.ReservationPeriod) error {
 			*calls = append(*calls, "DecrementSlotsByRange")
-			checkRange("DecrementSlotsByRange", gotStartAt, gotEndAt)
+			checkPeriod("DecrementSlotsByRange", got)
 			return results.decrementErr
 		},
 	}
@@ -419,7 +422,7 @@ func TestLivestreamUsecase_Reserve(t *testing.T) {
 			{Slot: 3, StartAt: 1700877600, EndAt: 1700881200},
 		},
 		counts: map[int64]int64{1700874000: 5, 1700877600: 3},
-	}, testReserveInput.StartAt, testReserveInput.EndAt)
+	}, testReservePeriod)
 	logger := &fakeLogger{}
 	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, livestreamRepo, slotRepo, logger)
 
@@ -457,26 +460,22 @@ func TestLivestreamUsecase_Reserve(t *testing.T) {
 	}
 }
 
+// 期間の境界値の判定は model.ReservationPeriod のテストで確認している。
+// ここでは、予約できない期間の場合に予約枠を触らずにエラーを返すことを確認する。
 func TestLivestreamUsecase_Reserve_TimeRange(t *testing.T) {
 	tests := []struct {
 		name    string
-		startAt int64
-		endAt   int64
+		period  model.ReservationPeriod
 		wantErr error
 	}{
-		{name: "ends at the term start", startAt: 1700870400, endAt: 1700874000, wantErr: ErrBadReservationTimeRange},
-		{name: "ends before the term start", startAt: 1700866800, endAt: 1700870400, wantErr: ErrBadReservationTimeRange},
-		{name: "starts at the term end", startAt: 1732496400, endAt: 1732500000, wantErr: ErrBadReservationTimeRange},
-		{name: "starts after the term end", startAt: 1732500000, endAt: 1732503600, wantErr: ErrBadReservationTimeRange},
-		// 期間に一部でも掛かっていれば予約できる (移行前と同じ)
-		{name: "overlaps the term start", startAt: 1700870400, endAt: 1700877600, wantErr: nil},
-		{name: "overlaps the term end", startAt: 1732492800, endAt: 1732500000, wantErr: nil},
+		{name: "not reservable", period: model.ReservationPeriod{StartAt: 1700870400, EndAt: 1700874000}, wantErr: ErrBadReservationTimeRange},
+		{name: "reservable", period: model.ReservationPeriod{StartAt: 1700870400, EndAt: 1700877600}, wantErr: nil},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var slotCalls []string
-			slotRepo := newReservationSlotRepositoryForReserve(t, &slotCalls, reservationSlotResults{}, tt.startAt, tt.endAt)
+			slotRepo := newReservationSlotRepositoryForReserve(t, &slotCalls, reservationSlotResults{}, tt.period)
 			var livestreamCalls []string
 			var created *model.LivestreamModel
 			var addedTagIDs []model.TagID
@@ -484,8 +483,8 @@ func TestLivestreamUsecase_Reserve_TimeRange(t *testing.T) {
 			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, livestreamRepo, slotRepo, &fakeLogger{})
 
 			input := testReserveInput
-			input.StartAt = tt.startAt
-			input.EndAt = tt.endAt
+			input.StartAt = tt.period.StartAt
+			input.EndAt = tt.period.EndAt
 			_, err := u.Reserve(context.Background(), 1, input)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
@@ -570,7 +569,7 @@ func TestLivestreamUsecase_Reserve_Errors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			logger := &fakeLogger{}
 			var slotCalls []string
-			slotRepo := newReservationSlotRepositoryForReserve(t, &slotCalls, tt.slotResults, testReserveInput.StartAt, testReserveInput.EndAt)
+			slotRepo := newReservationSlotRepositoryForReserve(t, &slotCalls, tt.slotResults, testReservePeriod)
 			var livestreamCalls []string
 			var created *model.LivestreamModel
 			var addedTagIDs []model.TagID
@@ -582,8 +581,8 @@ func TestLivestreamUsecase_Reserve_Errors(t *testing.T) {
 				if !ok {
 					t.Fatalf("err = %v, want *ReservationSlotUnavailableError", err)
 				}
-				if unavailable.StartAt != testReserveInput.StartAt || unavailable.EndAt != testReserveInput.EndAt {
-					t.Errorf("unavailable = %+v", unavailable)
+				if unavailable.Period != testReservePeriod {
+					t.Errorf("unavailable period = %+v, want %+v", unavailable.Period, testReservePeriod)
 				}
 				// メッセージには予約可能期間とリクエストの予約区間を含める (移行前と同じ)
 				if want := "予約期間 1700874000 ~ 1732496400に対して、予約区間 1700874000 ~ 1700881200が予約できません"; err.Error() != want {
@@ -620,7 +619,7 @@ func TestLivestreamUsecase_Reserve_ErrorMessages(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var slotCalls []string
-			slotRepo := newReservationSlotRepositoryForReserve(t, &slotCalls, tt.slotResults, testReserveInput.StartAt, testReserveInput.EndAt)
+			slotRepo := newReservationSlotRepositoryForReserve(t, &slotCalls, tt.slotResults, testReservePeriod)
 			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, &fakeLivestreamRepository{}, slotRepo, &fakeLogger{})
 			_, err := u.Reserve(context.Background(), 1, testReserveInput)
 			if err == nil || err.Error() != tt.want {

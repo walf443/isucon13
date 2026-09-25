@@ -388,7 +388,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 			name:     "returns 400 when slot is unavailable",
 			cookie:   sessionAs(2),
 			body:     reqBody,
-			usecase:  &fakeLivestreamUsecase{err: &usecase.ReservationSlotUnavailableError{StartAt: 1700874000, EndAt: 1700877600}},
+			usecase:  &fakeLivestreamUsecase{err: &usecase.ReservationSlotUnavailableError{Period: model.ReservationPeriod{StartAt: 1700874000, EndAt: 1700877600}}},
 			wantCode: http.StatusBadRequest,
 			wantBody: errorBody(http.StatusBadRequest, "予約期間 1700874000 ~ 1732496400に対して、予約区間 1700874000 ~ 1700877600が予約できません"),
 		},
