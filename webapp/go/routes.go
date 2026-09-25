@@ -28,7 +28,7 @@ func registerRoutes(e *echo.Echo, h *handlers) {
 
 	// (配信者向け)ライブコメントの報告一覧取得API
 	e.GET("/api/livestream/:livestream_id/report", h.livecomment.GetLivecommentReports)
-	e.GET("/api/livestream/:livestream_id/ngwords", getNgwords)
+	e.GET("/api/livestream/:livestream_id/ngwords", h.ngWord.GetNGWords)
 	// ライブコメント報告
 	e.POST("/api/livestream/:livestream_id/livecomment/:livecomment_id/report", reportLivecommentHandler)
 	// 配信者によるモデレーション (NGワード登録)

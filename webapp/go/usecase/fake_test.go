@@ -230,3 +230,17 @@ func (r *fakeLivecommentReportRepository) FindAllWithDetailsByLivestreamID(ctx c
 	r.gotLivestreamID = livestreamID
 	return r.reports, r.err
 }
+
+type fakeNGWordRepository struct {
+	ngWords []*model.NGWordModel
+	err     error
+
+	gotUserID       model.UserID
+	gotLivestreamID model.LivestreamID
+}
+
+func (r *fakeNGWordRepository) FindAllByUserIDAndLivestreamID(ctx context.Context, q repository.Querier, userID model.UserID, livestreamID model.LivestreamID) ([]*model.NGWordModel, error) {
+	r.gotUserID = userID
+	r.gotLivestreamID = livestreamID
+	return r.ngWords, r.err
+}
