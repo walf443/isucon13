@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/usecase"
@@ -36,15 +35,6 @@ func TestThemeHandler_GetStreamerTheme(t *testing.T) {
 			usecase:  &fakeThemeUsecase{theme: &model.ThemeModel{ID: 10, UserID: 1, DarkMode: true}},
 			wantCode: http.StatusOK,
 			wantBody: `{"id":10,"dark_mode":true}` + "\n",
-		},
-		{
-			name: "returns 401 when session has expired",
-			cookie: func(t *testing.T) *http.Cookie {
-				return newSessionCookie(t, 1, time.Now().Add(-time.Hour))
-			},
-			usecase:  &fakeThemeUsecase{},
-			wantCode: http.StatusUnauthorized,
-			wantBody: errorBody(http.StatusUnauthorized, "session has expired"),
 		},
 		{
 			name:     "returns 404 when user is not found",

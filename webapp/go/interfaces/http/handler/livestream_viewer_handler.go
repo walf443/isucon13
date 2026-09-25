@@ -20,11 +20,6 @@ func newLivestreamViewerHandler(viewerUsecase usecase.LivestreamViewerUsecase) *
 // POST /api/livestream/:livestream_id/enter
 func (h *livestreamViewerHandler) EnterLivestream(c echo.Context) error {
 	ctx := c.Request().Context()
-	if err := verifyUserSession(c); err != nil {
-		// echo.NewHTTPErrorが返っているのでそのまま出力
-		return err
-	}
-
 	userID, err := getSessionUserID(c)
 	if err != nil {
 		return err
@@ -47,11 +42,6 @@ func (h *livestreamViewerHandler) EnterLivestream(c echo.Context) error {
 // DELETE /api/livestream/:livestream_id/exit
 func (h *livestreamViewerHandler) ExitLivestream(c echo.Context) error {
 	ctx := c.Request().Context()
-	if err := verifyUserSession(c); err != nil {
-		// echo.NewHTTPErrorが返っているのでそのまま出力
-		return err
-	}
-
 	userID, err := getSessionUserID(c)
 	if err != nil {
 		return err

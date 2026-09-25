@@ -34,10 +34,6 @@ func newNGWordHandler(ngWordUsecase usecase.NGWordUsecase) *ngWordHandler {
 func (h *ngWordHandler) GetNGWords(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	if err := verifyUserSession(c); err != nil {
-		return err
-	}
-
 	userID, err := getSessionUserID(c)
 	if err != nil {
 		return err
@@ -72,10 +68,6 @@ func (h *ngWordHandler) GetNGWords(c echo.Context) error {
 func (h *ngWordHandler) Moderate(c echo.Context) error {
 	ctx := c.Request().Context()
 	defer c.Request().Body.Close()
-
-	if err := verifyUserSession(c); err != nil {
-		return err
-	}
 
 	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {

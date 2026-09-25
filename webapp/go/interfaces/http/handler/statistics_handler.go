@@ -59,11 +59,6 @@ func newStatisticsHandler(statisticsUsecase usecase.StatisticsUsecase) *statisti
 func (h *statisticsHandler) GetUserStatistics(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	if err := verifyUserSession(c); err != nil {
-		// echo.NewHTTPErrorが返っているのでそのまま出力
-		return err
-	}
-
 	username := c.Param("username")
 
 	stats, err := h.statisticsUsecase.FindUserStatistics(ctx, username)
@@ -81,10 +76,6 @@ func (h *statisticsHandler) GetUserStatistics(c echo.Context) error {
 // GET /api/livestream/:livestream_id/statistics
 func (h *statisticsHandler) GetLivestreamStatistics(c echo.Context) error {
 	ctx := c.Request().Context()
-
-	if err := verifyUserSession(c); err != nil {
-		return err
-	}
 
 	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {

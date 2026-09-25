@@ -70,11 +70,6 @@ func newUserHandler(userUsecase usecase.UserUsecase, registrationUsecase usecase
 // GET /api/user/:username
 func (h *userHandler) GetUser(c echo.Context) error {
 	ctx := c.Request().Context()
-	if err := verifyUserSession(c); err != nil {
-		// echo.NewHTTPErrorが返っているのでそのまま出力
-		return err
-	}
-
 	username := c.Param("username")
 
 	user, err := h.userUsecase.FindByName(ctx, username)
@@ -91,11 +86,6 @@ func (h *userHandler) GetUser(c echo.Context) error {
 // GET /api/user/me
 func (h *userHandler) GetMe(c echo.Context) error {
 	ctx := c.Request().Context()
-
-	if err := verifyUserSession(c); err != nil {
-		// echo.NewHTTPErrorが返っているのでそのまま出力
-		return err
-	}
 
 	userID, err := getSessionUserID(c)
 	if err != nil {
@@ -175,7 +165,7 @@ func (h *userHandler) Login(c echo.Context) error {
 		Path:   "/",
 	}
 	sess.Values[defaultSessionIDKey] = sessionID
-	// verifyUserSession などは int64 として取り出すので、model.UserID ではなく int64 で保存する
+	// requireSession などは int64 として取り出すので、model.UserID ではなく int64 で保存する
 	sess.Values[defaultUserIDKey] = int64(user.ID)
 	sess.Values[defaultUsernameKey] = user.Name
 	sess.Values[defaultSessionExpiresKey] = sessionEndAt.Unix()

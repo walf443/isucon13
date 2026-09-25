@@ -52,11 +52,6 @@ func (h *iconHandler) GetIcon(c echo.Context) error {
 func (h *iconHandler) PostIcon(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	if err := verifyUserSession(c); err != nil {
-		// echo.NewHTTPErrorが返っているのでそのまま出力
-		return err
-	}
-
 	userID, err := getSessionUserID(c)
 	if err != nil {
 		return err

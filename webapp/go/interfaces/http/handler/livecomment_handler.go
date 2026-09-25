@@ -64,11 +64,6 @@ func newLivecommentHandler(livecommentUsecase usecase.LivecommentUsecase, report
 func (h *livecommentHandler) GetLivecomments(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	if err := verifyUserSession(c); err != nil {
-		// echo.NewHTTPErrorが返っているのでそのまま出力
-		return err
-	}
-
 	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
@@ -95,10 +90,6 @@ func (h *livecommentHandler) GetLivecomments(c echo.Context) error {
 // GET /api/livestream/:livestream_id/report
 func (h *livecommentHandler) GetLivecommentReports(c echo.Context) error {
 	ctx := c.Request().Context()
-
-	if err := verifyUserSession(c); err != nil {
-		return err
-	}
 
 	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
@@ -130,10 +121,6 @@ func (h *livecommentHandler) GetLivecommentReports(c echo.Context) error {
 func (h *livecommentHandler) PostLivecomment(c echo.Context) error {
 	ctx := c.Request().Context()
 	defer c.Request().Body.Close()
-
-	if err := verifyUserSession(c); err != nil {
-		return err
-	}
 
 	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
@@ -168,10 +155,6 @@ func (h *livecommentHandler) PostLivecomment(c echo.Context) error {
 // POST /api/livestream/:livestream_id/livecomment/:livecomment_id/report
 func (h *livecommentHandler) PostLivecommentReport(c echo.Context) error {
 	ctx := c.Request().Context()
-
-	if err := verifyUserSession(c); err != nil {
-		return err
-	}
 
 	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {

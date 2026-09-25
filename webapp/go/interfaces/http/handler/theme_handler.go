@@ -27,12 +27,6 @@ func newThemeHandler(themeUsecase usecase.ThemeUsecase) *themeHandler {
 func (h *themeHandler) GetStreamerTheme(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	if err := verifyUserSession(c); err != nil {
-		// echo.NewHTTPErrorが返っているのでそのまま出力
-		c.Logger().Printf("verifyUserSession: %+v\n", err)
-		return err
-	}
-
 	username := c.Param("username")
 
 	themeModel, err := h.themeUsecase.FindByUsername(ctx, username)

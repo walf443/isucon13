@@ -287,7 +287,7 @@ func TestUserHandler_Login(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to decode session: %v", err)
 			}
-			// verifyUserSession などが int64 として取り出せること (model.UserID のままだと認証が全て失敗する)
+			// requireSession などが int64 として取り出せること (model.UserID のままだと認証が全て失敗する)
 			if userID, ok := sess.Values[defaultUserIDKey].(int64); !ok || userID != 5 {
 				t.Errorf("USERID = %#v, want int64(5)", sess.Values[defaultUserIDKey])
 			}
@@ -304,15 +304,12 @@ func TestUserHandler_Login(t *testing.T) {
 			// 発行したセッションで認証が通ること
 			verifyEcho := newTestEcho()
 			verifyEcho.GET("/verify", func(c echo.Context) error {
-				if err := verifyUserSession(c); err != nil {
-					return err
-				}
 				userID, err := getSessionUserID(c)
 				if err != nil {
 					return err
 				}
 				return c.JSON(http.StatusOK, userID)
-			})
+			}, requireSession(func() time.Time { return now }))
 			verifyReq := httptest.NewRequest(http.MethodGet, "/verify", nil)
 			verifyReq.AddCookie(cookie)
 			verifyRec := httptest.NewRecorder()

@@ -71,10 +71,6 @@ func newLivestreamHandler(livestreamUsecase usecase.LivestreamUsecase, reservati
 func (h *livestreamHandler) GetLivestream(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	if err := verifyUserSession(c); err != nil {
-		return err
-	}
-
 	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
@@ -94,10 +90,6 @@ func (h *livestreamHandler) GetLivestream(c echo.Context) error {
 // GET /api/livestream
 func (h *livestreamHandler) GetMyLivestreams(c echo.Context) error {
 	ctx := c.Request().Context()
-	if err := verifyUserSession(c); err != nil {
-		return err
-	}
-
 	userID, err := getSessionUserID(c)
 	if err != nil {
 		return err
@@ -114,10 +106,6 @@ func (h *livestreamHandler) GetMyLivestreams(c echo.Context) error {
 // GET /api/user/:username/livestream
 func (h *livestreamHandler) GetUserLivestreams(c echo.Context) error {
 	ctx := c.Request().Context()
-	if err := verifyUserSession(c); err != nil {
-		return err
-	}
-
 	username := c.Param("username")
 
 	livestreams, err := h.livestreamUsecase.FindAllByUsername(ctx, username)
@@ -160,11 +148,6 @@ func (h *livestreamHandler) SearchLivestreams(c echo.Context) error {
 func (h *livestreamHandler) ReserveLivestream(c echo.Context) error {
 	ctx := c.Request().Context()
 	defer c.Request().Body.Close()
-
-	if err := verifyUserSession(c); err != nil {
-		// echo.NewHTTPErrorが返っているのでそのまま出力
-		return err
-	}
 
 	userID, err := getSessionUserID(c)
 	if err != nil {

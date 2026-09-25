@@ -133,10 +133,9 @@ func TestReactionHandler_PostReaction(t *testing.T) {
 			wantBody: testReactionJSON + "\n",
 		},
 		{
-			// livestream_id のチェックはセッション検証より先 (移行前と同じ)
-			name:     "returns 400 for invalid livestream_id even without session",
+			name:     "returns 400 when livestream_id is not integer",
 			path:     "/api/livestream/abc/reaction",
-			cookie:   nil,
+			cookie:   sessionAs(1),
 			body:     `{"emoji_name":"tada"}`,
 			usecase:  &fakeReactionUsecase{},
 			wantCode: http.StatusBadRequest,

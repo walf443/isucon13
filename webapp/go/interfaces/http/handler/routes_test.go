@@ -86,7 +86,7 @@ func TestRegisterRoutes_RequireSession(t *testing.T) {
 		"GET /api/user/:username/icon": true,
 		"GET /api/payment":             true,
 	}
-	// パスパラメータは妥当な値にする (不正な値だと先に 400 を返す API がある)
+	// パスパラメータは妥当な値にする (公開 API は不正な値だと 400 などを返すため)
 	pathParams := strings.NewReplacer(":livestream_id", "1", ":livecomment_id", "1", ":username", "alice")
 
 	e := newTestEcho()
