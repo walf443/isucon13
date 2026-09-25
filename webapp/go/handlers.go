@@ -6,6 +6,7 @@ import (
 
 	infra "github.com/isucon/isucon13/webapp/go/infra/mysql"
 	"github.com/isucon/isucon13/webapp/go/infra/powerdns"
+	"github.com/isucon/isucon13/webapp/go/infra/script"
 	"github.com/isucon/isucon13/webapp/go/interfaces/http/handler"
 	"github.com/isucon/isucon13/webapp/go/usecase"
 	"github.com/jmoiron/sqlx"
@@ -24,6 +25,7 @@ type handlers struct {
 	viewer      *handler.LivestreamViewerHandler
 	statistics  *handler.StatisticsHandler
 	payment     *handler.PaymentHandler
+	initialize  *handler.InitializeHandler
 }
 
 // newHandlers は repository・usecase・handler を組み立てる。
@@ -60,6 +62,7 @@ func newHandlers(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 	viewerUsecase := usecase.NewLivestreamViewerUsecase(txManager, viewerRepo)
 	statisticsUsecase := usecase.NewStatisticsUsecase(txManager, userRepo, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo, livecommentReportRepo)
 	paymentUsecase := usecase.NewPaymentUsecase(txManager, livecommentRepo)
+	initializeUsecase := usecase.NewInitializeUsecase(script.NewInitializer("../sql/init.sh"), logger)
 
 	return &handlers{
 		tag:         handler.NewTagHandler(tagUsecase),
@@ -73,5 +76,6 @@ func newHandlers(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 		viewer:      handler.NewLivestreamViewerHandler(viewerUsecase),
 		statistics:  handler.NewStatisticsHandler(statisticsUsecase),
 		payment:     handler.NewPaymentHandler(paymentUsecase),
+		initialize:  handler.NewInitializeHandler(initializeUsecase),
 	}, nil
 }

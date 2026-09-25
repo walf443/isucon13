@@ -575,3 +575,15 @@ func (r *fakeDNSRecordRegistrar) AddRecord(name string) error {
 	r.gotNames = append(r.gotNames, name)
 	return r.err
 }
+
+type fakeInitializer struct {
+	out []byte
+	err error
+
+	runs int
+}
+
+func (i *fakeInitializer) Initialize() ([]byte, error) {
+	i.runs++
+	return i.out, i.err
+}

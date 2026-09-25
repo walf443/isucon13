@@ -9,7 +9,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"strconv"
 
 	"github.com/go-sql-driver/mysql"
@@ -28,7 +27,6 @@ const (
 )
 
 var (
-	dbConn        *sqlx.DB
 	secret        = []byte("isucon13_session_cookiestore_defaultsecret")
 	fallbackImage = "../img/NoImage.jpg"
 )
@@ -38,10 +36,6 @@ func init() {
 	if secretKey, ok := os.LookupEnv("ISUCON13_SESSION_SECRETKEY"); ok {
 		secret = []byte(secretKey)
 	}
-}
-
-type InitializeResponse struct {
-	Language string `json:"language"`
 }
 
 func connectDB(logger echo.Logger) (*sqlx.DB, error) {
@@ -106,18 +100,6 @@ func connectDB(logger echo.Logger) (*sqlx.DB, error) {
 	return db, nil
 }
 
-func initializeHandler(c echo.Context) error {
-	if out, err := exec.Command("../sql/init.sh").CombinedOutput(); err != nil {
-		c.Logger().Warnf("init.sh failed with err=%s", string(out))
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to initialize: "+err.Error())
-	}
-
-	c.Request().Header.Add("Content-Type", "application/json;charset=utf-8")
-	return c.JSON(http.StatusOK, InitializeResponse{
-		Language: "golang",
-	})
-}
-
 func main() {
 	e := echo.New()
 	e.Debug = true
@@ -135,7 +117,6 @@ func main() {
 		os.Exit(1)
 	}
 	defer conn.Close()
-	dbConn = conn
 
 	// ユーザ登録で使うので、handler を組み立てる前に読み込む
 	subdomainAddr, ok := os.LookupEnv(powerDNSSubdomainAddressEnvKey)
@@ -144,7 +125,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	h, err := newHandlers(dbConn, fallbackImage, subdomainAddr, e.Logger)
+	h, err := newHandlers(conn, fallbackImage, subdomainAddr, e.Logger)
 	if err != nil {
 		e.Logger.Errorf("failed to initialize handlers: %v", err)
 		os.Exit(1)

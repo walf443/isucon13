@@ -4,7 +4,7 @@ import "github.com/labstack/echo/v4"
 
 func registerRoutes(e *echo.Echo, h *handlers) {
 	// 初期化
-	e.POST("/api/initialize", initializeHandler)
+	e.POST("/api/initialize", h.initialize.Initialize)
 
 	// top
 	e.GET("/api/tag", h.tag.GetTags)
