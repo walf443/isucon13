@@ -2,6 +2,12 @@ package model
 
 type UserID = ID[UserModel]
 
+// IsReservedUsername は name がユーザ名として登録できない予約済みの名前かどうかを返す。
+// "pipe" は配信サービス自体のサブドメイン (pipe.u.isucon.dev) と重なるので使えない。
+func IsReservedUsername(name string) bool {
+	return name == "pipe"
+}
+
 type UserModel struct {
 	ID             UserID         `db:"id"`
 	Name           string         `db:"name"`

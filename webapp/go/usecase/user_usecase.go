@@ -75,7 +75,7 @@ func (u *userUsecase) findUser(ctx context.Context, find func(q repository.Queri
 }
 
 func (u *userUsecase) Register(ctx context.Context, input RegisterUserInput) (*model.User, error) {
-	if input.Name == "pipe" {
+	if model.IsReservedUsername(input.Name) {
 		return nil, ErrReservedUsername
 	}
 
