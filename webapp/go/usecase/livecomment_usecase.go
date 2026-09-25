@@ -13,7 +13,7 @@ import (
 type LivecommentUsecase interface {
 	// FindAllByLivestreamID は指定したライブ配信へのライブコメントを作成日時の降順で返す。
 	// limit が nil でなければ最大 *limit 件に絞る。
-	FindAllByLivestreamID(ctx context.Context, livestreamID model.LivestreamID, limit *int64) ([]*model.Livecomment, error)
+	FindAllByLivestreamID(ctx context.Context, livestreamID model.LivestreamID, limit *model.Limit) ([]*model.Livecomment, error)
 	// FindAllReportsByLivestreamID は指定したライブ配信へのライブコメントの報告を返す。
 	// userID のユーザが配信者でない場合 ErrNotLivestreamOwner を返す。
 	FindAllReportsByLivestreamID(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID) ([]*model.LivecommentReport, error)
@@ -48,7 +48,7 @@ func NewLivecommentUsecase(txManager repository.TxManager, livestreamRepo reposi
 	}
 }
 
-func (u *livecommentUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID model.LivestreamID, limit *int64) ([]*model.Livecomment, error) {
+func (u *livecommentUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID model.LivestreamID, limit *model.Limit) ([]*model.Livecomment, error) {
 	var livecomments []*model.Livecomment
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		var err error

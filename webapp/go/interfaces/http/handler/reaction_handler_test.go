@@ -18,12 +18,12 @@ type fakeReactionUsecase struct {
 	err       error
 
 	gotLivestreamID model.LivestreamID
-	gotLimit        *int64
+	gotLimit        *model.Limit
 	gotUserID       model.UserID
 	gotEmojiName    string
 }
 
-func (u *fakeReactionUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID model.LivestreamID, limit *int64) ([]*model.Reaction, error) {
+func (u *fakeReactionUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID model.LivestreamID, limit *model.Limit) ([]*model.Reaction, error) {
 	u.gotLivestreamID = livestreamID
 	u.gotLimit = limit
 	return u.reactions, u.err
@@ -66,7 +66,7 @@ func TestReactionHandler_GetReactions(t *testing.T) {
 		usecase   *fakeReactionUsecase
 		wantCode  int
 		wantBody  string
-		wantLimit *int64
+		wantLimit *model.Limit
 	}{
 		{
 			name:     "returns reactions",
@@ -83,7 +83,7 @@ func TestReactionHandler_GetReactions(t *testing.T) {
 			usecase:   &fakeReactionUsecase{},
 			wantCode:  http.StatusOK,
 			wantBody:  "[]\n",
-			wantLimit: func() *int64 { l := int64(5); return &l }(),
+			wantLimit: func() *model.Limit { l := model.Limit(5); return &l }(),
 		},
 		{
 			name:     "returns 403 without session",
@@ -105,6 +105,32 @@ func TestReactionHandler_GetReactions(t *testing.T) {
 			cookie:   validCookie,
 			usecase:  &fakeReactionUsecase{},
 			wantCode: http.StatusBadRequest,
+			wantBody: `{"message":"limit query parameter must be integer"}` + "\n",
+		},
+		{
+			// 0 件の取得や負の数、上限を超える値は 400 (移行前は 0 は空配列、負の数は 500、上限なし)
+			name:     "returns 400 when limit is zero",
+			path:     "/api/livestream/10/reaction?limit=0",
+			cookie:   validCookie,
+			usecase:  &fakeReactionUsecase{},
+			wantCode: http.StatusBadRequest,
+			wantBody: `{"message":"limit query parameter must be between 1 and 100"}` + "\n",
+		},
+		{
+			name:     "returns 400 when limit is negative",
+			path:     "/api/livestream/10/reaction?limit=-1",
+			cookie:   validCookie,
+			usecase:  &fakeReactionUsecase{},
+			wantCode: http.StatusBadRequest,
+			wantBody: `{"message":"limit query parameter must be between 1 and 100"}` + "\n",
+		},
+		{
+			name:     "returns 400 when limit is over the max",
+			path:     "/api/livestream/10/reaction?limit=101",
+			cookie:   validCookie,
+			usecase:  &fakeReactionUsecase{},
+			wantCode: http.StatusBadRequest,
+			wantBody: `{"message":"limit query parameter must be between 1 and 100"}` + "\n",
 		},
 		{
 			name:     "returns 500 on unexpected error",

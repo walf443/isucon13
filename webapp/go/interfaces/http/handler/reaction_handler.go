@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/usecase"
@@ -54,14 +53,9 @@ func (h *ReactionHandler) GetReactions(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
 
-	var limit *int64
-	if c.QueryParam("limit") != "" {
-		l, err := strconv.Atoi(c.QueryParam("limit"))
-		if err != nil {
-			return echo.NewHTTPError(http.StatusBadRequest, "limit query parameter must be integer")
-		}
-		limit64 := int64(l)
-		limit = &limit64
+	limit, err := parseLimitQueryParam(c, maxReactionsLimit)
+	if err != nil {
+		return err
 	}
 
 	reactionModels, err := h.reactionUsecase.FindAllByLivestreamID(ctx, livestreamID, limit)

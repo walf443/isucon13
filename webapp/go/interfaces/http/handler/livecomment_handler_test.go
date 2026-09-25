@@ -22,7 +22,7 @@ type fakeLivecommentUsecase struct {
 
 	gotLivestreamID  model.LivestreamID
 	gotLivecommentID model.LivecommentID
-	gotLimit         *int64
+	gotLimit         *model.Limit
 	gotUserID        model.UserID
 	gotComment       string
 	gotTip           int64
@@ -43,7 +43,7 @@ func (u *fakeLivecommentUsecase) Report(ctx context.Context, userID model.UserID
 	return u.report, u.err
 }
 
-func (u *fakeLivecommentUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID model.LivestreamID, limit *int64) ([]*model.Livecomment, error) {
+func (u *fakeLivecommentUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID model.LivestreamID, limit *model.Limit) ([]*model.Livecomment, error) {
 	u.gotLivestreamID = livestreamID
 	u.gotLimit = limit
 	return u.livecomments, u.err
@@ -86,7 +86,7 @@ func TestLivecommentHandler_GetLivecomments(t *testing.T) {
 		usecase   *fakeLivecommentUsecase
 		wantCode  int
 		wantBody  string
-		wantLimit *int64
+		wantLimit *model.Limit
 	}{
 		{
 			name:     "returns livecomments",
@@ -103,7 +103,7 @@ func TestLivecommentHandler_GetLivecomments(t *testing.T) {
 			usecase:   &fakeLivecommentUsecase{},
 			wantCode:  http.StatusOK,
 			wantBody:  "[]\n",
-			wantLimit: func() *int64 { l := int64(5); return &l }(),
+			wantLimit: func() *model.Limit { l := model.Limit(5); return &l }(),
 		},
 		{
 			name:     "returns 403 without session",
@@ -125,6 +125,32 @@ func TestLivecommentHandler_GetLivecomments(t *testing.T) {
 			cookie:   validCookie,
 			usecase:  &fakeLivecommentUsecase{},
 			wantCode: http.StatusBadRequest,
+			wantBody: `{"message":"limit query parameter must be integer"}` + "\n",
+		},
+		{
+			// 0 件の取得や負の数、上限を超える値は 400 (移行前は 0 は空配列、負の数は 500、上限なし)
+			name:     "returns 400 when limit is zero",
+			path:     "/api/livestream/10/livecomment?limit=0",
+			cookie:   validCookie,
+			usecase:  &fakeLivecommentUsecase{},
+			wantCode: http.StatusBadRequest,
+			wantBody: `{"message":"limit query parameter must be between 1 and 100"}` + "\n",
+		},
+		{
+			name:     "returns 400 when limit is negative",
+			path:     "/api/livestream/10/livecomment?limit=-1",
+			cookie:   validCookie,
+			usecase:  &fakeLivecommentUsecase{},
+			wantCode: http.StatusBadRequest,
+			wantBody: `{"message":"limit query parameter must be between 1 and 100"}` + "\n",
+		},
+		{
+			name:     "returns 400 when limit is over the max",
+			path:     "/api/livestream/10/livecomment?limit=101",
+			cookie:   validCookie,
+			usecase:  &fakeLivecommentUsecase{},
+			wantCode: http.StatusBadRequest,
+			wantBody: `{"message":"limit query parameter must be between 1 and 100"}` + "\n",
 		},
 		{
 			name:     "returns 500 on unexpected error",

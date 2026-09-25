@@ -11,13 +11,13 @@ import (
 )
 
 func TestReactionUsecase_FindAllByLivestreamID(t *testing.T) {
-	limit := int64(5)
+	limit := model.Limit(5)
 
 	tests := []struct {
 		name      string
-		limit     *int64
+		limit     *model.Limit
 		wantCalls []string
-		wantLimit int64
+		wantLimit model.Limit
 	}{
 		{name: "without limit", limit: nil, wantCalls: []string{"FindAllWithDetailsByLivestreamID"}},
 		{name: "with limit", limit: &limit, wantCalls: []string{"FindAllWithDetailsByLivestreamIDLimited"}, wantLimit: 5},

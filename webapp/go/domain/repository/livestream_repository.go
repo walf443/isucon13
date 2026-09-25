@@ -26,7 +26,7 @@ type LivestreamRepository interface {
 	// FindAllWithDetails は全てのライブ配信を ID の降順で返す。
 	FindAllWithDetails(ctx context.Context, q Querier) ([]*model.Livestream, error)
 	// FindAllWithDetailsLimited は ID の降順で最大 limit 件のライブ配信を返す。
-	FindAllWithDetailsLimited(ctx context.Context, q Querier, limit int64) ([]*model.Livestream, error)
+	FindAllWithDetailsLimited(ctx context.Context, q Querier, limit model.Limit) ([]*model.Livestream, error)
 	// Create はライブ配信を登録し、その ID を返す。
 	Create(ctx context.Context, q Querier, livestream *model.LivestreamModel) (model.LivestreamID, error)
 	// AddTag はライブ配信にタグを付ける。

@@ -13,7 +13,7 @@ type ReactionRepository interface {
 	// FindAllWithDetailsByLivestreamID は指定したライブ配信へのリアクションを、作成日時の降順で返す。
 	FindAllWithDetailsByLivestreamID(ctx context.Context, q Querier, livestreamID model.LivestreamID) ([]*model.Reaction, error)
 	// FindAllWithDetailsByLivestreamIDLimited は指定したライブ配信へのリアクションを、作成日時の降順で最大 limit 件返す。
-	FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q Querier, livestreamID model.LivestreamID, limit int64) ([]*model.Reaction, error)
+	FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q Querier, livestreamID model.LivestreamID, limit model.Limit) ([]*model.Reaction, error)
 	// Create はリアクションを登録し、その ID を返す。
 	Create(ctx context.Context, q Querier, reaction *model.ReactionModel) (model.ReactionID, error)
 	// CountByLivestreamID は指定したライブ配信へのリアクション数を返す。

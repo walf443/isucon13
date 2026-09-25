@@ -215,13 +215,13 @@ func TestLivestreamUsecase_FindAllByTagName_Errors(t *testing.T) {
 }
 
 func TestLivestreamUsecase_FindAll(t *testing.T) {
-	limit := int64(5)
+	limit := model.Limit(5)
 
 	tests := []struct {
 		name      string
-		limit     *int64
+		limit     *model.Limit
 		wantCalls []string
-		wantLimit int64
+		wantLimit model.Limit
 	}{
 		{name: "without limit", limit: nil, wantCalls: []string{"FindAllWithDetails"}},
 		{name: "with limit", limit: &limit, wantCalls: []string{"FindAllWithDetailsLimited"}, wantLimit: 5},

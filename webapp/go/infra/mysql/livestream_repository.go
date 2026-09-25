@@ -110,7 +110,7 @@ func (r *livestreamRepository) FindAllWithDetails(ctx context.Context, q reposit
 	return fillLivestreams(ctx, q, livestreamModels, r.fallbackIcon)
 }
 
-func (r *livestreamRepository) FindAllWithDetailsLimited(ctx context.Context, q repository.Querier, limit int64) ([]*model.Livestream, error) {
+func (r *livestreamRepository) FindAllWithDetailsLimited(ctx context.Context, q repository.Querier, limit model.Limit) ([]*model.Livestream, error) {
 	var livestreamModels []*model.LivestreamModel
 	if err := q.SelectContext(ctx, &livestreamModels, "SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM livestreams ORDER BY id DESC LIMIT ?", limit); err != nil {
 		return nil, err

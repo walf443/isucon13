@@ -27,7 +27,7 @@ func (r *livecommentRepository) FindAllWithDetailsByLivestreamID(ctx context.Con
 	return fillLivecomments(ctx, q, livecommentModels, r.fallbackIcon)
 }
 
-func (r *livecommentRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, limit int64) ([]*model.Livecomment, error) {
+func (r *livecommentRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, limit model.Limit) ([]*model.Livecomment, error) {
 	var livecommentModels []*model.LivecommentModel
 	if err := q.SelectContext(ctx, &livecommentModels, "SELECT id, user_id, livestream_id, comment, tip, created_at FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC LIMIT ?", livestreamID, limit); err != nil {
 		return nil, err

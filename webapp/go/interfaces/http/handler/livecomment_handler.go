@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/usecase"
@@ -74,14 +73,9 @@ func (h *LivecommentHandler) GetLivecomments(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
 
-	var limit *int64
-	if c.QueryParam("limit") != "" {
-		l, err := strconv.Atoi(c.QueryParam("limit"))
-		if err != nil {
-			return echo.NewHTTPError(http.StatusBadRequest, "limit query parameter must be integer")
-		}
-		limit64 := int64(l)
-		limit = &limit64
+	limit, err := parseLimitQueryParam(c, maxLivecommentsLimit)
+	if err != nil {
+		return err
 	}
 
 	livecommentModels, err := h.livecommentUsecase.FindAllByLivestreamID(ctx, livestreamID, limit)

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/usecase"
@@ -142,14 +141,10 @@ func (h *LivestreamHandler) SearchLivestreams(c echo.Context) error {
 		livestreams, err = h.livestreamUsecase.FindAllByTagName(ctx, tagName)
 	} else {
 		// 検索条件なし
-		var limit *int64
-		if c.QueryParam("limit") != "" {
-			l, err := strconv.Atoi(c.QueryParam("limit"))
-			if err != nil {
-				return echo.NewHTTPError(http.StatusBadRequest, "limit query parameter must be integer")
-			}
-			limit64 := int64(l)
-			limit = &limit64
+		var limit *model.Limit
+		limit, err = parseLimitQueryParam(c, maxLivestreamsLimit)
+		if err != nil {
+			return err
 		}
 		livestreams, err = h.livestreamUsecase.FindAll(ctx, limit)
 	}

@@ -43,7 +43,7 @@ func (r *reactionRepository) FindAllWithDetailsByLivestreamID(ctx context.Contex
 	return fillReactions(ctx, q, reactionModels, r.fallbackIcon)
 }
 
-func (r *reactionRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, limit int64) ([]*model.Reaction, error) {
+func (r *reactionRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, limit model.Limit) ([]*model.Reaction, error) {
 	var reactionModels []*model.ReactionModel
 	if err := q.SelectContext(ctx, &reactionModels, "SELECT id, emoji_name, user_id, livestream_id, created_at FROM reactions WHERE livestream_id = ? ORDER BY created_at DESC LIMIT ?", livestreamID, limit); err != nil {
 		return nil, err

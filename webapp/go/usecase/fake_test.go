@@ -153,7 +153,7 @@ type fakeLivestreamRepository struct {
 	gotID      model.LivestreamID
 	gotUserID  model.UserID
 	gotTagIDs  []model.TagID
-	gotLimit   int64
+	gotLimit   model.Limit
 	gotCreated *model.LivestreamModel
 	// addedTagIDs は AddTag に渡されたタグ ID
 	addedTagIDs []model.TagID
@@ -209,7 +209,7 @@ func (r *fakeLivestreamRepository) FindAllWithDetails(ctx context.Context, q rep
 	return r.livestreams, r.err
 }
 
-func (r *fakeLivestreamRepository) FindAllWithDetailsLimited(ctx context.Context, q repository.Querier, limit int64) ([]*model.Livestream, error) {
+func (r *fakeLivestreamRepository) FindAllWithDetailsLimited(ctx context.Context, q repository.Querier, limit model.Limit) ([]*model.Livestream, error) {
 	r.calls = append(r.calls, "FindAllWithDetailsLimited")
 	r.gotLimit = limit
 	return r.livestreams, r.err
@@ -237,7 +237,7 @@ type fakeReactionRepository struct {
 	calls           []string
 	gotID           model.ReactionID
 	gotLivestreamID model.LivestreamID
-	gotLimit        int64
+	gotLimit        model.Limit
 	gotCreated      *model.ReactionModel
 
 	// countsByOwnerID は CountByLivestreamOwnerID が返すリアクション数
@@ -292,7 +292,7 @@ func (r *fakeReactionRepository) FindAllWithDetailsByLivestreamID(ctx context.Co
 	return r.reactions, r.err
 }
 
-func (r *fakeReactionRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, limit int64) ([]*model.Reaction, error) {
+func (r *fakeReactionRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, limit model.Limit) ([]*model.Reaction, error) {
 	r.calls = append(r.calls, "FindAllWithDetailsByLivestreamIDLimited")
 	r.gotLivestreamID = livestreamID
 	r.gotLimit = limit
@@ -338,7 +338,7 @@ type fakeLivecommentRepository struct {
 
 	calls           []string
 	gotLivestreamID model.LivestreamID
-	gotLimit        int64
+	gotLimit        model.Limit
 }
 
 func (r *fakeLivecommentRepository) FindAllByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.LivecommentModel, error) {
@@ -393,7 +393,7 @@ func (r *fakeLivecommentRepository) FindAllWithDetailsByLivestreamID(ctx context
 	return r.livecomments, r.err
 }
 
-func (r *fakeLivecommentRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, limit int64) ([]*model.Livecomment, error) {
+func (r *fakeLivecommentRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, limit model.Limit) ([]*model.Livecomment, error) {
 	r.calls = append(r.calls, "FindAllWithDetailsByLivestreamIDLimited")
 	r.gotLivestreamID = livestreamID
 	r.gotLimit = limit

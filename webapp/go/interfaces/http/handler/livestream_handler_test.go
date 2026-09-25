@@ -24,7 +24,7 @@ type fakeLivestreamUsecase struct {
 	gotUserID   model.UserID
 	gotUsername string
 	gotTagName  string
-	gotLimit    *int64
+	gotLimit    *model.Limit
 	gotInput    usecase.ReserveLivestreamInput
 	// calls は呼ばれたメソッド名を順に記録する
 	calls []string
@@ -43,7 +43,7 @@ func (u *fakeLivestreamUsecase) FindAllByTagName(ctx context.Context, tagName st
 	return u.livestreams, u.err
 }
 
-func (u *fakeLivestreamUsecase) FindAll(ctx context.Context, limit *int64) ([]*model.Livestream, error) {
+func (u *fakeLivestreamUsecase) FindAll(ctx context.Context, limit *model.Limit) ([]*model.Livestream, error) {
 	u.calls = append(u.calls, "FindAll")
 	u.gotLimit = limit
 	return u.livestreams, u.err
@@ -319,7 +319,7 @@ func TestLivestreamHandler_SearchLivestreams(t *testing.T) {
 	owner := model.User{ID: 42, Name: "alice", Theme: model.ThemeModel{ID: 20, UserID: 42}, IconHash: "abc"}
 	found := []*model.Livestream{{ID: 1, Owner: owner, Title: "s1"}}
 	foundJSON := `[{"id":1,"owner":{"id":42,"name":"alice","theme":{"id":20,"dark_mode":false},"icon_hash":"abc"},"title":"s1","description":"","playlist_url":"","thumbnail_url":"","tags":[],"start_at":0,"end_at":0}]` + "\n"
-	five := int64(5)
+	five := model.Limit(5)
 
 	tests := []struct {
 		name        string
@@ -329,7 +329,7 @@ func TestLivestreamHandler_SearchLivestreams(t *testing.T) {
 		wantBody    string
 		wantCalls   []string
 		wantTagName string
-		wantLimit   *int64
+		wantLimit   *model.Limit
 	}{
 		{
 			name:        "searches by tag",
@@ -379,6 +379,29 @@ func TestLivestreamHandler_SearchLivestreams(t *testing.T) {
 			query:    "?limit=abc",
 			usecase:  &fakeLivestreamUsecase{},
 			wantCode: http.StatusBadRequest,
+			wantBody: `{"message":"limit query parameter must be integer"}` + "\n",
+		},
+		{
+			// 0 件の取得や負の数、上限を超える値は 400 (移行前は 0 は空配列、負の数は 500、上限なし)
+			name:     "returns 400 when limit is zero",
+			query:    "?limit=0",
+			usecase:  &fakeLivestreamUsecase{},
+			wantCode: http.StatusBadRequest,
+			wantBody: `{"message":"limit query parameter must be between 1 and 100"}` + "\n",
+		},
+		{
+			name:     "returns 400 when limit is negative",
+			query:    "?limit=-1",
+			usecase:  &fakeLivestreamUsecase{},
+			wantCode: http.StatusBadRequest,
+			wantBody: `{"message":"limit query parameter must be between 1 and 100"}` + "\n",
+		},
+		{
+			name:     "returns 400 when limit is over the max",
+			query:    "?limit=101",
+			usecase:  &fakeLivestreamUsecase{},
+			wantCode: http.StatusBadRequest,
+			wantBody: `{"message":"limit query parameter must be between 1 and 100"}` + "\n",
 		},
 		{
 			name:     "returns 500 on unexpected error",

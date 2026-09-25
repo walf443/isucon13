@@ -22,7 +22,7 @@ type LivestreamUsecase interface {
 	// タグが存在しない場合は空のスライスを返す。
 	FindAllByTagName(ctx context.Context, tagName string) ([]*model.Livestream, error)
 	// FindAll はライブ配信を ID の降順で返す。limit が nil でなければ最大 *limit 件に絞る。
-	FindAll(ctx context.Context, limit *int64) ([]*model.Livestream, error)
+	FindAll(ctx context.Context, limit *model.Limit) ([]*model.Livestream, error)
 	// Reserve はライブ配信を予約し、配信者・タグを含めて返す。
 	// 予約区間が予約可能期間に掛かっていない場合 ErrBadReservationTimeRange、
 	// 予約区間に空きの無い予約枠がある場合 *ReservationSlotUnavailableError を返す。
@@ -149,7 +149,7 @@ func (u *livestreamUsecase) FindAllByTagName(ctx context.Context, tagName string
 	return livestreams, nil
 }
 
-func (u *livestreamUsecase) FindAll(ctx context.Context, limit *int64) ([]*model.Livestream, error) {
+func (u *livestreamUsecase) FindAll(ctx context.Context, limit *model.Limit) ([]*model.Livestream, error) {
 	var livestreams []*model.Livestream
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		var err error
