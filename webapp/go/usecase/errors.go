@@ -11,6 +11,12 @@ var ErrIconNotFound = errors.New("icon not found")
 // ErrLivestreamNotFound は指定されたライブ配信が存在しないことを表す。
 var ErrLivestreamNotFound = errors.New("livestream not found")
 
+// ErrBadReservationTimeRange は予約区間が予約可能期間 (ReservationTermStartAt 〜 ReservationTermEndAt) に掛かっていないことを表す。
+var ErrBadReservationTimeRange = errors.New("bad reservation time range")
+
+// ErrReservationSlotUnavailable は予約区間に空きの無い予約枠があることを表す。
+var ErrReservationSlotUnavailable = errors.New("reservation slot is unavailable")
+
 // ErrLivecommentNotFound は指定されたライブコメントが存在しないことを表す。
 var ErrLivecommentNotFound = errors.New("livecomment not found")
 

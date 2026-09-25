@@ -101,3 +101,20 @@ func (r *livestreamRepository) FindAllWithDetailsLimited(ctx context.Context, q 
 	}
 	return fillLivestreams(ctx, q, livestreamModels, r.fallbackIcon)
 }
+
+func (r *livestreamRepository) Create(ctx context.Context, q repository.Querier, livestream *model.LivestreamModel) (model.LivestreamID, error) {
+	rs, err := q.ExecContext(ctx, "INSERT INTO livestreams (user_id, title, description, playlist_url, thumbnail_url, start_at, end_at) VALUES(?, ?, ?, ?, ?, ?, ?)", livestream.UserID, livestream.Title, livestream.Description, livestream.PlaylistUrl, livestream.ThumbnailUrl, livestream.StartAt, livestream.EndAt)
+	if err != nil {
+		return 0, err
+	}
+	id, err := rs.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	return model.LivestreamID(id), nil
+}
+
+func (r *livestreamRepository) AddTag(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, tagID model.TagID) error {
+	_, err := q.ExecContext(ctx, "INSERT INTO livestream_tags (livestream_id, tag_id) VALUES (?, ?)", livestreamID, tagID)
+	return err
+}

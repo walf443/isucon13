@@ -116,13 +116,32 @@ type fakeLivestreamRepository struct {
 	livestream       *model.Livestream
 	livestreams      []*model.Livestream
 	err              error
+	createID         model.LivestreamID
+	createErr        error
+	addTagErr        error
 
-	gotID     model.LivestreamID
-	gotUserID model.UserID
-	gotTagIDs []model.TagID
-	gotLimit  int64
+	gotID      model.LivestreamID
+	gotUserID  model.UserID
+	gotTagIDs  []model.TagID
+	gotLimit   int64
+	gotCreated *model.LivestreamModel
+	// addedTagIDs は AddTag に渡されたタグ ID
+	addedTagIDs []model.TagID
 	// calls は呼ばれたメソッド名を順に記録する
 	calls []string
+}
+
+func (r *fakeLivestreamRepository) Create(ctx context.Context, q repository.Querier, livestream *model.LivestreamModel) (model.LivestreamID, error) {
+	r.calls = append(r.calls, "Create")
+	r.gotCreated = livestream
+	return r.createID, r.createErr
+}
+
+func (r *fakeLivestreamRepository) AddTag(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, tagID model.TagID) error {
+	r.calls = append(r.calls, "AddTag")
+	r.gotID = livestreamID
+	r.addedTagIDs = append(r.addedTagIDs, tagID)
+	return r.addTagErr
 }
 
 func (r *fakeLivestreamRepository) FindByID(ctx context.Context, q repository.Querier, id model.LivestreamID) (*model.LivestreamModel, error) {
@@ -161,6 +180,7 @@ func (r *fakeLivestreamRepository) FindAllWithDetailsByUserID(ctx context.Contex
 }
 
 func (r *fakeLivestreamRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.LivestreamID) (*model.Livestream, error) {
+	r.calls = append(r.calls, "FindWithDetailsByID")
 	r.gotID = id
 	return r.livestream, r.err
 }
@@ -360,8 +380,46 @@ func (r *fakeNGWordRepository) FindAllByUserIDAndLivestreamID(ctx context.Contex
 	return r.ngWords, r.err
 }
 
+type fakeReservationSlotRepository struct {
+	slots []*model.ReservationSlotModel
+	// counts は FindSlotByStartAtAndEndAt が返す残数 (キーは開始時刻)
+	counts       map[int64]int64
+	findAllErr   error
+	findSlotErr  error
+	decrementErr error
+
+	calls      []string
+	gotStartAt int64
+	gotEndAt   int64
+}
+
+func (r *fakeReservationSlotRepository) FindAllByRangeForUpdate(ctx context.Context, q repository.Querier, startAt int64, endAt int64) ([]*model.ReservationSlotModel, error) {
+	r.calls = append(r.calls, "FindAllByRangeForUpdate")
+	r.gotStartAt = startAt
+	r.gotEndAt = endAt
+	return r.slots, r.findAllErr
+}
+
+func (r *fakeReservationSlotRepository) FindSlotByStartAtAndEndAt(ctx context.Context, q repository.Querier, startAt int64, endAt int64) (int64, error) {
+	r.calls = append(r.calls, "FindSlotByStartAtAndEndAt")
+	return r.counts[startAt], r.findSlotErr
+}
+
+func (r *fakeReservationSlotRepository) DecrementSlotsByRange(ctx context.Context, q repository.Querier, startAt int64, endAt int64) error {
+	r.calls = append(r.calls, "DecrementSlotsByRange")
+	r.gotStartAt = startAt
+	r.gotEndAt = endAt
+	return r.decrementErr
+}
+
 type fakeLogger struct {
 	lines []string
+	// warnLines は Warnf で出力された行
+	warnLines []string
+}
+
+func (l *fakeLogger) Warnf(format string, args ...interface{}) {
+	l.warnLines = append(l.warnLines, fmt.Sprintf(format, args...))
 }
 
 func (l *fakeLogger) Infof(format string, args ...interface{}) {

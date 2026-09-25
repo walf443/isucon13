@@ -5,7 +5,9 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,8 +25,16 @@ type fakeLivestreamUsecase struct {
 	gotUsername string
 	gotTagName  string
 	gotLimit    *int64
+	gotInput    usecase.ReserveLivestreamInput
 	// calls は呼ばれたメソッド名を順に記録する
 	calls []string
+}
+
+func (u *fakeLivestreamUsecase) Reserve(ctx context.Context, userID model.UserID, input usecase.ReserveLivestreamInput) (*model.Livestream, error) {
+	u.calls = append(u.calls, "Reserve")
+	u.gotUserID = userID
+	u.gotInput = input
+	return u.livestream, u.err
 }
 
 func (u *fakeLivestreamUsecase) FindAllByTagName(ctx context.Context, tagName string) ([]*model.Livestream, error) {
@@ -402,6 +412,118 @@ func TestLivestreamHandler_SearchLivestreams(t *testing.T) {
 			}
 			if (tt.usecase.gotLimit == nil) != (tt.wantLimit == nil) || (tt.wantLimit != nil && *tt.usecase.gotLimit != *tt.wantLimit) {
 				t.Errorf("limit = %v, want %v", tt.usecase.gotLimit, tt.wantLimit)
+			}
+		})
+	}
+}
+
+func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
+	validCookie := func(t *testing.T) *http.Cookie {
+		return newSessionCookie(t, 2, time.Now().Add(time.Hour))
+	}
+	owner := model.User{ID: 2, Name: "alice", Theme: model.ThemeModel{ID: 20, UserID: 2, DarkMode: true}, IconHash: "abc"}
+	reqBody := `{"tags":[1,3],"title":"stream","description":"desc","playlist_url":"https://example.com/p.m3u8","thumbnail_url":"https://example.com/t.jpg","start_at":1700874000,"end_at":1700877600}`
+
+	tests := []struct {
+		name     string
+		cookie   func(t *testing.T) *http.Cookie
+		body     string
+		usecase  *fakeLivestreamUsecase
+		wantCode int
+		wantBody string
+	}{
+		{
+			name:   "reserves livestream",
+			cookie: validCookie,
+			body:   reqBody,
+			usecase: &fakeLivestreamUsecase{livestream: &model.Livestream{
+				ID:           10,
+				Owner:        owner,
+				Title:        "stream",
+				Description:  "desc",
+				PlaylistUrl:  "https://example.com/p.m3u8",
+				ThumbnailUrl: "https://example.com/t.jpg",
+				Tags:         []model.TagModel{{ID: 1, Name: "ゲーム実況"}, {ID: 3, Name: "雑談"}},
+				StartAt:      1700874000,
+				EndAt:        1700877600,
+			}},
+			wantCode: http.StatusCreated,
+			wantBody: `{"id":10,"owner":{"id":2,"name":"alice","theme":{"id":20,"dark_mode":true},"icon_hash":"abc"},"title":"stream","description":"desc","playlist_url":"https://example.com/p.m3u8","thumbnail_url":"https://example.com/t.jpg","tags":[{"id":1,"name":"ゲーム実況"},{"id":3,"name":"雑談"}],"start_at":1700874000,"end_at":1700877600}` + "\n",
+		},
+		{
+			name:     "returns 403 without session",
+			cookie:   nil,
+			body:     reqBody,
+			usecase:  &fakeLivestreamUsecase{},
+			wantCode: http.StatusForbidden,
+		},
+		{
+			name:     "returns 400 on invalid json",
+			cookie:   validCookie,
+			body:     `{`,
+			usecase:  &fakeLivestreamUsecase{},
+			wantCode: http.StatusBadRequest,
+			wantBody: `{"message":"failed to decode the request body as json"}` + "\n",
+		},
+		{
+			name:     "returns 400 on bad time range",
+			cookie:   validCookie,
+			body:     reqBody,
+			usecase:  &fakeLivestreamUsecase{err: usecase.ErrBadReservationTimeRange},
+			wantCode: http.StatusBadRequest,
+			wantBody: `{"message":"bad reservation time range"}` + "\n",
+		},
+		{
+			// メッセージには予約可能期間とリクエストの予約区間を含める (移行前と同じ)
+			name:     "returns 400 when slot is unavailable",
+			cookie:   validCookie,
+			body:     reqBody,
+			usecase:  &fakeLivestreamUsecase{err: usecase.ErrReservationSlotUnavailable},
+			wantCode: http.StatusBadRequest,
+			wantBody: `{"message":"予約期間 1700874000 ~ 1732496400に対して、予約区間 1700874000 ~ 1700877600が予約できません"}` + "\n",
+		},
+		{
+			name:     "returns 500 on unexpected error",
+			cookie:   validCookie,
+			body:     reqBody,
+			usecase:  &fakeLivestreamUsecase{err: errors.New("boom")},
+			wantCode: http.StatusInternalServerError,
+			wantBody: `{"message":"boom"}` + "\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := newTestEcho()
+			e.POST("/api/livestream/reservation", NewLivestreamHandler(tt.usecase).ReserveLivestream)
+
+			req := httptest.NewRequest(http.MethodPost, "/api/livestream/reservation", strings.NewReader(tt.body))
+			req.Header.Set("Content-Type", "application/json")
+			if tt.cookie != nil {
+				req.AddCookie(tt.cookie(t))
+			}
+			rec := httptest.NewRecorder()
+			e.ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantCode {
+				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
+			}
+			if tt.wantBody != "" && rec.Body.String() != tt.wantBody {
+				t.Errorf("body = %s\nwant   %s", rec.Body.String(), tt.wantBody)
+			}
+			if tt.wantCode == http.StatusCreated {
+				wantInput := usecase.ReserveLivestreamInput{
+					TagIDs:       []model.TagID{1, 3},
+					Title:        "stream",
+					Description:  "desc",
+					PlaylistUrl:  "https://example.com/p.m3u8",
+					ThumbnailUrl: "https://example.com/t.jpg",
+					StartAt:      1700874000,
+					EndAt:        1700877600,
+				}
+				if tt.usecase.gotUserID != 2 || !reflect.DeepEqual(tt.usecase.gotInput, wantInput) {
+					t.Errorf("userID = %d, input = %+v", tt.usecase.gotUserID, tt.usecase.gotInput)
+				}
 			}
 		})
 	}

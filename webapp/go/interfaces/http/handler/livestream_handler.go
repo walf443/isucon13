@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -46,6 +48,16 @@ func newLivestreams(ls []*model.Livestream) []Livestream {
 		livestreams[i] = newLivestream(l)
 	}
 	return livestreams
+}
+
+type ReserveLivestreamRequest struct {
+	Tags         []int64 `json:"tags"`
+	Title        string  `json:"title"`
+	Description  string  `json:"description"`
+	PlaylistUrl  string  `json:"playlist_url"`
+	ThumbnailUrl string  `json:"thumbnail_url"`
+	StartAt      int64   `json:"start_at"`
+	EndAt        int64   `json:"end_at"`
 }
 
 type LivestreamHandler struct {
@@ -147,4 +159,51 @@ func (h *LivestreamHandler) SearchLivestreams(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, newLivestreams(livestreams))
+}
+
+// POST /api/livestream/reservation
+func (h *LivestreamHandler) ReserveLivestream(c echo.Context) error {
+	ctx := c.Request().Context()
+	defer c.Request().Body.Close()
+
+	if err := VerifyUserSession(c); err != nil {
+		// echo.NewHTTPErrorが返っているのでそのまま出力
+		return err
+	}
+
+	userID, err := getSessionUserID(c)
+	if err != nil {
+		return err
+	}
+
+	var req ReserveLivestreamRequest
+	if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
+	}
+
+	tagIDs := make([]model.TagID, len(req.Tags))
+	for i, tagID := range req.Tags {
+		tagIDs[i] = model.TagID(tagID)
+	}
+
+	livestream, err := h.livestreamUsecase.Reserve(ctx, userID, usecase.ReserveLivestreamInput{
+		TagIDs:       tagIDs,
+		Title:        req.Title,
+		Description:  req.Description,
+		PlaylistUrl:  req.PlaylistUrl,
+		ThumbnailUrl: req.ThumbnailUrl,
+		StartAt:      req.StartAt,
+		EndAt:        req.EndAt,
+	})
+	if errors.Is(err, usecase.ErrBadReservationTimeRange) {
+		return echo.NewHTTPError(http.StatusBadRequest, "bad reservation time range")
+	}
+	if errors.Is(err, usecase.ErrReservationSlotUnavailable) {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("予約期間 %d ~ %dに対して、予約区間 %d ~ %dが予約できません", usecase.ReservationTermStartAt.Unix(), usecase.ReservationTermEndAt.Unix(), req.StartAt, req.EndAt))
+	}
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusCreated, newLivestream(livestream))
 }

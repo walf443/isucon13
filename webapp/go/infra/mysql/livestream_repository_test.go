@@ -324,3 +324,53 @@ func TestLivestreamRepository_FindAllByIDAndUserID(t *testing.T) {
 		}
 	}
 }
+
+func TestLivestreamRepository_CreateAndAddTag(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+	repo := NewLivestreamRepository(nil)
+
+	ownerID := insertTestUser(t, tx, "alice")
+	insertTestTheme(t, tx, ownerID, true)
+	var tagIDs []model.TagID
+	for _, name := range []string{"tag-a", "tag-b"} {
+		res, err := tx.ExecContext(ctx, "INSERT INTO tags (name) VALUES (?)", name)
+		if err != nil {
+			t.Fatalf("failed to insert tag: %v", err)
+		}
+		id, _ := res.LastInsertId()
+		tagIDs = append(tagIDs, model.TagID(id))
+	}
+
+	id, err := repo.Create(ctx, tx, &model.LivestreamModel{
+		UserID:       ownerID,
+		Title:        "stream",
+		Description:  "desc",
+		PlaylistUrl:  "https://example.com/p.m3u8",
+		ThumbnailUrl: "https://example.com/t.jpg",
+		StartAt:      1700874000,
+		EndAt:        1700877600,
+	})
+	if err != nil {
+		t.Fatalf("Create returned error: %v", err)
+	}
+	for _, tagID := range tagIDs {
+		if err := repo.AddTag(ctx, tx, id, tagID); err != nil {
+			t.Fatalf("AddTag returned error: %v", err)
+		}
+	}
+
+	got, err := repo.FindWithDetailsByID(ctx, tx, id)
+	if err != nil {
+		t.Fatalf("FindWithDetailsByID returned error: %v", err)
+	}
+	if got.ID != id || got.Owner.ID != ownerID || got.Title != "stream" || got.Description != "desc" ||
+		got.PlaylistUrl != "https://example.com/p.m3u8" || got.ThumbnailUrl != "https://example.com/t.jpg" ||
+		got.StartAt != 1700874000 || got.EndAt != 1700877600 {
+		t.Errorf("livestream = %+v", got)
+	}
+	want := []model.TagModel{{ID: tagIDs[0], Name: "tag-a"}, {ID: tagIDs[1], Name: "tag-b"}}
+	if !reflect.DeepEqual(got.Tags, want) {
+		t.Errorf("tags = %+v, want %+v", got.Tags, want)
+	}
+}

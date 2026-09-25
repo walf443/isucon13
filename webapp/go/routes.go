@@ -12,7 +12,7 @@ func registerRoutes(e *echo.Echo, h *handlers) {
 
 	// livestream
 	// reserve livestream
-	e.POST("/api/livestream/reservation", reserveLivestreamHandler)
+	e.POST("/api/livestream/reservation", h.livestream.ReserveLivestream)
 	// list livestream
 	e.GET("/api/livestream/search", h.livestream.SearchLivestreams)
 	e.GET("/api/livestream", h.livestream.GetMyLivestreams)
