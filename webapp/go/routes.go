@@ -20,14 +20,14 @@ func registerRoutes(e *echo.Echo, h *handlers) {
 	// get livestream
 	e.GET("/api/livestream/:livestream_id", h.livestream.GetLivestream)
 	// get polling livecomment timeline
-	e.GET("/api/livestream/:livestream_id/livecomment", getLivecommentsHandler)
+	e.GET("/api/livestream/:livestream_id/livecomment", h.livecomment.GetLivecomments)
 	// ライブコメント投稿
 	e.POST("/api/livestream/:livestream_id/livecomment", postLivecommentHandler)
 	e.POST("/api/livestream/:livestream_id/reaction", h.reaction.PostReaction)
 	e.GET("/api/livestream/:livestream_id/reaction", h.reaction.GetReactions)
 
 	// (配信者向け)ライブコメントの報告一覧取得API
-	e.GET("/api/livestream/:livestream_id/report", getLivecommentReportsHandler)
+	e.GET("/api/livestream/:livestream_id/report", h.livecomment.GetLivecommentReports)
 	e.GET("/api/livestream/:livestream_id/ngwords", getNgwords)
 	// ライブコメント報告
 	e.POST("/api/livestream/:livestream_id/livecomment/:livecomment_id/report", reportLivecommentHandler)

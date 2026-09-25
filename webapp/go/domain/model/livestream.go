@@ -13,6 +13,11 @@ type LivestreamModel struct {
 	EndAt        int64        `db:"end_at" json:"end_at"`
 }
 
+// IsOwnedBy は userID のユーザがこのライブ配信の配信者かどうかを返す。
+func (l *LivestreamModel) IsOwnedBy(userID UserID) bool {
+	return l.UserID == userID
+}
+
 // Livestream は配信者・タグを含めたライブ配信の情報。
 type Livestream struct {
 	ID           LivestreamID

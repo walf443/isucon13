@@ -20,6 +20,18 @@ func NewLivestreamRepository(fallbackIcon []byte) repository.LivestreamRepositor
 	return &livestreamRepository{fallbackIcon: fallbackIcon}
 }
 
+func (r *livestreamRepository) FindByID(ctx context.Context, q repository.Querier, id model.LivestreamID) (*model.LivestreamModel, error) {
+	var livestreamModel model.LivestreamModel
+	err := q.GetContext(ctx, &livestreamModel, "SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM livestreams WHERE id = ?", id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, repository.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &livestreamModel, nil
+}
+
 func (r *livestreamRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.LivestreamID) (*model.Livestream, error) {
 	var livestreamModel model.LivestreamModel
 	err := q.GetContext(ctx, &livestreamModel, "SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM livestreams WHERE id = ?", id)

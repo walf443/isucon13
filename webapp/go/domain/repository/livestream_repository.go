@@ -7,6 +7,8 @@ import (
 )
 
 type LivestreamRepository interface {
+	// FindByID はライブ配信が存在しない場合 ErrNotFound を返す。
+	FindByID(ctx context.Context, q Querier, id model.LivestreamID) (*model.LivestreamModel, error)
 	// FindWithDetailsByID は配信者・タグを含めたライブ配信を返す。
 	// ライブ配信が存在しない場合 ErrNotFound を返す。配信者やタグが欠けている場合は ErrNotFound ではないエラーを返す。
 	FindWithDetailsByID(ctx context.Context, q Querier, id model.LivestreamID) (*model.Livestream, error)

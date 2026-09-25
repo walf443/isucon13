@@ -1,0 +1,132 @@
+package mysql
+
+import (
+	"context"
+	"errors"
+	"slices"
+	"testing"
+
+	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain/repository"
+	"github.com/jmoiron/sqlx"
+)
+
+func insertTestLivecomment(t *testing.T, tx *sqlx.Tx, userID model.UserID, livestreamID model.LivestreamID, comment string, createdAt int64) model.LivecommentID {
+	t.Helper()
+	res, err := tx.ExecContext(context.Background(), "INSERT INTO livecomments (user_id, livestream_id, comment, tip, created_at) VALUES (?, ?, ?, ?, ?)", userID, livestreamID, comment, 10, createdAt)
+	if err != nil {
+		t.Fatalf("failed to insert livecomment: %v", err)
+	}
+	id, _ := res.LastInsertId()
+	return model.LivecommentID(id)
+}
+
+func livecommentIDs(livecomments []*model.Livecomment) []model.LivecommentID {
+	ids := make([]model.LivecommentID, len(livecomments))
+	for i, l := range livecomments {
+		ids[i] = l.ID
+	}
+	return ids
+}
+
+func TestLivecommentRepository_FindAllWithDetailsByLivestreamID(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	ownerID := insertTestUser(t, tx, "alice")
+	insertTestTheme(t, tx, ownerID, true)
+	viewerID := insertTestUser(t, tx, "bob")
+	insertTestTheme(t, tx, viewerID, false)
+	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
+	otherLivestreamID := insertTestLivestream(t, tx, ownerID, "other")
+
+	// 作成日時の降順になることを確認するため、ID の順序とはずらす
+	c1 := insertTestLivecomment(t, tx, viewerID, livestreamID, "c1", 300)
+	c2 := insertTestLivecomment(t, tx, viewerID, livestreamID, "c2", 100)
+	c3 := insertTestLivecomment(t, tx, viewerID, livestreamID, "c3", 200)
+	insertTestLivecomment(t, tx, viewerID, otherLivestreamID, "other", 400)
+	repo := NewLivecommentRepository(nil)
+
+	all, err := repo.FindAllWithDetailsByLivestreamID(ctx, tx, livestreamID)
+	if err != nil {
+		t.Fatalf("FindAllWithDetailsByLivestreamID returned error: %v", err)
+	}
+	if want := []model.LivecommentID{c1, c3, c2}; !slices.Equal(livecommentIDs(all), want) {
+		t.Errorf("ids = %v, want %v", livecommentIDs(all), want)
+	}
+	got := all[0]
+	if got.Comment != "c1" || got.Tip != 10 || got.CreatedAt != 300 || got.User.ID != viewerID || got.Livestream.ID != livestreamID || got.Livestream.Owner.ID != ownerID {
+		t.Errorf("livecomment = %+v", got)
+	}
+
+	limited, err := repo.FindAllWithDetailsByLivestreamIDLimited(ctx, tx, livestreamID, 2)
+	if err != nil {
+		t.Fatalf("FindAllWithDetailsByLivestreamIDLimited returned error: %v", err)
+	}
+	if want := []model.LivecommentID{c1, c3}; !slices.Equal(livecommentIDs(limited), want) {
+		t.Errorf("ids = %v, want %v", livecommentIDs(limited), want)
+	}
+}
+
+func TestLivecommentReportRepository_FindAllWithDetailsByLivestreamID(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	ownerID := insertTestUser(t, tx, "alice")
+	insertTestTheme(t, tx, ownerID, true)
+	viewerID := insertTestUser(t, tx, "bob")
+	insertTestTheme(t, tx, viewerID, false)
+	reporterID := insertTestUser(t, tx, "carol")
+	insertTestTheme(t, tx, reporterID, false)
+	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
+	otherLivestreamID := insertTestLivestream(t, tx, ownerID, "other")
+	commentID := insertTestLivecomment(t, tx, viewerID, livestreamID, "bad comment", 100)
+	otherCommentID := insertTestLivecomment(t, tx, viewerID, otherLivestreamID, "other", 100)
+
+	insertReport := func(livestreamID model.LivestreamID, livecommentID model.LivecommentID) model.LivecommentReportID {
+		t.Helper()
+		res, err := tx.ExecContext(ctx, "INSERT INTO livecomment_reports (user_id, livestream_id, livecomment_id, created_at) VALUES (?, ?, ?, ?)", reporterID, livestreamID, livecommentID, 200)
+		if err != nil {
+			t.Fatalf("failed to insert livecomment report: %v", err)
+		}
+		id, _ := res.LastInsertId()
+		return model.LivecommentReportID(id)
+	}
+	reportID := insertReport(livestreamID, commentID)
+	insertReport(otherLivestreamID, otherCommentID)
+
+	reports, err := NewLivecommentReportRepository(nil).FindAllWithDetailsByLivestreamID(ctx, tx, livestreamID)
+	if err != nil {
+		t.Fatalf("FindAllWithDetailsByLivestreamID returned error: %v", err)
+	}
+	if len(reports) != 1 {
+		t.Fatalf("len(reports) = %d, want 1", len(reports))
+	}
+	got := reports[0]
+	if got.ID != reportID || got.CreatedAt != 200 || got.Reporter.ID != reporterID {
+		t.Errorf("report = %+v", got)
+	}
+	if got.Livecomment.ID != commentID || got.Livecomment.User.ID != viewerID || got.Livecomment.Livestream.ID != livestreamID {
+		t.Errorf("livecomment = %+v", got.Livecomment)
+	}
+}
+
+func TestLivecommentReportRepository_LivecommentNotFound(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	reporterID := insertTestUser(t, tx, "carol")
+	insertTestTheme(t, tx, reporterID, false)
+	if _, err := tx.ExecContext(ctx, "INSERT INTO livecomment_reports (user_id, livestream_id, livecomment_id, created_at) VALUES (?, ?, ?, ?)", reporterID, 1, 999999, 200); err != nil {
+		t.Fatalf("failed to insert livecomment report: %v", err)
+	}
+
+	// 報告されたライブコメントの欠損はデータ不整合なので ErrNotFound にはしない
+	_, err := NewLivecommentReportRepository(nil).FindAllWithDetailsByLivestreamID(ctx, tx, 1)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if errors.Is(err, repository.ErrNotFound) {
+		t.Errorf("err = %v, should not be ErrNotFound", err)
+	}
+}

@@ -12,12 +12,13 @@ import (
 
 // handlers はクリーンアーキテクチャへ移行済みの handler をまとめたもの。
 type handlers struct {
-	tag        *handler.TagHandler
-	theme      *handler.ThemeHandler
-	user       *handler.UserHandler
-	icon       *handler.IconHandler
-	livestream *handler.LivestreamHandler
-	reaction   *handler.ReactionHandler
+	tag         *handler.TagHandler
+	theme       *handler.ThemeHandler
+	user        *handler.UserHandler
+	icon        *handler.IconHandler
+	livestream  *handler.LivestreamHandler
+	reaction    *handler.ReactionHandler
+	livecomment *handler.LivecommentHandler
 }
 
 // newHandlers は repository・usecase・handler を組み立てる。
@@ -35,6 +36,8 @@ func newHandlers(db *sqlx.DB, fallbackImagePath string) (*handlers, error) {
 	iconRepo := infra.NewIconRepository()
 	livestreamRepo := infra.NewLivestreamRepository(fallbackIcon)
 	reactionRepo := infra.NewReactionRepository(fallbackIcon)
+	livecommentRepo := infra.NewLivecommentRepository(fallbackIcon)
+	livecommentReportRepo := infra.NewLivecommentReportRepository(fallbackIcon)
 
 	tagUsecase := usecase.NewTagUsecase(txManager, tagRepo)
 	themeUsecase := usecase.NewThemeUsecase(txManager, userRepo, themeRepo)
@@ -42,13 +45,15 @@ func newHandlers(db *sqlx.DB, fallbackImagePath string) (*handlers, error) {
 	iconUsecase := usecase.NewIconUsecase(txManager, userRepo, iconRepo)
 	livestreamUsecase := usecase.NewLivestreamUsecase(txManager, userRepo, tagRepo, livestreamRepo)
 	reactionUsecase := usecase.NewReactionUsecase(txManager, reactionRepo)
+	livecommentUsecase := usecase.NewLivecommentUsecase(txManager, livestreamRepo, livecommentRepo, livecommentReportRepo)
 
 	return &handlers{
-		tag:        handler.NewTagHandler(tagUsecase),
-		theme:      handler.NewThemeHandler(themeUsecase),
-		user:       handler.NewUserHandler(userUsecase),
-		icon:       handler.NewIconHandler(iconUsecase, fallbackImagePath),
-		livestream: handler.NewLivestreamHandler(livestreamUsecase),
-		reaction:   handler.NewReactionHandler(reactionUsecase),
+		tag:         handler.NewTagHandler(tagUsecase),
+		theme:       handler.NewThemeHandler(themeUsecase),
+		user:        handler.NewUserHandler(userUsecase),
+		icon:        handler.NewIconHandler(iconUsecase, fallbackImagePath),
+		livestream:  handler.NewLivestreamHandler(livestreamUsecase),
+		reaction:    handler.NewReactionHandler(reactionUsecase),
+		livecomment: handler.NewLivecommentHandler(livecommentUsecase),
 	}, nil
 }

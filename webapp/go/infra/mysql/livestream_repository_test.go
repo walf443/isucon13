@@ -258,3 +258,34 @@ func TestLivestreamRepository_FindAllWithDetails(t *testing.T) {
 		t.Errorf("ids = %v, want %v", livestreamIDs(limited), want)
 	}
 }
+
+func TestLivestreamRepository_FindByID(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	ownerID := insertTestUser(t, tx, "alice")
+	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
+	repo := NewLivestreamRepository(nil)
+
+	got, err := repo.FindByID(ctx, tx, livestreamID)
+	if err != nil {
+		t.Fatalf("FindByID returned error: %v", err)
+	}
+	want := model.LivestreamModel{
+		ID:           livestreamID,
+		UserID:       ownerID,
+		Title:        "stream",
+		Description:  "desc stream",
+		PlaylistUrl:  "https://example.com/stream.m3u8",
+		ThumbnailUrl: "https://example.com/stream.jpg",
+		StartAt:      1700000000,
+		EndAt:        1700003600,
+	}
+	if *got != want {
+		t.Errorf("got %+v, want %+v", *got, want)
+	}
+
+	if _, err := repo.FindByID(ctx, tx, 999999); !errors.Is(err, repository.ErrNotFound) {
+		t.Errorf("err = %v, want ErrNotFound", err)
+	}
+}

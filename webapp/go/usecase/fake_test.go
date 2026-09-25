@@ -109,9 +109,10 @@ func (r *fakeIconRepository) DeleteByUserID(ctx context.Context, q repository.Qu
 }
 
 type fakeLivestreamRepository struct {
-	livestream  *model.Livestream
-	livestreams []*model.Livestream
-	err         error
+	livestreamModel *model.LivestreamModel
+	livestream      *model.Livestream
+	livestreams     []*model.Livestream
+	err             error
 
 	gotID     model.LivestreamID
 	gotUserID model.UserID
@@ -119,6 +120,12 @@ type fakeLivestreamRepository struct {
 	gotLimit  int64
 	// calls は呼ばれたメソッド名を順に記録する
 	calls []string
+}
+
+func (r *fakeLivestreamRepository) FindByID(ctx context.Context, q repository.Querier, id model.LivestreamID) (*model.LivestreamModel, error) {
+	r.calls = append(r.calls, "FindByID")
+	r.gotID = id
+	return r.livestreamModel, r.err
 }
 
 func (r *fakeLivestreamRepository) FindAllWithDetailsByTagIDs(ctx context.Context, q repository.Querier, tagIDs []model.TagID) ([]*model.Livestream, error) {
@@ -186,4 +193,40 @@ func (r *fakeReactionRepository) Create(ctx context.Context, q repository.Querie
 	r.calls = append(r.calls, "Create")
 	r.gotCreated = reaction
 	return r.createID, r.createErr
+}
+
+type fakeLivecommentRepository struct {
+	livecomments []*model.Livecomment
+	err          error
+
+	calls           []string
+	gotLivestreamID model.LivestreamID
+	gotLimit        int64
+}
+
+func (r *fakeLivecommentRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.Livecomment, error) {
+	r.calls = append(r.calls, "FindAllWithDetailsByLivestreamID")
+	r.gotLivestreamID = livestreamID
+	return r.livecomments, r.err
+}
+
+func (r *fakeLivecommentRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, limit int64) ([]*model.Livecomment, error) {
+	r.calls = append(r.calls, "FindAllWithDetailsByLivestreamIDLimited")
+	r.gotLivestreamID = livestreamID
+	r.gotLimit = limit
+	return r.livecomments, r.err
+}
+
+type fakeLivecommentReportRepository struct {
+	reports []*model.LivecommentReport
+	err     error
+
+	calls           []string
+	gotLivestreamID model.LivestreamID
+}
+
+func (r *fakeLivecommentReportRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.LivecommentReport, error) {
+	r.calls = append(r.calls, "FindAllWithDetailsByLivestreamID")
+	r.gotLivestreamID = livestreamID
+	return r.reports, r.err
 }
