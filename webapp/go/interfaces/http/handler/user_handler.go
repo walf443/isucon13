@@ -57,13 +57,14 @@ type LoginRequest struct {
 }
 
 type userHandler struct {
-	userUsecase usecase.UserUsecase
+	userUsecase         usecase.UserUsecase
+	registrationUsecase usecase.UserRegistrationUsecase
 	// now は現在時刻を返す。テストで差し替えられるようにしている。
 	now func() time.Time
 }
 
-func newUserHandler(userUsecase usecase.UserUsecase) *userHandler {
-	return &userHandler{userUsecase: userUsecase, now: time.Now}
+func newUserHandler(userUsecase usecase.UserUsecase, registrationUsecase usecase.UserRegistrationUsecase) *userHandler {
+	return &userHandler{userUsecase: userUsecase, registrationUsecase: registrationUsecase, now: time.Now}
 }
 
 // GET /api/user/:username
@@ -123,7 +124,7 @@ func (h *userHandler) Register(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
 	}
 
-	user, err := h.userUsecase.Register(ctx, usecase.RegisterUserInput{
+	user, err := h.registrationUsecase.Register(ctx, usecase.RegisterUserInput{
 		Name:        req.Name,
 		DisplayName: req.DisplayName,
 		Description: req.Description,

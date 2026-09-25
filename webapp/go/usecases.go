@@ -40,7 +40,8 @@ func newUsecases(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 	themeUsecase := usecase.NewThemeUsecase(txManager, userRepo, themeRepo)
 	dnsRegistrar := powerdns.NewDNSRecordRegistrar(powerDNSSubdomainAddress)
 
-	userUsecase := usecase.NewUserUsecase(txManager, userRepo, themeRepo, dnsRegistrar)
+	userUsecase := usecase.NewUserUsecase(txManager, userRepo)
+	userRegistrationUsecase := usecase.NewUserRegistrationUsecase(txManager, userRepo, themeRepo, dnsRegistrar)
 	iconUsecase := usecase.NewIconUsecase(txManager, userRepo, iconRepo)
 	livestreamUsecase := usecase.NewLivestreamUsecase(txManager, userRepo, tagRepo, livestreamRepo)
 	livestreamReservationUsecase := usecase.NewLivestreamReservationUsecase(txManager, livestreamRepo, reservationSlotRepo, logger)
@@ -57,6 +58,7 @@ func newUsecases(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 		Tag:                   tagUsecase,
 		Theme:                 themeUsecase,
 		User:                  userUsecase,
+		UserRegistration:      userRegistrationUsecase,
 		Icon:                  iconUsecase,
 		Livestream:            livestreamUsecase,
 		LivestreamReservation: livestreamReservationUsecase,

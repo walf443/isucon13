@@ -20,11 +20,17 @@ type fakeUserUsecase struct {
 	gotID     model.UserID
 	gotName   string
 
-	gotInput    usecase.RegisterUserInput
 	gotPassword string
 }
 
-func (u *fakeUserUsecase) Register(ctx context.Context, input usecase.RegisterUserInput) (*model.User, error) {
+type fakeUserRegistrationUsecase struct {
+	user *model.User
+	err  error
+
+	gotInput usecase.RegisterUserInput
+}
+
+func (u *fakeUserRegistrationUsecase) Register(ctx context.Context, input usecase.RegisterUserInput) (*model.User, error) {
 	u.gotInput = input
 	return u.user, u.err
 }
@@ -83,7 +89,7 @@ func TestUserHandler_GetUser(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rec := serve(t, newUserHandler(tt.usecase).GetUser, testRequest{method: http.MethodGet, route: "/api/user/:username", path: "/api/user/alice", cookie: tt.cookie})
+			rec := serve(t, newUserHandler(tt.usecase, nil).GetUser, testRequest{method: http.MethodGet, route: "/api/user/:username", path: "/api/user/alice", cookie: tt.cookie})
 			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusOK && tt.usecase.gotName != "alice" {
 				t.Errorf("name = %q, want %q", tt.usecase.gotName, "alice")
@@ -130,7 +136,7 @@ func TestUserHandler_GetMe(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rec := serve(t, newUserHandler(tt.usecase).GetMe, testRequest{method: http.MethodGet, route: "/api/user/me", path: "/api/user/me", cookie: tt.cookie})
+			rec := serve(t, newUserHandler(tt.usecase, nil).GetMe, testRequest{method: http.MethodGet, route: "/api/user/me", path: "/api/user/me", cookie: tt.cookie})
 			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusOK && tt.usecase.gotID != 42 {
 				t.Errorf("id = %d, want 42", tt.usecase.gotID)
@@ -146,28 +152,28 @@ func TestUserHandler_Register(t *testing.T) {
 	tests := []struct {
 		name     string
 		body     string
-		usecase  *fakeUserUsecase
+		usecase  *fakeUserRegistrationUsecase
 		wantCode int
 		wantBody string
 	}{
 		{
 			name:     "registers user",
 			body:     reqBody,
-			usecase:  &fakeUserUsecase{user: user},
+			usecase:  &fakeUserRegistrationUsecase{user: user},
 			wantCode: http.StatusCreated,
 			wantBody: `{"id":5,"name":"alice","display_name":"Alice","description":"hello","theme":{"id":9,"dark_mode":true},"icon_hash":"abc"}` + "\n",
 		},
 		{
 			name:     "returns 400 on invalid json",
 			body:     `{`,
-			usecase:  &fakeUserUsecase{},
+			usecase:  &fakeUserRegistrationUsecase{},
 			wantCode: http.StatusBadRequest,
 			wantBody: errorBody(http.StatusBadRequest, "failed to decode the request body as json"),
 		},
 		{
 			name:     "returns 400 for reserved username",
 			body:     `{"name":"pipe","password":"x"}`,
-			usecase:  &fakeUserUsecase{err: &usecase.ReservedUsernameError{Name: "pipe"}},
+			usecase:  &fakeUserRegistrationUsecase{err: &usecase.ReservedUsernameError{Name: "pipe"}},
 			wantCode: http.StatusBadRequest,
 			wantBody: errorBody(http.StatusBadRequest, "the username 'pipe' is reserved"),
 		},
@@ -175,7 +181,7 @@ func TestUserHandler_Register(t *testing.T) {
 			// メッセージには usecase のエラーにある予約済みの名前を使い、リクエストのユーザ名はそのまま返さない
 			name:     "uses the reserved name from the error, not the request",
 			body:     `{"name":"<b>ADMIN</b>","password":"x"}`,
-			usecase:  &fakeUserUsecase{err: &usecase.ReservedUsernameError{Name: "admin"}},
+			usecase:  &fakeUserRegistrationUsecase{err: &usecase.ReservedUsernameError{Name: "admin"}},
 			wantCode: http.StatusBadRequest,
 			wantBody: errorBody(http.StatusBadRequest, "the username 'admin' is reserved"),
 		},
@@ -183,7 +189,7 @@ func TestUserHandler_Register(t *testing.T) {
 			// DNS の登録エラーなどは usecase のメッセージをそのまま返す
 			name:     "returns 500 on unexpected error",
 			body:     reqBody,
-			usecase:  &fakeUserUsecase{err: errors.New("Error: zone not found: exit status 1")},
+			usecase:  &fakeUserRegistrationUsecase{err: errors.New("Error: zone not found: exit status 1")},
 			wantCode: http.StatusInternalServerError,
 			wantBody: errorBody(http.StatusInternalServerError, "Error: zone not found: exit status 1"),
 		},
@@ -192,7 +198,7 @@ func TestUserHandler_Register(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// セッションは不要
-			rec := serve(t, newUserHandler(tt.usecase).Register, testRequest{method: http.MethodPost, route: "/api/register", path: "/api/register", body: tt.body})
+			rec := serve(t, newUserHandler(nil, tt.usecase).Register, testRequest{method: http.MethodPost, route: "/api/register", path: "/api/register", body: tt.body})
 			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusCreated {
 				want := usecase.RegisterUserInput{Name: "alice", DisplayName: "Alice", Description: "hello", Password: "s3cret", DarkMode: true}
@@ -247,7 +253,7 @@ func TestUserHandler_Login(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := newUserHandler(tt.usecase)
+			h := newUserHandler(tt.usecase, nil)
 			h.now = func() time.Time { return now }
 			rec := serve(t, h.Login, testRequest{method: http.MethodPost, route: "/api/login", path: "/api/login", body: tt.body})
 			assertResponse(t, rec, tt.wantCode, tt.wantBody)

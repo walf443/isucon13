@@ -10,6 +10,7 @@ type Usecases struct {
 	Tag                   usecase.TagUsecase
 	Theme                 usecase.ThemeUsecase
 	User                  usecase.UserUsecase
+	UserRegistration      usecase.UserRegistrationUsecase
 	Icon                  usecase.IconUsecase
 	Livestream            usecase.LivestreamUsecase
 	LivestreamReservation usecase.LivestreamReservationUsecase
@@ -28,7 +29,7 @@ type Usecases struct {
 func RegisterRoutes(e *echo.Echo, u Usecases, fallbackImagePath string) {
 	tag := newTagHandler(u.Tag)
 	theme := newThemeHandler(u.Theme)
-	user := newUserHandler(u.User)
+	user := newUserHandler(u.User, u.UserRegistration)
 	icon := newIconHandler(u.Icon, fallbackImagePath)
 	livestream := newLivestreamHandler(u.Livestream, u.LivestreamReservation)
 	reaction := newReactionHandler(u.Reaction)
