@@ -21,7 +21,8 @@ func (m *txManager) RunInTx(ctx context.Context, fn func(q repository.Querier) e
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	// Commit 済みなら sql.ErrTxDone が返るだけなので、エラーは無視する
+	defer func() { _ = tx.Rollback() }()
 
 	if err := fn(newQuerier(tx)); err != nil {
 		return err
