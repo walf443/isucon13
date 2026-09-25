@@ -36,3 +36,18 @@ jobs:
           go-version-file: webapp/go/go.mod
           cache-dependency-path: webapp/go/go.sum
       - run: go ${{ matrix.command }} ${{ matrix.args }} ./...
+
+  lint:
+    name: golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: webapp/go/go.mod
+          cache-dependency-path: webapp/go/go.sum
+      # 設定は webapp/go/.golangci.yml (depguard で層の依存方向も検査する)
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.14
+          working-directory: webapp/go
