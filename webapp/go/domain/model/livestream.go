@@ -8,14 +8,14 @@ func ParseLivestreamID(s string) (LivestreamID, error) {
 }
 
 type LivestreamModel struct {
-	ID           LivestreamID `db:"id" json:"id"`
-	UserID       UserID       `db:"user_id" json:"user_id"`
-	Title        string       `db:"title" json:"title"`
-	Description  string       `db:"description" json:"description"`
-	PlaylistUrl  string       `db:"playlist_url" json:"playlist_url"`
-	ThumbnailUrl string       `db:"thumbnail_url" json:"thumbnail_url"`
-	StartAt      int64        `db:"start_at" json:"start_at"`
-	EndAt        int64        `db:"end_at" json:"end_at"`
+	ID           LivestreamID `db:"id"`
+	UserID       UserID       `db:"user_id"`
+	Title        string       `db:"title"`
+	Description  string       `db:"description"`
+	PlaylistUrl  string       `db:"playlist_url"`
+	ThumbnailUrl string       `db:"thumbnail_url"`
+	StartAt      int64        `db:"start_at"`
+	EndAt        int64        `db:"end_at"`
 }
 
 // IsOwnedBy は userID のユーザがこのライブ配信の配信者かどうかを返す。
