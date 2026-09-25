@@ -13,6 +13,8 @@ type UserRepository interface {
 	FindByID(ctx context.Context, q Querier, id model.UserID) (*model.UserModel, error)
 	// FindByName はユーザが存在しない場合 ErrNotFound を返す。
 	FindByName(ctx context.Context, q Querier, name string) (*model.UserModel, error)
+	// Create はユーザを登録し、その ID を返す。
+	Create(ctx context.Context, q Querier, user *model.UserModel) (model.UserID, error)
 	// FindAll は全てのユーザを返す。
 	FindAll(ctx context.Context, q Querier) ([]*model.UserModel, error)
 

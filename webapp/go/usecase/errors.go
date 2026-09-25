@@ -5,6 +5,12 @@ import "errors"
 // ErrUserNotFound は指定されたユーザが存在しないことを表す。
 var ErrUserNotFound = errors.New("user not found")
 
+// ErrReservedUsername は予約済みのユーザ名で登録しようとしたことを表す。
+var ErrReservedUsername = errors.New("the username is reserved")
+
+// ErrInvalidCredentials はユーザ名かパスワードが間違っていることを表す。
+var ErrInvalidCredentials = errors.New("invalid username or password")
+
 // ErrIconNotFound はユーザのアイコンが登録されていないことを表す。
 var ErrIconNotFound = errors.New("icon not found")
 

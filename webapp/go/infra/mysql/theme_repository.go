@@ -26,3 +26,8 @@ func (r *themeRepository) FindByUserID(ctx context.Context, q repository.Querier
 	}
 	return &theme, nil
 }
+
+func (r *themeRepository) Create(ctx context.Context, q repository.Querier, theme *model.ThemeModel) error {
+	_, err := q.ExecContext(ctx, "INSERT INTO themes (user_id, dark_mode) VALUES(?, ?)", theme.UserID, theme.DarkMode)
+	return err
+}

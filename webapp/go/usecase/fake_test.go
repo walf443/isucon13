@@ -9,9 +9,13 @@ import (
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
 )
 
-type fakeTxManager struct{}
+type fakeTxManager struct {
+	// runs は RunInTx が呼ばれた回数
+	runs int
+}
 
 func (m *fakeTxManager) RunInTx(ctx context.Context, fn func(q repository.Querier) error) error {
+	m.runs++
 	return fn(nil)
 }
 
@@ -39,9 +43,20 @@ type fakeUserRepository struct {
 	err         error
 	users       []*model.UserModel
 	findAllErr  error
+	createID    model.UserID
+	createErr   error
+	gotCreated  *model.UserModel
+	// calls は呼ばれたメソッド名を順に記録する
+	calls []string
 
 	gotID   model.UserID
 	gotName string
+}
+
+func (r *fakeUserRepository) Create(ctx context.Context, q repository.Querier, user *model.UserModel) (model.UserID, error) {
+	r.calls = append(r.calls, "Create")
+	r.gotCreated = user
+	return r.createID, r.createErr
 }
 
 func (r *fakeUserRepository) FindAll(ctx context.Context, q repository.Querier) ([]*model.UserModel, error) {
@@ -64,6 +79,7 @@ func (r *fakeUserRepository) FindByName(ctx context.Context, q repository.Querie
 }
 
 func (r *fakeUserRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.UserID) (*model.User, error) {
+	r.calls = append(r.calls, "FindWithDetailsByID")
 	r.gotID = id
 	return r.userDetails, r.err
 }
@@ -74,9 +90,16 @@ func (r *fakeUserRepository) FindWithDetailsByName(ctx context.Context, q reposi
 }
 
 type fakeThemeRepository struct {
-	theme     *model.ThemeModel
-	err       error
-	gotUserID model.UserID
+	theme      *model.ThemeModel
+	err        error
+	gotUserID  model.UserID
+	createErr  error
+	gotCreated *model.ThemeModel
+}
+
+func (r *fakeThemeRepository) Create(ctx context.Context, q repository.Querier, theme *model.ThemeModel) error {
+	r.gotCreated = theme
+	return r.createErr
 }
 
 func (r *fakeThemeRepository) FindByUserID(ctx context.Context, q repository.Querier, userID model.UserID) (*model.ThemeModel, error) {
@@ -533,4 +556,15 @@ func (l *fakeLogger) Warnf(format string, args ...interface{}) {
 
 func (l *fakeLogger) Infof(format string, args ...interface{}) {
 	l.lines = append(l.lines, fmt.Sprintf(format, args...))
+}
+
+type fakeDNSRecordRegistrar struct {
+	err error
+
+	gotNames []string
+}
+
+func (r *fakeDNSRecordRegistrar) AddRecord(name string) error {
+	r.gotNames = append(r.gotNames, name)
+	return r.err
 }

@@ -5,6 +5,7 @@ import (
 	"os"
 
 	infra "github.com/isucon/isucon13/webapp/go/infra/mysql"
+	"github.com/isucon/isucon13/webapp/go/infra/powerdns"
 	"github.com/isucon/isucon13/webapp/go/interfaces/http/handler"
 	"github.com/isucon/isucon13/webapp/go/usecase"
 	"github.com/jmoiron/sqlx"
@@ -25,7 +26,7 @@ type handlers struct {
 }
 
 // newHandlers は repository・usecase・handler を組み立てる。
-func newHandlers(db *sqlx.DB, fallbackImagePath string, logger usecase.Logger) (*handlers, error) {
+func newHandlers(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress string, logger usecase.Logger) (*handlers, error) {
 	fallbackIcon, err := os.ReadFile(fallbackImagePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read fallback image: %w", err)
@@ -47,7 +48,9 @@ func newHandlers(db *sqlx.DB, fallbackImagePath string, logger usecase.Logger) (
 
 	tagUsecase := usecase.NewTagUsecase(txManager, tagRepo)
 	themeUsecase := usecase.NewThemeUsecase(txManager, userRepo, themeRepo)
-	userUsecase := usecase.NewUserUsecase(txManager, userRepo)
+	dnsRegistrar := powerdns.NewDNSRecordRegistrar(powerDNSSubdomainAddress)
+
+	userUsecase := usecase.NewUserUsecase(txManager, userRepo, themeRepo, dnsRegistrar)
 	iconUsecase := usecase.NewIconUsecase(txManager, userRepo, iconRepo)
 	livestreamUsecase := usecase.NewLivestreamUsecase(txManager, userRepo, tagRepo, livestreamRepo, reservationSlotRepo, logger)
 	reactionUsecase := usecase.NewReactionUsecase(txManager, reactionRepo)

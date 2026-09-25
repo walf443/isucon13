@@ -28,9 +28,9 @@ const (
 )
 
 var (
-	powerDNSSubdomainAddress string
-	dbConn                   *sqlx.DB
-	secret                   = []byte("isucon13_session_cookiestore_defaultsecret")
+	dbConn        *sqlx.DB
+	secret        = []byte("isucon13_session_cookiestore_defaultsecret")
+	fallbackImage = "../img/NoImage.jpg"
 )
 
 func init() {
@@ -137,7 +137,14 @@ func main() {
 	defer conn.Close()
 	dbConn = conn
 
-	h, err := newHandlers(dbConn, fallbackImage, e.Logger)
+	// ユーザ登録で使うので、handler を組み立てる前に読み込む
+	subdomainAddr, ok := os.LookupEnv(powerDNSSubdomainAddressEnvKey)
+	if !ok {
+		e.Logger.Errorf("environ %s must be provided", powerDNSSubdomainAddressEnvKey)
+		os.Exit(1)
+	}
+
+	h, err := newHandlers(dbConn, fallbackImage, subdomainAddr, e.Logger)
 	if err != nil {
 		e.Logger.Errorf("failed to initialize handlers: %v", err)
 		os.Exit(1)
@@ -145,13 +152,6 @@ func main() {
 	registerRoutes(e, h)
 
 	e.HTTPErrorHandler = errorResponseHandler
-
-	subdomainAddr, ok := os.LookupEnv(powerDNSSubdomainAddressEnvKey)
-	if !ok {
-		e.Logger.Errorf("environ %s must be provided", powerDNSSubdomainAddressEnvKey)
-		os.Exit(1)
-	}
-	powerDNSSubdomainAddress = subdomainAddr
 
 	// HTTPサーバ起動
 	listenAddr := net.JoinHostPort("", strconv.Itoa(listenPort))

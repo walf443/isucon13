@@ -85,3 +85,15 @@ func (r *userRepository) FindAll(ctx context.Context, q repository.Querier) ([]*
 	}
 	return users, nil
 }
+
+func (r *userRepository) Create(ctx context.Context, q repository.Querier, user *model.UserModel) (model.UserID, error) {
+	result, err := q.ExecContext(ctx, "INSERT INTO users (name, display_name, description, password) VALUES(?, ?, ?, ?)", user.Name, user.DisplayName, user.Description, user.HashedPassword)
+	if err != nil {
+		return 0, err
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	return model.UserID(id), nil
+}

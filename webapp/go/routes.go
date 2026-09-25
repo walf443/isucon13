@@ -41,8 +41,8 @@ func registerRoutes(e *echo.Echo, h *handlers) {
 	e.DELETE("/api/livestream/:livestream_id/exit", h.viewer.ExitLivestream)
 
 	// user
-	e.POST("/api/register", registerHandler)
-	e.POST("/api/login", loginHandler)
+	e.POST("/api/register", h.user.Register)
+	e.POST("/api/login", h.user.Login)
 	e.GET("/api/user/me", h.user.GetMe)
 	// フロントエンドで、配信予約のコラボレーターを指定する際に必要
 	e.GET("/api/user/:username", h.user.GetUser)

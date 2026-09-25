@@ -97,3 +97,33 @@ func TestUserRepository_FindByID_NotFound(t *testing.T) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
 	}
 }
+
+func TestUserRepository_CreateAndThemeRepository_Create(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+	userRepo := NewUserRepository([]byte("fallback"))
+
+	id, err := userRepo.Create(ctx, tx, &model.UserModel{Name: "alice", DisplayName: "Alice", Description: "hello", HashedPassword: "hashed"})
+	if err != nil {
+		t.Fatalf("Create returned error: %v", err)
+	}
+	if err := NewThemeRepository().Create(ctx, tx, &model.ThemeModel{UserID: id, DarkMode: true}); err != nil {
+		t.Fatalf("theme Create returned error: %v", err)
+	}
+
+	got, err := userRepo.FindWithDetailsByID(ctx, tx, id)
+	if err != nil {
+		t.Fatalf("FindWithDetailsByID returned error: %v", err)
+	}
+	if got.ID != id || got.Name != "alice" || got.DisplayName != "Alice" || got.Description != "hello" || got.Theme.UserID != id || !got.Theme.DarkMode {
+		t.Errorf("user = %+v", got)
+	}
+	if userModel, err := userRepo.FindByID(ctx, tx, id); err != nil || userModel.HashedPassword != "hashed" {
+		t.Errorf("FindByID = %+v, %v", userModel, err)
+	}
+
+	// ユーザ名は UNIQUE なので重複登録はエラー (移行前と同じく 500 になる)
+	if _, err := userRepo.Create(ctx, tx, &model.UserModel{Name: "alice", HashedPassword: "hashed"}); err == nil {
+		t.Error("expected error on duplicate name")
+	}
+}
