@@ -52,7 +52,7 @@ func registerRoutes(e *echo.Echo, h *handlers) {
 
 	// stats
 	// ライブ配信統計情報
-	e.GET("/api/livestream/:livestream_id/statistics", getLivestreamStatisticsHandler)
+	e.GET("/api/livestream/:livestream_id/statistics", h.statistics.GetLivestreamStatistics)
 
 	// 課金情報
 	e.GET("/api/payment", GetPaymentResult)

@@ -16,6 +16,10 @@ type LivecommentRepository interface {
 	FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q Querier, livestreamID model.LivestreamID, limit int64) ([]*model.Livecomment, error)
 	// FindAllByLivestreamID は指定したライブ配信へのライブコメントを返す (順序は不定)。
 	FindAllByLivestreamID(ctx context.Context, q Querier, livestreamID model.LivestreamID) ([]*model.LivecommentModel, error)
+	// SumTipByLivestreamID は指定したライブ配信へのライブコメントのチップ合計を返す。
+	SumTipByLivestreamID(ctx context.Context, q Querier, livestreamID model.LivestreamID) (int64, error)
+	// MaxTipByLivestreamID は指定したライブ配信へのライブコメントのチップの最大値を返す。ライブコメントが無い場合は 0 を返す。
+	MaxTipByLivestreamID(ctx context.Context, q Querier, livestreamID model.LivestreamID) (int64, error)
 	// SumTipByLivestreamOwnerID は指定したユーザが配信者のライブ配信へのライブコメントのチップ合計を返す。
 	SumTipByLivestreamOwnerID(ctx context.Context, q Querier, userID model.UserID) (int64, error)
 	// FindByID はライブコメントが存在しない場合 ErrNotFound を返す。

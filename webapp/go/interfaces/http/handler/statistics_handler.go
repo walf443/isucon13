@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/usecase"
@@ -26,6 +27,24 @@ func newUserStatistics(s *model.UserStatistics) UserStatistics {
 		TotalLivecomments: s.TotalLivecomments,
 		TotalTip:          s.TotalTip,
 		FavoriteEmoji:     s.FavoriteEmoji,
+	}
+}
+
+type LivestreamStatistics struct {
+	Rank           int64 `json:"rank"`
+	ViewersCount   int64 `json:"viewers_count"`
+	TotalReactions int64 `json:"total_reactions"`
+	TotalReports   int64 `json:"total_reports"`
+	MaxTip         int64 `json:"max_tip"`
+}
+
+func newLivestreamStatistics(s *model.LivestreamStatistics) LivestreamStatistics {
+	return LivestreamStatistics{
+		Rank:           s.Rank,
+		ViewersCount:   s.ViewersCount,
+		TotalReactions: s.TotalReactions,
+		TotalReports:   s.TotalReports,
+		MaxTip:         s.MaxTip,
 	}
 }
 
@@ -58,4 +77,29 @@ func (h *StatisticsHandler) GetUserStatistics(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, newUserStatistics(stats))
+}
+
+// GET /api/livestream/:livestream_id/statistics
+func (h *StatisticsHandler) GetLivestreamStatistics(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	if err := VerifyUserSession(c); err != nil {
+		return err
+	}
+
+	id, err := strconv.Atoi(c.Param("livestream_id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
+	}
+
+	stats, err := h.statisticsUsecase.FindLivestreamStatistics(ctx, model.LivestreamID(id))
+	if errors.Is(err, usecase.ErrLivestreamNotFound) {
+		// 404 ではなく 400 (移行前と同じ)
+		return echo.NewHTTPError(http.StatusBadRequest, "cannot get stats of not found livestream")
+	}
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, newLivestreamStatistics(stats))
 }

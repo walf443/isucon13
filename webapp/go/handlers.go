@@ -54,7 +54,7 @@ func newHandlers(db *sqlx.DB, fallbackImagePath string, logger usecase.Logger) (
 	livecommentUsecase := usecase.NewLivecommentUsecase(txManager, livestreamRepo, livecommentRepo, livecommentReportRepo, ngWordRepo, logger)
 	ngWordUsecase := usecase.NewNGWordUsecase(txManager, livestreamRepo, livecommentRepo, ngWordRepo)
 	viewerUsecase := usecase.NewLivestreamViewerUsecase(txManager, viewerRepo)
-	statisticsUsecase := usecase.NewStatisticsUsecase(txManager, userRepo, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo)
+	statisticsUsecase := usecase.NewStatisticsUsecase(txManager, userRepo, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo, livecommentReportRepo)
 
 	return &handlers{
 		tag:         handler.NewTagHandler(tagUsecase),

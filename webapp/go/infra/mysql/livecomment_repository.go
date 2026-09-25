@@ -124,3 +124,19 @@ func (r *livecommentRepository) SumTipByLivestreamOwnerID(ctx context.Context, q
 	}
 	return tips, nil
 }
+
+func (r *livecommentRepository) SumTipByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+	var totalTips int64
+	if err := q.GetContext(ctx, &totalTips, "SELECT IFNULL(SUM(l2.tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l.id = l2.livestream_id WHERE l.id = ?", livestreamID); err != nil {
+		return 0, err
+	}
+	return totalTips, nil
+}
+
+func (r *livecommentRepository) MaxTipByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+	var maxTip int64
+	if err := q.GetContext(ctx, &maxTip, `SELECT IFNULL(MAX(tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l2.livestream_id = l.id WHERE l.id = ?`, livestreamID); err != nil {
+		return 0, err
+	}
+	return maxTip, nil
+}

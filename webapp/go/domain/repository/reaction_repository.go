@@ -16,6 +16,12 @@ type ReactionRepository interface {
 	FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q Querier, livestreamID model.LivestreamID, limit int64) ([]*model.Reaction, error)
 	// Create はリアクションを登録し、その ID を返す。
 	Create(ctx context.Context, q Querier, reaction *model.ReactionModel) (model.ReactionID, error)
+	// CountByLivestreamID は指定したライブ配信へのリアクション数を返す。
+	CountByLivestreamID(ctx context.Context, q Querier, livestreamID model.LivestreamID) (int64, error)
+	// CountTotalByLivestreamID は CountByLivestreamID と同じくライブ配信へのリアクション数を返す。
+	// 移行前はライブ配信統計のランキング算出と総リアクション数で JOIN 条件の書き方が違うクエリを使っていたので、
+	// クエリ文字列を保つために分けている。
+	CountTotalByLivestreamID(ctx context.Context, q Querier, livestreamID model.LivestreamID) (int64, error)
 	// CountByLivestreamOwnerID は指定したユーザが配信者のライブ配信へのリアクション数を返す。
 	CountByLivestreamOwnerID(ctx context.Context, q Querier, userID model.UserID) (int64, error)
 	// CountByLivestreamOwnerName は指定した名前のユーザが配信者のライブ配信へのリアクション数を返す。

@@ -54,3 +54,11 @@ func (r *livecommentReportRepository) Create(ctx context.Context, q repository.Q
 	}
 	return model.LivecommentReportID(id), nil
 }
+
+func (r *livecommentReportRepository) CountByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+	var totalReports int64
+	if err := q.GetContext(ctx, &totalReports, `SELECT COUNT(*) FROM livestreams l INNER JOIN livecomment_reports r ON r.livestream_id = l.id WHERE l.id = ?`, livestreamID); err != nil {
+		return 0, err
+	}
+	return totalReports, nil
+}

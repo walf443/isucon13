@@ -39,7 +39,7 @@ func newTestUserStatisticsRepos() (*fakeUserRepository, *fakeLivestreamRepositor
 
 func TestStatisticsUsecase_FindUserStatistics(t *testing.T) {
 	userRepo, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo := newTestUserStatisticsRepos()
-	u := NewStatisticsUsecase(&fakeTxManager{}, userRepo, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo)
+	u := NewStatisticsUsecase(&fakeTxManager{}, userRepo, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo, &fakeLivecommentReportRepository{})
 
 	got, err := u.FindUserStatistics(context.Background(), "bob")
 	if err != nil {
@@ -69,7 +69,7 @@ func TestStatisticsUsecase_FindUserStatistics_NoReactions(t *testing.T) {
 	userRepo, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo := newTestUserStatisticsRepos()
 	reactionRepo.favoriteEmoji = ""
 	reactionRepo.favoriteEmojiErr = repository.ErrNotFound
-	u := NewStatisticsUsecase(&fakeTxManager{}, userRepo, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo)
+	u := NewStatisticsUsecase(&fakeTxManager{}, userRepo, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo, &fakeLivecommentReportRepository{})
 
 	// リアクションが無い場合はエラーにせず、お気に入り絵文字を空にする (移行前と同じ)
 	got, err := u.FindUserStatistics(context.Background(), "bob")
@@ -175,9 +175,154 @@ func TestStatisticsUsecase_FindUserStatistics_Errors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			userRepo, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo := newTestUserStatisticsRepos()
 			tt.modify(userRepo, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo)
-			u := NewStatisticsUsecase(&fakeTxManager{}, userRepo, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo)
+			u := NewStatisticsUsecase(&fakeTxManager{}, userRepo, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo, &fakeLivecommentReportRepository{})
 
 			_, err := u.FindUserStatistics(context.Background(), "bob")
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("err = %v, want %v", err, tt.wantErr)
+			}
+			if tt.wantMsg != "" && err.Error() != tt.wantMsg {
+				t.Errorf("err = %q, want %q", err.Error(), tt.wantMsg)
+			}
+		})
+	}
+}
+
+func newTestLivestreamStatisticsRepos() (*fakeLivestreamRepository, *fakeLivecommentRepository, *fakeReactionRepository, *fakeLivestreamViewersHistoryRepository, *fakeLivecommentReportRepository) {
+	livestreamRepo := &fakeLivestreamRepository{
+		livestreamModel:  &model.LivestreamModel{ID: 11},
+		livestreamModels: []*model.LivestreamModel{{ID: 10}, {ID: 11}, {ID: 12}},
+	}
+	// スコアは リアクション数 + チップ合計: 10 → 30, 11 → 30, 12 → 5
+	livecommentRepo := &fakeLivecommentRepository{
+		tipsByLivestreamID: map[model.LivestreamID]int64{10: 20, 11: 25, 12: 5},
+		maxTip:             20,
+	}
+	reactionRepo := &fakeReactionRepository{
+		countsByLivestreamID: map[model.LivestreamID]int64{10: 10, 11: 5, 12: 0},
+		totalByLivestreamID:  5,
+	}
+	viewerRepo := &fakeLivestreamViewersHistoryRepository{viewersCount: 7}
+	reportRepo := &fakeLivecommentReportRepository{reportCount: 2}
+	return livestreamRepo, livecommentRepo, reactionRepo, viewerRepo, reportRepo
+}
+
+func TestStatisticsUsecase_FindLivestreamStatistics(t *testing.T) {
+	livestreamRepo, livecommentRepo, reactionRepo, viewerRepo, reportRepo := newTestLivestreamStatisticsRepos()
+	u := NewStatisticsUsecase(&fakeTxManager{}, &fakeUserRepository{}, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo, reportRepo)
+
+	got, err := u.FindLivestreamStatistics(context.Background(), 11)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := model.LivestreamStatistics{
+		// ID 10 と同点だが、ID の昇順で後ろの 11 が上位になる
+		Rank:           1,
+		ViewersCount:   7,
+		TotalReactions: 5,
+		TotalReports:   2,
+		MaxTip:         20,
+	}
+	if *got != want {
+		t.Errorf("got %+v, want %+v", *got, want)
+	}
+	if want := []string{"FindByID", "FindAll"}; !slices.Equal(livestreamRepo.calls, want) {
+		t.Errorf("livestream calls = %v, want %v", livestreamRepo.calls, want)
+	}
+	if livestreamRepo.gotID != 11 || viewerRepo.gotViewersLivestream != 11 || livecommentRepo.gotMaxTipLivestreamID != 11 || reactionRepo.gotTotalLivestreamID != 11 || reportRepo.gotLivestreamID != 11 {
+		t.Errorf("livestream ids = %d, %d, %d, %d, %d, want 11", livestreamRepo.gotID, viewerRepo.gotViewersLivestream, livecommentRepo.gotMaxTipLivestreamID, reactionRepo.gotTotalLivestreamID, reportRepo.gotLivestreamID)
+	}
+}
+
+func TestStatisticsUsecase_FindLivestreamStatistics_Errors(t *testing.T) {
+	boom := errors.New("boom")
+
+	tests := []struct {
+		name    string
+		modify  func(*fakeLivestreamRepository, *fakeLivecommentRepository, *fakeReactionRepository, *fakeLivestreamViewersHistoryRepository, *fakeLivecommentReportRepository)
+		wantErr error
+		wantMsg string
+	}{
+		{
+			name: "livestream not found",
+			modify: func(lsr *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository, _ *fakeLivecommentReportRepository) {
+				lsr.err = repository.ErrNotFound
+			},
+			wantErr: ErrLivestreamNotFound,
+		},
+		{
+			name: "get livestream fails",
+			modify: func(lsr *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository, _ *fakeLivecommentReportRepository) {
+				lsr.err = boom
+			},
+			wantErr: boom,
+			wantMsg: "failed to get livestream: boom",
+		},
+		{
+			name: "get livestreams fails",
+			modify: func(lsr *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository, _ *fakeLivecommentReportRepository) {
+				lsr.findAllErr = boom
+			},
+			wantErr: boom,
+			wantMsg: "failed to get livestreams: boom",
+		},
+		{
+			name: "count reactions fails",
+			modify: func(_ *fakeLivestreamRepository, _ *fakeLivecommentRepository, rr *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository, _ *fakeLivecommentReportRepository) {
+				rr.countByLivestreamErr = boom
+			},
+			wantErr: boom,
+			wantMsg: "failed to count reactions: boom",
+		},
+		{
+			name: "count tips fails",
+			modify: func(_ *fakeLivestreamRepository, lr *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository, _ *fakeLivecommentReportRepository) {
+				lr.sumTipByLivestreamErr = boom
+			},
+			wantErr: boom,
+			wantMsg: "failed to count tips: boom",
+		},
+		{
+			name: "count viewers fails",
+			modify: func(_ *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, vr *fakeLivestreamViewersHistoryRepository, _ *fakeLivecommentReportRepository) {
+				vr.viewersCountErr = boom
+			},
+			wantErr: boom,
+			wantMsg: "failed to count livestream viewers: boom",
+		},
+		{
+			name: "max tip fails",
+			modify: func(_ *fakeLivestreamRepository, lr *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository, _ *fakeLivecommentReportRepository) {
+				lr.maxTipErr = boom
+			},
+			wantErr: boom,
+			wantMsg: "failed to find maximum tip livecomment: boom",
+		},
+		{
+			name: "count total reactions fails",
+			modify: func(_ *fakeLivestreamRepository, _ *fakeLivecommentRepository, rr *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository, _ *fakeLivecommentReportRepository) {
+				rr.totalByLivestreamErr = boom
+			},
+			wantErr: boom,
+			wantMsg: "failed to count total reactions: boom",
+		},
+		{
+			name: "count reports fails",
+			modify: func(_ *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository, rpr *fakeLivecommentReportRepository) {
+				rpr.reportCountErr = boom
+			},
+			wantErr: boom,
+			wantMsg: "failed to count total spam reports: boom",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			livestreamRepo, livecommentRepo, reactionRepo, viewerRepo, reportRepo := newTestLivestreamStatisticsRepos()
+			tt.modify(livestreamRepo, livecommentRepo, reactionRepo, viewerRepo, reportRepo)
+			u := NewStatisticsUsecase(&fakeTxManager{}, &fakeUserRepository{}, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo, reportRepo)
+
+			_, err := u.FindLivestreamStatistics(context.Background(), 11)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
 			}

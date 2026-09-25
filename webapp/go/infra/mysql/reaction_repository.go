@@ -113,3 +113,19 @@ func (r *reactionRepository) FindFavoriteEmojiByLivestreamOwnerName(ctx context.
 	}
 	return favoriteEmoji, nil
 }
+
+func (r *reactionRepository) CountByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+	var reactions int64
+	if err := q.GetContext(ctx, &reactions, "SELECT COUNT(*) FROM livestreams l INNER JOIN reactions r ON l.id = r.livestream_id WHERE l.id = ?", livestreamID); err != nil {
+		return 0, err
+	}
+	return reactions, nil
+}
+
+func (r *reactionRepository) CountTotalByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+	var totalReactions int64
+	if err := q.GetContext(ctx, &totalReactions, "SELECT COUNT(*) FROM livestreams l INNER JOIN reactions r ON r.livestream_id = l.id WHERE l.id = ?", livestreamID); err != nil {
+		return 0, err
+	}
+	return totalReactions, nil
+}

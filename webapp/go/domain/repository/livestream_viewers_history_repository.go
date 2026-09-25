@@ -13,4 +13,7 @@ type LivestreamViewersHistoryRepository interface {
 	DeleteByUserIDAndLivestreamID(ctx context.Context, q Querier, userID model.UserID, livestreamID model.LivestreamID) error
 	// CountByLivestreamID はライブ配信の視聴履歴の件数を返す。
 	CountByLivestreamID(ctx context.Context, q Querier, livestreamID model.LivestreamID) (int64, error)
+	// CountViewersByLivestreamID は CountByLivestreamID と同じくライブ配信の視聴履歴の件数を返すが、
+	// ライブ配信統計で使っていた livestreams と JOIN するクエリのままにしている (ライブ配信が存在しない場合は 0)。
+	CountViewersByLivestreamID(ctx context.Context, q Querier, livestreamID model.LivestreamID) (int64, error)
 }

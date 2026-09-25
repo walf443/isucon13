@@ -14,6 +14,9 @@ type StatisticsUsecase interface {
 	// FindUserStatistics は指定したユーザの配信者としての統計情報を返す。
 	// ユーザが存在しない場合 ErrUserNotFound を返す。
 	FindUserStatistics(ctx context.Context, username string) (*model.UserStatistics, error)
+	// FindLivestreamStatistics は指定したライブ配信の統計情報を返す。
+	// ライブ配信が存在しない場合 ErrLivestreamNotFound を返す。
+	FindLivestreamStatistics(ctx context.Context, livestreamID model.LivestreamID) (*model.LivestreamStatistics, error)
 }
 
 type statisticsUsecase struct {
@@ -23,9 +26,10 @@ type statisticsUsecase struct {
 	livecommentRepo repository.LivecommentRepository
 	reactionRepo    repository.ReactionRepository
 	viewerRepo      repository.LivestreamViewersHistoryRepository
+	reportRepo      repository.LivecommentReportRepository
 }
 
-func NewStatisticsUsecase(txManager repository.TxManager, userRepo repository.UserRepository, livestreamRepo repository.LivestreamRepository, livecommentRepo repository.LivecommentRepository, reactionRepo repository.ReactionRepository, viewerRepo repository.LivestreamViewersHistoryRepository) StatisticsUsecase {
+func NewStatisticsUsecase(txManager repository.TxManager, userRepo repository.UserRepository, livestreamRepo repository.LivestreamRepository, livecommentRepo repository.LivecommentRepository, reactionRepo repository.ReactionRepository, viewerRepo repository.LivestreamViewersHistoryRepository, reportRepo repository.LivecommentReportRepository) StatisticsUsecase {
 	return &statisticsUsecase{
 		txManager:       txManager,
 		userRepo:        userRepo,
@@ -33,6 +37,7 @@ func NewStatisticsUsecase(txManager repository.TxManager, userRepo repository.Us
 		livecommentRepo: livecommentRepo,
 		reactionRepo:    reactionRepo,
 		viewerRepo:      viewerRepo,
+		reportRepo:      reportRepo,
 	}
 }
 
@@ -125,6 +130,83 @@ func (u *statisticsUsecase) FindUserStatistics(ctx context.Context, username str
 			TotalLivecomments: totalLivecomments,
 			TotalTip:          totalTip,
 			FavoriteEmoji:     favoriteEmoji,
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return stats, nil
+}
+
+func (u *statisticsUsecase) FindLivestreamStatistics(ctx context.Context, livestreamID model.LivestreamID) (*model.LivestreamStatistics, error) {
+	var stats *model.LivestreamStatistics
+	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
+		_, err := u.livestreamRepo.FindByID(ctx, q, livestreamID)
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrLivestreamNotFound
+		}
+		if err != nil {
+			return fmt.Errorf("failed to get livestream: %w", err)
+		}
+
+		livestreams, err := u.livestreamRepo.FindAll(ctx, q)
+		if err != nil {
+			return fmt.Errorf("failed to get livestreams: %w", err)
+		}
+
+		// ランク算出
+		var ranking model.LivestreamRanking
+		for _, livestream := range livestreams {
+			reactions, err := u.reactionRepo.CountByLivestreamID(ctx, q, livestream.ID)
+			if err != nil {
+				return fmt.Errorf("failed to count reactions: %w", err)
+			}
+
+			totalTips, err := u.livecommentRepo.SumTipByLivestreamID(ctx, q, livestream.ID)
+			if err != nil {
+				return fmt.Errorf("failed to count tips: %w", err)
+			}
+
+			score := reactions + totalTips
+			ranking = append(ranking, model.LivestreamRankingEntry{
+				LivestreamID: livestream.ID,
+				Score:        score,
+			})
+		}
+		sort.Sort(ranking)
+		rank := ranking.RankOf(livestreamID)
+
+		// 視聴者数算出
+		viewersCount, err := u.viewerRepo.CountViewersByLivestreamID(ctx, q, livestreamID)
+		if err != nil {
+			return fmt.Errorf("failed to count livestream viewers: %w", err)
+		}
+
+		// 最大チップ額
+		maxTip, err := u.livecommentRepo.MaxTipByLivestreamID(ctx, q, livestreamID)
+		if err != nil {
+			return fmt.Errorf("failed to find maximum tip livecomment: %w", err)
+		}
+
+		// リアクション数
+		totalReactions, err := u.reactionRepo.CountTotalByLivestreamID(ctx, q, livestreamID)
+		if err != nil {
+			return fmt.Errorf("failed to count total reactions: %w", err)
+		}
+
+		// スパム報告数
+		totalReports, err := u.reportRepo.CountByLivestreamID(ctx, q, livestreamID)
+		if err != nil {
+			return fmt.Errorf("failed to count total spam reports: %w", err)
+		}
+
+		stats = &model.LivestreamStatistics{
+			Rank:           rank,
+			ViewersCount:   viewersCount,
+			TotalReactions: totalReactions,
+			TotalReports:   totalReports,
+			MaxTip:         maxTip,
 		}
 		return nil
 	})

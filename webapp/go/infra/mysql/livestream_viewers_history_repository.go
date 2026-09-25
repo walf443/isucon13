@@ -30,3 +30,11 @@ func (r *livestreamViewersHistoryRepository) CountByLivestreamID(ctx context.Con
 	}
 	return cnt, nil
 }
+
+func (r *livestreamViewersHistoryRepository) CountViewersByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+	var viewersCount int64
+	if err := q.GetContext(ctx, &viewersCount, `SELECT COUNT(*) FROM livestreams l INNER JOIN livestream_viewers_history h ON h.livestream_id = l.id WHERE l.id = ?`, livestreamID); err != nil {
+		return 0, err
+	}
+	return viewersCount, nil
+}
