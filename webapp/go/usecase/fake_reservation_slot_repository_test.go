@@ -7,34 +7,24 @@ import (
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
 )
 
+// fakeReservationSlotRepository はテストで設定した関数に処理を委ねる ReservationSlotRepository。
+// 関数を設定していないメソッドを呼ぶと panic する (埋め込んだインターフェースは nil)。
 type fakeReservationSlotRepository struct {
-	slots []*model.ReservationSlotModel
-	// counts は FindSlotByStartAtAndEndAt が返す残数 (キーは開始時刻)
-	counts       map[int64]int64
-	findAllErr   error
-	findSlotErr  error
-	decrementErr error
+	repository.ReservationSlotRepository
 
-	calls      []string
-	gotStartAt int64
-	gotEndAt   int64
+	findAllByRangeForUpdate   func(ctx context.Context, q repository.Querier, startAt int64, endAt int64) ([]*model.ReservationSlotModel, error)
+	findSlotByStartAtAndEndAt func(ctx context.Context, q repository.Querier, startAt int64, endAt int64) (int64, error)
+	decrementSlotsByRange     func(ctx context.Context, q repository.Querier, startAt int64, endAt int64) error
 }
 
 func (r *fakeReservationSlotRepository) FindAllByRangeForUpdate(ctx context.Context, q repository.Querier, startAt int64, endAt int64) ([]*model.ReservationSlotModel, error) {
-	r.calls = append(r.calls, "FindAllByRangeForUpdate")
-	r.gotStartAt = startAt
-	r.gotEndAt = endAt
-	return r.slots, r.findAllErr
+	return r.findAllByRangeForUpdate(ctx, q, startAt, endAt)
 }
 
 func (r *fakeReservationSlotRepository) FindSlotByStartAtAndEndAt(ctx context.Context, q repository.Querier, startAt int64, endAt int64) (int64, error) {
-	r.calls = append(r.calls, "FindSlotByStartAtAndEndAt")
-	return r.counts[startAt], r.findSlotErr
+	return r.findSlotByStartAtAndEndAt(ctx, q, startAt, endAt)
 }
 
 func (r *fakeReservationSlotRepository) DecrementSlotsByRange(ctx context.Context, q repository.Querier, startAt int64, endAt int64) error {
-	r.calls = append(r.calls, "DecrementSlotsByRange")
-	r.gotStartAt = startAt
-	r.gotEndAt = endAt
-	return r.decrementErr
+	return r.decrementSlotsByRange(ctx, q, startAt, endAt)
 }

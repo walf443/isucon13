@@ -283,16 +283,53 @@ var testReserveInput = ReserveLivestreamInput{
 	EndAt:        1700881200,
 }
 
+// reservationSlotResults は予約の処理で予約枠の repository が返す値。
+type reservationSlotResults struct {
+	slots []*model.ReservationSlotModel
+	// counts は FindSlotByStartAtAndEndAt が返す残数 (キーは開始時刻)
+	counts       map[int64]int64
+	findAllErr   error
+	findSlotErr  error
+	decrementErr error
+}
+
+// newReservationSlotRepositoryForReserve は results を返し、呼ばれたメソッドを順に calls へ記録する fakeReservationSlotRepository を返す。
+// 予約枠の検索・残数の減算は予約区間 startAt 〜 endAt で呼ばれることを確認する。
+func newReservationSlotRepositoryForReserve(t *testing.T, calls *[]string, results reservationSlotResults, startAt, endAt int64) *fakeReservationSlotRepository {
+	checkRange := func(method string, gotStartAt, gotEndAt int64) {
+		if gotStartAt != startAt || gotEndAt != endAt {
+			t.Errorf("%s range = %d ~ %d, want %d ~ %d", method, gotStartAt, gotEndAt, startAt, endAt)
+		}
+	}
+	return &fakeReservationSlotRepository{
+		findAllByRangeForUpdate: func(_ context.Context, _ repository.Querier, gotStartAt int64, gotEndAt int64) ([]*model.ReservationSlotModel, error) {
+			*calls = append(*calls, "FindAllByRangeForUpdate")
+			checkRange("FindAllByRangeForUpdate", gotStartAt, gotEndAt)
+			return results.slots, results.findAllErr
+		},
+		findSlotByStartAtAndEndAt: func(_ context.Context, _ repository.Querier, slotStartAt int64, _ int64) (int64, error) {
+			*calls = append(*calls, "FindSlotByStartAtAndEndAt")
+			return results.counts[slotStartAt], results.findSlotErr
+		},
+		decrementSlotsByRange: func(_ context.Context, _ repository.Querier, gotStartAt int64, gotEndAt int64) error {
+			*calls = append(*calls, "DecrementSlotsByRange")
+			checkRange("DecrementSlotsByRange", gotStartAt, gotEndAt)
+			return results.decrementErr
+		},
+	}
+}
+
 func TestLivestreamUsecase_Reserve(t *testing.T) {
 	want := &model.Livestream{ID: 100, Title: "stream"}
 	livestreamRepo := &fakeLivestreamRepository{createID: 100, livestream: want}
-	slotRepo := &fakeReservationSlotRepository{
+	var slotCalls []string
+	slotRepo := newReservationSlotRepositoryForReserve(t, &slotCalls, reservationSlotResults{
 		slots: []*model.ReservationSlotModel{
 			{Slot: 5, StartAt: 1700874000, EndAt: 1700877600},
 			{Slot: 3, StartAt: 1700877600, EndAt: 1700881200},
 		},
 		counts: map[int64]int64{1700874000: 5, 1700877600: 3},
-	}
+	}, testReserveInput.StartAt, testReserveInput.EndAt)
 	logger := &fakeLogger{}
 	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, livestreamRepo, slotRepo, logger)
 
@@ -303,11 +340,8 @@ func TestLivestreamUsecase_Reserve(t *testing.T) {
 	if got != want {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
-	if want := []string{"FindAllByRangeForUpdate", "FindSlotByStartAtAndEndAt", "FindSlotByStartAtAndEndAt", "DecrementSlotsByRange"}; !slices.Equal(slotRepo.calls, want) {
-		t.Errorf("slot calls = %v, want %v", slotRepo.calls, want)
-	}
-	if slotRepo.gotStartAt != 1700874000 || slotRepo.gotEndAt != 1700881200 {
-		t.Errorf("slot range = %d ~ %d", slotRepo.gotStartAt, slotRepo.gotEndAt)
+	if want := []string{"FindAllByRangeForUpdate", "FindSlotByStartAtAndEndAt", "FindSlotByStartAtAndEndAt", "DecrementSlotsByRange"}; !slices.Equal(slotCalls, want) {
+		t.Errorf("slot calls = %v, want %v", slotCalls, want)
 	}
 	// 予約枠ごとに残数をログに出す (移行前と同じ形式で、末尾の改行も含む)
 	if want := []string{"1700874000 ~ 1700877600予約枠の残数 = 5\n", "1700877600 ~ 1700881200予約枠の残数 = 3\n"}; !slices.Equal(logger.lines, want) {
@@ -354,7 +388,8 @@ func TestLivestreamUsecase_Reserve_TimeRange(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			slotRepo := &fakeReservationSlotRepository{}
+			var slotCalls []string
+			slotRepo := newReservationSlotRepositoryForReserve(t, &slotCalls, reservationSlotResults{}, tt.startAt, tt.endAt)
 			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, &fakeLivestreamRepository{}, slotRepo, &fakeLogger{})
 
 			input := testReserveInput
@@ -364,8 +399,8 @@ func TestLivestreamUsecase_Reserve_TimeRange(t *testing.T) {
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
 			}
-			if tt.wantErr != nil && len(slotRepo.calls) != 0 {
-				t.Errorf("slot calls = %v, want none", slotRepo.calls)
+			if tt.wantErr != nil && len(slotCalls) != 0 {
+				t.Errorf("slot calls = %v, want none", slotCalls)
 			}
 		})
 	}
@@ -381,7 +416,7 @@ func TestLivestreamUsecase_Reserve_Errors(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		slotRepo       *fakeReservationSlotRepository
+		slotResults    reservationSlotResults
 		livestreamRepo *fakeLivestreamRepository
 		wantErr        error
 		// wantUnavailable は *ReservationSlotUnavailableError を期待するかどうか
@@ -392,35 +427,35 @@ func TestLivestreamUsecase_Reserve_Errors(t *testing.T) {
 	}{
 		{
 			name:           "slot list fails",
-			slotRepo:       &fakeReservationSlotRepository{findAllErr: boom},
+			slotResults:    reservationSlotResults{findAllErr: boom},
 			livestreamRepo: &fakeLivestreamRepository{},
 			wantErr:        boom,
 			wantWarnLines:  []string{"予約枠一覧取得でエラー発生: boom"},
 		},
 		{
 			name:           "slot count fails",
-			slotRepo:       &fakeReservationSlotRepository{slots: slots, findSlotErr: boom},
+			slotResults:    reservationSlotResults{slots: slots, findSlotErr: boom},
 			livestreamRepo: &fakeLivestreamRepository{},
 			wantErr:        boom,
 		},
 		{
 			// 残数の判定は FOR UPDATE で取得した値ではなく、取り直した値で行う (移行前と同じ)
 			name:            "slot is full",
-			slotRepo:        &fakeReservationSlotRepository{slots: slots, counts: map[int64]int64{1700874000: 5, 1700877600: 0}},
+			slotResults:     reservationSlotResults{slots: slots, counts: map[int64]int64{1700874000: 5, 1700877600: 0}},
 			livestreamRepo:  &fakeLivestreamRepository{},
 			wantUnavailable: true,
 			wantLogLines:    []string{"1700874000 ~ 1700877600予約枠の残数 = 5\n", "1700877600 ~ 1700881200予約枠の残数 = 3\n"},
 		},
 		{
 			name:           "decrement fails",
-			slotRepo:       &fakeReservationSlotRepository{slots: slots, counts: available, decrementErr: boom},
+			slotResults:    reservationSlotResults{slots: slots, counts: available, decrementErr: boom},
 			livestreamRepo: &fakeLivestreamRepository{},
 			wantErr:        boom,
 			wantLogLines:   []string{"1700874000 ~ 1700877600予約枠の残数 = 5\n", "1700877600 ~ 1700881200予約枠の残数 = 3\n"},
 		},
 		{
 			name:                "create fails",
-			slotRepo:            &fakeReservationSlotRepository{slots: slots, counts: available},
+			slotResults:         reservationSlotResults{slots: slots, counts: available},
 			livestreamRepo:      &fakeLivestreamRepository{createErr: boom},
 			wantErr:             boom,
 			wantLivestreamCalls: []string{"Create"},
@@ -428,7 +463,7 @@ func TestLivestreamUsecase_Reserve_Errors(t *testing.T) {
 		},
 		{
 			name:                "add tag fails",
-			slotRepo:            &fakeReservationSlotRepository{slots: slots, counts: available},
+			slotResults:         reservationSlotResults{slots: slots, counts: available},
 			livestreamRepo:      &fakeLivestreamRepository{createID: 100, addTagErr: boom},
 			wantErr:             boom,
 			wantLivestreamCalls: []string{"Create", "AddTag"},
@@ -436,7 +471,7 @@ func TestLivestreamUsecase_Reserve_Errors(t *testing.T) {
 		},
 		{
 			name:                "fill fails",
-			slotRepo:            &fakeReservationSlotRepository{slots: slots, counts: available},
+			slotResults:         reservationSlotResults{slots: slots, counts: available},
 			livestreamRepo:      &fakeLivestreamRepository{createID: 100, err: boom},
 			wantErr:             boom,
 			wantLivestreamCalls: []string{"Create", "AddTag", "AddTag", "FindWithDetailsByID"},
@@ -447,7 +482,9 @@ func TestLivestreamUsecase_Reserve_Errors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			logger := &fakeLogger{}
-			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, tt.livestreamRepo, tt.slotRepo, logger)
+			var slotCalls []string
+			slotRepo := newReservationSlotRepositoryForReserve(t, &slotCalls, tt.slotResults, testReserveInput.StartAt, testReserveInput.EndAt)
+			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, tt.livestreamRepo, slotRepo, logger)
 			_, err := u.Reserve(context.Background(), 1, testReserveInput)
 			if tt.wantUnavailable {
 				unavailable, ok := errors.AsType[*ReservationSlotUnavailableError](err)
@@ -481,17 +518,19 @@ func TestLivestreamUsecase_Reserve_Errors(t *testing.T) {
 func TestLivestreamUsecase_Reserve_ErrorMessages(t *testing.T) {
 	boom := errors.New("boom")
 	tests := []struct {
-		name     string
-		slotRepo *fakeReservationSlotRepository
-		want     string
+		name        string
+		slotResults reservationSlotResults
+		want        string
 	}{
-		{name: "slot list", slotRepo: &fakeReservationSlotRepository{findAllErr: boom}, want: "failed to get reservation_slots: boom"},
-		{name: "slot count", slotRepo: &fakeReservationSlotRepository{slots: []*model.ReservationSlotModel{{StartAt: 1700874000, EndAt: 1700877600}}, findSlotErr: boom}, want: "failed to get reservation_slots: boom"},
-		{name: "decrement", slotRepo: &fakeReservationSlotRepository{decrementErr: boom}, want: "failed to update reservation_slot: boom"},
+		{name: "slot list", slotResults: reservationSlotResults{findAllErr: boom}, want: "failed to get reservation_slots: boom"},
+		{name: "slot count", slotResults: reservationSlotResults{slots: []*model.ReservationSlotModel{{StartAt: 1700874000, EndAt: 1700877600}}, findSlotErr: boom}, want: "failed to get reservation_slots: boom"},
+		{name: "decrement", slotResults: reservationSlotResults{decrementErr: boom}, want: "failed to update reservation_slot: boom"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, &fakeLivestreamRepository{}, tt.slotRepo, &fakeLogger{})
+			var slotCalls []string
+			slotRepo := newReservationSlotRepositoryForReserve(t, &slotCalls, tt.slotResults, testReserveInput.StartAt, testReserveInput.EndAt)
+			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{}, &fakeLivestreamRepository{}, slotRepo, &fakeLogger{})
 			_, err := u.Reserve(context.Background(), 1, testReserveInput)
 			if err == nil || err.Error() != tt.want {
 				t.Errorf("err = %v, want %q", err, tt.want)
