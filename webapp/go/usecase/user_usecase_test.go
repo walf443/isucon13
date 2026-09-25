@@ -159,12 +159,9 @@ func TestUserUsecase_Register(t *testing.T) {
 	if created.Name != "alice" || created.DisplayName != "Alice" || created.Description != "hello" {
 		t.Errorf("created = %+v", created)
 	}
-	// パスワードは bcrypt でハッシュ化して保存する
-	if err := bcrypt.CompareHashAndPassword([]byte(created.HashedPassword), []byte("s3cret")); err != nil {
-		t.Errorf("hashed password does not match: %v", err)
-	}
-	if cost, err := bcrypt.Cost([]byte(created.HashedPassword)); err != nil || cost != bcrypt.MinCost {
-		t.Errorf("bcrypt cost = %d, %v, want %d", cost, err, bcrypt.MinCost)
+	// パスワードはハッシュ化して保存する (ハッシュ化の方式は model.HashPassword のテストで確認している)
+	if matched, err := created.HashedPassword.Matches("s3cret"); err != nil || !matched {
+		t.Errorf("hashed password does not match: %v, %v", matched, err)
 	}
 	if want := (model.ThemeModel{UserID: 5, DarkMode: true}); createdTheme == nil || *createdTheme != want {
 		t.Errorf("theme = %+v, want %+v", createdTheme, want)
@@ -288,11 +285,11 @@ func TestUserUsecase_Register_Errors(t *testing.T) {
 }
 
 func TestUserUsecase_Login(t *testing.T) {
-	hashed, err := bcrypt.GenerateFromPassword([]byte("s3cret"), bcrypt.MinCost)
+	hashed, err := model.HashPassword("s3cret")
 	if err != nil {
 		t.Fatalf("failed to hash password: %v", err)
 	}
-	user := &model.UserModel{ID: 5, Name: "alice", HashedPassword: string(hashed)}
+	user := &model.UserModel{ID: 5, Name: "alice", HashedPassword: hashed}
 	boom := errors.New("boom")
 
 	tests := []struct {

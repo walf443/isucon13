@@ -7,10 +7,7 @@ import (
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
-	"golang.org/x/crypto/bcrypt"
 )
-
-const bcryptDefaultCost = bcrypt.MinCost
 
 type UserUsecase interface {
 	// FindByID はユーザが存在しない場合 ErrUserNotFound を返す。
@@ -82,7 +79,7 @@ func (u *userUsecase) Register(ctx context.Context, input RegisterUserInput) (*m
 		return nil, ErrReservedUsername
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcryptDefaultCost)
+	hashedPassword, err := model.HashPassword(input.Password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate hashed password: %w", err)
 	}
@@ -93,7 +90,7 @@ func (u *userUsecase) Register(ctx context.Context, input RegisterUserInput) (*m
 			Name:           input.Name,
 			DisplayName:    input.DisplayName,
 			Description:    input.Description,
-			HashedPassword: string(hashedPassword),
+			HashedPassword: hashedPassword,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to insert user: %w", err)
@@ -143,12 +140,12 @@ func (u *userUsecase) Login(ctx context.Context, username string, password strin
 	}
 
 	// 移行前と同じく、トランザクションをコミットしてからパスワードを検証する
-	err = bcrypt.CompareHashAndPassword([]byte(user.HashedPassword), []byte(password))
-	if err == bcrypt.ErrMismatchedHashAndPassword {
-		return nil, ErrInvalidCredentials
-	}
+	matched, err := user.HashedPassword.Matches(password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to compare hash and password: %w", err)
+	}
+	if !matched {
+		return nil, ErrInvalidCredentials
 	}
 	return user, nil
 }
