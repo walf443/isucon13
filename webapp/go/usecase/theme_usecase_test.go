@@ -18,7 +18,7 @@ func TestThemeUsecase_FindByUsername(t *testing.T) {
 			return &model.ThemeModel{ID: 10, UserID: 1, DarkMode: true}, nil
 		},
 	}
-	u := NewThemeUsecase(&fakeTxManager{}, &fakeUserRepository{id: 1}, themeRepo)
+	u := NewThemeUsecase(&fakeTxManager{}, newUserRepositoryFindingID(t, "alice", 1, nil), themeRepo)
 
 	theme, err := u.FindByUsername(context.Background(), "alice")
 	if err != nil {
@@ -30,7 +30,7 @@ func TestThemeUsecase_FindByUsername(t *testing.T) {
 }
 
 func TestThemeUsecase_FindByUsername_UserNotFound(t *testing.T) {
-	u := NewThemeUsecase(&fakeTxManager{}, &fakeUserRepository{err: repository.ErrNotFound}, &fakeThemeRepository{})
+	u := NewThemeUsecase(&fakeTxManager{}, newUserRepositoryFindingID(t, "alice", 0, repository.ErrNotFound), &fakeThemeRepository{})
 
 	_, err := u.FindByUsername(context.Background(), "alice")
 	if !errors.Is(err, ErrUserNotFound) {
@@ -45,7 +45,7 @@ func TestThemeUsecase_FindByUsername_ThemeNotFound(t *testing.T) {
 			return nil, repository.ErrNotFound
 		},
 	}
-	u := NewThemeUsecase(&fakeTxManager{}, &fakeUserRepository{id: 1}, themeRepo)
+	u := NewThemeUsecase(&fakeTxManager{}, newUserRepositoryFindingID(t, "alice", 1, nil), themeRepo)
 
 	_, err := u.FindByUsername(context.Background(), "alice")
 	if err == nil {

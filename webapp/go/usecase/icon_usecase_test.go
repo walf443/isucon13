@@ -15,8 +15,10 @@ func TestIconUsecase_FindImageByUsername(t *testing.T) {
 	boom := errors.New("boom")
 
 	tests := []struct {
-		name     string
-		userRepo *fakeUserRepository
+		name string
+		// userID, userErr はユーザ名から ID を引いた結果
+		userID  model.UserID
+		userErr error
 		// iconImage, iconErr はアイコンの取得が返す値
 		iconImage []byte
 		iconErr   error
@@ -25,26 +27,26 @@ func TestIconUsecase_FindImageByUsername(t *testing.T) {
 	}{
 		{
 			name:      "returns registered icon",
-			userRepo:  &fakeUserRepository{id: 1},
+			userID:    1,
 			iconImage: []byte("icon"),
 			wantImage: []byte("icon"),
 		},
 		{
-			name:     "user not found",
-			userRepo: &fakeUserRepository{err: repository.ErrNotFound},
-			wantErr:  ErrUserNotFound,
+			name:    "user not found",
+			userErr: repository.ErrNotFound,
+			wantErr: ErrUserNotFound,
 		},
 		{
-			name:     "icon not registered",
-			userRepo: &fakeUserRepository{id: 1},
-			iconErr:  repository.ErrNotFound,
-			wantErr:  ErrIconNotFound,
+			name:    "icon not registered",
+			userID:  1,
+			iconErr: repository.ErrNotFound,
+			wantErr: ErrIconNotFound,
 		},
 		{
-			name:     "icon repository error",
-			userRepo: &fakeUserRepository{id: 1},
-			iconErr:  boom,
-			wantErr:  boom,
+			name:    "icon repository error",
+			userID:  1,
+			iconErr: boom,
+			wantErr: boom,
 		},
 	}
 
@@ -58,7 +60,7 @@ func TestIconUsecase_FindImageByUsername(t *testing.T) {
 					return tt.iconImage, tt.iconErr
 				},
 			}
-			u := NewIconUsecase(&fakeTxManager{}, tt.userRepo, iconRepo)
+			u := NewIconUsecase(&fakeTxManager{}, newUserRepositoryFindingID(t, "alice", tt.userID, tt.userErr), iconRepo)
 
 			image, err := u.FindImageByUsername(context.Background(), "alice")
 			if !errors.Is(err, tt.wantErr) {

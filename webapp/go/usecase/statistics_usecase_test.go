@@ -13,11 +13,18 @@ import (
 
 func newTestUserStatisticsRepos() (*fakeUserRepository, *fakeLivestreamRepository, *fakeLivecommentRepository, *fakeReactionRepository, *fakeLivestreamViewersHistoryRepository) {
 	userRepo := &fakeUserRepository{
-		user: &model.UserModel{ID: 2, Name: "bob"},
-		users: []*model.UserModel{
-			{ID: 1, Name: "alice"},
-			{ID: 2, Name: "bob"},
-			{ID: 3, Name: "carol"},
+		findByName: func(_ context.Context, _ repository.Querier, name string) (*model.UserModel, error) {
+			if name != "bob" {
+				return nil, fmt.Errorf("unexpected user name %q", name)
+			}
+			return &model.UserModel{ID: 2, Name: "bob"}, nil
+		},
+		findAll: func(context.Context, repository.Querier) ([]*model.UserModel, error) {
+			return []*model.UserModel{
+				{ID: 1, Name: "alice"},
+				{ID: 2, Name: "bob"},
+				{ID: 3, Name: "carol"},
+			}, nil
 		},
 	}
 	livestreamRepo := &fakeLivestreamRepository{livestreamModels: []*model.LivestreamModel{{ID: 10, UserID: 2}, {ID: 11, UserID: 2}}}
@@ -77,8 +84,8 @@ func TestStatisticsUsecase_FindUserStatistics(t *testing.T) {
 	if *got != want {
 		t.Errorf("got %+v, want %+v", *got, want)
 	}
-	if userRepo.gotName != "bob" || livestreamRepo.gotUserID != 2 {
-		t.Errorf("user name = %q, livestream owner = %d", userRepo.gotName, livestreamRepo.gotUserID)
+	if livestreamRepo.gotUserID != 2 {
+		t.Errorf("livestream owner = %d, want 2", livestreamRepo.gotUserID)
 	}
 }
 
@@ -111,14 +118,16 @@ func TestStatisticsUsecase_FindUserStatistics_Errors(t *testing.T) {
 		{
 			name: "user not found",
 			modify: func(ur *fakeUserRepository, _ *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository) {
-				ur.err = repository.ErrNotFound
+				ur.findByName = func(context.Context, repository.Querier, string) (*model.UserModel, error) {
+					return nil, repository.ErrNotFound
+				}
 			},
 			wantErr: ErrUserNotFound,
 		},
 		{
 			name: "get user fails",
 			modify: func(ur *fakeUserRepository, _ *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository) {
-				ur.err = boom
+				ur.findByName = func(context.Context, repository.Querier, string) (*model.UserModel, error) { return nil, boom }
 			},
 			wantErr: boom,
 			wantMsg: "failed to get user: boom",
@@ -126,7 +135,7 @@ func TestStatisticsUsecase_FindUserStatistics_Errors(t *testing.T) {
 		{
 			name: "get users fails",
 			modify: func(ur *fakeUserRepository, _ *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository) {
-				ur.findAllErr = boom
+				ur.findAll = func(context.Context, repository.Querier) ([]*model.UserModel, error) { return nil, boom }
 			},
 			wantErr: boom,
 			wantMsg: "failed to get users: boom",

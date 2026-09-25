@@ -93,9 +93,8 @@ func TestLivestreamUsecase_FindAllByUserID_Error(t *testing.T) {
 
 func TestLivestreamUsecase_FindAllByUsername(t *testing.T) {
 	want := []*model.Livestream{{ID: 1}}
-	userRepo := &fakeUserRepository{id: 42}
 	livestreamRepo := &fakeLivestreamRepository{livestreams: want}
-	u := NewLivestreamUsecase(&fakeTxManager{}, userRepo, &fakeTagRepository{}, livestreamRepo, &fakeReservationSlotRepository{}, &fakeLogger{})
+	u := NewLivestreamUsecase(&fakeTxManager{}, newUserRepositoryFindingID(t, "alice", 42, nil), &fakeTagRepository{}, livestreamRepo, &fakeReservationSlotRepository{}, &fakeLogger{})
 
 	got, err := u.FindAllByUsername(context.Background(), "alice")
 	if err != nil {
@@ -103,9 +102,6 @@ func TestLivestreamUsecase_FindAllByUsername(t *testing.T) {
 	}
 	if len(got) != 1 || got[0] != want[0] {
 		t.Errorf("got %+v, want %+v", got, want)
-	}
-	if userRepo.gotName != "alice" {
-		t.Errorf("name = %q, want %q", userRepo.gotName, "alice")
 	}
 	// ユーザ名から引いた ID で検索する
 	if livestreamRepo.gotUserID != 42 {
@@ -117,26 +113,28 @@ func TestLivestreamUsecase_FindAllByUsername_Errors(t *testing.T) {
 	boom := errors.New("boom")
 
 	tests := []struct {
-		name           string
-		userRepo       *fakeUserRepository
+		name string
+		// userID, userErr はユーザ名から ID を引いた結果
+		userID         model.UserID
+		userErr        error
 		livestreamRepo *fakeLivestreamRepository
 		wantErr        error
 	}{
 		{
 			name:           "user not found",
-			userRepo:       &fakeUserRepository{err: repository.ErrNotFound},
+			userErr:        repository.ErrNotFound,
 			livestreamRepo: &fakeLivestreamRepository{},
 			wantErr:        ErrUserNotFound,
 		},
 		{
 			name:           "user repository error",
-			userRepo:       &fakeUserRepository{err: boom},
+			userErr:        boom,
 			livestreamRepo: &fakeLivestreamRepository{},
 			wantErr:        boom,
 		},
 		{
 			name:           "livestream repository error",
-			userRepo:       &fakeUserRepository{id: 42},
+			userID:         42,
 			livestreamRepo: &fakeLivestreamRepository{err: boom},
 			wantErr:        boom,
 		},
@@ -144,7 +142,7 @@ func TestLivestreamUsecase_FindAllByUsername_Errors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u := NewLivestreamUsecase(&fakeTxManager{}, tt.userRepo, &fakeTagRepository{}, tt.livestreamRepo, &fakeReservationSlotRepository{}, &fakeLogger{})
+			u := NewLivestreamUsecase(&fakeTxManager{}, newUserRepositoryFindingID(t, "alice", tt.userID, tt.userErr), &fakeTagRepository{}, tt.livestreamRepo, &fakeReservationSlotRepository{}, &fakeLogger{})
 			_, err := u.FindAllByUsername(context.Background(), "alice")
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)

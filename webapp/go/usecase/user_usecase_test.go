@@ -13,7 +13,14 @@ import (
 
 func TestUserUsecase_FindByName(t *testing.T) {
 	want := &model.User{ID: 1, Name: "alice", Theme: model.ThemeModel{ID: 10, UserID: 1}, IconHash: "abc"}
-	userRepo := &fakeUserRepository{userDetails: want}
+	userRepo := &fakeUserRepository{
+		findWithDetailsByName: func(_ context.Context, _ repository.Querier, name string) (*model.User, error) {
+			if name != "alice" {
+				t.Errorf("name = %q, want %q", name, "alice")
+			}
+			return want, nil
+		},
+	}
 	u := NewUserUsecase(&fakeTxManager{}, userRepo, &fakeThemeRepository{}, &fakeDNSRecordRegistrar{})
 
 	user, err := u.FindByName(context.Background(), "alice")
@@ -23,14 +30,18 @@ func TestUserUsecase_FindByName(t *testing.T) {
 	if user != want {
 		t.Errorf("user = %+v, want %+v", user, want)
 	}
-	if userRepo.gotName != "alice" {
-		t.Errorf("name = %q, want %q", userRepo.gotName, "alice")
-	}
 }
 
 func TestUserUsecase_FindByID(t *testing.T) {
 	want := &model.User{ID: 1, Name: "alice"}
-	userRepo := &fakeUserRepository{userDetails: want}
+	userRepo := &fakeUserRepository{
+		findWithDetailsByID: func(_ context.Context, _ repository.Querier, id model.UserID) (*model.User, error) {
+			if id != 1 {
+				t.Errorf("id = %d, want 1", id)
+			}
+			return want, nil
+		},
+	}
 	u := NewUserUsecase(&fakeTxManager{}, userRepo, &fakeThemeRepository{}, &fakeDNSRecordRegistrar{})
 
 	user, err := u.FindByID(context.Background(), 1)
@@ -39,9 +50,6 @@ func TestUserUsecase_FindByID(t *testing.T) {
 	}
 	if user != want {
 		t.Errorf("user = %+v, want %+v", user, want)
-	}
-	if userRepo.gotID != 1 {
-		t.Errorf("id = %d, want 1", userRepo.gotID)
 	}
 }
 
@@ -76,7 +84,11 @@ func TestUserUsecase_Errors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u := NewUserUsecase(&fakeTxManager{}, &fakeUserRepository{err: tt.repoErr}, &fakeThemeRepository{}, &fakeDNSRecordRegistrar{})
+			userRepo := &fakeUserRepository{
+				findWithDetailsByName: func(context.Context, repository.Querier, string) (*model.User, error) { return nil, tt.repoErr },
+				findWithDetailsByID:   func(context.Context, repository.Querier, model.UserID) (*model.User, error) { return nil, tt.repoErr },
+			}
+			u := NewUserUsecase(&fakeTxManager{}, userRepo, &fakeThemeRepository{}, &fakeDNSRecordRegistrar{})
 
 			_, err := u.FindByName(context.Background(), "alice")
 			tt.check(t, err)
@@ -86,10 +98,31 @@ func TestUserUsecase_Errors(t *testing.T) {
 	}
 }
 
+// newUserRepositoryForRegister は Register で呼ばれるメソッドを、呼ばれた順に calls へ記録する fakeUserRepository を返す。
+// 登録したユーザは created に取り出し、ID 5 で読み直したユーザとして user を返す。
+func newUserRepositoryForRegister(t *testing.T, calls *[]string, created **model.UserModel, user *model.User, createErr, fillErr error) *fakeUserRepository {
+	return &fakeUserRepository{
+		create: func(_ context.Context, _ repository.Querier, u *model.UserModel) (model.UserID, error) {
+			*calls = append(*calls, "Create")
+			*created = u
+			return 5, createErr
+		},
+		findWithDetailsByID: func(_ context.Context, _ repository.Querier, id model.UserID) (*model.User, error) {
+			*calls = append(*calls, "FindWithDetailsByID")
+			if id != 5 {
+				t.Errorf("re-read id = %d, want 5", id)
+			}
+			return user, fillErr
+		},
+	}
+}
+
 func TestUserUsecase_Register(t *testing.T) {
 	want := &model.User{ID: 5, Name: "alice"}
 	txManager := &fakeTxManager{}
-	userRepo := &fakeUserRepository{createID: 5, userDetails: want}
+	var userCalls []string
+	var created *model.UserModel
+	userRepo := newUserRepositoryForRegister(t, &userCalls, &created, want, nil, nil)
 	var createdTheme *model.ThemeModel
 	themeRepo := &fakeThemeRepository{
 		create: func(_ context.Context, _ repository.Querier, theme *model.ThemeModel) error {
@@ -120,7 +153,9 @@ func TestUserUsecase_Register(t *testing.T) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
 
-	created := userRepo.gotCreated
+	if created == nil {
+		t.Fatal("user was not created")
+	}
 	if created.Name != "alice" || created.DisplayName != "Alice" || created.Description != "hello" {
 		t.Errorf("created = %+v", created)
 	}
@@ -137,8 +172,8 @@ func TestUserUsecase_Register(t *testing.T) {
 	if want := []string{"alice"}; !slices.Equal(dnsNames, want) {
 		t.Errorf("dns names = %v, want %v", dnsNames, want)
 	}
-	if want := []string{"Create", "FindWithDetailsByID"}; !slices.Equal(userRepo.calls, want) || userRepo.gotID != 5 {
-		t.Errorf("user calls = %v, id = %d", userRepo.calls, userRepo.gotID)
+	if want := []string{"Create", "FindWithDetailsByID"}; !slices.Equal(userCalls, want) {
+		t.Errorf("user calls = %v, want %v", userCalls, want)
 	}
 	if txManager.runs != 1 {
 		t.Errorf("tx runs = %d, want 1", txManager.runs)
@@ -147,7 +182,9 @@ func TestUserUsecase_Register(t *testing.T) {
 
 func TestUserUsecase_Register_ReservedUsername(t *testing.T) {
 	txManager := &fakeTxManager{}
-	userRepo := &fakeUserRepository{}
+	var userCalls []string
+	var created *model.UserModel
+	userRepo := newUserRepositoryForRegister(t, &userCalls, &created, nil, nil, nil)
 	dns := &fakeDNSRecordRegistrar{
 		addRecord: func(name string) error {
 			t.Errorf("AddRecord(%q) should not be called", name)
@@ -161,8 +198,8 @@ func TestUserUsecase_Register_ReservedUsername(t *testing.T) {
 		t.Fatalf("err = %v, want ErrReservedUsername", err)
 	}
 	// トランザクションを開始する前に弾く (移行前と同じ)
-	if txManager.runs != 0 || len(userRepo.calls) != 0 {
-		t.Errorf("tx runs = %d, user calls = %v", txManager.runs, userRepo.calls)
+	if txManager.runs != 0 || len(userCalls) != 0 {
+		t.Errorf("tx runs = %d, user calls = %v", txManager.runs, userCalls)
 	}
 }
 
@@ -172,8 +209,10 @@ func TestUserUsecase_Register_Errors(t *testing.T) {
 	dnsErr := errors.New("Error: zone not found: exit status 1")
 
 	tests := []struct {
-		name     string
-		userRepo *fakeUserRepository
+		name string
+		// userCreateErr, userFillErr はユーザの登録・取り直しが返すエラー
+		userCreateErr error
+		userFillErr   error
 		// themeCreateErr はテーマの登録が返すエラー
 		themeCreateErr error
 		// dnsErr は DNS の登録が返すエラー
@@ -184,15 +223,14 @@ func TestUserUsecase_Register_Errors(t *testing.T) {
 		wantDNS   []string
 	}{
 		{
-			name:      "insert user fails",
-			userRepo:  &fakeUserRepository{createErr: boom},
-			wantErr:   boom,
-			wantMsg:   "failed to insert user: boom",
-			wantCalls: []string{"Create"},
+			name:          "insert user fails",
+			userCreateErr: boom,
+			wantErr:       boom,
+			wantMsg:       "failed to insert user: boom",
+			wantCalls:     []string{"Create"},
 		},
 		{
 			name:           "insert theme fails",
-			userRepo:       &fakeUserRepository{createID: 5},
 			themeCreateErr: boom,
 			wantErr:        boom,
 			wantMsg:        "failed to insert user theme: boom",
@@ -200,7 +238,6 @@ func TestUserUsecase_Register_Errors(t *testing.T) {
 		},
 		{
 			name:      "dns registration fails",
-			userRepo:  &fakeUserRepository{createID: 5},
 			dnsErr:    dnsErr,
 			wantErr:   dnsErr,
 			wantMsg:   dnsErr.Error(),
@@ -208,12 +245,12 @@ func TestUserUsecase_Register_Errors(t *testing.T) {
 			wantDNS:   []string{"alice"},
 		},
 		{
-			name:      "fill fails",
-			userRepo:  &fakeUserRepository{createID: 5, err: boom},
-			wantErr:   boom,
-			wantMsg:   "failed to fill user: boom",
-			wantCalls: []string{"Create", "FindWithDetailsByID"},
-			wantDNS:   []string{"alice"},
+			name:        "fill fails",
+			userFillErr: boom,
+			wantErr:     boom,
+			wantMsg:     "failed to fill user: boom",
+			wantCalls:   []string{"Create", "FindWithDetailsByID"},
+			wantDNS:     []string{"alice"},
 		},
 	}
 
@@ -229,7 +266,10 @@ func TestUserUsecase_Register_Errors(t *testing.T) {
 					return tt.dnsErr
 				},
 			}
-			u := NewUserUsecase(&fakeTxManager{}, tt.userRepo, themeRepo, dns)
+			var userCalls []string
+			var created *model.UserModel
+			userRepo := newUserRepositoryForRegister(t, &userCalls, &created, nil, tt.userCreateErr, tt.userFillErr)
+			u := NewUserUsecase(&fakeTxManager{}, userRepo, themeRepo, dns)
 			_, err := u.Register(context.Background(), RegisterUserInput{Name: "alice", Password: "x"})
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
@@ -237,8 +277,8 @@ func TestUserUsecase_Register_Errors(t *testing.T) {
 			if err.Error() != tt.wantMsg {
 				t.Errorf("err = %q, want %q", err.Error(), tt.wantMsg)
 			}
-			if !slices.Equal(tt.userRepo.calls, tt.wantCalls) {
-				t.Errorf("user calls = %v, want %v", tt.userRepo.calls, tt.wantCalls)
+			if !slices.Equal(userCalls, tt.wantCalls) {
+				t.Errorf("user calls = %v, want %v", userCalls, tt.wantCalls)
 			}
 			if !slices.Equal(dnsNames, tt.wantDNS) {
 				t.Errorf("dns names = %v, want %v", dnsNames, tt.wantDNS)
@@ -256,21 +296,23 @@ func TestUserUsecase_Login(t *testing.T) {
 	boom := errors.New("boom")
 
 	tests := []struct {
-		name     string
-		userRepo *fakeUserRepository
+		name string
+		// user, userErr はユーザ名でユーザを引いた結果
+		user     *model.UserModel
+		userErr  error
 		password string
 		want     *model.UserModel
 		wantErr  error
 		wantMsg  string
 	}{
-		{name: "succeeds", userRepo: &fakeUserRepository{user: user}, password: "s3cret", want: user},
-		{name: "wrong password", userRepo: &fakeUserRepository{user: user}, password: "wrong", wantErr: ErrInvalidCredentials},
-		{name: "user not found", userRepo: &fakeUserRepository{err: repository.ErrNotFound}, password: "s3cret", wantErr: ErrInvalidCredentials},
-		{name: "get user fails", userRepo: &fakeUserRepository{err: boom}, password: "s3cret", wantErr: boom, wantMsg: "failed to get user: boom"},
+		{name: "succeeds", user: user, password: "s3cret", want: user},
+		{name: "wrong password", user: user, password: "wrong", wantErr: ErrInvalidCredentials},
+		{name: "user not found", userErr: repository.ErrNotFound, password: "s3cret", wantErr: ErrInvalidCredentials},
+		{name: "get user fails", userErr: boom, password: "s3cret", wantErr: boom, wantMsg: "failed to get user: boom"},
 		{
 			// ハッシュとして不正な値の場合は 401 ではなくエラーにする (移行前と同じ)
 			name:     "broken hash",
-			userRepo: &fakeUserRepository{user: &model.UserModel{ID: 5, Name: "alice", HashedPassword: "broken"}},
+			user:     &model.UserModel{ID: 5, Name: "alice", HashedPassword: "broken"},
 			password: "s3cret",
 			wantErr:  bcrypt.ErrHashTooShort,
 			wantMsg:  "failed to compare hash and password: " + bcrypt.ErrHashTooShort.Error(),
@@ -280,7 +322,15 @@ func TestUserUsecase_Login(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			txManager := &fakeTxManager{}
-			u := NewUserUsecase(txManager, tt.userRepo, &fakeThemeRepository{}, &fakeDNSRecordRegistrar{})
+			userRepo := &fakeUserRepository{
+				findByName: func(_ context.Context, _ repository.Querier, name string) (*model.UserModel, error) {
+					if name != "alice" {
+						t.Errorf("name = %q, want %q", name, "alice")
+					}
+					return tt.user, tt.userErr
+				},
+			}
+			u := NewUserUsecase(txManager, userRepo, &fakeThemeRepository{}, &fakeDNSRecordRegistrar{})
 			got, err := u.Login(context.Background(), "alice", tt.password)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
@@ -291,8 +341,8 @@ func TestUserUsecase_Login(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("got %+v, want %+v", got, tt.want)
 			}
-			if tt.userRepo.gotName != "alice" || txManager.runs != 1 {
-				t.Errorf("name = %q, tx runs = %d", tt.userRepo.gotName, txManager.runs)
+			if txManager.runs != 1 {
+				t.Errorf("tx runs = %d, want 1", txManager.runs)
 			}
 		})
 	}
