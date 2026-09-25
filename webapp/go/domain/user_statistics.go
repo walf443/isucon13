@@ -1,4 +1,4 @@
-package model
+package domain
 
 // UserStatistics は配信者としてのユーザの統計情報。
 type UserStatistics struct {

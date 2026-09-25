@@ -6,16 +6,16 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 // testReservePeriod は testReserveInput の予約区間。
-var testReservePeriod = model.ReservationPeriod{StartAt: 1700874000, EndAt: 1700881200}
+var testReservePeriod = domain.ReservationPeriod{StartAt: 1700874000, EndAt: 1700881200}
 
 // 予約可能期間は 1700874000 (2023/11/25 10:00 JST) 〜 1732496400 (2024/11/25 10:00 JST)
 var testReserveInput = ReserveLivestreamInput{
-	TagIDs:       []model.TagID{3, 5},
+	TagIDs:       []domain.TagID{3, 5},
 	Title:        "stream",
 	Description:  "desc",
 	PlaylistUrl:  "https://example.com/playlist.m3u8",
@@ -26,7 +26,7 @@ var testReserveInput = ReserveLivestreamInput{
 
 // reservationSlotResults は予約の処理で予約枠の repository が返す値。
 type reservationSlotResults struct {
-	slots []*model.ReservationSlotModel
+	slots []*domain.ReservationSlotModel
 	// counts は FindSlotByStartAtAndEndAt が返す残数 (キーは開始時刻)
 	counts       map[int64]int64
 	findAllErr   error
@@ -36,14 +36,14 @@ type reservationSlotResults struct {
 
 // newReservationSlotRepositoryForReserve は results を返し、呼ばれたメソッドを順に calls へ記録する fakeReservationSlotRepository を返す。
 // 予約枠の検索・残数の減算は予約区間 period で呼ばれることを確認する。
-func newReservationSlotRepositoryForReserve(t *testing.T, calls *[]string, results reservationSlotResults, period model.ReservationPeriod) *fakeReservationSlotRepository {
-	checkPeriod := func(method string, got model.ReservationPeriod) {
+func newReservationSlotRepositoryForReserve(t *testing.T, calls *[]string, results reservationSlotResults, period domain.ReservationPeriod) *fakeReservationSlotRepository {
+	checkPeriod := func(method string, got domain.ReservationPeriod) {
 		if got != period {
 			t.Errorf("%s period = %+v, want %+v", method, got, period)
 		}
 	}
 	return &fakeReservationSlotRepository{
-		findAllByRangeForUpdate: func(_ context.Context, _ repository.Querier, got model.ReservationPeriod) ([]*model.ReservationSlotModel, error) {
+		findAllByRangeForUpdate: func(_ context.Context, _ repository.Querier, got domain.ReservationPeriod) ([]*domain.ReservationSlotModel, error) {
 			*calls = append(*calls, "FindAllByRangeForUpdate")
 			checkPeriod("FindAllByRangeForUpdate", got)
 			return results.slots, results.findAllErr
@@ -52,7 +52,7 @@ func newReservationSlotRepositoryForReserve(t *testing.T, calls *[]string, resul
 			*calls = append(*calls, "FindSlotByStartAtAndEndAt")
 			return results.counts[slotStartAt], results.findSlotErr
 		},
-		decrementSlotsByRange: func(_ context.Context, _ repository.Querier, got model.ReservationPeriod) error {
+		decrementSlotsByRange: func(_ context.Context, _ repository.Querier, got domain.ReservationPeriod) error {
 			*calls = append(*calls, "DecrementSlotsByRange")
 			checkPeriod("DecrementSlotsByRange", got)
 			return results.decrementErr
@@ -63,7 +63,7 @@ func newReservationSlotRepositoryForReserve(t *testing.T, calls *[]string, resul
 // livestreamReserveResults は予約の処理でライブ配信の repository が返す値。
 type livestreamReserveResults struct {
 	// livestream は ID 100 で読み直したライブ配信
-	livestream *model.Livestream
+	livestream *domain.Livestream
 	createErr  error
 	addTagErr  error
 	fillErr    error
@@ -71,14 +71,14 @@ type livestreamReserveResults struct {
 
 // newLivestreamRepositoryForReserve は results を返し、呼ばれたメソッドを順に calls へ記録する fakeLivestreamRepository を返す。
 // 登録したライブ配信は created に、付けたタグの ID は addedTagIDs に取り出す。登録したライブ配信の ID は 100 とする。
-func newLivestreamRepositoryForReserve(t *testing.T, calls *[]string, created **model.LivestreamModel, addedTagIDs *[]model.TagID, results livestreamReserveResults) *fakeLivestreamRepository {
+func newLivestreamRepositoryForReserve(t *testing.T, calls *[]string, created **domain.LivestreamModel, addedTagIDs *[]domain.TagID, results livestreamReserveResults) *fakeLivestreamRepository {
 	return &fakeLivestreamRepository{
-		create: func(_ context.Context, _ repository.Querier, livestream *model.LivestreamModel) (model.LivestreamID, error) {
+		create: func(_ context.Context, _ repository.Querier, livestream *domain.LivestreamModel) (domain.LivestreamID, error) {
 			*calls = append(*calls, "Create")
 			*created = livestream
 			return 100, results.createErr
 		},
-		addTag: func(_ context.Context, _ repository.Querier, livestreamID model.LivestreamID, tagID model.TagID) error {
+		addTag: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID, tagID domain.TagID) error {
 			*calls = append(*calls, "AddTag")
 			*addedTagIDs = append(*addedTagIDs, tagID)
 			if livestreamID != 100 {
@@ -86,7 +86,7 @@ func newLivestreamRepositoryForReserve(t *testing.T, calls *[]string, created **
 			}
 			return results.addTagErr
 		},
-		findWithDetailsByID: func(_ context.Context, _ repository.Querier, id model.LivestreamID) (*model.Livestream, error) {
+		findWithDetailsByID: func(_ context.Context, _ repository.Querier, id domain.LivestreamID) (*domain.Livestream, error) {
 			*calls = append(*calls, "FindWithDetailsByID")
 			if id != 100 {
 				t.Errorf("re-read id = %d, want 100", id)
@@ -97,14 +97,14 @@ func newLivestreamRepositoryForReserve(t *testing.T, calls *[]string, created **
 }
 
 func TestLivestreamReservationUsecase_Reserve(t *testing.T) {
-	want := &model.Livestream{ID: 100, Title: "stream"}
+	want := &domain.Livestream{ID: 100, Title: "stream"}
 	var livestreamCalls []string
-	var created *model.LivestreamModel
-	var addedTagIDs []model.TagID
+	var created *domain.LivestreamModel
+	var addedTagIDs []domain.TagID
 	livestreamRepo := newLivestreamRepositoryForReserve(t, &livestreamCalls, &created, &addedTagIDs, livestreamReserveResults{livestream: want})
 	var slotCalls []string
 	slotRepo := newReservationSlotRepositoryForReserve(t, &slotCalls, reservationSlotResults{
-		slots: []*model.ReservationSlotModel{
+		slots: []*domain.ReservationSlotModel{
 			{Slot: 5, StartAt: 1700874000, EndAt: 1700877600},
 			{Slot: 3, StartAt: 1700877600, EndAt: 1700881200},
 		},
@@ -127,7 +127,7 @@ func TestLivestreamReservationUsecase_Reserve(t *testing.T) {
 	if want := []string{"1700874000 ~ 1700877600予約枠の残数 = 5\n", "1700877600 ~ 1700881200予約枠の残数 = 3\n"}; !slices.Equal(logger.lines, want) {
 		t.Errorf("log lines = %q, want %q", logger.lines, want)
 	}
-	wantCreated := model.LivestreamModel{
+	wantCreated := domain.LivestreamModel{
 		UserID:       1,
 		Title:        "stream",
 		Description:  "desc",
@@ -142,21 +142,21 @@ func TestLivestreamReservationUsecase_Reserve(t *testing.T) {
 	if want := []string{"Create", "AddTag", "AddTag", "FindWithDetailsByID"}; !slices.Equal(livestreamCalls, want) {
 		t.Errorf("livestream calls = %v, want %v", livestreamCalls, want)
 	}
-	if want := []model.TagID{3, 5}; !slices.Equal(addedTagIDs, want) {
+	if want := []domain.TagID{3, 5}; !slices.Equal(addedTagIDs, want) {
 		t.Errorf("tag ids = %v, want %v", addedTagIDs, want)
 	}
 }
 
-// 期間の境界値の判定は model.ReservationPeriod のテストで確認している。
+// 期間の境界値の判定は domain.ReservationPeriod のテストで確認している。
 // ここでは、予約できない期間の場合に予約枠を触らずにエラーを返すことを確認する。
 func TestLivestreamReservationUsecase_Reserve_TimeRange(t *testing.T) {
 	tests := []struct {
 		name    string
-		period  model.ReservationPeriod
+		period  domain.ReservationPeriod
 		wantErr error
 	}{
-		{name: "not reservable", period: model.ReservationPeriod{StartAt: 1700870400, EndAt: 1700874000}, wantErr: ErrBadReservationTimeRange},
-		{name: "reservable", period: model.ReservationPeriod{StartAt: 1700870400, EndAt: 1700877600}, wantErr: nil},
+		{name: "not reservable", period: domain.ReservationPeriod{StartAt: 1700870400, EndAt: 1700874000}, wantErr: ErrBadReservationTimeRange},
+		{name: "reservable", period: domain.ReservationPeriod{StartAt: 1700870400, EndAt: 1700877600}, wantErr: nil},
 	}
 
 	for _, tt := range tests {
@@ -164,8 +164,8 @@ func TestLivestreamReservationUsecase_Reserve_TimeRange(t *testing.T) {
 			var slotCalls []string
 			slotRepo := newReservationSlotRepositoryForReserve(t, &slotCalls, reservationSlotResults{}, tt.period)
 			var livestreamCalls []string
-			var created *model.LivestreamModel
-			var addedTagIDs []model.TagID
+			var created *domain.LivestreamModel
+			var addedTagIDs []domain.TagID
 			livestreamRepo := newLivestreamRepositoryForReserve(t, &livestreamCalls, &created, &addedTagIDs, livestreamReserveResults{})
 			u := NewLivestreamReservationUsecase(&fakeTxManager{}, livestreamRepo, slotRepo, &fakeLogger{})
 
@@ -185,7 +185,7 @@ func TestLivestreamReservationUsecase_Reserve_TimeRange(t *testing.T) {
 
 func TestLivestreamReservationUsecase_Reserve_Errors(t *testing.T) {
 	boom := errors.New("boom")
-	slots := []*model.ReservationSlotModel{
+	slots := []*domain.ReservationSlotModel{
 		{Slot: 5, StartAt: 1700874000, EndAt: 1700877600},
 		{Slot: 3, StartAt: 1700877600, EndAt: 1700881200},
 	}
@@ -258,8 +258,8 @@ func TestLivestreamReservationUsecase_Reserve_Errors(t *testing.T) {
 			var slotCalls []string
 			slotRepo := newReservationSlotRepositoryForReserve(t, &slotCalls, tt.slotResults, testReservePeriod)
 			var livestreamCalls []string
-			var created *model.LivestreamModel
-			var addedTagIDs []model.TagID
+			var created *domain.LivestreamModel
+			var addedTagIDs []domain.TagID
 			livestreamRepo := newLivestreamRepositoryForReserve(t, &livestreamCalls, &created, &addedTagIDs, tt.livestreamResults)
 			u := NewLivestreamReservationUsecase(&fakeTxManager{}, livestreamRepo, slotRepo, logger)
 			_, err := u.Reserve(context.Background(), 1, testReserveInput)
@@ -300,7 +300,7 @@ func TestLivestreamReservationUsecase_Reserve_ErrorMessages(t *testing.T) {
 		want        string
 	}{
 		{name: "slot list", slotResults: reservationSlotResults{findAllErr: boom}, want: "failed to get reservation_slots: boom"},
-		{name: "slot count", slotResults: reservationSlotResults{slots: []*model.ReservationSlotModel{{StartAt: 1700874000, EndAt: 1700877600}}, findSlotErr: boom}, want: "failed to get reservation_slots: boom"},
+		{name: "slot count", slotResults: reservationSlotResults{slots: []*domain.ReservationSlotModel{{StartAt: 1700874000, EndAt: 1700877600}}, findSlotErr: boom}, want: "failed to get reservation_slots: boom"},
 		{name: "decrement", slotResults: reservationSlotResults{decrementErr: boom}, want: "failed to update reservation_slot: boom"},
 	}
 	for _, tt := range tests {

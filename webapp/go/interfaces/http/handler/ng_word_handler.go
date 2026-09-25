@@ -5,17 +5,17 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase"
 	"github.com/labstack/echo/v4"
 )
 
 type ngWordResponse struct {
-	ID           model.NGWordID     `json:"id"`
-	UserID       model.UserID       `json:"user_id"`
-	LivestreamID model.LivestreamID `json:"livestream_id"`
-	Word         string             `json:"word"`
-	CreatedAt    int64              `json:"created_at"`
+	ID           domain.NGWordID     `json:"id"`
+	UserID       domain.UserID       `json:"user_id"`
+	LivestreamID domain.LivestreamID `json:"livestream_id"`
+	Word         string              `json:"word"`
+	CreatedAt    int64               `json:"created_at"`
 }
 
 type moderateRequest struct {
@@ -39,7 +39,7 @@ func (h *ngWordHandler) GetNGWords(c echo.Context) error {
 		return err
 	}
 
-	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
+	livestreamID, err := domain.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
@@ -69,7 +69,7 @@ func (h *ngWordHandler) Moderate(c echo.Context) error {
 	ctx := c.Request().Context()
 	defer c.Request().Body.Close()
 
-	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
+	livestreamID, err := domain.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}

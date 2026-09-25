@@ -3,7 +3,7 @@ package usecase
 import (
 	"context"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
@@ -12,19 +12,19 @@ import (
 type fakeIconRepository struct {
 	repository.IconRepository
 
-	findImageByUserID func(ctx context.Context, q repository.Querier, userID model.UserID) ([]byte, error)
-	create            func(ctx context.Context, q repository.Querier, userID model.UserID, image []byte) (model.IconID, error)
-	deleteByUserID    func(ctx context.Context, q repository.Querier, userID model.UserID) error
+	findImageByUserID func(ctx context.Context, q repository.Querier, userID domain.UserID) ([]byte, error)
+	create            func(ctx context.Context, q repository.Querier, userID domain.UserID, image []byte) (domain.IconID, error)
+	deleteByUserID    func(ctx context.Context, q repository.Querier, userID domain.UserID) error
 }
 
-func (r *fakeIconRepository) FindImageByUserID(ctx context.Context, q repository.Querier, userID model.UserID) ([]byte, error) {
+func (r *fakeIconRepository) FindImageByUserID(ctx context.Context, q repository.Querier, userID domain.UserID) ([]byte, error) {
 	return r.findImageByUserID(ctx, q, userID)
 }
 
-func (r *fakeIconRepository) Create(ctx context.Context, q repository.Querier, userID model.UserID, image []byte) (model.IconID, error) {
+func (r *fakeIconRepository) Create(ctx context.Context, q repository.Querier, userID domain.UserID, image []byte) (domain.IconID, error) {
 	return r.create(ctx, q, userID, image)
 }
 
-func (r *fakeIconRepository) DeleteByUserID(ctx context.Context, q repository.Querier, userID model.UserID) error {
+func (r *fakeIconRepository) DeleteByUserID(ctx context.Context, q repository.Querier, userID domain.UserID) error {
 	return r.deleteByUserID(ctx, q, userID)
 }

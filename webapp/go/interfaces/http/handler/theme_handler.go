@@ -4,14 +4,14 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase"
 	"github.com/labstack/echo/v4"
 )
 
 type themeResponse struct {
-	ID       model.ThemeID `json:"id"`
-	DarkMode bool          `json:"dark_mode"`
+	ID       domain.ThemeID `json:"id"`
+	DarkMode bool           `json:"dark_mode"`
 }
 
 type themeHandler struct {

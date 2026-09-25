@@ -6,17 +6,17 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 type StatisticsUsecase interface {
 	// FindUserStatistics は指定したユーザの配信者としての統計情報を返す。
 	// ユーザが存在しない場合 ErrUserNotFound を返す。
-	FindUserStatistics(ctx context.Context, username string) (*model.UserStatistics, error)
+	FindUserStatistics(ctx context.Context, username string) (*domain.UserStatistics, error)
 	// FindLivestreamStatistics は指定したライブ配信の統計情報を返す。
 	// ライブ配信が存在しない場合 ErrLivestreamNotFound を返す。
-	FindLivestreamStatistics(ctx context.Context, livestreamID model.LivestreamID) (*model.LivestreamStatistics, error)
+	FindLivestreamStatistics(ctx context.Context, livestreamID domain.LivestreamID) (*domain.LivestreamStatistics, error)
 }
 
 type statisticsUsecase struct {
@@ -41,10 +41,10 @@ func NewStatisticsUsecase(txManager repository.TxManager, userRepo repository.Us
 	}
 }
 
-func (u *statisticsUsecase) FindUserStatistics(ctx context.Context, username string) (*model.UserStatistics, error) {
+func (u *statisticsUsecase) FindUserStatistics(ctx context.Context, username string) (*domain.UserStatistics, error) {
 	// ユーザごとに、紐づく配信について、累計リアクション数、累計ライブコメント数、累計売上金額を算出
 	// また、現在の合計視聴者数もだす
-	var stats *model.UserStatistics
+	var stats *domain.UserStatistics
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		user, err := u.userRepo.FindByName(ctx, q, username)
 		if errors.Is(err, repository.ErrNotFound) {
@@ -60,7 +60,7 @@ func (u *statisticsUsecase) FindUserStatistics(ctx context.Context, username str
 			return fmt.Errorf("failed to get users: %w", err)
 		}
 
-		var ranking model.UserRanking
+		var ranking domain.UserRanking
 		for _, user := range users {
 			reactions, err := u.reactionRepo.CountByLivestreamOwnerID(ctx, q, user.ID)
 			if err != nil {
@@ -73,7 +73,7 @@ func (u *statisticsUsecase) FindUserStatistics(ctx context.Context, username str
 			}
 
 			score := reactions + tips
-			ranking = append(ranking, model.UserRankingEntry{
+			ranking = append(ranking, domain.UserRankingEntry{
 				Username: user.Name,
 				Score:    score,
 			})
@@ -123,7 +123,7 @@ func (u *statisticsUsecase) FindUserStatistics(ctx context.Context, username str
 			return fmt.Errorf("failed to find favorite emoji: %w", err)
 		}
 
-		stats = &model.UserStatistics{
+		stats = &domain.UserStatistics{
 			Rank:              rank,
 			ViewersCount:      viewersCount,
 			TotalReactions:    totalReactions,
@@ -139,8 +139,8 @@ func (u *statisticsUsecase) FindUserStatistics(ctx context.Context, username str
 	return stats, nil
 }
 
-func (u *statisticsUsecase) FindLivestreamStatistics(ctx context.Context, livestreamID model.LivestreamID) (*model.LivestreamStatistics, error) {
-	var stats *model.LivestreamStatistics
+func (u *statisticsUsecase) FindLivestreamStatistics(ctx context.Context, livestreamID domain.LivestreamID) (*domain.LivestreamStatistics, error) {
+	var stats *domain.LivestreamStatistics
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		_, err := u.livestreamRepo.FindByID(ctx, q, livestreamID)
 		if errors.Is(err, repository.ErrNotFound) {
@@ -156,7 +156,7 @@ func (u *statisticsUsecase) FindLivestreamStatistics(ctx context.Context, livest
 		}
 
 		// ランク算出
-		var ranking model.LivestreamRanking
+		var ranking domain.LivestreamRanking
 		for _, livestream := range livestreams {
 			reactions, err := u.reactionRepo.CountByLivestreamID(ctx, q, livestream.ID)
 			if err != nil {
@@ -169,7 +169,7 @@ func (u *statisticsUsecase) FindLivestreamStatistics(ctx context.Context, livest
 			}
 
 			score := reactions + totalTips
-			ranking = append(ranking, model.LivestreamRankingEntry{
+			ranking = append(ranking, domain.LivestreamRankingEntry{
 				LivestreamID: livestream.ID,
 				Score:        score,
 			})
@@ -201,7 +201,7 @@ func (u *statisticsUsecase) FindLivestreamStatistics(ctx context.Context, livest
 			return fmt.Errorf("failed to count total spam reports: %w", err)
 		}
 
-		stats = &model.LivestreamStatistics{
+		stats = &domain.LivestreamStatistics{
 			Rank:           rank,
 			ViewersCount:   viewersCount,
 			TotalReactions: totalReactions,

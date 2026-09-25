@@ -9,72 +9,72 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase"
 )
 
 type fakeLivestreamUsecase struct {
-	livestream  *model.Livestream
-	livestreams []*model.Livestream
+	livestream  *domain.Livestream
+	livestreams []*domain.Livestream
 	err         error
 
-	gotID       model.LivestreamID
-	gotUserID   model.UserID
+	gotID       domain.LivestreamID
+	gotUserID   domain.UserID
 	gotUsername string
 	gotTagName  string
-	gotLimit    *model.Limit
+	gotLimit    *domain.Limit
 	// calls は呼ばれたメソッド名を順に記録する
 	calls []string
 }
 
 type fakeLivestreamReservationUsecase struct {
-	livestream *model.Livestream
+	livestream *domain.Livestream
 	err        error
 
-	gotUserID model.UserID
+	gotUserID domain.UserID
 	gotInput  usecase.ReserveLivestreamInput
 }
 
-func (u *fakeLivestreamReservationUsecase) Reserve(ctx context.Context, userID model.UserID, input usecase.ReserveLivestreamInput) (*model.Livestream, error) {
+func (u *fakeLivestreamReservationUsecase) Reserve(ctx context.Context, userID domain.UserID, input usecase.ReserveLivestreamInput) (*domain.Livestream, error) {
 	u.gotUserID = userID
 	u.gotInput = input
 	return u.livestream, u.err
 }
 
-func (u *fakeLivestreamUsecase) FindAllByTagName(ctx context.Context, tagName string) ([]*model.Livestream, error) {
+func (u *fakeLivestreamUsecase) FindAllByTagName(ctx context.Context, tagName string) ([]*domain.Livestream, error) {
 	u.calls = append(u.calls, "FindAllByTagName")
 	u.gotTagName = tagName
 	return u.livestreams, u.err
 }
 
-func (u *fakeLivestreamUsecase) FindAll(ctx context.Context, limit *model.Limit) ([]*model.Livestream, error) {
+func (u *fakeLivestreamUsecase) FindAll(ctx context.Context, limit *domain.Limit) ([]*domain.Livestream, error) {
 	u.calls = append(u.calls, "FindAll")
 	u.gotLimit = limit
 	return u.livestreams, u.err
 }
 
-func (u *fakeLivestreamUsecase) FindAllByUsername(ctx context.Context, username string) ([]*model.Livestream, error) {
+func (u *fakeLivestreamUsecase) FindAllByUsername(ctx context.Context, username string) ([]*domain.Livestream, error) {
 	u.gotUsername = username
 	return u.livestreams, u.err
 }
 
-func (u *fakeLivestreamUsecase) FindAllByUserID(ctx context.Context, userID model.UserID) ([]*model.Livestream, error) {
+func (u *fakeLivestreamUsecase) FindAllByUserID(ctx context.Context, userID domain.UserID) ([]*domain.Livestream, error) {
 	u.gotUserID = userID
 	return u.livestreams, u.err
 }
 
-func (u *fakeLivestreamUsecase) FindByID(ctx context.Context, id model.LivestreamID) (*model.Livestream, error) {
+func (u *fakeLivestreamUsecase) FindByID(ctx context.Context, id domain.LivestreamID) (*domain.Livestream, error) {
 	u.gotID = id
 	return u.livestream, u.err
 }
 
 func TestLivestreamHandler_GetLivestream(t *testing.T) {
-	owner := model.User{
+	owner := domain.User{
 		ID:          2,
 		Name:        "alice",
 		DisplayName: "Alice",
 		Description: "hello",
-		Theme:       model.ThemeModel{ID: 20, UserID: 2, DarkMode: true},
+		Theme:       domain.ThemeModel{ID: 20, UserID: 2, DarkMode: true},
 		IconHash:    "abc",
 	}
 
@@ -90,14 +90,14 @@ func TestLivestreamHandler_GetLivestream(t *testing.T) {
 			name:   "returns livestream",
 			path:   "/api/livestream/10",
 			cookie: sessionAs(1),
-			usecase: &fakeLivestreamUsecase{livestream: &model.Livestream{
+			usecase: &fakeLivestreamUsecase{livestream: &domain.Livestream{
 				ID:           10,
 				Owner:        owner,
 				Title:        "stream",
 				Description:  "desc",
 				PlaylistUrl:  "https://example.com/p.m3u8",
 				ThumbnailUrl: "https://example.com/t.jpg",
-				Tags:         []model.TagModel{{ID: 1, Name: "ゲーム実況"}},
+				Tags:         []domain.TagModel{{ID: 1, Name: "ゲーム実況"}},
 				StartAt:      1700000000,
 				EndAt:        1700003600,
 			}},
@@ -109,7 +109,7 @@ func TestLivestreamHandler_GetLivestream(t *testing.T) {
 			name:     "returns empty tags as array",
 			path:     "/api/livestream/10",
 			cookie:   sessionAs(1),
-			usecase:  &fakeLivestreamUsecase{livestream: &model.Livestream{ID: 10, Owner: owner}},
+			usecase:  &fakeLivestreamUsecase{livestream: &domain.Livestream{ID: 10, Owner: owner}},
 			wantCode: http.StatusOK,
 			wantBody: `{"id":10,"owner":{"id":2,"name":"alice","display_name":"Alice","description":"hello","theme":{"id":20,"dark_mode":true},"icon_hash":"abc"},"title":"","description":"","playlist_url":"","thumbnail_url":"","tags":[],"start_at":0,"end_at":0}` + "\n",
 		},
@@ -151,7 +151,7 @@ func TestLivestreamHandler_GetLivestream(t *testing.T) {
 }
 
 func TestLivestreamHandler_GetMyLivestreams(t *testing.T) {
-	owner := model.User{ID: 42, Name: "alice", Theme: model.ThemeModel{ID: 20, UserID: 42}, IconHash: "abc"}
+	owner := domain.User{ID: 42, Name: "alice", Theme: domain.ThemeModel{ID: 20, UserID: 42}, IconHash: "abc"}
 	ownerJSON := `{"id":42,"name":"alice","theme":{"id":20,"dark_mode":false},"icon_hash":"abc"}`
 
 	tests := []struct {
@@ -164,8 +164,8 @@ func TestLivestreamHandler_GetMyLivestreams(t *testing.T) {
 		{
 			name:   "returns livestreams of logged-in user",
 			cookie: sessionAs(42),
-			usecase: &fakeLivestreamUsecase{livestreams: []*model.Livestream{
-				{ID: 1, Owner: owner, Title: "s1", Tags: []model.TagModel{{ID: 1, Name: "t1"}}},
+			usecase: &fakeLivestreamUsecase{livestreams: []*domain.Livestream{
+				{ID: 1, Owner: owner, Title: "s1", Tags: []domain.TagModel{{ID: 1, Name: "t1"}}},
 				{ID: 2, Owner: owner, Title: "s2"},
 			}},
 			wantCode: http.StatusOK,
@@ -203,7 +203,7 @@ func TestLivestreamHandler_GetMyLivestreams(t *testing.T) {
 }
 
 func TestLivestreamHandler_GetUserLivestreams(t *testing.T) {
-	owner := model.User{ID: 42, Name: "alice", Theme: model.ThemeModel{ID: 20, UserID: 42}, IconHash: "abc"}
+	owner := domain.User{ID: 42, Name: "alice", Theme: domain.ThemeModel{ID: 20, UserID: 42}, IconHash: "abc"}
 
 	tests := []struct {
 		name     string
@@ -215,7 +215,7 @@ func TestLivestreamHandler_GetUserLivestreams(t *testing.T) {
 		{
 			name:     "returns livestreams of the user",
 			cookie:   sessionAs(1),
-			usecase:  &fakeLivestreamUsecase{livestreams: []*model.Livestream{{ID: 1, Owner: owner, Title: "s1"}}},
+			usecase:  &fakeLivestreamUsecase{livestreams: []*domain.Livestream{{ID: 1, Owner: owner, Title: "s1"}}},
 			wantCode: http.StatusOK,
 			wantBody: `[{"id":1,"owner":{"id":42,"name":"alice","theme":{"id":20,"dark_mode":false},"icon_hash":"abc"},"title":"s1","description":"","playlist_url":"","thumbnail_url":"","tags":[],"start_at":0,"end_at":0}]` + "\n",
 		},
@@ -255,10 +255,10 @@ func TestLivestreamHandler_GetUserLivestreams(t *testing.T) {
 }
 
 func TestLivestreamHandler_SearchLivestreams(t *testing.T) {
-	owner := model.User{ID: 42, Name: "alice", Theme: model.ThemeModel{ID: 20, UserID: 42}, IconHash: "abc"}
-	found := []*model.Livestream{{ID: 1, Owner: owner, Title: "s1"}}
+	owner := domain.User{ID: 42, Name: "alice", Theme: domain.ThemeModel{ID: 20, UserID: 42}, IconHash: "abc"}
+	found := []*domain.Livestream{{ID: 1, Owner: owner, Title: "s1"}}
 	foundJSON := `[{"id":1,"owner":{"id":42,"name":"alice","theme":{"id":20,"dark_mode":false},"icon_hash":"abc"},"title":"s1","description":"","playlist_url":"","thumbnail_url":"","tags":[],"start_at":0,"end_at":0}]` + "\n"
-	five := model.Limit(5)
+	five := domain.Limit(5)
 
 	tests := []struct {
 		name        string
@@ -268,7 +268,7 @@ func TestLivestreamHandler_SearchLivestreams(t *testing.T) {
 		wantBody    string
 		wantCalls   []string
 		wantTagName string
-		wantLimit   *model.Limit
+		wantLimit   *domain.Limit
 	}{
 		{
 			name:        "searches by tag",
@@ -307,7 +307,7 @@ func TestLivestreamHandler_SearchLivestreams(t *testing.T) {
 		{
 			name:        "returns empty array when nothing found",
 			query:       "?tag=nothing",
-			usecase:     &fakeLivestreamUsecase{livestreams: []*model.Livestream{}},
+			usecase:     &fakeLivestreamUsecase{livestreams: []*domain.Livestream{}},
 			wantCode:    http.StatusOK,
 			wantBody:    "[]\n",
 			wantCalls:   []string{"FindAllByTagName"},
@@ -341,7 +341,7 @@ func TestLivestreamHandler_SearchLivestreams(t *testing.T) {
 }
 
 func TestLivestreamHandler_SearchLivestreams_Limit(t *testing.T) {
-	testLimitQueryParam(t, maxLivestreamsLimit, func(t *testing.T, limit string) (*httptest.ResponseRecorder, *model.Limit) {
+	testLimitQueryParam(t, maxLivestreamsLimit, func(t *testing.T, limit string) (*httptest.ResponseRecorder, *domain.Limit) {
 		u := &fakeLivestreamUsecase{}
 		// セッションは不要
 		rec := serve(t, newLivestreamHandler(u, nil).SearchLivestreams, testRequest{method: http.MethodGet, route: "/api/livestream/search", path: "/api/livestream/search?limit=" + limit})
@@ -350,7 +350,7 @@ func TestLivestreamHandler_SearchLivestreams_Limit(t *testing.T) {
 }
 
 func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
-	owner := model.User{ID: 2, Name: "alice", Theme: model.ThemeModel{ID: 20, UserID: 2, DarkMode: true}, IconHash: "abc"}
+	owner := domain.User{ID: 2, Name: "alice", Theme: domain.ThemeModel{ID: 20, UserID: 2, DarkMode: true}, IconHash: "abc"}
 	reqBody := `{"tags":[1,3],"title":"stream","description":"desc","playlist_url":"https://example.com/p.m3u8","thumbnail_url":"https://example.com/t.jpg","start_at":1700874000,"end_at":1700877600}`
 
 	tests := []struct {
@@ -365,14 +365,14 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 			name:   "reserves livestream",
 			cookie: sessionAs(2),
 			body:   reqBody,
-			usecase: &fakeLivestreamReservationUsecase{livestream: &model.Livestream{
+			usecase: &fakeLivestreamReservationUsecase{livestream: &domain.Livestream{
 				ID:           10,
 				Owner:        owner,
 				Title:        "stream",
 				Description:  "desc",
 				PlaylistUrl:  "https://example.com/p.m3u8",
 				ThumbnailUrl: "https://example.com/t.jpg",
-				Tags:         []model.TagModel{{ID: 1, Name: "ゲーム実況"}, {ID: 3, Name: "雑談"}},
+				Tags:         []domain.TagModel{{ID: 1, Name: "ゲーム実況"}, {ID: 3, Name: "雑談"}},
 				StartAt:      1700874000,
 				EndAt:        1700877600,
 			}},
@@ -400,7 +400,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 			name:     "returns 400 when slot is unavailable",
 			cookie:   sessionAs(2),
 			body:     reqBody,
-			usecase:  &fakeLivestreamReservationUsecase{err: &usecase.ReservationSlotUnavailableError{Period: model.ReservationPeriod{StartAt: 1700874000, EndAt: 1700877600}}},
+			usecase:  &fakeLivestreamReservationUsecase{err: &usecase.ReservationSlotUnavailableError{Period: domain.ReservationPeriod{StartAt: 1700874000, EndAt: 1700877600}}},
 			wantCode: http.StatusBadRequest,
 			wantBody: errorBody(http.StatusBadRequest, "予約期間 1700874000 ~ 1732496400に対して、予約区間 1700874000 ~ 1700877600が予約できません"),
 		},
@@ -420,7 +420,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusCreated {
 				wantInput := usecase.ReserveLivestreamInput{
-					TagIDs:       []model.TagID{1, 3},
+					TagIDs:       []domain.TagID{1, 3},
 					Title:        "stream",
 					Description:  "desc",
 					PlaylistUrl:  "https://example.com/p.m3u8",

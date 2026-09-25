@@ -4,24 +4,24 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
-// fillReactions は reactionModels にユーザ・ライブ配信を埋めた model.Reaction を、同じ順序で返す。
+// fillReactions は reactionModels にユーザ・ライブ配信を埋めた domain.Reaction を、同じ順序で返す。
 //
 // ユーザやライブ配信が無いのはデータ不整合なので、repository.ErrNotFound には変換しない。
-func fillReactions(ctx context.Context, q repository.Querier, reactionModels []*model.ReactionModel, defaultIconHash model.IconHash) ([]*model.Reaction, error) {
-	userModels := make([]*model.UserModel, len(reactionModels))
-	livestreamModels := make([]*model.LivestreamModel, len(reactionModels))
+func fillReactions(ctx context.Context, q repository.Querier, reactionModels []*domain.ReactionModel, defaultIconHash domain.IconHash) ([]*domain.Reaction, error) {
+	userModels := make([]*domain.UserModel, len(reactionModels))
+	livestreamModels := make([]*domain.LivestreamModel, len(reactionModels))
 	for i, reactionModel := range reactionModels {
-		var userModel model.UserModel
+		var userModel domain.UserModel
 		if err := q.GetContext(ctx, &userModel, "SELECT id, name, display_name, description, password FROM users WHERE id = ?", reactionModel.UserID); err != nil {
 			return nil, fmt.Errorf("failed to get user of reaction %d: %w", reactionModel.ID, err)
 		}
 		userModels[i] = &userModel
 
-		var livestreamModel model.LivestreamModel
+		var livestreamModel domain.LivestreamModel
 		if err := q.GetContext(ctx, &livestreamModel, "SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM livestreams WHERE id = ?", reactionModel.LivestreamID); err != nil {
 			return nil, fmt.Errorf("failed to get livestream of reaction %d: %w", reactionModel.ID, err)
 		}
@@ -37,9 +37,9 @@ func fillReactions(ctx context.Context, q repository.Querier, reactionModels []*
 		return nil, err
 	}
 
-	reactions := make([]*model.Reaction, len(reactionModels))
+	reactions := make([]*domain.Reaction, len(reactionModels))
 	for i, reactionModel := range reactionModels {
-		reactions[i] = &model.Reaction{
+		reactions[i] = &domain.Reaction{
 			ID:         reactionModel.ID,
 			EmojiName:  reactionModel.EmojiName,
 			User:       *users[i],

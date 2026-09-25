@@ -5,24 +5,24 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase"
 	"github.com/labstack/echo/v4"
 )
 
 type livestreamResponse struct {
-	ID           model.LivestreamID `json:"id"`
-	Owner        userResponse       `json:"owner"`
-	Title        string             `json:"title"`
-	Description  string             `json:"description"`
-	PlaylistUrl  string             `json:"playlist_url"`
-	ThumbnailUrl string             `json:"thumbnail_url"`
-	Tags         []tagResponse      `json:"tags"`
-	StartAt      int64              `json:"start_at"`
-	EndAt        int64              `json:"end_at"`
+	ID           domain.LivestreamID `json:"id"`
+	Owner        userResponse        `json:"owner"`
+	Title        string              `json:"title"`
+	Description  string              `json:"description"`
+	PlaylistUrl  string              `json:"playlist_url"`
+	ThumbnailUrl string              `json:"thumbnail_url"`
+	Tags         []tagResponse       `json:"tags"`
+	StartAt      int64               `json:"start_at"`
+	EndAt        int64               `json:"end_at"`
 }
 
-func newLivestream(l *model.Livestream) livestreamResponse {
+func newLivestream(l *domain.Livestream) livestreamResponse {
 	tags := make([]tagResponse, len(l.Tags))
 	for i, tag := range l.Tags {
 		tags[i] = tagResponse{ID: tag.ID, Name: tag.Name}
@@ -40,7 +40,7 @@ func newLivestream(l *model.Livestream) livestreamResponse {
 	}
 }
 
-func newLivestreams(ls []*model.Livestream) []livestreamResponse {
+func newLivestreams(ls []*domain.Livestream) []livestreamResponse {
 	livestreams := make([]livestreamResponse, len(ls))
 	for i, l := range ls {
 		livestreams[i] = newLivestream(l)
@@ -71,7 +71,7 @@ func newLivestreamHandler(livestreamUsecase usecase.LivestreamUsecase, reservati
 func (h *livestreamHandler) GetLivestream(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
+	livestreamID, err := domain.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
@@ -123,14 +123,14 @@ func (h *livestreamHandler) GetUserLivestreams(c echo.Context) error {
 func (h *livestreamHandler) SearchLivestreams(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	var livestreams []*model.Livestream
+	var livestreams []*domain.Livestream
 	var err error
 	if tagName := c.QueryParam("tag"); tagName != "" {
 		// タグによる取得 (limit は無視する)
 		livestreams, err = h.livestreamUsecase.FindAllByTagName(ctx, tagName)
 	} else {
 		// 検索条件なし
-		var limit *model.Limit
+		var limit *domain.Limit
 		limit, err = parseLimitQueryParam(c, maxLivestreamsLimit)
 		if err != nil {
 			return err
@@ -159,9 +159,9 @@ func (h *livestreamHandler) ReserveLivestream(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
 	}
 
-	tagIDs := make([]model.TagID, len(req.Tags))
+	tagIDs := make([]domain.TagID, len(req.Tags))
 	for i, tagID := range req.Tags {
-		tagIDs[i] = model.TagID(tagID)
+		tagIDs[i] = domain.TagID(tagID)
 	}
 
 	livestream, err := h.reservationUsecase.Reserve(ctx, userID, usecase.ReserveLivestreamInput{

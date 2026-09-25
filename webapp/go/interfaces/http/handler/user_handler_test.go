@@ -8,45 +8,45 @@ import (
 	"testing"
 	"time"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase"
 	"github.com/labstack/echo/v4"
 )
 
 type fakeUserUsecase struct {
-	user      *model.User
-	userModel *model.UserModel
+	user      *domain.User
+	userModel *domain.UserModel
 	err       error
-	gotID     model.UserID
+	gotID     domain.UserID
 	gotName   string
 
 	gotPassword string
 }
 
 type fakeUserRegistrationUsecase struct {
-	user *model.User
+	user *domain.User
 	err  error
 
 	gotInput usecase.RegisterUserInput
 }
 
-func (u *fakeUserRegistrationUsecase) Register(ctx context.Context, input usecase.RegisterUserInput) (*model.User, error) {
+func (u *fakeUserRegistrationUsecase) Register(ctx context.Context, input usecase.RegisterUserInput) (*domain.User, error) {
 	u.gotInput = input
 	return u.user, u.err
 }
 
-func (u *fakeUserUsecase) Login(ctx context.Context, username string, password string) (*model.UserModel, error) {
+func (u *fakeUserUsecase) Login(ctx context.Context, username string, password string) (*domain.UserModel, error) {
 	u.gotName = username
 	u.gotPassword = password
 	return u.userModel, u.err
 }
 
-func (u *fakeUserUsecase) FindByID(ctx context.Context, id model.UserID) (*model.User, error) {
+func (u *fakeUserUsecase) FindByID(ctx context.Context, id domain.UserID) (*domain.User, error) {
 	u.gotID = id
 	return u.user, u.err
 }
 
-func (u *fakeUserUsecase) FindByName(ctx context.Context, name string) (*model.User, error) {
+func (u *fakeUserUsecase) FindByName(ctx context.Context, name string) (*domain.User, error) {
 	u.gotName = name
 	return u.user, u.err
 }
@@ -62,12 +62,12 @@ func TestUserHandler_GetUser(t *testing.T) {
 		{
 			name:   "returns user",
 			cookie: sessionAs(1),
-			usecase: &fakeUserUsecase{user: &model.User{
+			usecase: &fakeUserUsecase{user: &domain.User{
 				ID:          1,
 				Name:        "alice",
 				DisplayName: "Alice",
 				Description: "hello",
-				Theme:       model.ThemeModel{ID: 10, UserID: 1, DarkMode: true},
+				Theme:       domain.ThemeModel{ID: 10, UserID: 1, DarkMode: true},
 				IconHash:    "abc",
 			}},
 			wantCode: http.StatusOK,
@@ -111,12 +111,12 @@ func TestUserHandler_GetMe(t *testing.T) {
 		{
 			name:   "returns logged-in user",
 			cookie: sessionAs(42),
-			usecase: &fakeUserUsecase{user: &model.User{
+			usecase: &fakeUserUsecase{user: &domain.User{
 				ID:          42,
 				Name:        "alice",
 				DisplayName: "Alice",
 				Description: "hello",
-				Theme:       model.ThemeModel{ID: 10, UserID: 42, DarkMode: false},
+				Theme:       domain.ThemeModel{ID: 10, UserID: 42, DarkMode: false},
 				IconHash:    "abc",
 			}},
 			wantCode: http.StatusOK,
@@ -150,7 +150,7 @@ func TestUserHandler_GetMe(t *testing.T) {
 }
 
 func TestUserHandler_Register(t *testing.T) {
-	user := &model.User{ID: 5, Name: "alice", DisplayName: "Alice", Description: "hello", Theme: model.ThemeModel{ID: 9, UserID: 5, DarkMode: true}, IconHash: "abc"}
+	user := &domain.User{ID: 5, Name: "alice", DisplayName: "Alice", Description: "hello", Theme: domain.ThemeModel{ID: 9, UserID: 5, DarkMode: true}, IconHash: "abc"}
 	reqBody := `{"name":"alice","display_name":"Alice","description":"hello","password":"s3cret","theme":{"dark_mode":true}}`
 
 	tests := []struct {
@@ -215,7 +215,7 @@ func TestUserHandler_Register(t *testing.T) {
 }
 
 func TestUserHandler_Login(t *testing.T) {
-	user := &model.UserModel{ID: 5, Name: "alice"}
+	user := &domain.UserModel{ID: 5, Name: "alice"}
 	// 発行したセッションで認証が通ることも確認するので、実時刻に固定する
 	now := time.Unix(time.Now().Unix(), 0)
 
@@ -287,7 +287,7 @@ func TestUserHandler_Login(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to decode session: %v", err)
 			}
-			// requireSession などが int64 として取り出せること (model.UserID のままだと認証が全て失敗する)
+			// requireSession などが int64 として取り出せること (domain.UserID のままだと認証が全て失敗する)
 			if userID, ok := sess.Values[defaultUserIDKey].(int64); !ok || userID != 5 {
 				t.Errorf("USERID = %#v, want int64(5)", sess.Values[defaultUserIDKey])
 			}

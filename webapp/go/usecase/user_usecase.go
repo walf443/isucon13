@@ -5,18 +5,18 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 type UserUsecase interface {
 	// FindByID はユーザが存在しない場合 ErrUserNotFound を返す。
-	FindByID(ctx context.Context, id model.UserID) (*model.User, error)
+	FindByID(ctx context.Context, id domain.UserID) (*domain.User, error)
 	// FindByName はユーザが存在しない場合 ErrUserNotFound を返す。
-	FindByName(ctx context.Context, name string) (*model.User, error)
+	FindByName(ctx context.Context, name string) (*domain.User, error)
 	// Login はユーザ名とパスワードを検証し、ユーザを返す。
 	// ユーザが存在しないかパスワードが違う場合 ErrInvalidCredentials を返す。
-	Login(ctx context.Context, username string, password string) (*model.UserModel, error)
+	Login(ctx context.Context, username string, password string) (*domain.UserModel, error)
 }
 
 type userUsecase struct {
@@ -28,20 +28,20 @@ func NewUserUsecase(txManager repository.TxManager, userRepo repository.UserRepo
 	return &userUsecase{txManager: txManager, userRepo: userRepo}
 }
 
-func (u *userUsecase) FindByID(ctx context.Context, id model.UserID) (*model.User, error) {
-	return u.findUser(ctx, func(q repository.Querier) (*model.User, error) {
+func (u *userUsecase) FindByID(ctx context.Context, id domain.UserID) (*domain.User, error) {
+	return u.findUser(ctx, func(q repository.Querier) (*domain.User, error) {
 		return u.userRepo.FindWithDetailsByID(ctx, q, id)
 	})
 }
 
-func (u *userUsecase) FindByName(ctx context.Context, name string) (*model.User, error) {
-	return u.findUser(ctx, func(q repository.Querier) (*model.User, error) {
+func (u *userUsecase) FindByName(ctx context.Context, name string) (*domain.User, error) {
+	return u.findUser(ctx, func(q repository.Querier) (*domain.User, error) {
 		return u.userRepo.FindWithDetailsByName(ctx, q, name)
 	})
 }
 
-func (u *userUsecase) findUser(ctx context.Context, find func(q repository.Querier) (*model.User, error)) (*model.User, error) {
-	var user *model.User
+func (u *userUsecase) findUser(ctx context.Context, find func(q repository.Querier) (*domain.User, error)) (*domain.User, error) {
+	var user *domain.User
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		var err error
 		user, err = find(q)
@@ -59,8 +59,8 @@ func (u *userUsecase) findUser(ctx context.Context, find func(q repository.Queri
 	return user, nil
 }
 
-func (u *userUsecase) Login(ctx context.Context, username string, password string) (*model.UserModel, error) {
-	var user *model.UserModel
+func (u *userUsecase) Login(ctx context.Context, username string, password string) (*domain.UserModel, error) {
+	var user *domain.UserModel
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		var err error
 		// usernameはUNIQUEなので、whereで一意に特定できる

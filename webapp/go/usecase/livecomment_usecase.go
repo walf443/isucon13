@@ -6,17 +6,17 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 type LivecommentUsecase interface {
 	// FindAllByLivestreamID は指定したライブ配信へのライブコメントを作成日時の降順で返す。
 	// limit が nil でなければ最大 *limit 件に絞る。
-	FindAllByLivestreamID(ctx context.Context, livestreamID model.LivestreamID, limit *model.Limit) ([]*model.Livecomment, error)
+	FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.Livecomment, error)
 	// Create はライブコメントを投稿し、ユーザ・ライブ配信を含めて返す。
 	// ライブ配信が存在しない場合 ErrLivestreamNotFound、配信者の NG ワードに当たった場合 ErrSpamLivecomment を返す。
-	Create(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID, comment string, tip int64) (*model.Livecomment, error)
+	Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, comment string, tip int64) (*domain.Livecomment, error)
 }
 
 type livecommentUsecase struct {
@@ -40,8 +40,8 @@ func NewLivecommentUsecase(txManager repository.TxManager, livestreamRepo reposi
 	}
 }
 
-func (u *livecommentUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID model.LivestreamID, limit *model.Limit) ([]*model.Livecomment, error) {
-	var livecomments []*model.Livecomment
+func (u *livecommentUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.Livecomment, error) {
+	var livecomments []*domain.Livecomment
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		var err error
 		if limit == nil {
@@ -60,8 +60,8 @@ func (u *livecommentUsecase) FindAllByLivestreamID(ctx context.Context, livestre
 	return livecomments, nil
 }
 
-func (u *livecommentUsecase) Create(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID, comment string, tip int64) (*model.Livecomment, error) {
-	var livecomment *model.Livecomment
+func (u *livecommentUsecase) Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, comment string, tip int64) (*domain.Livecomment, error) {
+	var livecomment *domain.Livecomment
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		livestream, err := u.livestreamRepo.FindByID(ctx, q, livestreamID)
 		if errors.Is(err, repository.ErrNotFound) {
@@ -92,7 +92,7 @@ func (u *livecommentUsecase) Create(ctx context.Context, userID model.UserID, li
 			}
 		}
 
-		livecommentID, err := u.livecommentRepo.Create(ctx, q, &model.LivecommentModel{
+		livecommentID, err := u.livecommentRepo.Create(ctx, q, &domain.LivecommentModel{
 			UserID:       userID,
 			LivestreamID: livestreamID,
 			Comment:      comment,

@@ -7,7 +7,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
@@ -17,7 +17,7 @@ func TestIconUsecase_FindImageByUsername(t *testing.T) {
 	tests := []struct {
 		name string
 		// userID, userErr はユーザ名から ID を引いた結果
-		userID  model.UserID
+		userID  domain.UserID
 		userErr error
 		// iconImage, iconErr はアイコンの取得が返す値
 		iconImage []byte
@@ -53,7 +53,7 @@ func TestIconUsecase_FindImageByUsername(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			iconRepo := &fakeIconRepository{
-				findImageByUserID: func(_ context.Context, _ repository.Querier, userID model.UserID) ([]byte, error) {
+				findImageByUserID: func(_ context.Context, _ repository.Querier, userID domain.UserID) ([]byte, error) {
 					if userID != 1 {
 						t.Errorf("userID = %d, want 1", userID)
 					}
@@ -76,14 +76,14 @@ func TestIconUsecase_FindImageByUsername(t *testing.T) {
 // newIconRepositoryForUpdate は Update で呼ばれるメソッドを、呼ばれた順に calls へ記録する fakeIconRepository を返す。
 func newIconRepositoryForUpdate(t *testing.T, calls *[]string, deleteErr, createErr error) *fakeIconRepository {
 	return &fakeIconRepository{
-		deleteByUserID: func(_ context.Context, _ repository.Querier, userID model.UserID) error {
+		deleteByUserID: func(_ context.Context, _ repository.Querier, userID domain.UserID) error {
 			*calls = append(*calls, "DeleteByUserID")
 			if userID != 1 {
 				t.Errorf("delete userID = %d, want 1", userID)
 			}
 			return deleteErr
 		},
-		create: func(_ context.Context, _ repository.Querier, userID model.UserID, image []byte) (model.IconID, error) {
+		create: func(_ context.Context, _ repository.Querier, userID domain.UserID, image []byte) (domain.IconID, error) {
 			*calls = append(*calls, "Create")
 			if userID != 1 || string(image) != "new icon" {
 				t.Errorf("create userID = %d, image = %q", userID, image)

@@ -5,14 +5,14 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 func TestTagUsecase_FindAll(t *testing.T) {
-	want := []*model.TagModel{{ID: 1, Name: "ライブ配信"}}
+	want := []*domain.TagModel{{ID: 1, Name: "ライブ配信"}}
 	tagRepo := &fakeTagRepository{
-		findAll: func(context.Context, repository.Querier) ([]*model.TagModel, error) { return want, nil },
+		findAll: func(context.Context, repository.Querier) ([]*domain.TagModel, error) { return want, nil },
 	}
 	u := NewTagUsecase(&fakeTxManager{}, tagRepo)
 
@@ -28,7 +28,7 @@ func TestTagUsecase_FindAll(t *testing.T) {
 func TestTagUsecase_FindAll_Error(t *testing.T) {
 	wantErr := errors.New("boom")
 	tagRepo := &fakeTagRepository{
-		findAll: func(context.Context, repository.Querier) ([]*model.TagModel, error) { return nil, wantErr },
+		findAll: func(context.Context, repository.Querier) ([]*domain.TagModel, error) { return nil, wantErr },
 	}
 	u := NewTagUsecase(&fakeTxManager{}, tagRepo)
 

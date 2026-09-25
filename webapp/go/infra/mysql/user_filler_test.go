@@ -5,28 +5,28 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
-func insertTestUser(t *testing.T, tx repository.Querier, name string) model.UserID {
+func insertTestUser(t *testing.T, tx repository.Querier, name string) domain.UserID {
 	t.Helper()
 	res, err := tx.ExecContext(context.Background(), "INSERT INTO users (name, display_name, password, description) VALUES (?, ?, ?, ?)", name, "Display "+name, "hashed", "desc "+name)
 	if err != nil {
 		t.Fatalf("failed to insert user: %v", err)
 	}
 	id, _ := res.LastInsertId()
-	return model.UserID(id)
+	return domain.UserID(id)
 }
 
-func insertTestTheme(t *testing.T, tx repository.Querier, userID model.UserID, darkMode bool) model.ThemeID {
+func insertTestTheme(t *testing.T, tx repository.Querier, userID domain.UserID, darkMode bool) domain.ThemeID {
 	t.Helper()
 	res, err := tx.ExecContext(context.Background(), "INSERT INTO themes (user_id, dark_mode) VALUES (?, ?)", userID, darkMode)
 	if err != nil {
 		t.Fatalf("failed to insert theme: %v", err)
 	}
 	id, _ := res.LastInsertId()
-	return model.ThemeID(id)
+	return domain.ThemeID(id)
 }
 
 func TestUserRepository_FindWithDetails(t *testing.T) {
@@ -35,17 +35,17 @@ func TestUserRepository_FindWithDetails(t *testing.T) {
 	tests := []struct {
 		name         string
 		icon         []byte
-		wantIconHash model.IconHash
+		wantIconHash domain.IconHash
 	}{
 		{
 			name:         "with registered icon",
 			icon:         []byte("icon"),
-			wantIconHash: model.HashIcon([]byte("icon")),
+			wantIconHash: domain.HashIcon([]byte("icon")),
 		},
 		{
 			name:         "without icon uses fallback",
 			icon:         nil,
-			wantIconHash: model.HashIcon(fallback),
+			wantIconHash: domain.HashIcon(fallback),
 		},
 	}
 
@@ -62,15 +62,15 @@ func TestUserRepository_FindWithDetails(t *testing.T) {
 				}
 			}
 
-			want := model.User{
+			want := domain.User{
 				ID:          userID,
 				Name:        "alice",
 				DisplayName: "Display alice",
 				Description: "desc alice",
-				Theme:       model.ThemeModel{ID: themeID, UserID: userID, DarkMode: true},
+				Theme:       domain.ThemeModel{ID: themeID, UserID: userID, DarkMode: true},
 				IconHash:    tt.wantIconHash,
 			}
-			repo := NewUserRepository(model.HashIcon(fallback))
+			repo := NewUserRepository(domain.HashIcon(fallback))
 
 			byName, err := repo.FindWithDetailsByName(ctx, tx, "alice")
 			if err != nil {
@@ -132,33 +132,33 @@ func TestFillUsers(t *testing.T) {
 	bobID := insertTestUser(t, tx, "bob")
 	bobThemeID := insertTestTheme(t, tx, bobID, false)
 
-	userModels := []*model.UserModel{
+	userModels := []*domain.UserModel{
 		// 入力の順序が保たれることを確認するため、ID の降順で渡す
 		{ID: bobID, Name: "bob", DisplayName: "Display bob", Description: "desc bob"},
 		{ID: aliceID, Name: "alice", DisplayName: "Display alice", Description: "desc alice"},
 	}
 
-	users, err := fillUsers(ctx, tx, userModels, model.HashIcon(fallback))
+	users, err := fillUsers(ctx, tx, userModels, domain.HashIcon(fallback))
 	if err != nil {
 		t.Fatalf("fillUsers returned error: %v", err)
 	}
 
-	want := []model.User{
+	want := []domain.User{
 		{
 			ID:          bobID,
 			Name:        "bob",
 			DisplayName: "Display bob",
 			Description: "desc bob",
-			Theme:       model.ThemeModel{ID: bobThemeID, UserID: bobID, DarkMode: false},
-			IconHash:    model.HashIcon(fallback),
+			Theme:       domain.ThemeModel{ID: bobThemeID, UserID: bobID, DarkMode: false},
+			IconHash:    domain.HashIcon(fallback),
 		},
 		{
 			ID:          aliceID,
 			Name:        "alice",
 			DisplayName: "Display alice",
 			Description: "desc alice",
-			Theme:       model.ThemeModel{ID: aliceThemeID, UserID: aliceID, DarkMode: true},
-			IconHash:    model.HashIcon([]byte("alice icon")),
+			Theme:       domain.ThemeModel{ID: aliceThemeID, UserID: aliceID, DarkMode: true},
+			IconHash:    domain.HashIcon([]byte("alice icon")),
 		},
 	}
 	if len(users) != len(want) {

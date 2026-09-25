@@ -8,14 +8,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 )
 
 type userResponse struct {
-	ID          model.UserID  `json:"id"`
+	ID          domain.UserID `json:"id"`
 	Name        string        `json:"name"`
 	DisplayName string        `json:"display_name,omitempty"`
 	Description string        `json:"description,omitempty"`
@@ -23,7 +23,7 @@ type userResponse struct {
 	IconHash    string        `json:"icon_hash,omitempty"`
 }
 
-func newUser(u *model.User) userResponse {
+func newUser(u *domain.User) userResponse {
 	return userResponse{
 		ID:          u.ID,
 		Name:        u.Name,
@@ -165,7 +165,7 @@ func (h *userHandler) Login(c echo.Context) error {
 		Path:   "/",
 	}
 	sess.Values[defaultSessionIDKey] = sessionID
-	// requireSession などは int64 として取り出すので、model.UserID ではなく int64 で保存する
+	// requireSession などは int64 として取り出すので、domain.UserID ではなく int64 で保存する
 	sess.Values[defaultUserIDKey] = int64(user.ID)
 	sess.Values[defaultUsernameKey] = user.Name
 	sess.Values[defaultSessionExpiresKey] = sessionEndAt.Unix()

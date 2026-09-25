@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
@@ -12,7 +12,7 @@ import (
 type UserRegistrationUsecase interface {
 	// Register はユーザを登録し、サブドメインの DNS レコードを登録して、テーマ・アイコンを含めたユーザを返す。
 	// 予約済みのユーザ名の場合 *ReservedUsernameError を返す。
-	Register(ctx context.Context, input RegisterUserInput) (*model.User, error)
+	Register(ctx context.Context, input RegisterUserInput) (*domain.User, error)
 }
 
 // RegisterUserInput は登録するユーザの内容。
@@ -36,19 +36,19 @@ func NewUserRegistrationUsecase(txManager repository.TxManager, userRepo reposit
 	return &userRegistrationUsecase{txManager: txManager, userRepo: userRepo, themeRepo: themeRepo, dnsRegistrar: dnsRegistrar}
 }
 
-func (u *userRegistrationUsecase) Register(ctx context.Context, input RegisterUserInput) (*model.User, error) {
-	if reserved, ok := model.FindReservedUsername(input.Name); ok {
+func (u *userRegistrationUsecase) Register(ctx context.Context, input RegisterUserInput) (*domain.User, error) {
+	if reserved, ok := domain.FindReservedUsername(input.Name); ok {
 		return nil, &ReservedUsernameError{Name: reserved}
 	}
 
-	hashedPassword, err := model.HashPassword(input.Password)
+	hashedPassword, err := domain.HashPassword(input.Password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate hashed password: %w", err)
 	}
 
-	var user *model.User
+	var user *domain.User
 	err = u.txManager.RunInTx(ctx, func(q repository.Querier) error {
-		userID, err := u.userRepo.Create(ctx, q, &model.UserModel{
+		userID, err := u.userRepo.Create(ctx, q, &domain.UserModel{
 			Name:           input.Name,
 			DisplayName:    input.DisplayName,
 			Description:    input.Description,
@@ -58,7 +58,7 @@ func (u *userRegistrationUsecase) Register(ctx context.Context, input RegisterUs
 			return fmt.Errorf("failed to insert user: %w", err)
 		}
 
-		if err := u.themeRepo.Create(ctx, q, &model.ThemeModel{
+		if err := u.themeRepo.Create(ctx, q, &domain.ThemeModel{
 			UserID:   userID,
 			DarkMode: input.DarkMode,
 		}); err != nil {

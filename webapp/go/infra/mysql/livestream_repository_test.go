@@ -7,11 +7,11 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
-func insertTestLivestream(t *testing.T, tx repository.Querier, userID model.UserID, title string) model.LivestreamID {
+func insertTestLivestream(t *testing.T, tx repository.Querier, userID domain.UserID, title string) domain.LivestreamID {
 	t.Helper()
 	res, err := tx.ExecContext(context.Background(),
 		"INSERT INTO livestreams (user_id, title, description, playlist_url, thumbnail_url, start_at, end_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -20,10 +20,10 @@ func insertTestLivestream(t *testing.T, tx repository.Querier, userID model.User
 		t.Fatalf("failed to insert livestream: %v", err)
 	}
 	id, _ := res.LastInsertId()
-	return model.LivestreamID(id)
+	return domain.LivestreamID(id)
 }
 
-func insertTestTag(t *testing.T, tx repository.Querier, livestreamID model.LivestreamID, name string) model.TagModel {
+func insertTestTag(t *testing.T, tx repository.Querier, livestreamID domain.LivestreamID, name string) domain.TagModel {
 	t.Helper()
 	ctx := context.Background()
 	res, err := tx.ExecContext(ctx, "INSERT INTO tags (name) VALUES (?)", name)
@@ -34,7 +34,7 @@ func insertTestTag(t *testing.T, tx repository.Querier, livestreamID model.Lives
 	if _, err := tx.ExecContext(ctx, "INSERT INTO livestream_tags (livestream_id, tag_id) VALUES (?, ?)", livestreamID, tagID); err != nil {
 		t.Fatalf("failed to insert livestream_tag: %v", err)
 	}
-	return model.TagModel{ID: model.TagID(tagID), Name: name}
+	return domain.TagModel{ID: domain.TagID(tagID), Name: name}
 }
 
 func TestLivestreamRepository_FindWithDetailsByID(t *testing.T) {
@@ -48,26 +48,26 @@ func TestLivestreamRepository_FindWithDetailsByID(t *testing.T) {
 	tag1 := insertTestTag(t, tx, livestreamID, "ゲーム実況")
 	tag2 := insertTestTag(t, tx, livestreamID, "雑談")
 
-	got, err := NewLivestreamRepository(model.HashIcon(fallback)).FindWithDetailsByID(ctx, tx, livestreamID)
+	got, err := NewLivestreamRepository(domain.HashIcon(fallback)).FindWithDetailsByID(ctx, tx, livestreamID)
 	if err != nil {
 		t.Fatalf("FindWithDetailsByID returned error: %v", err)
 	}
 
-	want := &model.Livestream{
+	want := &domain.Livestream{
 		ID: livestreamID,
-		Owner: model.User{
+		Owner: domain.User{
 			ID:          ownerID,
 			Name:        "alice",
 			DisplayName: "Display alice",
 			Description: "desc alice",
-			Theme:       model.ThemeModel{ID: themeID, UserID: ownerID, DarkMode: true},
-			IconHash:    model.HashIcon(fallback),
+			Theme:       domain.ThemeModel{ID: themeID, UserID: ownerID, DarkMode: true},
+			IconHash:    domain.HashIcon(fallback),
 		},
 		Title:        "stream1",
 		Description:  "desc stream1",
 		PlaylistUrl:  "https://example.com/stream1.m3u8",
 		ThumbnailUrl: "https://example.com/stream1.jpg",
-		Tags:         []model.TagModel{tag1, tag2},
+		Tags:         []domain.TagModel{tag1, tag2},
 		StartAt:      1700000000,
 		EndAt:        1700003600,
 	}
@@ -129,7 +129,7 @@ func TestFillLivestreams(t *testing.T) {
 	aliceTag := insertTestTag(t, tx, aliceStreamID, "alice-tag")
 	bobStreamID := insertTestLivestream(t, tx, bobID, "bob-stream")
 
-	livestreamModels := []*model.LivestreamModel{
+	livestreamModels := []*domain.LivestreamModel{
 		// 入力の順序が保たれることを確認するため、ID の降順で渡す
 		{ID: bobStreamID, UserID: bobID, Title: "bob-stream"},
 		{ID: aliceStreamID, UserID: aliceID, Title: "alice-stream"},
@@ -145,7 +145,7 @@ func TestFillLivestreams(t *testing.T) {
 	if livestreams[0].ID != bobStreamID || livestreams[0].Owner.ID != bobID || len(livestreams[0].Tags) != 0 {
 		t.Errorf("livestreams[0] = %+v", livestreams[0])
 	}
-	if livestreams[1].ID != aliceStreamID || livestreams[1].Owner.ID != aliceID || !reflect.DeepEqual(livestreams[1].Tags, []model.TagModel{aliceTag}) {
+	if livestreams[1].ID != aliceStreamID || livestreams[1].Owner.ID != aliceID || !reflect.DeepEqual(livestreams[1].Tags, []domain.TagModel{aliceTag}) {
 		t.Errorf("livestreams[1] = %+v", livestreams[1])
 	}
 }
@@ -171,14 +171,14 @@ func TestLivestreamRepository_FindAllWithDetailsByUserID(t *testing.T) {
 		t.Fatalf("FindAllWithDetailsByUserID returned error: %v", err)
 	}
 	// ORDER BY が無いので順序には依存しない
-	gotByID := map[model.LivestreamID]*model.Livestream{}
+	gotByID := map[domain.LivestreamID]*domain.Livestream{}
 	for _, l := range got {
 		gotByID[l.ID] = l
 	}
 	if len(got) != 2 || gotByID[stream1] == nil || gotByID[stream2] == nil {
 		t.Fatalf("got livestreams %+v, want IDs %d and %d", got, stream1, stream2)
 	}
-	if gotByID[stream1].Owner.ID != aliceID || !reflect.DeepEqual(gotByID[stream1].Tags, []model.TagModel{tag}) {
+	if gotByID[stream1].Owner.ID != aliceID || !reflect.DeepEqual(gotByID[stream1].Tags, []domain.TagModel{tag}) {
 		t.Errorf("stream1 = %+v", gotByID[stream1])
 	}
 
@@ -193,8 +193,8 @@ func TestLivestreamRepository_FindAllWithDetailsByUserID(t *testing.T) {
 	}
 }
 
-func livestreamIDs(livestreams []*model.Livestream) []model.LivestreamID {
-	ids := make([]model.LivestreamID, len(livestreams))
+func livestreamIDs(livestreams []*domain.Livestream) []domain.LivestreamID {
+	ids := make([]domain.LivestreamID, len(livestreams))
 	for i, l := range livestreams {
 		ids[i] = l.ID
 	}
@@ -216,15 +216,15 @@ func TestLivestreamRepository_FindAllWithDetailsByTagIDs(t *testing.T) {
 	}
 	insertTestTag(t, tx, stream2, "雑談")
 
-	got, err := NewLivestreamRepository("").FindAllWithDetailsByTagIDs(ctx, tx, []model.TagID{gameTag.ID})
+	got, err := NewLivestreamRepository("").FindAllWithDetailsByTagIDs(ctx, tx, []domain.TagID{gameTag.ID})
 	if err != nil {
 		t.Fatalf("FindAllWithDetailsByTagIDs returned error: %v", err)
 	}
 	// livestream_id の降順
-	if want := []model.LivestreamID{stream3, stream1}; !slices.Equal(livestreamIDs(got), want) {
+	if want := []domain.LivestreamID{stream3, stream1}; !slices.Equal(livestreamIDs(got), want) {
 		t.Errorf("ids = %v, want %v", livestreamIDs(got), want)
 	}
-	if got[1].Owner.ID != ownerID || !reflect.DeepEqual(got[1].Tags, []model.TagModel{gameTag}) {
+	if got[1].Owner.ID != ownerID || !reflect.DeepEqual(got[1].Tags, []domain.TagModel{gameTag}) {
 		t.Errorf("got[1] = %+v", got[1])
 	}
 }
@@ -245,7 +245,7 @@ func TestLivestreamRepository_FindAllWithDetails(t *testing.T) {
 		t.Fatalf("FindAllWithDetails returned error: %v", err)
 	}
 	// id の降順
-	if want := []model.LivestreamID{stream3, stream2, stream1}; !slices.Equal(livestreamIDs(all), want) {
+	if want := []domain.LivestreamID{stream3, stream2, stream1}; !slices.Equal(livestreamIDs(all), want) {
 		t.Errorf("ids = %v, want %v", livestreamIDs(all), want)
 	}
 
@@ -253,7 +253,7 @@ func TestLivestreamRepository_FindAllWithDetails(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindAllWithDetailsLimited returned error: %v", err)
 	}
-	if want := []model.LivestreamID{stream3, stream2}; !slices.Equal(livestreamIDs(limited), want) {
+	if want := []domain.LivestreamID{stream3, stream2}; !slices.Equal(livestreamIDs(limited), want) {
 		t.Errorf("ids = %v, want %v", livestreamIDs(limited), want)
 	}
 }
@@ -270,7 +270,7 @@ func TestLivestreamRepository_FindByID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindByID returned error: %v", err)
 	}
-	want := model.LivestreamModel{
+	want := domain.LivestreamModel{
 		ID:           livestreamID,
 		UserID:       ownerID,
 		Title:        "stream",
@@ -308,8 +308,8 @@ func TestLivestreamRepository_FindAllByIDAndUserID(t *testing.T) {
 
 	for _, tt := range []struct {
 		name   string
-		id     model.LivestreamID
-		userID model.UserID
+		id     domain.LivestreamID
+		userID domain.UserID
 	}{
 		{name: "other user", id: livestreamID, userID: otherID},
 		{name: "livestream not found", id: 999999, userID: ownerID},
@@ -331,17 +331,17 @@ func TestLivestreamRepository_CreateAndAddTag(t *testing.T) {
 
 	ownerID := insertTestUser(t, tx, "alice")
 	insertTestTheme(t, tx, ownerID, true)
-	var tagIDs []model.TagID
+	var tagIDs []domain.TagID
 	for _, name := range []string{"tag-a", "tag-b"} {
 		res, err := tx.ExecContext(ctx, "INSERT INTO tags (name) VALUES (?)", name)
 		if err != nil {
 			t.Fatalf("failed to insert tag: %v", err)
 		}
 		id, _ := res.LastInsertId()
-		tagIDs = append(tagIDs, model.TagID(id))
+		tagIDs = append(tagIDs, domain.TagID(id))
 	}
 
-	id, err := repo.Create(ctx, tx, &model.LivestreamModel{
+	id, err := repo.Create(ctx, tx, &domain.LivestreamModel{
 		UserID:       ownerID,
 		Title:        "stream",
 		Description:  "desc",
@@ -368,7 +368,7 @@ func TestLivestreamRepository_CreateAndAddTag(t *testing.T) {
 		got.StartAt != 1700874000 || got.EndAt != 1700877600 {
 		t.Errorf("livestream = %+v", got)
 	}
-	want := []model.TagModel{{ID: tagIDs[0], Name: "tag-a"}, {ID: tagIDs[1], Name: "tag-b"}}
+	want := []domain.TagModel{{ID: tagIDs[0], Name: "tag-a"}, {ID: tagIDs[1], Name: "tag-b"}}
 	if !reflect.DeepEqual(got.Tags, want) {
 		t.Errorf("tags = %+v, want %+v", got.Tags, want)
 	}

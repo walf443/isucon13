@@ -5,13 +5,13 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
-func findTestLivestreamViewersHistories(t *testing.T, tx repository.Querier) []model.LivestreamViewersHistoryModel {
+func findTestLivestreamViewersHistories(t *testing.T, tx repository.Querier) []domain.LivestreamViewersHistoryModel {
 	t.Helper()
-	var viewers []model.LivestreamViewersHistoryModel
+	var viewers []domain.LivestreamViewersHistoryModel
 	if err := tx.SelectContext(context.Background(), &viewers, "SELECT id, user_id, livestream_id, created_at FROM livestream_viewers_history ORDER BY id"); err != nil {
 		t.Fatalf("failed to get livestream viewers: %v", err)
 	}
@@ -23,11 +23,11 @@ func TestLivestreamViewersHistoryRepository_Create(t *testing.T) {
 	tx := beginTestTx(t)
 	repo := NewLivestreamViewersHistoryRepository()
 
-	if err := repo.Create(ctx, tx, &model.LivestreamViewersHistoryModel{UserID: 1, LivestreamID: 10, CreatedAt: 100}); err != nil {
+	if err := repo.Create(ctx, tx, &domain.LivestreamViewersHistoryModel{UserID: 1, LivestreamID: 10, CreatedAt: 100}); err != nil {
 		t.Fatalf("Create returned error: %v", err)
 	}
 	// 同じユーザ・ライブ配信でも重複して登録する (移行前と同じ)
-	if err := repo.Create(ctx, tx, &model.LivestreamViewersHistoryModel{UserID: 1, LivestreamID: 10, CreatedAt: 200}); err != nil {
+	if err := repo.Create(ctx, tx, &domain.LivestreamViewersHistoryModel{UserID: 1, LivestreamID: 10, CreatedAt: 200}); err != nil {
 		t.Fatalf("Create returned error: %v", err)
 	}
 
@@ -48,7 +48,7 @@ func TestLivestreamViewersHistoryRepository_DeleteByUserIDAndLivestreamID(t *tes
 	tx := beginTestTx(t)
 	repo := NewLivestreamViewersHistoryRepository()
 
-	for _, v := range []model.LivestreamViewersHistoryModel{
+	for _, v := range []domain.LivestreamViewersHistoryModel{
 		{UserID: 1, LivestreamID: 10, CreatedAt: 100},
 		{UserID: 1, LivestreamID: 10, CreatedAt: 200},
 		{UserID: 2, LivestreamID: 10, CreatedAt: 100},
@@ -65,8 +65,8 @@ func TestLivestreamViewersHistoryRepository_DeleteByUserIDAndLivestreamID(t *tes
 
 	// 該当する視聴履歴は重複分も含めて全て消え、他のユーザ・ライブ配信のものは残る
 	type key struct {
-		userID       model.UserID
-		livestreamID model.LivestreamID
+		userID       domain.UserID
+		livestreamID domain.LivestreamID
 	}
 	var got []key
 	for _, v := range findTestLivestreamViewersHistories(t, tx) {

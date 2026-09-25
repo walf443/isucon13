@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 )
 
 // ErrUserNotFound は指定されたユーザが存在しないことを表す。
@@ -34,11 +34,11 @@ var ErrBadReservationTimeRange = errors.New("bad reservation time range")
 
 // ReservationSlotUnavailableError は予約区間 Period に空きの無い予約枠があることを表す。
 type ReservationSlotUnavailableError struct {
-	Period model.ReservationPeriod
+	Period domain.ReservationPeriod
 }
 
 func (e *ReservationSlotUnavailableError) Error() string {
-	return fmt.Sprintf("予約期間 %d ~ %dに対して、予約区間 %d ~ %dが予約できません", model.ReservableTerm.StartAt, model.ReservableTerm.EndAt, e.Period.StartAt, e.Period.EndAt)
+	return fmt.Sprintf("予約期間 %d ~ %dに対して、予約区間 %d ~ %dが予約できません", domain.ReservableTerm.StartAt, domain.ReservableTerm.EndAt, e.Period.StartAt, e.Period.EndAt)
 }
 
 // ErrLivecommentNotFound は指定されたライブコメントが存在しないことを表す。

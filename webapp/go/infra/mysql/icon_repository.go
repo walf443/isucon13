@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
@@ -15,7 +15,7 @@ func NewIconRepository() repository.IconRepository {
 	return &iconRepository{}
 }
 
-func (r *iconRepository) FindImageByUserID(ctx context.Context, q repository.Querier, userID model.UserID) ([]byte, error) {
+func (r *iconRepository) FindImageByUserID(ctx context.Context, q repository.Querier, userID domain.UserID) ([]byte, error) {
 	var image []byte
 	err := q.GetContext(ctx, &image, "SELECT image FROM icons WHERE user_id = ?", userID)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -27,7 +27,7 @@ func (r *iconRepository) FindImageByUserID(ctx context.Context, q repository.Que
 	return image, nil
 }
 
-func (r *iconRepository) Create(ctx context.Context, q repository.Querier, userID model.UserID, image []byte) (model.IconID, error) {
+func (r *iconRepository) Create(ctx context.Context, q repository.Querier, userID domain.UserID, image []byte) (domain.IconID, error) {
 	rs, err := q.ExecContext(ctx, "INSERT INTO icons (user_id, image) VALUES (?, ?)", userID, image)
 	if err != nil {
 		return 0, err
@@ -36,10 +36,10 @@ func (r *iconRepository) Create(ctx context.Context, q repository.Querier, userI
 	if err != nil {
 		return 0, err
 	}
-	return model.IconID(id), nil
+	return domain.IconID(id), nil
 }
 
-func (r *iconRepository) DeleteByUserID(ctx context.Context, q repository.Querier, userID model.UserID) error {
+func (r *iconRepository) DeleteByUserID(ctx context.Context, q repository.Querier, userID domain.UserID) error {
 	_, err := q.ExecContext(ctx, "DELETE FROM icons WHERE user_id = ?", userID)
 	return err
 }

@@ -6,25 +6,25 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 )
 
 type fakeLivestreamViewerUsecase struct {
 	err error
 
 	called          string
-	gotUserID       model.UserID
-	gotLivestreamID model.LivestreamID
+	gotUserID       domain.UserID
+	gotLivestreamID domain.LivestreamID
 }
 
-func (u *fakeLivestreamViewerUsecase) Enter(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID) error {
+func (u *fakeLivestreamViewerUsecase) Enter(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) error {
 	u.called = "Enter"
 	u.gotUserID = userID
 	u.gotLivestreamID = livestreamID
 	return u.err
 }
 
-func (u *fakeLivestreamViewerUsecase) Exit(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID) error {
+func (u *fakeLivestreamViewerUsecase) Exit(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) error {
 	u.called = "Exit"
 	u.gotUserID = userID
 	u.gotLivestreamID = livestreamID

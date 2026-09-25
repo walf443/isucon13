@@ -1,4 +1,4 @@
-package model
+package domain
 
 // ReservationPeriod は配信予約の区間 (開始時刻・終了時刻の UNIX 秒)。
 //

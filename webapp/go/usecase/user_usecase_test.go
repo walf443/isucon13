@@ -5,15 +5,15 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func TestUserUsecase_FindByName(t *testing.T) {
-	want := &model.User{ID: 1, Name: "alice", Theme: model.ThemeModel{ID: 10, UserID: 1}, IconHash: "abc"}
+	want := &domain.User{ID: 1, Name: "alice", Theme: domain.ThemeModel{ID: 10, UserID: 1}, IconHash: "abc"}
 	userRepo := &fakeUserRepository{
-		findWithDetailsByName: func(_ context.Context, _ repository.Querier, name string) (*model.User, error) {
+		findWithDetailsByName: func(_ context.Context, _ repository.Querier, name string) (*domain.User, error) {
 			if name != "alice" {
 				t.Errorf("name = %q, want %q", name, "alice")
 			}
@@ -32,9 +32,9 @@ func TestUserUsecase_FindByName(t *testing.T) {
 }
 
 func TestUserUsecase_FindByID(t *testing.T) {
-	want := &model.User{ID: 1, Name: "alice"}
+	want := &domain.User{ID: 1, Name: "alice"}
 	userRepo := &fakeUserRepository{
-		findWithDetailsByID: func(_ context.Context, _ repository.Querier, id model.UserID) (*model.User, error) {
+		findWithDetailsByID: func(_ context.Context, _ repository.Querier, id domain.UserID) (*domain.User, error) {
 			if id != 1 {
 				t.Errorf("id = %d, want 1", id)
 			}
@@ -84,8 +84,8 @@ func TestUserUsecase_Errors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			userRepo := &fakeUserRepository{
-				findWithDetailsByName: func(context.Context, repository.Querier, string) (*model.User, error) { return nil, tt.repoErr },
-				findWithDetailsByID:   func(context.Context, repository.Querier, model.UserID) (*model.User, error) { return nil, tt.repoErr },
+				findWithDetailsByName: func(context.Context, repository.Querier, string) (*domain.User, error) { return nil, tt.repoErr },
+				findWithDetailsByID:   func(context.Context, repository.Querier, domain.UserID) (*domain.User, error) { return nil, tt.repoErr },
 			}
 			u := NewUserUsecase(&fakeTxManager{}, userRepo)
 
@@ -98,20 +98,20 @@ func TestUserUsecase_Errors(t *testing.T) {
 }
 
 func TestUserUsecase_Login(t *testing.T) {
-	hashed, err := model.HashPassword("s3cret")
+	hashed, err := domain.HashPassword("s3cret")
 	if err != nil {
 		t.Fatalf("failed to hash password: %v", err)
 	}
-	user := &model.UserModel{ID: 5, Name: "alice", HashedPassword: hashed}
+	user := &domain.UserModel{ID: 5, Name: "alice", HashedPassword: hashed}
 	boom := errors.New("boom")
 
 	tests := []struct {
 		name string
 		// user, userErr はユーザ名でユーザを引いた結果
-		user     *model.UserModel
+		user     *domain.UserModel
 		userErr  error
 		password string
-		want     *model.UserModel
+		want     *domain.UserModel
 		wantErr  error
 		wantMsg  string
 	}{
@@ -122,7 +122,7 @@ func TestUserUsecase_Login(t *testing.T) {
 		{
 			// ハッシュとして不正な値の場合は 401 ではなくエラーにする (移行前と同じ)
 			name:     "broken hash",
-			user:     &model.UserModel{ID: 5, Name: "alice", HashedPassword: "broken"},
+			user:     &domain.UserModel{ID: 5, Name: "alice", HashedPassword: "broken"},
 			password: "s3cret",
 			wantErr:  bcrypt.ErrHashTooShort,
 			wantMsg:  "failed to compare hash and password: " + bcrypt.ErrHashTooShort.Error(),
@@ -133,7 +133,7 @@ func TestUserUsecase_Login(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			txManager := &fakeTxManager{}
 			userRepo := &fakeUserRepository{
-				findByName: func(_ context.Context, _ repository.Querier, name string) (*model.UserModel, error) {
+				findByName: func(_ context.Context, _ repository.Querier, name string) (*domain.UserModel, error) {
 					if name != "alice" {
 						t.Errorf("name = %q, want %q", name, "alice")
 					}

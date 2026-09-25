@@ -4,20 +4,20 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase"
 	"github.com/labstack/echo/v4"
 )
 
 type reactionResponse struct {
-	ID         model.ReactionID   `json:"id"`
+	ID         domain.ReactionID  `json:"id"`
 	EmojiName  string             `json:"emoji_name"`
 	User       userResponse       `json:"user"`
 	Livestream livestreamResponse `json:"livestream"`
 	CreatedAt  int64              `json:"created_at"`
 }
 
-func newReaction(r *model.Reaction) reactionResponse {
+func newReaction(r *domain.Reaction) reactionResponse {
 	return reactionResponse{
 		ID:         r.ID,
 		EmojiName:  r.EmojiName,
@@ -43,7 +43,7 @@ func newReactionHandler(reactionUsecase usecase.ReactionUsecase) *reactionHandle
 func (h *reactionHandler) GetReactions(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
+	livestreamID, err := domain.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
@@ -68,7 +68,7 @@ func (h *reactionHandler) GetReactions(c echo.Context) error {
 // POST /api/livestream/:livestream_id/reaction
 func (h *reactionHandler) PostReaction(c echo.Context) error {
 	ctx := c.Request().Context()
-	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
+	livestreamID, err := domain.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}

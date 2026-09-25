@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
@@ -18,7 +18,7 @@ func TestThemeRepository_FindByUserID(t *testing.T) {
 		t.Fatalf("failed to insert theme: %v", err)
 	}
 	lastID, _ := res.LastInsertId()
-	wantID := model.ThemeID(lastID)
+	wantID := domain.ThemeID(lastID)
 
 	theme, err := NewThemeRepository().FindByUserID(ctx, tx, 42)
 	if err != nil {

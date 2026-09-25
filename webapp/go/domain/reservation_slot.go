@@ -1,4 +1,4 @@
-package model
+package domain
 
 type ReservationSlotID = ID[ReservationSlotModel]
 

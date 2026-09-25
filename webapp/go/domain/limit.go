@@ -1,4 +1,4 @@
-package model
+package domain
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 
 // Limit は一覧取得で返す最大件数。ParseLimit で作ったものは 1 以上であることが保証される。
 //
-// 型としては範囲を強制できないので、model.Limit(n) と直接変換せず ParseLimit で作ること (テストを除く)。
+// 型としては範囲を強制できないので、domain.Limit(n) と直接変換せず ParseLimit で作ること (テストを除く)。
 // 件数なので Go の慣習どおり符号付きにしている (uint64 にしても 0 は防げず、負の数からの変換が巨大な値になる)。
 type Limit int64
 

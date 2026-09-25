@@ -7,27 +7,27 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 )
 
 type fakeReactionUsecase struct {
-	reactions []*model.Reaction
-	reaction  *model.Reaction
+	reactions []*domain.Reaction
+	reaction  *domain.Reaction
 	err       error
 
-	gotLivestreamID model.LivestreamID
-	gotLimit        *model.Limit
-	gotUserID       model.UserID
+	gotLivestreamID domain.LivestreamID
+	gotLimit        *domain.Limit
+	gotUserID       domain.UserID
 	gotEmojiName    string
 }
 
-func (u *fakeReactionUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID model.LivestreamID, limit *model.Limit) ([]*model.Reaction, error) {
+func (u *fakeReactionUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.Reaction, error) {
 	u.gotLivestreamID = livestreamID
 	u.gotLimit = limit
 	return u.reactions, u.err
 }
 
-func (u *fakeReactionUsecase) Create(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID, emojiName string) (*model.Reaction, error) {
+func (u *fakeReactionUsecase) Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, emojiName string) (*domain.Reaction, error) {
 	u.gotUserID = userID
 	u.gotLivestreamID = livestreamID
 	u.gotEmojiName = emojiName
@@ -35,13 +35,13 @@ func (u *fakeReactionUsecase) Create(ctx context.Context, userID model.UserID, l
 }
 
 var (
-	testReaction = &model.Reaction{
+	testReaction = &domain.Reaction{
 		ID:        100,
 		EmojiName: "tada",
-		User:      model.User{ID: 1, Name: "bob", Theme: model.ThemeModel{ID: 11, UserID: 1}, IconHash: "bbb"},
-		Livestream: model.Livestream{
+		User:      domain.User{ID: 1, Name: "bob", Theme: domain.ThemeModel{ID: 11, UserID: 1}, IconHash: "bbb"},
+		Livestream: domain.Livestream{
 			ID:    10,
-			Owner: model.User{ID: 2, Name: "alice", Theme: model.ThemeModel{ID: 12, UserID: 2, DarkMode: true}, IconHash: "aaa"},
+			Owner: domain.User{ID: 2, Name: "alice", Theme: domain.ThemeModel{ID: 12, UserID: 2, DarkMode: true}, IconHash: "aaa"},
 			Title: "stream",
 		},
 		CreatedAt: 1700000000,
@@ -60,13 +60,13 @@ func TestReactionHandler_GetReactions(t *testing.T) {
 		usecase   *fakeReactionUsecase
 		wantCode  int
 		wantBody  string
-		wantLimit *model.Limit
+		wantLimit *domain.Limit
 	}{
 		{
 			name:     "returns reactions",
 			path:     "/api/livestream/10/reaction",
 			cookie:   sessionAs(1),
-			usecase:  &fakeReactionUsecase{reactions: []*model.Reaction{testReaction}},
+			usecase:  &fakeReactionUsecase{reactions: []*domain.Reaction{testReaction}},
 			wantCode: http.StatusOK,
 			wantBody: "[" + testReactionJSON + "]\n",
 		},
@@ -77,7 +77,7 @@ func TestReactionHandler_GetReactions(t *testing.T) {
 			usecase:   &fakeReactionUsecase{},
 			wantCode:  http.StatusOK,
 			wantBody:  "[]\n",
-			wantLimit: func() *model.Limit { l := model.Limit(5); return &l }(),
+			wantLimit: func() *domain.Limit { l := domain.Limit(5); return &l }(),
 		},
 		{
 			name:     "returns 400 when livestream_id is not integer",
@@ -175,7 +175,7 @@ func TestReactionHandler_PostReaction(t *testing.T) {
 }
 
 func TestReactionHandler_GetReactions_Limit(t *testing.T) {
-	testLimitQueryParam(t, maxReactionsLimit, func(t *testing.T, limit string) (*httptest.ResponseRecorder, *model.Limit) {
+	testLimitQueryParam(t, maxReactionsLimit, func(t *testing.T, limit string) (*httptest.ResponseRecorder, *domain.Limit) {
 		u := &fakeReactionUsecase{}
 		rec := serve(t, newReactionHandler(u).GetReactions, testRequest{method: http.MethodGet, route: "/api/livestream/:livestream_id/reaction", path: "/api/livestream/10/reaction?limit=" + limit, cookie: sessionAs(1)})
 		return rec, u.gotLimit

@@ -7,23 +7,23 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase"
 )
 
 type fakeLivecommentUsecase struct {
-	livecomment  *model.Livecomment
-	livecomments []*model.Livecomment
+	livecomment  *domain.Livecomment
+	livecomments []*domain.Livecomment
 	err          error
 
-	gotLivestreamID model.LivestreamID
-	gotLimit        *model.Limit
-	gotUserID       model.UserID
+	gotLivestreamID domain.LivestreamID
+	gotLimit        *domain.Limit
+	gotUserID       domain.UserID
 	gotComment      string
 	gotTip          int64
 }
 
-func (u *fakeLivecommentUsecase) Create(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID, comment string, tip int64) (*model.Livecomment, error) {
+func (u *fakeLivecommentUsecase) Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, comment string, tip int64) (*domain.Livecomment, error) {
 	u.gotUserID = userID
 	u.gotLivestreamID = livestreamID
 	u.gotComment = comment
@@ -31,29 +31,29 @@ func (u *fakeLivecommentUsecase) Create(ctx context.Context, userID model.UserID
 	return u.livecomment, u.err
 }
 
-func (u *fakeLivecommentUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID model.LivestreamID, limit *model.Limit) ([]*model.Livecomment, error) {
+func (u *fakeLivecommentUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.Livecomment, error) {
 	u.gotLivestreamID = livestreamID
 	u.gotLimit = limit
 	return u.livecomments, u.err
 }
 
 type fakeLivecommentReportUsecase struct {
-	report  *model.LivecommentReport
-	reports []*model.LivecommentReport
+	report  *domain.LivecommentReport
+	reports []*domain.LivecommentReport
 	err     error
 
-	gotUserID        model.UserID
-	gotLivestreamID  model.LivestreamID
-	gotLivecommentID model.LivecommentID
+	gotUserID        domain.UserID
+	gotLivestreamID  domain.LivestreamID
+	gotLivecommentID domain.LivecommentID
 }
 
-func (u *fakeLivecommentReportUsecase) FindAllByLivestreamID(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID) ([]*model.LivecommentReport, error) {
+func (u *fakeLivecommentReportUsecase) FindAllByLivestreamID(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.LivecommentReport, error) {
 	u.gotUserID = userID
 	u.gotLivestreamID = livestreamID
 	return u.reports, u.err
 }
 
-func (u *fakeLivecommentReportUsecase) Create(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID, livecommentID model.LivecommentID) (*model.LivecommentReport, error) {
+func (u *fakeLivecommentReportUsecase) Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, livecommentID domain.LivecommentID) (*domain.LivecommentReport, error) {
 	u.gotUserID = userID
 	u.gotLivestreamID = livestreamID
 	u.gotLivecommentID = livecommentID
@@ -61,12 +61,12 @@ func (u *fakeLivecommentReportUsecase) Create(ctx context.Context, userID model.
 }
 
 var (
-	testLivecomment = &model.Livecomment{
+	testLivecomment = &domain.Livecomment{
 		ID:   50,
-		User: model.User{ID: 1, Name: "bob", Theme: model.ThemeModel{ID: 11, UserID: 1}, IconHash: "bbb"},
-		Livestream: model.Livestream{
+		User: domain.User{ID: 1, Name: "bob", Theme: domain.ThemeModel{ID: 11, UserID: 1}, IconHash: "bbb"},
+		Livestream: domain.Livestream{
 			ID:    10,
-			Owner: model.User{ID: 2, Name: "alice", Theme: model.ThemeModel{ID: 12, UserID: 2, DarkMode: true}, IconHash: "aaa"},
+			Owner: domain.User{ID: 2, Name: "alice", Theme: domain.ThemeModel{ID: 12, UserID: 2, DarkMode: true}, IconHash: "aaa"},
 			Title: "stream",
 		},
 		Comment:   "hello",
@@ -87,13 +87,13 @@ func TestLivecommentHandler_GetLivecomments(t *testing.T) {
 		usecase   *fakeLivecommentUsecase
 		wantCode  int
 		wantBody  string
-		wantLimit *model.Limit
+		wantLimit *domain.Limit
 	}{
 		{
 			name:     "returns livecomments",
 			path:     "/api/livestream/10/livecomment",
 			cookie:   sessionAs(1),
-			usecase:  &fakeLivecommentUsecase{livecomments: []*model.Livecomment{testLivecomment}},
+			usecase:  &fakeLivecommentUsecase{livecomments: []*domain.Livecomment{testLivecomment}},
 			wantCode: http.StatusOK,
 			wantBody: "[" + testLivecommentJSON + "]\n",
 		},
@@ -104,7 +104,7 @@ func TestLivecommentHandler_GetLivecomments(t *testing.T) {
 			usecase:   &fakeLivecommentUsecase{},
 			wantCode:  http.StatusOK,
 			wantBody:  "[]\n",
-			wantLimit: func() *model.Limit { l := model.Limit(5); return &l }(),
+			wantLimit: func() *domain.Limit { l := domain.Limit(5); return &l }(),
 		},
 		{
 			name:     "returns 400 when livestream_id is not integer",
@@ -141,7 +141,7 @@ func TestLivecommentHandler_GetLivecomments(t *testing.T) {
 }
 
 func TestLivecommentHandler_GetLivecomments_Limit(t *testing.T) {
-	testLimitQueryParam(t, maxLivecommentsLimit, func(t *testing.T, limit string) (*httptest.ResponseRecorder, *model.Limit) {
+	testLimitQueryParam(t, maxLivecommentsLimit, func(t *testing.T, limit string) (*httptest.ResponseRecorder, *domain.Limit) {
 		u := &fakeLivecommentUsecase{}
 		rec := serve(t, newLivecommentHandler(u, nil).GetLivecomments, testRequest{method: http.MethodGet, route: "/api/livestream/:livestream_id/livecomment", path: "/api/livestream/10/livecomment?limit=" + limit, cookie: sessionAs(1)})
 		return rec, u.gotLimit
@@ -149,9 +149,9 @@ func TestLivecommentHandler_GetLivecomments_Limit(t *testing.T) {
 }
 
 func TestLivecommentHandler_GetLivecommentReports(t *testing.T) {
-	report := &model.LivecommentReport{
+	report := &domain.LivecommentReport{
 		ID:          7,
-		Reporter:    model.User{ID: 3, Name: "carol", Theme: model.ThemeModel{ID: 13, UserID: 3}, IconHash: "ccc"},
+		Reporter:    domain.User{ID: 3, Name: "carol", Theme: domain.ThemeModel{ID: 13, UserID: 3}, IconHash: "ccc"},
 		Livecomment: *testLivecomment,
 		CreatedAt:   1700000100,
 	}
@@ -168,7 +168,7 @@ func TestLivecommentHandler_GetLivecommentReports(t *testing.T) {
 			name:     "returns reports",
 			path:     "/api/livestream/10/report",
 			cookie:   sessionAs(2),
-			usecase:  &fakeLivecommentReportUsecase{reports: []*model.LivecommentReport{report}},
+			usecase:  &fakeLivecommentReportUsecase{reports: []*domain.LivecommentReport{report}},
 			wantCode: http.StatusOK,
 			wantBody: `[{"id":7,"reporter":{"id":3,"name":"carol","theme":{"id":13,"dark_mode":false},"icon_hash":"ccc"},"livecomment":` + testLivecommentJSON + `,"created_at":1700000100}]` + "\n",
 		},
@@ -297,9 +297,9 @@ func TestLivecommentHandler_PostLivecomment(t *testing.T) {
 }
 
 func TestLivecommentHandler_PostLivecommentReport(t *testing.T) {
-	report := &model.LivecommentReport{
+	report := &domain.LivecommentReport{
 		ID:          7,
-		Reporter:    model.User{ID: 3, Name: "carol", Theme: model.ThemeModel{ID: 13, UserID: 3}, IconHash: "ccc"},
+		Reporter:    domain.User{ID: 3, Name: "carol", Theme: domain.ThemeModel{ID: 13, UserID: 3}, IconHash: "ccc"},
 		Livecomment: *testLivecomment,
 		CreatedAt:   1700000100,
 	}

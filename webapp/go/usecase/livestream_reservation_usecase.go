@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
@@ -13,12 +13,12 @@ type LivestreamReservationUsecase interface {
 	// Reserve はライブ配信を予約し、配信者・タグを含めて返す。
 	// 予約区間が予約可能期間に掛かっていない場合 ErrBadReservationTimeRange、
 	// 予約区間に空きの無い予約枠がある場合 *ReservationSlotUnavailableError を返す。
-	Reserve(ctx context.Context, userID model.UserID, input ReserveLivestreamInput) (*model.Livestream, error)
+	Reserve(ctx context.Context, userID domain.UserID, input ReserveLivestreamInput) (*domain.Livestream, error)
 }
 
 // ReserveLivestreamInput は予約するライブ配信の内容。
 type ReserveLivestreamInput struct {
-	TagIDs       []model.TagID
+	TagIDs       []domain.TagID
 	Title        string
 	Description  string
 	PlaylistUrl  string
@@ -43,11 +43,11 @@ func NewLivestreamReservationUsecase(txManager repository.TxManager, livestreamR
 	}
 }
 
-func (u *livestreamReservationUsecase) Reserve(ctx context.Context, userID model.UserID, input ReserveLivestreamInput) (*model.Livestream, error) {
-	var livestream *model.Livestream
+func (u *livestreamReservationUsecase) Reserve(ctx context.Context, userID domain.UserID, input ReserveLivestreamInput) (*domain.Livestream, error) {
+	var livestream *domain.Livestream
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		// 移行前はトランザクション開始後に期間をチェックしていたので、同じくトランザクション内で行う
-		period := model.ReservationPeriod{StartAt: input.StartAt, EndAt: input.EndAt}
+		period := domain.ReservationPeriod{StartAt: input.StartAt, EndAt: input.EndAt}
 		if !period.IsReservable() {
 			return ErrBadReservationTimeRange
 		}
@@ -75,7 +75,7 @@ func (u *livestreamReservationUsecase) Reserve(ctx context.Context, userID model
 			return fmt.Errorf("failed to update reservation_slot: %w", err)
 		}
 
-		livestreamID, err := u.livestreamRepo.Create(ctx, q, &model.LivestreamModel{
+		livestreamID, err := u.livestreamRepo.Create(ctx, q, &domain.LivestreamModel{
 			UserID:       userID,
 			Title:        input.Title,
 			Description:  input.Description,

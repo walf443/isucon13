@@ -3,7 +3,7 @@ package usecase
 import (
 	"context"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
@@ -12,42 +12,42 @@ import (
 type fakeReactionRepository struct {
 	repository.ReactionRepository
 
-	findWithDetailsByID                     func(ctx context.Context, q repository.Querier, id model.ReactionID) (*model.Reaction, error)
-	findAllWithDetailsByLivestreamID        func(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.Reaction, error)
-	findAllWithDetailsByLivestreamIDLimited func(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, limit model.Limit) ([]*model.Reaction, error)
-	create                                  func(ctx context.Context, q repository.Querier, reaction *model.ReactionModel) (model.ReactionID, error)
-	countByLivestreamID                     func(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error)
-	countTotalByLivestreamID                func(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error)
-	countByLivestreamOwnerID                func(ctx context.Context, q repository.Querier, userID model.UserID) (int64, error)
+	findWithDetailsByID                     func(ctx context.Context, q repository.Querier, id domain.ReactionID) (*domain.Reaction, error)
+	findAllWithDetailsByLivestreamID        func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Reaction, error)
+	findAllWithDetailsByLivestreamIDLimited func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Reaction, error)
+	create                                  func(ctx context.Context, q repository.Querier, reaction *domain.ReactionModel) (domain.ReactionID, error)
+	countByLivestreamID                     func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error)
+	countTotalByLivestreamID                func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error)
+	countByLivestreamOwnerID                func(ctx context.Context, q repository.Querier, userID domain.UserID) (int64, error)
 	countByLivestreamOwnerName              func(ctx context.Context, q repository.Querier, name string) (int64, error)
 	findFavoriteEmojiByLivestreamOwnerName  func(ctx context.Context, q repository.Querier, name string) (string, error)
 }
 
-func (r *fakeReactionRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.ReactionID) (*model.Reaction, error) {
+func (r *fakeReactionRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id domain.ReactionID) (*domain.Reaction, error) {
 	return r.findWithDetailsByID(ctx, q, id)
 }
 
-func (r *fakeReactionRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.Reaction, error) {
+func (r *fakeReactionRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Reaction, error) {
 	return r.findAllWithDetailsByLivestreamID(ctx, q, livestreamID)
 }
 
-func (r *fakeReactionRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, limit model.Limit) ([]*model.Reaction, error) {
+func (r *fakeReactionRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Reaction, error) {
 	return r.findAllWithDetailsByLivestreamIDLimited(ctx, q, livestreamID, limit)
 }
 
-func (r *fakeReactionRepository) Create(ctx context.Context, q repository.Querier, reaction *model.ReactionModel) (model.ReactionID, error) {
+func (r *fakeReactionRepository) Create(ctx context.Context, q repository.Querier, reaction *domain.ReactionModel) (domain.ReactionID, error) {
 	return r.create(ctx, q, reaction)
 }
 
-func (r *fakeReactionRepository) CountByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+func (r *fakeReactionRepository) CountByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error) {
 	return r.countByLivestreamID(ctx, q, livestreamID)
 }
 
-func (r *fakeReactionRepository) CountTotalByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+func (r *fakeReactionRepository) CountTotalByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error) {
 	return r.countTotalByLivestreamID(ctx, q, livestreamID)
 }
 
-func (r *fakeReactionRepository) CountByLivestreamOwnerID(ctx context.Context, q repository.Querier, userID model.UserID) (int64, error) {
+func (r *fakeReactionRepository) CountByLivestreamOwnerID(ctx context.Context, q repository.Querier, userID domain.UserID) (int64, error) {
 	return r.countByLivestreamOwnerID(ctx, q, userID)
 }
 

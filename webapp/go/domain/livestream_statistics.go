@@ -1,4 +1,4 @@
-package model
+package domain
 
 // LivestreamStatistics はライブ配信の統計情報。
 type LivestreamStatistics struct {

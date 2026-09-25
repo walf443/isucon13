@@ -3,7 +3,7 @@ package mysql
 import (
 	"context"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
@@ -13,8 +13,8 @@ func NewReservationSlotRepository() repository.ReservationSlotRepository {
 	return &reservationSlotRepository{}
 }
 
-func (r *reservationSlotRepository) FindAllByRangeForUpdate(ctx context.Context, q repository.Querier, period model.ReservationPeriod) ([]*model.ReservationSlotModel, error) {
-	var slots []*model.ReservationSlotModel
+func (r *reservationSlotRepository) FindAllByRangeForUpdate(ctx context.Context, q repository.Querier, period domain.ReservationPeriod) ([]*domain.ReservationSlotModel, error) {
+	var slots []*domain.ReservationSlotModel
 	if err := q.SelectContext(ctx, &slots, "SELECT id, slot, start_at, end_at FROM reservation_slots WHERE start_at >= ? AND end_at <= ? FOR UPDATE", period.StartAt, period.EndAt); err != nil {
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func (r *reservationSlotRepository) FindSlotByStartAtAndEndAt(ctx context.Contex
 	return count, nil
 }
 
-func (r *reservationSlotRepository) DecrementSlotsByRange(ctx context.Context, q repository.Querier, period model.ReservationPeriod) error {
+func (r *reservationSlotRepository) DecrementSlotsByRange(ctx context.Context, q repository.Querier, period domain.ReservationPeriod) error {
 	_, err := q.ExecContext(ctx, "UPDATE reservation_slots SET slot = slot - 1 WHERE start_at >= ? AND end_at <= ?", period.StartAt, period.EndAt)
 	return err
 }

@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 type LivestreamViewerUsecase interface {
 	// Enter はユーザのライブ配信の視聴開始を記録する。ライブ配信の存在は確認しない。
-	Enter(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID) error
+	Enter(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) error
 	// Exit はユーザのライブ配信の視聴履歴を削除する。
-	Exit(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID) error
+	Exit(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) error
 }
 
 type livestreamViewerUsecase struct {
@@ -27,9 +27,9 @@ func NewLivestreamViewerUsecase(txManager repository.TxManager, viewerRepo repos
 	return &livestreamViewerUsecase{txManager: txManager, viewerRepo: viewerRepo, now: time.Now}
 }
 
-func (u *livestreamViewerUsecase) Enter(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID) error {
+func (u *livestreamViewerUsecase) Enter(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) error {
 	return u.txManager.RunInTx(ctx, func(q repository.Querier) error {
-		if err := u.viewerRepo.Create(ctx, q, &model.LivestreamViewersHistoryModel{
+		if err := u.viewerRepo.Create(ctx, q, &domain.LivestreamViewersHistoryModel{
 			UserID:       userID,
 			LivestreamID: livestreamID,
 			CreatedAt:    u.now().Unix(),
@@ -40,7 +40,7 @@ func (u *livestreamViewerUsecase) Enter(ctx context.Context, userID model.UserID
 	})
 }
 
-func (u *livestreamViewerUsecase) Exit(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID) error {
+func (u *livestreamViewerUsecase) Exit(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) error {
 	return u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		if err := u.viewerRepo.DeleteByUserIDAndLivestreamID(ctx, q, userID, livestreamID); err != nil {
 			return fmt.Errorf("failed to delete livestream_view_history: %w", err)

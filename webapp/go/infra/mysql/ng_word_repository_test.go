@@ -5,21 +5,21 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 )
 
 func TestNGWordRepository_FindAllByUserIDAndLivestreamID(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)
 
-	insert := func(userID model.UserID, livestreamID model.LivestreamID, word string, createdAt int64) model.NGWordID {
+	insert := func(userID domain.UserID, livestreamID domain.LivestreamID, word string, createdAt int64) domain.NGWordID {
 		t.Helper()
 		res, err := tx.ExecContext(ctx, "INSERT INTO ng_words (user_id, livestream_id, word, created_at) VALUES (?, ?, ?, ?)", userID, livestreamID, word, createdAt)
 		if err != nil {
 			t.Fatalf("failed to insert ng word: %v", err)
 		}
 		id, _ := res.LastInsertId()
-		return model.NGWordID(id)
+		return domain.NGWordID(id)
 	}
 	// 作成日時の降順になることを確認するため、ID の順序とはずらす
 	w1 := insert(1, 10, "w1", 300)
@@ -33,14 +33,14 @@ func TestNGWordRepository_FindAllByUserIDAndLivestreamID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindAllByUserIDAndLivestreamID returned error: %v", err)
 	}
-	gotIDs := make([]model.NGWordID, len(got))
+	gotIDs := make([]domain.NGWordID, len(got))
 	for i, w := range got {
 		gotIDs[i] = w.ID
 	}
-	if want := []model.NGWordID{w1, w3, w2}; !slices.Equal(gotIDs, want) {
+	if want := []domain.NGWordID{w1, w3, w2}; !slices.Equal(gotIDs, want) {
 		t.Errorf("ids = %v, want %v", gotIDs, want)
 	}
-	if want := (model.NGWordModel{ID: w1, UserID: 1, LivestreamID: 10, Word: "w1", CreatedAt: 300}); *got[0] != want {
+	if want := (domain.NGWordModel{ID: w1, UserID: 1, LivestreamID: 10, Word: "w1", CreatedAt: 300}); *got[0] != want {
 		t.Errorf("got[0] = %+v, want %+v", *got[0], want)
 	}
 
@@ -91,9 +91,9 @@ func TestNGWordRepository_CreateAndFindAllByLivestreamID(t *testing.T) {
 	tx := beginTestTx(t)
 	repo := NewNGWordRepository()
 
-	create := func(userID model.UserID, livestreamID model.LivestreamID, word string) model.NGWordID {
+	create := func(userID domain.UserID, livestreamID domain.LivestreamID, word string) domain.NGWordID {
 		t.Helper()
-		id, err := repo.Create(ctx, tx, &model.NGWordModel{UserID: userID, LivestreamID: livestreamID, Word: word, CreatedAt: 100})
+		id, err := repo.Create(ctx, tx, &domain.NGWordModel{UserID: userID, LivestreamID: livestreamID, Word: word, CreatedAt: 100})
 		if err != nil {
 			t.Fatalf("Create returned error: %v", err)
 		}
@@ -109,17 +109,17 @@ func TestNGWordRepository_CreateAndFindAllByLivestreamID(t *testing.T) {
 		t.Fatalf("FindAllByLivestreamID returned error: %v", err)
 	}
 	// ORDER BY が無いので順序には依存しない
-	gotIDs := make([]model.NGWordID, len(got))
+	gotIDs := make([]domain.NGWordID, len(got))
 	for i, w := range got {
 		gotIDs[i] = w.ID
 	}
 	slices.Sort(gotIDs)
-	if want := []model.NGWordID{w1, w2}; !slices.Equal(gotIDs, want) {
+	if want := []domain.NGWordID{w1, w2}; !slices.Equal(gotIDs, want) {
 		t.Errorf("ids = %v, want %v", gotIDs, want)
 	}
 	for _, w := range got {
 		if w.ID == w1 {
-			if want := (model.NGWordModel{ID: w1, UserID: 1, LivestreamID: 10, Word: "w1", CreatedAt: 100}); *w != want {
+			if want := (domain.NGWordModel{ID: w1, UserID: 1, LivestreamID: 10, Word: "w1", CreatedAt: 100}); *w != want {
 				t.Errorf("got %+v, want %+v", *w, want)
 			}
 		}

@@ -7,20 +7,20 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 func newTestUserStatisticsRepos() (*fakeUserRepository, *fakeLivestreamRepository, *fakeLivecommentRepository, *fakeReactionRepository, *fakeLivestreamViewersHistoryRepository) {
 	userRepo := &fakeUserRepository{
-		findByName: func(_ context.Context, _ repository.Querier, name string) (*model.UserModel, error) {
+		findByName: func(_ context.Context, _ repository.Querier, name string) (*domain.UserModel, error) {
 			if name != "bob" {
 				return nil, fmt.Errorf("unexpected user name %q", name)
 			}
-			return &model.UserModel{ID: 2, Name: "bob"}, nil
+			return &domain.UserModel{ID: 2, Name: "bob"}, nil
 		},
-		findAll: func(context.Context, repository.Querier) ([]*model.UserModel, error) {
-			return []*model.UserModel{
+		findAll: func(context.Context, repository.Querier) ([]*domain.UserModel, error) {
+			return []*domain.UserModel{
 				{ID: 1, Name: "alice"},
 				{ID: 2, Name: "bob"},
 				{ID: 3, Name: "carol"},
@@ -28,28 +28,28 @@ func newTestUserStatisticsRepos() (*fakeUserRepository, *fakeLivestreamRepositor
 		},
 	}
 	livestreamRepo := &fakeLivestreamRepository{
-		findAllByUserID: func(_ context.Context, _ repository.Querier, userID model.UserID) ([]*model.LivestreamModel, error) {
+		findAllByUserID: func(_ context.Context, _ repository.Querier, userID domain.UserID) ([]*domain.LivestreamModel, error) {
 			if userID != 2 {
 				return nil, fmt.Errorf("unexpected livestream owner %d", userID)
 			}
-			return []*model.LivestreamModel{{ID: 10, UserID: 2}, {ID: 11, UserID: 2}}, nil
+			return []*domain.LivestreamModel{{ID: 10, UserID: 2}, {ID: 11, UserID: 2}}, nil
 		},
 	}
 	// スコアは リアクション数 + チップ合計: alice 30, bob 30, carol 5
-	tips := map[model.UserID]int64{1: 20, 2: 25, 3: 5}
-	livecomments := map[model.LivestreamID][]*model.LivecommentModel{
+	tips := map[domain.UserID]int64{1: 20, 2: 25, 3: 5}
+	livecomments := map[domain.LivestreamID][]*domain.LivecommentModel{
 		10: {{Tip: 10}, {Tip: 0}},
 		11: {{Tip: 15}},
 	}
 	livecommentRepo := &fakeLivecommentRepository{
-		sumTipByLivestreamOwnerID: func(_ context.Context, _ repository.Querier, userID model.UserID) (int64, error) {
+		sumTipByLivestreamOwnerID: func(_ context.Context, _ repository.Querier, userID domain.UserID) (int64, error) {
 			return tips[userID], nil
 		},
-		findAllByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID model.LivestreamID) ([]*model.LivecommentModel, error) {
+		findAllByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentModel, error) {
 			return livecomments[livestreamID], nil
 		},
 	}
-	reactionCounts := map[model.UserID]int64{1: 10, 2: 5, 3: 0}
+	reactionCounts := map[domain.UserID]int64{1: 10, 2: 5, 3: 0}
 	// 配信者名で集計するクエリは、統計対象のユーザ (bob) で呼ばれる
 	checkOwnerName := func(name string) error {
 		if name != "bob" {
@@ -58,7 +58,7 @@ func newTestUserStatisticsRepos() (*fakeUserRepository, *fakeLivestreamRepositor
 		return nil
 	}
 	reactionRepo := &fakeReactionRepository{
-		countByLivestreamOwnerID: func(_ context.Context, _ repository.Querier, userID model.UserID) (int64, error) {
+		countByLivestreamOwnerID: func(_ context.Context, _ repository.Querier, userID domain.UserID) (int64, error) {
 			return reactionCounts[userID], nil
 		},
 		countByLivestreamOwnerName: func(_ context.Context, _ repository.Querier, name string) (int64, error) {
@@ -68,9 +68,9 @@ func newTestUserStatisticsRepos() (*fakeUserRepository, *fakeLivestreamRepositor
 			return "smile", checkOwnerName(name)
 		},
 	}
-	viewerCounts := map[model.LivestreamID]int64{10: 3, 11: 4}
+	viewerCounts := map[domain.LivestreamID]int64{10: 3, 11: 4}
 	viewerRepo := &fakeLivestreamViewersHistoryRepository{
-		countByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+		countByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID) (int64, error) {
 			return viewerCounts[livestreamID], nil
 		},
 	}
@@ -85,7 +85,7 @@ func TestStatisticsUsecase_FindUserStatistics(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	want := model.UserStatistics{
+	want := domain.UserStatistics{
 		// alice と同点だが、ユーザ名の昇順で後ろの bob が上位になる
 		Rank:              1,
 		ViewersCount:      7,
@@ -128,7 +128,7 @@ func TestStatisticsUsecase_FindUserStatistics_Errors(t *testing.T) {
 		{
 			name: "user not found",
 			modify: func(ur *fakeUserRepository, _ *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository) {
-				ur.findByName = func(context.Context, repository.Querier, string) (*model.UserModel, error) {
+				ur.findByName = func(context.Context, repository.Querier, string) (*domain.UserModel, error) {
 					return nil, repository.ErrNotFound
 				}
 			},
@@ -137,7 +137,7 @@ func TestStatisticsUsecase_FindUserStatistics_Errors(t *testing.T) {
 		{
 			name: "get user fails",
 			modify: func(ur *fakeUserRepository, _ *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository) {
-				ur.findByName = func(context.Context, repository.Querier, string) (*model.UserModel, error) { return nil, boom }
+				ur.findByName = func(context.Context, repository.Querier, string) (*domain.UserModel, error) { return nil, boom }
 			},
 			wantErr: boom,
 			wantMsg: "failed to get user: boom",
@@ -145,7 +145,7 @@ func TestStatisticsUsecase_FindUserStatistics_Errors(t *testing.T) {
 		{
 			name: "get users fails",
 			modify: func(ur *fakeUserRepository, _ *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository) {
-				ur.findAll = func(context.Context, repository.Querier) ([]*model.UserModel, error) { return nil, boom }
+				ur.findAll = func(context.Context, repository.Querier) ([]*domain.UserModel, error) { return nil, boom }
 			},
 			wantErr: boom,
 			wantMsg: "failed to get users: boom",
@@ -153,7 +153,7 @@ func TestStatisticsUsecase_FindUserStatistics_Errors(t *testing.T) {
 		{
 			name: "count reactions fails",
 			modify: func(_ *fakeUserRepository, _ *fakeLivestreamRepository, _ *fakeLivecommentRepository, rr *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository) {
-				rr.countByLivestreamOwnerID = func(context.Context, repository.Querier, model.UserID) (int64, error) { return 0, boom }
+				rr.countByLivestreamOwnerID = func(context.Context, repository.Querier, domain.UserID) (int64, error) { return 0, boom }
 			},
 			wantErr: boom,
 			wantMsg: "failed to count reactions: boom",
@@ -161,7 +161,7 @@ func TestStatisticsUsecase_FindUserStatistics_Errors(t *testing.T) {
 		{
 			name: "count tips fails",
 			modify: func(_ *fakeUserRepository, _ *fakeLivestreamRepository, lr *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository) {
-				lr.sumTipByLivestreamOwnerID = func(context.Context, repository.Querier, model.UserID) (int64, error) { return 0, boom }
+				lr.sumTipByLivestreamOwnerID = func(context.Context, repository.Querier, domain.UserID) (int64, error) { return 0, boom }
 			},
 			wantErr: boom,
 			wantMsg: "failed to count tips: boom",
@@ -177,7 +177,7 @@ func TestStatisticsUsecase_FindUserStatistics_Errors(t *testing.T) {
 		{
 			name: "get livestreams fails",
 			modify: func(_ *fakeUserRepository, lsr *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository) {
-				lsr.findAllByUserID = func(context.Context, repository.Querier, model.UserID) ([]*model.LivestreamModel, error) {
+				lsr.findAllByUserID = func(context.Context, repository.Querier, domain.UserID) ([]*domain.LivestreamModel, error) {
 					return nil, boom
 				}
 			},
@@ -187,7 +187,7 @@ func TestStatisticsUsecase_FindUserStatistics_Errors(t *testing.T) {
 		{
 			name: "get livecomments fails",
 			modify: func(_ *fakeUserRepository, _ *fakeLivestreamRepository, lr *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository) {
-				lr.findAllByLivestreamID = func(context.Context, repository.Querier, model.LivestreamID) ([]*model.LivecommentModel, error) {
+				lr.findAllByLivestreamID = func(context.Context, repository.Querier, domain.LivestreamID) ([]*domain.LivecommentModel, error) {
 					return nil, boom
 				}
 			},
@@ -197,7 +197,7 @@ func TestStatisticsUsecase_FindUserStatistics_Errors(t *testing.T) {
 		{
 			name: "count viewers fails",
 			modify: func(_ *fakeUserRepository, _ *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, vr *fakeLivestreamViewersHistoryRepository) {
-				vr.countByLivestreamID = func(context.Context, repository.Querier, model.LivestreamID) (int64, error) { return 0, boom }
+				vr.countByLivestreamID = func(context.Context, repository.Querier, domain.LivestreamID) (int64, error) { return 0, boom }
 			},
 			wantErr: boom,
 			wantMsg: "failed to get livestream_view_history: boom",
@@ -231,35 +231,35 @@ func TestStatisticsUsecase_FindUserStatistics_Errors(t *testing.T) {
 
 func newTestLivestreamStatisticsRepos() (*fakeLivestreamRepository, *fakeLivecommentRepository, *fakeReactionRepository, *fakeLivestreamViewersHistoryRepository, *fakeLivecommentReportRepository) {
 	livestreamRepo := &fakeLivestreamRepository{
-		findByID: func(_ context.Context, _ repository.Querier, id model.LivestreamID) (*model.LivestreamModel, error) {
+		findByID: func(_ context.Context, _ repository.Querier, id domain.LivestreamID) (*domain.LivestreamModel, error) {
 			if id != 11 {
 				return nil, fmt.Errorf("unexpected livestreamID %d", id)
 			}
-			return &model.LivestreamModel{ID: 11}, nil
+			return &domain.LivestreamModel{ID: 11}, nil
 		},
-		findAll: func(context.Context, repository.Querier) ([]*model.LivestreamModel, error) {
-			return []*model.LivestreamModel{{ID: 10}, {ID: 11}, {ID: 12}}, nil
+		findAll: func(context.Context, repository.Querier) ([]*domain.LivestreamModel, error) {
+			return []*domain.LivestreamModel{{ID: 10}, {ID: 11}, {ID: 12}}, nil
 		},
 	}
 	// スコアは リアクション数 + チップ合計: 10 → 30, 11 → 30, 12 → 5
-	tips := map[model.LivestreamID]int64{10: 20, 11: 25, 12: 5}
+	tips := map[domain.LivestreamID]int64{10: 20, 11: 25, 12: 5}
 	livecommentRepo := &fakeLivecommentRepository{
-		sumTipByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+		sumTipByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID) (int64, error) {
 			return tips[livestreamID], nil
 		},
-		maxTipByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+		maxTipByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID) (int64, error) {
 			if livestreamID != 11 {
 				return 0, fmt.Errorf("unexpected livestreamID %d", livestreamID)
 			}
 			return 20, nil
 		},
 	}
-	reactionCounts := map[model.LivestreamID]int64{10: 10, 11: 5, 12: 0}
+	reactionCounts := map[domain.LivestreamID]int64{10: 10, 11: 5, 12: 0}
 	reactionRepo := &fakeReactionRepository{
-		countByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+		countByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID) (int64, error) {
 			return reactionCounts[livestreamID], nil
 		},
-		countTotalByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+		countTotalByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID) (int64, error) {
 			if livestreamID != 11 {
 				return 0, fmt.Errorf("unexpected livestreamID %d", livestreamID)
 			}
@@ -267,7 +267,7 @@ func newTestLivestreamStatisticsRepos() (*fakeLivestreamRepository, *fakeLivecom
 		},
 	}
 	viewerRepo := &fakeLivestreamViewersHistoryRepository{
-		countViewersByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+		countViewersByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID) (int64, error) {
 			if livestreamID != 11 {
 				return 0, fmt.Errorf("unexpected livestreamID %d", livestreamID)
 			}
@@ -275,7 +275,7 @@ func newTestLivestreamStatisticsRepos() (*fakeLivestreamRepository, *fakeLivecom
 		},
 	}
 	reportRepo := &fakeLivecommentReportRepository{
-		countByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+		countByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID) (int64, error) {
 			if livestreamID != 11 {
 				return 0, fmt.Errorf("unexpected livestreamID %d", livestreamID)
 			}
@@ -290,11 +290,11 @@ func TestStatisticsUsecase_FindLivestreamStatistics(t *testing.T) {
 	// 呼ばれた順を確認するため、準備した関数を記録用の関数で包む
 	var livestreamCalls []string
 	findByID, findAll := livestreamRepo.findByID, livestreamRepo.findAll
-	livestreamRepo.findByID = func(ctx context.Context, q repository.Querier, id model.LivestreamID) (*model.LivestreamModel, error) {
+	livestreamRepo.findByID = func(ctx context.Context, q repository.Querier, id domain.LivestreamID) (*domain.LivestreamModel, error) {
 		livestreamCalls = append(livestreamCalls, "FindByID")
 		return findByID(ctx, q, id)
 	}
-	livestreamRepo.findAll = func(ctx context.Context, q repository.Querier) ([]*model.LivestreamModel, error) {
+	livestreamRepo.findAll = func(ctx context.Context, q repository.Querier) ([]*domain.LivestreamModel, error) {
 		livestreamCalls = append(livestreamCalls, "FindAll")
 		return findAll(ctx, q)
 	}
@@ -304,7 +304,7 @@ func TestStatisticsUsecase_FindLivestreamStatistics(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	want := model.LivestreamStatistics{
+	want := domain.LivestreamStatistics{
 		// ID 10 と同点だが、ID の昇順で後ろの 11 が上位になる
 		Rank:           1,
 		ViewersCount:   7,
@@ -333,7 +333,7 @@ func TestStatisticsUsecase_FindLivestreamStatistics_Errors(t *testing.T) {
 		{
 			name: "livestream not found",
 			modify: func(lsr *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository, _ *fakeLivecommentReportRepository) {
-				lsr.findByID = func(context.Context, repository.Querier, model.LivestreamID) (*model.LivestreamModel, error) {
+				lsr.findByID = func(context.Context, repository.Querier, domain.LivestreamID) (*domain.LivestreamModel, error) {
 					return nil, repository.ErrNotFound
 				}
 			},
@@ -342,7 +342,7 @@ func TestStatisticsUsecase_FindLivestreamStatistics_Errors(t *testing.T) {
 		{
 			name: "get livestream fails",
 			modify: func(lsr *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository, _ *fakeLivecommentReportRepository) {
-				lsr.findByID = func(context.Context, repository.Querier, model.LivestreamID) (*model.LivestreamModel, error) {
+				lsr.findByID = func(context.Context, repository.Querier, domain.LivestreamID) (*domain.LivestreamModel, error) {
 					return nil, boom
 				}
 			},
@@ -352,7 +352,7 @@ func TestStatisticsUsecase_FindLivestreamStatistics_Errors(t *testing.T) {
 		{
 			name: "get livestreams fails",
 			modify: func(lsr *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository, _ *fakeLivecommentReportRepository) {
-				lsr.findAll = func(context.Context, repository.Querier) ([]*model.LivestreamModel, error) { return nil, boom }
+				lsr.findAll = func(context.Context, repository.Querier) ([]*domain.LivestreamModel, error) { return nil, boom }
 			},
 			wantErr: boom,
 			wantMsg: "failed to get livestreams: boom",
@@ -360,7 +360,7 @@ func TestStatisticsUsecase_FindLivestreamStatistics_Errors(t *testing.T) {
 		{
 			name: "count reactions fails",
 			modify: func(_ *fakeLivestreamRepository, _ *fakeLivecommentRepository, rr *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository, _ *fakeLivecommentReportRepository) {
-				rr.countByLivestreamID = func(context.Context, repository.Querier, model.LivestreamID) (int64, error) { return 0, boom }
+				rr.countByLivestreamID = func(context.Context, repository.Querier, domain.LivestreamID) (int64, error) { return 0, boom }
 			},
 			wantErr: boom,
 			wantMsg: "failed to count reactions: boom",
@@ -368,7 +368,7 @@ func TestStatisticsUsecase_FindLivestreamStatistics_Errors(t *testing.T) {
 		{
 			name: "count tips fails",
 			modify: func(_ *fakeLivestreamRepository, lr *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository, _ *fakeLivecommentReportRepository) {
-				lr.sumTipByLivestreamID = func(context.Context, repository.Querier, model.LivestreamID) (int64, error) { return 0, boom }
+				lr.sumTipByLivestreamID = func(context.Context, repository.Querier, domain.LivestreamID) (int64, error) { return 0, boom }
 			},
 			wantErr: boom,
 			wantMsg: "failed to count tips: boom",
@@ -376,7 +376,7 @@ func TestStatisticsUsecase_FindLivestreamStatistics_Errors(t *testing.T) {
 		{
 			name: "count viewers fails",
 			modify: func(_ *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, vr *fakeLivestreamViewersHistoryRepository, _ *fakeLivecommentReportRepository) {
-				vr.countViewersByLivestreamID = func(context.Context, repository.Querier, model.LivestreamID) (int64, error) { return 0, boom }
+				vr.countViewersByLivestreamID = func(context.Context, repository.Querier, domain.LivestreamID) (int64, error) { return 0, boom }
 			},
 			wantErr: boom,
 			wantMsg: "failed to count livestream viewers: boom",
@@ -384,7 +384,7 @@ func TestStatisticsUsecase_FindLivestreamStatistics_Errors(t *testing.T) {
 		{
 			name: "max tip fails",
 			modify: func(_ *fakeLivestreamRepository, lr *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository, _ *fakeLivecommentReportRepository) {
-				lr.maxTipByLivestreamID = func(context.Context, repository.Querier, model.LivestreamID) (int64, error) { return 0, boom }
+				lr.maxTipByLivestreamID = func(context.Context, repository.Querier, domain.LivestreamID) (int64, error) { return 0, boom }
 			},
 			wantErr: boom,
 			wantMsg: "failed to find maximum tip livecomment: boom",
@@ -392,7 +392,7 @@ func TestStatisticsUsecase_FindLivestreamStatistics_Errors(t *testing.T) {
 		{
 			name: "count total reactions fails",
 			modify: func(_ *fakeLivestreamRepository, _ *fakeLivecommentRepository, rr *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository, _ *fakeLivecommentReportRepository) {
-				rr.countTotalByLivestreamID = func(context.Context, repository.Querier, model.LivestreamID) (int64, error) { return 0, boom }
+				rr.countTotalByLivestreamID = func(context.Context, repository.Querier, domain.LivestreamID) (int64, error) { return 0, boom }
 			},
 			wantErr: boom,
 			wantMsg: "failed to count total reactions: boom",
@@ -400,7 +400,7 @@ func TestStatisticsUsecase_FindLivestreamStatistics_Errors(t *testing.T) {
 		{
 			name: "count reports fails",
 			modify: func(_ *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository, rpr *fakeLivecommentReportRepository) {
-				rpr.countByLivestreamID = func(context.Context, repository.Querier, model.LivestreamID) (int64, error) { return 0, boom }
+				rpr.countByLivestreamID = func(context.Context, repository.Querier, domain.LivestreamID) (int64, error) { return 0, boom }
 			},
 			wantErr: boom,
 			wantMsg: "failed to count total spam reports: boom",

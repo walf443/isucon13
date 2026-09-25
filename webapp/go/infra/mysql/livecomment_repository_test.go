@@ -6,22 +6,22 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
-func insertTestLivecomment(t *testing.T, tx repository.Querier, userID model.UserID, livestreamID model.LivestreamID, comment string, createdAt int64) model.LivecommentID {
+func insertTestLivecomment(t *testing.T, tx repository.Querier, userID domain.UserID, livestreamID domain.LivestreamID, comment string, createdAt int64) domain.LivecommentID {
 	t.Helper()
 	res, err := tx.ExecContext(context.Background(), "INSERT INTO livecomments (user_id, livestream_id, comment, tip, created_at) VALUES (?, ?, ?, ?, ?)", userID, livestreamID, comment, 10, createdAt)
 	if err != nil {
 		t.Fatalf("failed to insert livecomment: %v", err)
 	}
 	id, _ := res.LastInsertId()
-	return model.LivecommentID(id)
+	return domain.LivecommentID(id)
 }
 
-func livecommentIDs(livecomments []*model.Livecomment) []model.LivecommentID {
-	ids := make([]model.LivecommentID, len(livecomments))
+func livecommentIDs(livecomments []*domain.Livecomment) []domain.LivecommentID {
+	ids := make([]domain.LivecommentID, len(livecomments))
 	for i, l := range livecomments {
 		ids[i] = l.ID
 	}
@@ -50,7 +50,7 @@ func TestLivecommentRepository_FindAllWithDetailsByLivestreamID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindAllWithDetailsByLivestreamID returned error: %v", err)
 	}
-	if want := []model.LivecommentID{c1, c3, c2}; !slices.Equal(livecommentIDs(all), want) {
+	if want := []domain.LivecommentID{c1, c3, c2}; !slices.Equal(livecommentIDs(all), want) {
 		t.Errorf("ids = %v, want %v", livecommentIDs(all), want)
 	}
 	got := all[0]
@@ -62,7 +62,7 @@ func TestLivecommentRepository_FindAllWithDetailsByLivestreamID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindAllWithDetailsByLivestreamIDLimited returned error: %v", err)
 	}
-	if want := []model.LivecommentID{c1, c3}; !slices.Equal(livecommentIDs(limited), want) {
+	if want := []domain.LivecommentID{c1, c3}; !slices.Equal(livecommentIDs(limited), want) {
 		t.Errorf("ids = %v, want %v", livecommentIDs(limited), want)
 	}
 }
@@ -82,14 +82,14 @@ func TestLivecommentReportRepository_FindAllWithDetailsByLivestreamID(t *testing
 	commentID := insertTestLivecomment(t, tx, viewerID, livestreamID, "bad comment", 100)
 	otherCommentID := insertTestLivecomment(t, tx, viewerID, otherLivestreamID, "other", 100)
 
-	insertReport := func(livestreamID model.LivestreamID, livecommentID model.LivecommentID) model.LivecommentReportID {
+	insertReport := func(livestreamID domain.LivestreamID, livecommentID domain.LivecommentID) domain.LivecommentReportID {
 		t.Helper()
 		res, err := tx.ExecContext(ctx, "INSERT INTO livecomment_reports (user_id, livestream_id, livecomment_id, created_at) VALUES (?, ?, ?, ?)", reporterID, livestreamID, livecommentID, 200)
 		if err != nil {
 			t.Fatalf("failed to insert livecomment report: %v", err)
 		}
 		id, _ := res.LastInsertId()
-		return model.LivecommentReportID(id)
+		return domain.LivecommentReportID(id)
 	}
 	reportID := insertReport(livestreamID, commentID)
 	insertReport(otherLivestreamID, otherCommentID)
@@ -141,7 +141,7 @@ func TestLivecommentRepository_CreateAndFindWithDetailsByID(t *testing.T) {
 	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
 	repo := NewLivecommentRepository("")
 
-	id, err := repo.Create(ctx, tx, &model.LivecommentModel{UserID: viewerID, LivestreamID: livestreamID, Comment: "hello", Tip: 500, CreatedAt: 1700000000})
+	id, err := repo.Create(ctx, tx, &domain.LivecommentModel{UserID: viewerID, LivestreamID: livestreamID, Comment: "hello", Tip: 500, CreatedAt: 1700000000})
 	if err != nil {
 		t.Fatalf("Create returned error: %v", err)
 	}
@@ -182,11 +182,11 @@ func TestLivecommentRepository_DeleteAllByLivestreamIDMatchingNGWord(t *testing.
 		t.Fatalf("DeleteAllByLivestreamIDMatchingNGWord returned error: %v", err)
 	}
 
-	var remaining []model.LivecommentID
+	var remaining []domain.LivecommentID
 	if err := tx.SelectContext(ctx, &remaining, "SELECT id FROM livecomments ORDER BY id"); err != nil {
 		t.Fatalf("failed to get livecomments: %v", err)
 	}
-	if want := []model.LivecommentID{safe, otherLivestream}; !slices.Equal(remaining, want) {
+	if want := []domain.LivecommentID{safe, otherLivestream}; !slices.Equal(remaining, want) {
 		t.Errorf("remaining = %v, want %v (deleted should be %v, %v)", remaining, want, hit, hitUpper)
 	}
 }
@@ -204,7 +204,7 @@ func TestLivecommentRepository_FindByID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindByID returned error: %v", err)
 	}
-	if want := (model.LivecommentModel{ID: id, UserID: ownerID, LivestreamID: livestreamID, Comment: "hello", Tip: 10, CreatedAt: 100}); *got != want {
+	if want := (domain.LivecommentModel{ID: id, UserID: ownerID, LivestreamID: livestreamID, Comment: "hello", Tip: 10, CreatedAt: 100}); *got != want {
 		t.Errorf("got %+v, want %+v", *got, want)
 	}
 
@@ -227,7 +227,7 @@ func TestLivecommentReportRepository_CreateAndFindWithDetailsByID(t *testing.T) 
 	commentID := insertTestLivecomment(t, tx, viewerID, livestreamID, "bad comment", 100)
 	repo := NewLivecommentReportRepository("")
 
-	id, err := repo.Create(ctx, tx, &model.LivecommentReportModel{UserID: reporterID, LivestreamID: livestreamID, LivecommentID: commentID, CreatedAt: 1700000000})
+	id, err := repo.Create(ctx, tx, &domain.LivecommentReportModel{UserID: reporterID, LivestreamID: livestreamID, LivecommentID: commentID, CreatedAt: 1700000000})
 	if err != nil {
 		t.Fatalf("Create returned error: %v", err)
 	}

@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 type TagUsecase interface {
-	FindAll(ctx context.Context) ([]*model.TagModel, error)
+	FindAll(ctx context.Context) ([]*domain.TagModel, error)
 }
 
 type tagUsecase struct {
@@ -21,8 +21,8 @@ func NewTagUsecase(txManager repository.TxManager, tagRepo repository.TagReposit
 	return &tagUsecase{txManager: txManager, tagRepo: tagRepo}
 }
 
-func (u *tagUsecase) FindAll(ctx context.Context) ([]*model.TagModel, error) {
-	var tags []*model.TagModel
+func (u *tagUsecase) FindAll(ctx context.Context) ([]*domain.TagModel, error) {
+	var tags []*domain.TagModel
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		var err error
 		tags, err = u.tagRepo.FindAll(ctx, q)

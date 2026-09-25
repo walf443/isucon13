@@ -6,17 +6,17 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase"
 )
 
 type fakeThemeUsecase struct {
-	theme       *model.ThemeModel
+	theme       *domain.ThemeModel
 	err         error
 	gotUsername string
 }
 
-func (u *fakeThemeUsecase) FindByUsername(ctx context.Context, username string) (*model.ThemeModel, error) {
+func (u *fakeThemeUsecase) FindByUsername(ctx context.Context, username string) (*domain.ThemeModel, error) {
 	u.gotUsername = username
 	return u.theme, u.err
 }
@@ -32,7 +32,7 @@ func TestThemeHandler_GetStreamerTheme(t *testing.T) {
 		{
 			name:     "returns theme",
 			cookie:   sessionAs(1),
-			usecase:  &fakeThemeUsecase{theme: &model.ThemeModel{ID: 10, UserID: 1, DarkMode: true}},
+			usecase:  &fakeThemeUsecase{theme: &domain.ThemeModel{ID: 10, UserID: 1, DarkMode: true}},
 			wantCode: http.StatusOK,
 			wantBody: `{"id":10,"dark_mode":true}` + "\n",
 		},

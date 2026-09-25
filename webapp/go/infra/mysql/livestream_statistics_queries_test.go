@@ -5,7 +5,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 )
 
 // ライブ配信統計情報 (GET /api/livestream/:livestream_id/statistics) で使う集計系のクエリのテスト
@@ -22,7 +22,7 @@ func TestLivestreamRepository_FindAll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindAll returned error: %v", err)
 	}
-	var ids []model.LivestreamID
+	var ids []domain.LivestreamID
 	for _, l := range livestreams {
 		ids = append(ids, l.ID)
 		if l.ID == s1 && (l.UserID != ownerID || l.Title != "s1") {
@@ -53,7 +53,7 @@ func TestLivestreamStatisticsQueries(t *testing.T) {
 	insertTestLivecommentWithTip(t, tx, viewerID, otherStream, 1000)
 
 	viewerRepo := NewLivestreamViewersHistoryRepository()
-	for _, v := range []model.LivestreamViewersHistoryModel{
+	for _, v := range []domain.LivestreamViewersHistoryModel{
 		{UserID: viewerID, LivestreamID: stream, CreatedAt: 100},
 		{UserID: ownerID, LivestreamID: stream, CreatedAt: 100},
 		{UserID: viewerID, LivestreamID: otherStream, CreatedAt: 100},
@@ -64,7 +64,7 @@ func TestLivestreamStatisticsQueries(t *testing.T) {
 	}
 
 	reportRepo := NewLivecommentReportRepository("")
-	if _, err := reportRepo.Create(ctx, tx, &model.LivecommentReportModel{UserID: ownerID, LivestreamID: stream, LivecommentID: c1, CreatedAt: 100}); err != nil {
+	if _, err := reportRepo.Create(ctx, tx, &domain.LivecommentReportModel{UserID: ownerID, LivestreamID: stream, LivecommentID: c1, CreatedAt: 100}); err != nil {
 		t.Fatalf("failed to insert report: %v", err)
 	}
 
@@ -73,17 +73,17 @@ func TestLivestreamStatisticsQueries(t *testing.T) {
 
 	tests := []struct {
 		name  string
-		count func(model.LivestreamID) (int64, error)
+		count func(domain.LivestreamID) (int64, error)
 		want  int64
 		// wantEmpty はリアクション等が無いライブ配信での値
 		wantEmpty int64
 	}{
-		{name: "reactions", count: func(id model.LivestreamID) (int64, error) { return reactionRepo.CountByLivestreamID(ctx, tx, id) }, want: 2},
-		{name: "total reactions", count: func(id model.LivestreamID) (int64, error) { return reactionRepo.CountTotalByLivestreamID(ctx, tx, id) }, want: 2},
-		{name: "tips", count: func(id model.LivestreamID) (int64, error) { return livecommentRepo.SumTipByLivestreamID(ctx, tx, id) }, want: 400},
-		{name: "max tip", count: func(id model.LivestreamID) (int64, error) { return livecommentRepo.MaxTipByLivestreamID(ctx, tx, id) }, want: 300},
-		{name: "viewers", count: func(id model.LivestreamID) (int64, error) { return viewerRepo.CountViewersByLivestreamID(ctx, tx, id) }, want: 2},
-		{name: "reports", count: func(id model.LivestreamID) (int64, error) { return reportRepo.CountByLivestreamID(ctx, tx, id) }, want: 1},
+		{name: "reactions", count: func(id domain.LivestreamID) (int64, error) { return reactionRepo.CountByLivestreamID(ctx, tx, id) }, want: 2},
+		{name: "total reactions", count: func(id domain.LivestreamID) (int64, error) { return reactionRepo.CountTotalByLivestreamID(ctx, tx, id) }, want: 2},
+		{name: "tips", count: func(id domain.LivestreamID) (int64, error) { return livecommentRepo.SumTipByLivestreamID(ctx, tx, id) }, want: 400},
+		{name: "max tip", count: func(id domain.LivestreamID) (int64, error) { return livecommentRepo.MaxTipByLivestreamID(ctx, tx, id) }, want: 300},
+		{name: "viewers", count: func(id domain.LivestreamID) (int64, error) { return viewerRepo.CountViewersByLivestreamID(ctx, tx, id) }, want: 2},
+		{name: "reports", count: func(id domain.LivestreamID) (int64, error) { return reportRepo.CountByLivestreamID(ctx, tx, id) }, want: 1},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

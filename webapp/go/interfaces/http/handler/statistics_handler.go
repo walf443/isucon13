@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase"
 	"github.com/labstack/echo/v4"
 )
@@ -18,7 +18,7 @@ type userStatisticsResponse struct {
 	FavoriteEmoji     string `json:"favorite_emoji"`
 }
 
-func newUserStatistics(s *model.UserStatistics) userStatisticsResponse {
+func newUserStatistics(s *domain.UserStatistics) userStatisticsResponse {
 	return userStatisticsResponse{
 		Rank:              s.Rank,
 		ViewersCount:      s.ViewersCount,
@@ -37,7 +37,7 @@ type livestreamStatisticsResponse struct {
 	MaxTip         int64 `json:"max_tip"`
 }
 
-func newLivestreamStatistics(s *model.LivestreamStatistics) livestreamStatisticsResponse {
+func newLivestreamStatistics(s *domain.LivestreamStatistics) livestreamStatisticsResponse {
 	return livestreamStatisticsResponse{
 		Rank:           s.Rank,
 		ViewersCount:   s.ViewersCount,
@@ -77,7 +77,7 @@ func (h *statisticsHandler) GetUserStatistics(c echo.Context) error {
 func (h *statisticsHandler) GetLivestreamStatistics(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
+	livestreamID, err := domain.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}

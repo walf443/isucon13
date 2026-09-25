@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
@@ -18,7 +18,7 @@ func TestUserRepository_FindIDByName(t *testing.T) {
 		t.Fatalf("failed to insert user: %v", err)
 	}
 	lastID, _ := res.LastInsertId()
-	wantID := model.UserID(lastID)
+	wantID := domain.UserID(lastID)
 
 	id, err := NewUserRepository("").FindIDByName(ctx, tx, "alice")
 	if err != nil {
@@ -47,13 +47,13 @@ func TestUserRepository_FindByName(t *testing.T) {
 		t.Fatalf("failed to insert user: %v", err)
 	}
 	lastID, _ := res.LastInsertId()
-	wantID := model.UserID(lastID)
+	wantID := domain.UserID(lastID)
 
 	user, err := NewUserRepository("").FindByName(ctx, tx, "alice")
 	if err != nil {
 		t.Fatalf("FindByName returned error: %v", err)
 	}
-	want := model.UserModel{ID: wantID, Name: "alice", DisplayName: "Alice", Description: "hello", HashedPassword: "hashed"}
+	want := domain.UserModel{ID: wantID, Name: "alice", DisplayName: "Alice", Description: "hello", HashedPassword: "hashed"}
 	if *user != want {
 		t.Errorf("user = %+v, want %+v", *user, want)
 	}
@@ -77,13 +77,13 @@ func TestUserRepository_FindByID(t *testing.T) {
 		t.Fatalf("failed to insert user: %v", err)
 	}
 	lastID, _ := res.LastInsertId()
-	id := model.UserID(lastID)
+	id := domain.UserID(lastID)
 
 	user, err := NewUserRepository("").FindByID(ctx, tx, id)
 	if err != nil {
 		t.Fatalf("FindByID returned error: %v", err)
 	}
-	want := model.UserModel{ID: id, Name: "alice", DisplayName: "Alice", Description: "hello", HashedPassword: "hashed"}
+	want := domain.UserModel{ID: id, Name: "alice", DisplayName: "Alice", Description: "hello", HashedPassword: "hashed"}
 	if *user != want {
 		t.Errorf("user = %+v, want %+v", *user, want)
 	}
@@ -101,13 +101,13 @@ func TestUserRepository_FindByID_NotFound(t *testing.T) {
 func TestUserRepository_CreateAndThemeRepository_Create(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)
-	userRepo := NewUserRepository(model.HashIcon([]byte("fallback")))
+	userRepo := NewUserRepository(domain.HashIcon([]byte("fallback")))
 
-	id, err := userRepo.Create(ctx, tx, &model.UserModel{Name: "alice", DisplayName: "Alice", Description: "hello", HashedPassword: "hashed"})
+	id, err := userRepo.Create(ctx, tx, &domain.UserModel{Name: "alice", DisplayName: "Alice", Description: "hello", HashedPassword: "hashed"})
 	if err != nil {
 		t.Fatalf("Create returned error: %v", err)
 	}
-	if err := NewThemeRepository().Create(ctx, tx, &model.ThemeModel{UserID: id, DarkMode: true}); err != nil {
+	if err := NewThemeRepository().Create(ctx, tx, &domain.ThemeModel{UserID: id, DarkMode: true}); err != nil {
 		t.Fatalf("theme Create returned error: %v", err)
 	}
 
@@ -123,7 +123,7 @@ func TestUserRepository_CreateAndThemeRepository_Create(t *testing.T) {
 	}
 
 	// ユーザ名は UNIQUE なので重複登録はエラー (移行前と同じく 500 になる)
-	if _, err := userRepo.Create(ctx, tx, &model.UserModel{Name: "alice", HashedPassword: "hashed"}); err == nil {
+	if _, err := userRepo.Create(ctx, tx, &domain.UserModel{Name: "alice", HashedPassword: "hashed"}); err == nil {
 		t.Error("expected error on duplicate name")
 	}
 }

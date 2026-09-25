@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 )
@@ -118,7 +118,7 @@ func errorBody(code int, message string) string {
 
 // testLimitQueryParam は limit クエリパラメータの検証を、境界値を含めて確認する。
 // max はその API の limit の上限。do は limit クエリに値を付けてリクエストし、レスポンスと usecase に渡った limit を返す。
-func testLimitQueryParam(t *testing.T, max model.Limit, do func(t *testing.T, limit string) (*httptest.ResponseRecorder, *model.Limit)) {
+func testLimitQueryParam(t *testing.T, max domain.Limit, do func(t *testing.T, limit string) (*httptest.ResponseRecorder, *domain.Limit)) {
 	t.Helper()
 	outOfRange := errorBody(http.StatusBadRequest, fmt.Sprintf("limit query parameter must be between 1 and %d", max))
 	notInteger := errorBody(http.StatusBadRequest, "limit query parameter must be integer")
@@ -129,7 +129,7 @@ func testLimitQueryParam(t *testing.T, max model.Limit, do func(t *testing.T, li
 		limit     string
 		wantCode  int
 		wantBody  string
-		wantLimit model.Limit
+		wantLimit domain.Limit
 	}{
 		{limit: "1", wantCode: http.StatusOK, wantLimit: 1},
 		{limit: maxStr, wantCode: http.StatusOK, wantLimit: max},

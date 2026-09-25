@@ -7,14 +7,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 func TestNGWordUsecase_FindAllByLivestreamID(t *testing.T) {
-	want := []*model.NGWordModel{{ID: 1, Word: "bad"}}
+	want := []*domain.NGWordModel{{ID: 1, Word: "bad"}}
 	repo := &fakeNGWordRepository{
-		findAllByUserIDAndLivestreamID: func(_ context.Context, _ repository.Querier, userID model.UserID, livestreamID model.LivestreamID) ([]*model.NGWordModel, error) {
+		findAllByUserIDAndLivestreamID: func(_ context.Context, _ repository.Querier, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.NGWordModel, error) {
 			if userID != 1 || livestreamID != 10 {
 				t.Errorf("userID = %d, livestreamID = %d", userID, livestreamID)
 			}
@@ -35,7 +35,7 @@ func TestNGWordUsecase_FindAllByLivestreamID(t *testing.T) {
 func TestNGWordUsecase_FindAllByLivestreamID_Error(t *testing.T) {
 	boom := errors.New("boom")
 	repo := &fakeNGWordRepository{
-		findAllByUserIDAndLivestreamID: func(context.Context, repository.Querier, model.UserID, model.LivestreamID) ([]*model.NGWordModel, error) {
+		findAllByUserIDAndLivestreamID: func(context.Context, repository.Querier, domain.UserID, domain.LivestreamID) ([]*domain.NGWordModel, error) {
 			return nil, boom
 		},
 	}
@@ -48,10 +48,10 @@ func TestNGWordUsecase_FindAllByLivestreamID_Error(t *testing.T) {
 }
 
 // newLivestreamRepositoryForModerate は、ライブ配信 10 かつ配信者がユーザ 2 のライブ配信として livestreams (失敗させる場合は err) を返す fakeLivestreamRepository を返す。
-func newLivestreamRepositoryForModerate(t *testing.T, livestreams []*model.LivestreamModel, err error) *fakeLivestreamRepository {
+func newLivestreamRepositoryForModerate(t *testing.T, livestreams []*domain.LivestreamModel, err error) *fakeLivestreamRepository {
 	return &fakeLivestreamRepository{
 		// 配信者自身のライブ配信かを、ライブ配信 ID とセッションのユーザ ID で検索して確認する
-		findAllByIDAndUserID: func(_ context.Context, _ repository.Querier, id model.LivestreamID, userID model.UserID) ([]*model.LivestreamModel, error) {
+		findAllByIDAndUserID: func(_ context.Context, _ repository.Querier, id domain.LivestreamID, userID domain.UserID) ([]*domain.LivestreamModel, error) {
 			if id != 10 || userID != 2 {
 				t.Errorf("livestream searched by id = %d, userID = %d", id, userID)
 			}
@@ -64,7 +64,7 @@ func newLivestreamRepositoryForModerate(t *testing.T, livestreams []*model.Lives
 // 削除に使った NG ワードは deletedWords に記録し、削除は err を返す。
 func newLivecommentRepositoryForModerate(t *testing.T, deletedWords *[]string, err error) *fakeLivecommentRepository {
 	return &fakeLivecommentRepository{
-		deleteAllByLivestreamIDMatchingNGWord: func(_ context.Context, _ repository.Querier, livestreamID model.LivestreamID, word string) error {
+		deleteAllByLivestreamIDMatchingNGWord: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID, word string) error {
 			*deletedWords = append(*deletedWords, word)
 			if livestreamID != 10 {
 				t.Errorf("livestreamID = %d, want 10", livestreamID)
@@ -76,14 +76,14 @@ func newLivecommentRepositoryForModerate(t *testing.T, deletedWords *[]string, e
 
 // newNGWordRepositoryForModerate は Moderate で呼ばれるメソッドを、呼ばれた順に calls へ記録する fakeNGWordRepository を返す。
 // 登録した NG ワードは created に取り出し、取り直した NG ワードとして ngWords を返す。
-func newNGWordRepositoryForModerate(t *testing.T, calls *[]string, created **model.NGWordModel, ngWords []*model.NGWordModel, createErr error) *fakeNGWordRepository {
+func newNGWordRepositoryForModerate(t *testing.T, calls *[]string, created **domain.NGWordModel, ngWords []*domain.NGWordModel, createErr error) *fakeNGWordRepository {
 	return &fakeNGWordRepository{
-		create: func(_ context.Context, _ repository.Querier, ngWord *model.NGWordModel) (model.NGWordID, error) {
+		create: func(_ context.Context, _ repository.Querier, ngWord *domain.NGWordModel) (domain.NGWordID, error) {
 			*calls = append(*calls, "Create")
 			*created = ngWord
 			return 7, createErr
 		},
-		findAllByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID model.LivestreamID) ([]*model.NGWordModel, error) {
+		findAllByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID) ([]*domain.NGWordModel, error) {
 			*calls = append(*calls, "FindAllByLivestreamID")
 			if livestreamID != 10 {
 				t.Errorf("NG words of livestreamID = %d, want 10", livestreamID)
@@ -94,13 +94,13 @@ func newNGWordRepositoryForModerate(t *testing.T, calls *[]string, created **mod
 }
 
 func TestNGWordUsecase_Moderate(t *testing.T) {
-	livestreamRepo := newLivestreamRepositoryForModerate(t, []*model.LivestreamModel{{ID: 10, UserID: 2}}, nil)
+	livestreamRepo := newLivestreamRepositoryForModerate(t, []*domain.LivestreamModel{{ID: 10, UserID: 2}}, nil)
 	var deletedWords []string
 	livecommentRepo := newLivecommentRepositoryForModerate(t, &deletedWords, nil)
 	var ngWordCalls []string
-	var created *model.NGWordModel
+	var created *domain.NGWordModel
 	// 登録したユーザによらず、ライブ配信の全 NG ワードで削除する
-	ngWordRepo := newNGWordRepositoryForModerate(t, &ngWordCalls, &created, []*model.NGWordModel{{Word: "new"}, {Word: "old"}}, nil)
+	ngWordRepo := newNGWordRepositoryForModerate(t, &ngWordCalls, &created, []*domain.NGWordModel{{Word: "new"}, {Word: "old"}}, nil)
 	u := NewNGWordUsecase(&fakeTxManager{}, livestreamRepo, livecommentRepo, ngWordRepo).(*ngWordUsecase)
 	u.now = func() time.Time { return time.Unix(1700000000, 0) }
 
@@ -111,7 +111,7 @@ func TestNGWordUsecase_Moderate(t *testing.T) {
 	if wordID != 7 {
 		t.Errorf("wordID = %d, want 7", wordID)
 	}
-	wantCreated := model.NGWordModel{UserID: 2, LivestreamID: 10, Word: "new", CreatedAt: 1700000000}
+	wantCreated := domain.NGWordModel{UserID: 2, LivestreamID: 10, Word: "new", CreatedAt: 1700000000}
 	if created == nil || *created != wantCreated {
 		t.Errorf("created = %+v, want %+v", created, wantCreated)
 	}
@@ -126,17 +126,17 @@ func TestNGWordUsecase_Moderate(t *testing.T) {
 
 func TestNGWordUsecase_Moderate_Errors(t *testing.T) {
 	boom := errors.New("boom")
-	owned := []*model.LivestreamModel{{ID: 10, UserID: 2}}
+	owned := []*domain.LivestreamModel{{ID: 10, UserID: 2}}
 
 	tests := []struct {
 		name string
 		// ownedLivestreams, livestreamErr は配信者自身のライブ配信を検索した結果
-		ownedLivestreams []*model.LivestreamModel
+		ownedLivestreams []*domain.LivestreamModel
 		livestreamErr    error
 		// deleteErr はライブコメントの削除が返すエラー
 		deleteErr error
 		// ngWords, ngWordCreateErr は NG ワードの取り直し・登録が返す値
-		ngWords         []*model.NGWordModel
+		ngWords         []*domain.NGWordModel
 		ngWordCreateErr error
 		wantErr         error
 		wantNGWordCalls []string
@@ -162,7 +162,7 @@ func TestNGWordUsecase_Moderate_Errors(t *testing.T) {
 			name:             "delete fails",
 			ownedLivestreams: owned,
 			deleteErr:        boom,
-			ngWords:          []*model.NGWordModel{{Word: "bad"}},
+			ngWords:          []*domain.NGWordModel{{Word: "bad"}},
 			wantErr:          boom,
 			wantNGWordCalls:  []string{"Create", "FindAllByLivestreamID"},
 		},
@@ -171,7 +171,7 @@ func TestNGWordUsecase_Moderate_Errors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var ngWordCalls []string
-			var created *model.NGWordModel
+			var created *domain.NGWordModel
 			ngWordRepo := newNGWordRepositoryForModerate(t, &ngWordCalls, &created, tt.ngWords, tt.ngWordCreateErr)
 			var deletedWords []string
 			livecommentRepo := newLivecommentRepositoryForModerate(t, &deletedWords, tt.deleteErr)

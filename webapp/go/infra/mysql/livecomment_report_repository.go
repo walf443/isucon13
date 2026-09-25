@@ -5,29 +5,29 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 type livecommentReportRepository struct {
 	// defaultIconHash はアイコン未登録のユーザに使う既定のアイコンのハッシュ。
-	defaultIconHash model.IconHash
+	defaultIconHash domain.IconHash
 }
 
-func NewLivecommentReportRepository(defaultIconHash model.IconHash) repository.LivecommentReportRepository {
+func NewLivecommentReportRepository(defaultIconHash domain.IconHash) repository.LivecommentReportRepository {
 	return &livecommentReportRepository{defaultIconHash: defaultIconHash}
 }
 
-func (r *livecommentReportRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.LivecommentReport, error) {
-	var reportModels []*model.LivecommentReportModel
+func (r *livecommentReportRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentReport, error) {
+	var reportModels []*domain.LivecommentReportModel
 	if err := q.SelectContext(ctx, &reportModels, "SELECT id, user_id, livestream_id, livecomment_id, created_at FROM livecomment_reports WHERE livestream_id = ?", livestreamID); err != nil {
 		return nil, err
 	}
 	return fillLivecommentReports(ctx, q, reportModels, r.defaultIconHash)
 }
 
-func (r *livecommentReportRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.LivecommentReportID) (*model.LivecommentReport, error) {
-	var reportModel model.LivecommentReportModel
+func (r *livecommentReportRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id domain.LivecommentReportID) (*domain.LivecommentReport, error) {
+	var reportModel domain.LivecommentReportModel
 	err := q.GetContext(ctx, &reportModel, "SELECT id, user_id, livestream_id, livecomment_id, created_at FROM livecomment_reports WHERE id = ?", id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, repository.ErrNotFound
@@ -36,14 +36,14 @@ func (r *livecommentReportRepository) FindWithDetailsByID(ctx context.Context, q
 		return nil, err
 	}
 
-	reports, err := fillLivecommentReports(ctx, q, []*model.LivecommentReportModel{&reportModel}, r.defaultIconHash)
+	reports, err := fillLivecommentReports(ctx, q, []*domain.LivecommentReportModel{&reportModel}, r.defaultIconHash)
 	if err != nil {
 		return nil, err
 	}
 	return reports[0], nil
 }
 
-func (r *livecommentReportRepository) Create(ctx context.Context, q repository.Querier, report *model.LivecommentReportModel) (model.LivecommentReportID, error) {
+func (r *livecommentReportRepository) Create(ctx context.Context, q repository.Querier, report *domain.LivecommentReportModel) (domain.LivecommentReportID, error) {
 	rs, err := q.ExecContext(ctx, "INSERT INTO livecomment_reports(user_id, livestream_id, livecomment_id, created_at) VALUES (?, ?, ?, ?)", report.UserID, report.LivestreamID, report.LivecommentID, report.CreatedAt)
 	if err != nil {
 		return 0, err
@@ -52,10 +52,10 @@ func (r *livecommentReportRepository) Create(ctx context.Context, q repository.Q
 	if err != nil {
 		return 0, err
 	}
-	return model.LivecommentReportID(id), nil
+	return domain.LivecommentReportID(id), nil
 }
 
-func (r *livecommentReportRepository) CountByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+func (r *livecommentReportRepository) CountByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error) {
 	var totalReports int64
 	if err := q.GetContext(ctx, &totalReports, `SELECT COUNT(*) FROM livestreams l INNER JOIN livecomment_reports r ON r.livestream_id = l.id WHERE l.id = ?`, livestreamID); err != nil {
 		return 0, err

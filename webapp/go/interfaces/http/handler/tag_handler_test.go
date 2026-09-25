@@ -6,15 +6,15 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 )
 
 type fakeTagUsecase struct {
-	tags []*model.TagModel
+	tags []*domain.TagModel
 	err  error
 }
 
-func (s *fakeTagUsecase) FindAll(ctx context.Context) ([]*model.TagModel, error) {
+func (s *fakeTagUsecase) FindAll(ctx context.Context) ([]*domain.TagModel, error) {
 	return s.tags, s.err
 }
 
@@ -27,7 +27,7 @@ func TestTagHandler_GetTags(t *testing.T) {
 	}{
 		{
 			name: "returns tags",
-			usecase: &fakeTagUsecase{tags: []*model.TagModel{
+			usecase: &fakeTagUsecase{tags: []*domain.TagModel{
 				{ID: 1, Name: "ライブ配信"},
 				{ID: 2, Name: "ゲーム実況"},
 			}},

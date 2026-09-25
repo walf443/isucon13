@@ -3,7 +3,7 @@ package usecase
 import (
 	"context"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
@@ -12,14 +12,14 @@ import (
 type fakeThemeRepository struct {
 	repository.ThemeRepository
 
-	findByUserID func(ctx context.Context, q repository.Querier, userID model.UserID) (*model.ThemeModel, error)
-	create       func(ctx context.Context, q repository.Querier, theme *model.ThemeModel) error
+	findByUserID func(ctx context.Context, q repository.Querier, userID domain.UserID) (*domain.ThemeModel, error)
+	create       func(ctx context.Context, q repository.Querier, theme *domain.ThemeModel) error
 }
 
-func (r *fakeThemeRepository) FindByUserID(ctx context.Context, q repository.Querier, userID model.UserID) (*model.ThemeModel, error) {
+func (r *fakeThemeRepository) FindByUserID(ctx context.Context, q repository.Querier, userID domain.UserID) (*domain.ThemeModel, error) {
 	return r.findByUserID(ctx, q, userID)
 }
 
-func (r *fakeThemeRepository) Create(ctx context.Context, q repository.Querier, theme *model.ThemeModel) error {
+func (r *fakeThemeRepository) Create(ctx context.Context, q repository.Querier, theme *domain.ThemeModel) error {
 	return r.create(ctx, q, theme)
 }

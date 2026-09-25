@@ -6,14 +6,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 func TestLivestreamViewerUsecase_Enter(t *testing.T) {
-	var created *model.LivestreamViewersHistoryModel
+	var created *domain.LivestreamViewersHistoryModel
 	repo := &fakeLivestreamViewersHistoryRepository{
-		create: func(_ context.Context, _ repository.Querier, viewer *model.LivestreamViewersHistoryModel) error {
+		create: func(_ context.Context, _ repository.Querier, viewer *domain.LivestreamViewersHistoryModel) error {
 			created = viewer
 			return nil
 		},
@@ -24,7 +24,7 @@ func TestLivestreamViewerUsecase_Enter(t *testing.T) {
 	if err := u.Enter(context.Background(), 1, 10); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	want := model.LivestreamViewersHistoryModel{UserID: 1, LivestreamID: 10, CreatedAt: 1700000000}
+	want := domain.LivestreamViewersHistoryModel{UserID: 1, LivestreamID: 10, CreatedAt: 1700000000}
 	if created == nil || *created != want {
 		t.Errorf("created = %+v, want %+v", created, want)
 	}
@@ -33,7 +33,7 @@ func TestLivestreamViewerUsecase_Enter(t *testing.T) {
 func TestLivestreamViewerUsecase_Enter_Error(t *testing.T) {
 	boom := errors.New("boom")
 	repo := &fakeLivestreamViewersHistoryRepository{
-		create: func(context.Context, repository.Querier, *model.LivestreamViewersHistoryModel) error { return boom },
+		create: func(context.Context, repository.Querier, *domain.LivestreamViewersHistoryModel) error { return boom },
 	}
 	u := NewLivestreamViewerUsecase(&fakeTxManager{}, repo)
 
@@ -48,7 +48,7 @@ func TestLivestreamViewerUsecase_Enter_Error(t *testing.T) {
 
 func TestLivestreamViewerUsecase_Exit(t *testing.T) {
 	repo := &fakeLivestreamViewersHistoryRepository{
-		deleteByUserIDAndLivestreamID: func(_ context.Context, _ repository.Querier, userID model.UserID, livestreamID model.LivestreamID) error {
+		deleteByUserIDAndLivestreamID: func(_ context.Context, _ repository.Querier, userID domain.UserID, livestreamID domain.LivestreamID) error {
 			if userID != 1 || livestreamID != 10 {
 				t.Errorf("userID = %d, livestreamID = %d, want 1, 10", userID, livestreamID)
 			}
@@ -65,7 +65,7 @@ func TestLivestreamViewerUsecase_Exit(t *testing.T) {
 func TestLivestreamViewerUsecase_Exit_Error(t *testing.T) {
 	boom := errors.New("boom")
 	repo := &fakeLivestreamViewersHistoryRepository{
-		deleteByUserIDAndLivestreamID: func(context.Context, repository.Querier, model.UserID, model.LivestreamID) error { return boom },
+		deleteByUserIDAndLivestreamID: func(context.Context, repository.Querier, domain.UserID, domain.LivestreamID) error { return boom },
 	}
 	u := NewLivestreamViewerUsecase(&fakeTxManager{}, repo)
 

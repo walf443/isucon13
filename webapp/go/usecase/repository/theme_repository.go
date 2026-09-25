@@ -3,12 +3,12 @@ package repository
 import (
 	"context"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 )
 
 type ThemeRepository interface {
 	// FindByUserID はテーマが存在しない場合 ErrNotFound を返す。
-	FindByUserID(ctx context.Context, q Querier, userID model.UserID) (*model.ThemeModel, error)
+	FindByUserID(ctx context.Context, q Querier, userID domain.UserID) (*domain.ThemeModel, error)
 	// Create はユーザのテーマを登録する。
-	Create(ctx context.Context, q Querier, theme *model.ThemeModel) error
+	Create(ctx context.Context, q Querier, theme *domain.ThemeModel) error
 }

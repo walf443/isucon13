@@ -6,28 +6,28 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase"
 )
 
 type fakeNGWordUsecase struct {
-	ngWords []*model.NGWordModel
-	wordID  model.NGWordID
+	ngWords []*domain.NGWordModel
+	wordID  domain.NGWordID
 	err     error
 	gotWord string
 
-	gotUserID       model.UserID
-	gotLivestreamID model.LivestreamID
+	gotUserID       domain.UserID
+	gotLivestreamID domain.LivestreamID
 }
 
-func (u *fakeNGWordUsecase) Moderate(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID, word string) (model.NGWordID, error) {
+func (u *fakeNGWordUsecase) Moderate(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, word string) (domain.NGWordID, error) {
 	u.gotUserID = userID
 	u.gotLivestreamID = livestreamID
 	u.gotWord = word
 	return u.wordID, u.err
 }
 
-func (u *fakeNGWordUsecase) FindAllByLivestreamID(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID) ([]*model.NGWordModel, error) {
+func (u *fakeNGWordUsecase) FindAllByLivestreamID(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.NGWordModel, error) {
 	u.gotUserID = userID
 	u.gotLivestreamID = livestreamID
 	return u.ngWords, u.err
@@ -46,7 +46,7 @@ func TestNGWordHandler_GetNGWords(t *testing.T) {
 			name:   "returns NG words",
 			path:   "/api/livestream/10/ngwords",
 			cookie: sessionAs(2),
-			usecase: &fakeNGWordUsecase{ngWords: []*model.NGWordModel{
+			usecase: &fakeNGWordUsecase{ngWords: []*domain.NGWordModel{
 				{ID: 2, UserID: 2, LivestreamID: 10, Word: "bad2", CreatedAt: 200},
 				{ID: 1, UserID: 2, LivestreamID: 10, Word: "bad1", CreatedAt: 100},
 			}},

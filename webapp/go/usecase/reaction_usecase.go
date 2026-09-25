@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 type ReactionUsecase interface {
 	// FindAllByLivestreamID は指定したライブ配信へのリアクションを作成日時の降順で返す。
 	// limit が nil でなければ最大 *limit 件に絞る。
-	FindAllByLivestreamID(ctx context.Context, livestreamID model.LivestreamID, limit *model.Limit) ([]*model.Reaction, error)
+	FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.Reaction, error)
 	// Create はリアクションを登録し、ユーザ・ライブ配信を含めて返す。
-	Create(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID, emojiName string) (*model.Reaction, error)
+	Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, emojiName string) (*domain.Reaction, error)
 }
 
 type reactionUsecase struct {
@@ -28,8 +28,8 @@ func NewReactionUsecase(txManager repository.TxManager, reactionRepo repository.
 	return &reactionUsecase{txManager: txManager, reactionRepo: reactionRepo, now: time.Now}
 }
 
-func (u *reactionUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID model.LivestreamID, limit *model.Limit) ([]*model.Reaction, error) {
-	var reactions []*model.Reaction
+func (u *reactionUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.Reaction, error) {
+	var reactions []*domain.Reaction
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		var err error
 		if limit == nil {
@@ -48,10 +48,10 @@ func (u *reactionUsecase) FindAllByLivestreamID(ctx context.Context, livestreamI
 	return reactions, nil
 }
 
-func (u *reactionUsecase) Create(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID, emojiName string) (*model.Reaction, error) {
-	var reaction *model.Reaction
+func (u *reactionUsecase) Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, emojiName string) (*domain.Reaction, error) {
+	var reaction *domain.Reaction
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
-		reactionID, err := u.reactionRepo.Create(ctx, q, &model.ReactionModel{
+		reactionID, err := u.reactionRepo.Create(ctx, q, &domain.ReactionModel{
 			UserID:       userID,
 			LivestreamID: livestreamID,
 			EmojiName:    emojiName,

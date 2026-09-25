@@ -3,14 +3,14 @@ package handler
 import (
 	"net/http"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase"
 	"github.com/labstack/echo/v4"
 )
 
 type tagResponse struct {
-	ID   model.TagID `json:"id"`
-	Name string      `json:"name"`
+	ID   domain.TagID `json:"id"`
+	Name string       `json:"name"`
 }
 
 type tagsResponse struct {

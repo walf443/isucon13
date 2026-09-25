@@ -5,21 +5,21 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase"
 	"github.com/labstack/echo/v4"
 )
 
 type livecommentResponse struct {
-	ID         model.LivecommentID `json:"id"`
-	User       userResponse        `json:"user"`
-	Livestream livestreamResponse  `json:"livestream"`
-	Comment    string              `json:"comment"`
-	Tip        int64               `json:"tip"`
-	CreatedAt  int64               `json:"created_at"`
+	ID         domain.LivecommentID `json:"id"`
+	User       userResponse         `json:"user"`
+	Livestream livestreamResponse   `json:"livestream"`
+	Comment    string               `json:"comment"`
+	Tip        int64                `json:"tip"`
+	CreatedAt  int64                `json:"created_at"`
 }
 
-func newLivecomment(l *model.Livecomment) livecommentResponse {
+func newLivecomment(l *domain.Livecomment) livecommentResponse {
 	return livecommentResponse{
 		ID:         l.ID,
 		User:       newUser(&l.User),
@@ -31,13 +31,13 @@ func newLivecomment(l *model.Livecomment) livecommentResponse {
 }
 
 type livecommentReportResponse struct {
-	ID          model.LivecommentReportID `json:"id"`
-	Reporter    userResponse              `json:"reporter"`
-	Livecomment livecommentResponse       `json:"livecomment"`
-	CreatedAt   int64                     `json:"created_at"`
+	ID          domain.LivecommentReportID `json:"id"`
+	Reporter    userResponse               `json:"reporter"`
+	Livecomment livecommentResponse        `json:"livecomment"`
+	CreatedAt   int64                      `json:"created_at"`
 }
 
-func newLivecommentReport(r *model.LivecommentReport) livecommentReportResponse {
+func newLivecommentReport(r *domain.LivecommentReport) livecommentReportResponse {
 	return livecommentReportResponse{
 		ID:          r.ID,
 		Reporter:    newUser(&r.Reporter),
@@ -64,7 +64,7 @@ func newLivecommentHandler(livecommentUsecase usecase.LivecommentUsecase, report
 func (h *livecommentHandler) GetLivecomments(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
+	livestreamID, err := domain.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
@@ -91,7 +91,7 @@ func (h *livecommentHandler) GetLivecomments(c echo.Context) error {
 func (h *livecommentHandler) GetLivecommentReports(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
+	livestreamID, err := domain.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
@@ -122,7 +122,7 @@ func (h *livecommentHandler) PostLivecomment(c echo.Context) error {
 	ctx := c.Request().Context()
 	defer c.Request().Body.Close()
 
-	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
+	livestreamID, err := domain.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
@@ -156,12 +156,12 @@ func (h *livecommentHandler) PostLivecomment(c echo.Context) error {
 func (h *livecommentHandler) PostLivecommentReport(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
+	livestreamID, err := domain.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
 
-	livecommentID, err := model.ParseLivecommentID(c.Param("livecomment_id"))
+	livecommentID, err := domain.ParseLivecommentID(c.Param("livecomment_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livecomment_id in path must be integer")
 	}

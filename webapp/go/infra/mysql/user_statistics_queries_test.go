@@ -6,22 +6,22 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 // ユーザ統計情報 (GET /api/user/:username/statistics) で使う集計系のクエリのテスト
 
-func insertTestReaction(t *testing.T, tx repository.Querier, userID model.UserID, livestreamID model.LivestreamID, emojiName string) {
+func insertTestReaction(t *testing.T, tx repository.Querier, userID domain.UserID, livestreamID domain.LivestreamID, emojiName string) {
 	t.Helper()
-	if _, err := NewReactionRepository("").Create(context.Background(), tx, &model.ReactionModel{UserID: userID, LivestreamID: livestreamID, EmojiName: emojiName, CreatedAt: 100}); err != nil {
+	if _, err := NewReactionRepository("").Create(context.Background(), tx, &domain.ReactionModel{UserID: userID, LivestreamID: livestreamID, EmojiName: emojiName, CreatedAt: 100}); err != nil {
 		t.Fatalf("failed to insert reaction: %v", err)
 	}
 }
 
-func insertTestLivecommentWithTip(t *testing.T, tx repository.Querier, userID model.UserID, livestreamID model.LivestreamID, tip int64) model.LivecommentID {
+func insertTestLivecommentWithTip(t *testing.T, tx repository.Querier, userID domain.UserID, livestreamID domain.LivestreamID, tip int64) domain.LivecommentID {
 	t.Helper()
-	id, err := NewLivecommentRepository("").Create(context.Background(), tx, &model.LivecommentModel{UserID: userID, LivestreamID: livestreamID, Comment: "c", Tip: tip, CreatedAt: 100})
+	id, err := NewLivecommentRepository("").Create(context.Background(), tx, &domain.LivecommentModel{UserID: userID, LivestreamID: livestreamID, Comment: "c", Tip: tip, CreatedAt: 100})
 	if err != nil {
 		t.Fatalf("failed to insert livecomment: %v", err)
 	}
@@ -39,11 +39,11 @@ func TestUserRepository_FindAll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindAll returned error: %v", err)
 	}
-	got := map[model.UserID]model.UserModel{}
+	got := map[domain.UserID]domain.UserModel{}
 	for _, u := range users {
 		got[u.ID] = *u
 	}
-	if want := (model.UserModel{ID: aliceID, Name: "alice", DisplayName: "Display alice", Description: "desc alice", HashedPassword: "hashed"}); got[aliceID] != want {
+	if want := (domain.UserModel{ID: aliceID, Name: "alice", DisplayName: "Display alice", Description: "desc alice", HashedPassword: "hashed"}); got[aliceID] != want {
 		t.Errorf("alice = %+v, want %+v", got[aliceID], want)
 	}
 	if got[bobID].Name != "bob" {
@@ -168,17 +168,17 @@ func TestLivecommentRepository_FindAllByLivestreamID(t *testing.T) {
 		t.Fatalf("FindAllByLivestreamID returned error: %v", err)
 	}
 	// ORDER BY が無いので順序には依存しない
-	var ids []model.LivecommentID
+	var ids []domain.LivecommentID
 	for _, l := range livecomments {
 		ids = append(ids, l.ID)
 		if l.ID == c1 {
-			if want := (model.LivecommentModel{ID: c1, UserID: ownerID, LivestreamID: stream, Comment: "c", Tip: 100, CreatedAt: 100}); *l != want {
+			if want := (domain.LivecommentModel{ID: c1, UserID: ownerID, LivestreamID: stream, Comment: "c", Tip: 100, CreatedAt: 100}); *l != want {
 				t.Errorf("livecomment = %+v, want %+v", *l, want)
 			}
 		}
 	}
 	slices.Sort(ids)
-	if want := []model.LivecommentID{c1, c2}; !slices.Equal(ids, want) {
+	if want := []domain.LivecommentID{c1, c2}; !slices.Equal(ids, want) {
 		t.Errorf("ids = %v, want %v", ids, want)
 	}
 }
@@ -197,12 +197,12 @@ func TestLivestreamRepository_FindAllByUserID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindAllByUserID returned error: %v", err)
 	}
-	var ids []model.LivestreamID
+	var ids []domain.LivestreamID
 	for _, l := range livestreams {
 		ids = append(ids, l.ID)
 	}
 	slices.Sort(ids)
-	if want := []model.LivestreamID{s1, s2}; !slices.Equal(ids, want) {
+	if want := []domain.LivestreamID{s1, s2}; !slices.Equal(ids, want) {
 		t.Errorf("ids = %v, want %v", ids, want)
 	}
 
@@ -216,7 +216,7 @@ func TestLivestreamViewersHistoryRepository_CountByLivestreamID(t *testing.T) {
 	tx := beginTestTx(t)
 	repo := NewLivestreamViewersHistoryRepository()
 
-	for _, v := range []model.LivestreamViewersHistoryModel{
+	for _, v := range []domain.LivestreamViewersHistoryModel{
 		{UserID: 1, LivestreamID: 10, CreatedAt: 100},
 		{UserID: 1, LivestreamID: 10, CreatedAt: 200},
 		{UserID: 2, LivestreamID: 10, CreatedAt: 100},

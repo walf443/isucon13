@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 )
@@ -72,7 +72,7 @@ func verifyUserSession(c echo.Context, now time.Time) error {
 
 // getSessionUserID はセッションからログイン中のユーザIDを取り出す。
 // requireSession で検証済みであることを前提とする。
-func getSessionUserID(c echo.Context) (model.UserID, error) {
+func getSessionUserID(c echo.Context) (domain.UserID, error) {
 	sess, err := session.Get(defaultSessionIDKey, c)
 	if err != nil {
 		return 0, echo.NewHTTPError(http.StatusUnauthorized, "failed to get session")
@@ -81,5 +81,5 @@ func getSessionUserID(c echo.Context) (model.UserID, error) {
 	if !ok {
 		return 0, echo.NewHTTPError(http.StatusUnauthorized, "failed to get USERID value from session")
 	}
-	return model.UserID(userID), nil
+	return domain.UserID(userID), nil
 }

@@ -3,7 +3,7 @@ package handler
 import (
 	"net/http"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase"
 	"github.com/labstack/echo/v4"
 )
@@ -25,7 +25,7 @@ func (h *livestreamViewerHandler) EnterLivestream(c echo.Context) error {
 		return err
 	}
 
-	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
+	livestreamID, err := domain.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		// 他のエンドポイントと違い "in path" が無い (移行前と同じ)
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id must be integer")
@@ -47,7 +47,7 @@ func (h *livestreamViewerHandler) ExitLivestream(c echo.Context) error {
 		return err
 	}
 
-	livestreamID, err := model.ParseLivestreamID(c.Param("livestream_id"))
+	livestreamID, err := domain.ParseLivestreamID(c.Param("livestream_id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}

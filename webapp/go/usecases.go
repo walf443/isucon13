@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/infra/mysql"
 	"github.com/isucon/isucon13/webapp/go/infra/powerdns"
 	"github.com/isucon/isucon13/webapp/go/infra/script"
@@ -20,7 +20,7 @@ func newUsecases(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 		return handler.Usecases{}, fmt.Errorf("failed to read fallback image: %w", err)
 	}
 	// アイコン未登録のユーザのアイコンのハッシュは常に同じなので、起動時に 1 回だけ計算する
-	defaultIconHash := model.HashIcon(fallbackIcon)
+	defaultIconHash := domain.HashIcon(fallbackIcon)
 
 	txManager := mysql.NewTxManager(db)
 

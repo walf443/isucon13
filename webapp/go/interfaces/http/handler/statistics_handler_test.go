@@ -6,25 +6,25 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase"
 )
 
 type fakeStatisticsUsecase struct {
-	userStatistics       *model.UserStatistics
-	livestreamStatistics *model.LivestreamStatistics
+	userStatistics       *domain.UserStatistics
+	livestreamStatistics *domain.LivestreamStatistics
 	err                  error
 
 	gotUsername     string
-	gotLivestreamID model.LivestreamID
+	gotLivestreamID domain.LivestreamID
 }
 
-func (u *fakeStatisticsUsecase) FindLivestreamStatistics(ctx context.Context, livestreamID model.LivestreamID) (*model.LivestreamStatistics, error) {
+func (u *fakeStatisticsUsecase) FindLivestreamStatistics(ctx context.Context, livestreamID domain.LivestreamID) (*domain.LivestreamStatistics, error) {
 	u.gotLivestreamID = livestreamID
 	return u.livestreamStatistics, u.err
 }
 
-func (u *fakeStatisticsUsecase) FindUserStatistics(ctx context.Context, username string) (*model.UserStatistics, error) {
+func (u *fakeStatisticsUsecase) FindUserStatistics(ctx context.Context, username string) (*domain.UserStatistics, error) {
 	u.gotUsername = username
 	return u.userStatistics, u.err
 }
@@ -40,7 +40,7 @@ func TestStatisticsHandler_GetUserStatistics(t *testing.T) {
 		{
 			name:   "returns statistics",
 			cookie: sessionAs(1),
-			usecase: &fakeStatisticsUsecase{userStatistics: &model.UserStatistics{
+			usecase: &fakeStatisticsUsecase{userStatistics: &domain.UserStatistics{
 				Rank:              2,
 				ViewersCount:      7,
 				TotalReactions:    5,
@@ -92,7 +92,7 @@ func TestStatisticsHandler_GetLivestreamStatistics(t *testing.T) {
 			name:   "returns statistics",
 			path:   "/api/livestream/10/statistics",
 			cookie: sessionAs(1),
-			usecase: &fakeStatisticsUsecase{livestreamStatistics: &model.LivestreamStatistics{
+			usecase: &fakeStatisticsUsecase{livestreamStatistics: &domain.LivestreamStatistics{
 				Rank:           2,
 				ViewersCount:   7,
 				TotalReactions: 5,
