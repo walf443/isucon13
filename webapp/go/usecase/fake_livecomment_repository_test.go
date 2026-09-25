@@ -7,97 +7,64 @@ import (
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
 )
 
+// fakeLivecommentRepository はテストで設定した関数に処理を委ねる LivecommentRepository。
+// 関数を設定していないメソッドを呼ぶと panic する (埋め込んだインターフェースは nil)。
 type fakeLivecommentRepository struct {
-	livecommentModel *model.LivecommentModel
-	findErr          error
-	// livecommentModelsByLivestreamID は FindAllByLivestreamID が返すライブコメント
-	livecommentModelsByLivestreamID map[model.LivestreamID][]*model.LivecommentModel
-	findAllByLivestreamIDErr        error
-	// tipsByOwnerID は SumTipByLivestreamOwnerID が返すチップ合計
-	tipsByOwnerID map[model.UserID]int64
-	sumTipErr     error
-	// totalTip は SumTip が返すチップ合計
-	totalTip    int64
-	totalTipErr error
-	// tipsByLivestreamID は SumTipByLivestreamID が返すチップ合計
-	tipsByLivestreamID    map[model.LivestreamID]int64
-	sumTipByLivestreamErr error
-	maxTip                int64
-	maxTipErr             error
-	gotMaxTipLivestreamID model.LivestreamID
+	repository.LivecommentRepository
 
-	deleteErr error
-	// deletedWords は DeleteAllByLivestreamIDMatchingNGWord に渡された NG ワード
-	deletedWords []string
-
-	livecomment  *model.Livecomment
-	livecomments []*model.Livecomment
-	err          error
-	createID     model.LivecommentID
-	createErr    error
-	gotID        model.LivecommentID
-	gotCreated   *model.LivecommentModel
-
-	calls           []string
-	gotLivestreamID model.LivestreamID
-	gotLimit        model.Limit
-}
-
-func (r *fakeLivecommentRepository) FindAllByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.LivecommentModel, error) {
-	return r.livecommentModelsByLivestreamID[livestreamID], r.findAllByLivestreamIDErr
-}
-
-func (r *fakeLivecommentRepository) SumTip(ctx context.Context, q repository.Querier) (int64, error) {
-	return r.totalTip, r.totalTipErr
-}
-
-func (r *fakeLivecommentRepository) SumTipByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error) {
-	return r.tipsByLivestreamID[livestreamID], r.sumTipByLivestreamErr
-}
-
-func (r *fakeLivecommentRepository) MaxTipByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error) {
-	r.gotMaxTipLivestreamID = livestreamID
-	return r.maxTip, r.maxTipErr
-}
-
-func (r *fakeLivecommentRepository) SumTipByLivestreamOwnerID(ctx context.Context, q repository.Querier, userID model.UserID) (int64, error) {
-	return r.tipsByOwnerID[userID], r.sumTipErr
+	findByID                                func(ctx context.Context, q repository.Querier, id model.LivecommentID) (*model.LivecommentModel, error)
+	findWithDetailsByID                     func(ctx context.Context, q repository.Querier, id model.LivecommentID) (*model.Livecomment, error)
+	findAllWithDetailsByLivestreamID        func(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.Livecomment, error)
+	findAllWithDetailsByLivestreamIDLimited func(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, limit model.Limit) ([]*model.Livecomment, error)
+	findAllByLivestreamID                   func(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.LivecommentModel, error)
+	create                                  func(ctx context.Context, q repository.Querier, livecomment *model.LivecommentModel) (model.LivecommentID, error)
+	deleteAllByLivestreamIDMatchingNGWord   func(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, word string) error
+	sumTip                                  func(ctx context.Context, q repository.Querier) (int64, error)
+	sumTipByLivestreamID                    func(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error)
+	sumTipByLivestreamOwnerID               func(ctx context.Context, q repository.Querier, userID model.UserID) (int64, error)
+	maxTipByLivestreamID                    func(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error)
 }
 
 func (r *fakeLivecommentRepository) FindByID(ctx context.Context, q repository.Querier, id model.LivecommentID) (*model.LivecommentModel, error) {
-	r.calls = append(r.calls, "FindByID")
-	r.gotID = id
-	return r.livecommentModel, r.findErr
+	return r.findByID(ctx, q, id)
 }
 
 func (r *fakeLivecommentRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.LivecommentID) (*model.Livecomment, error) {
-	r.calls = append(r.calls, "FindWithDetailsByID")
-	r.gotID = id
-	return r.livecomment, r.err
-}
-
-func (r *fakeLivecommentRepository) DeleteAllByLivestreamIDMatchingNGWord(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, word string) error {
-	r.calls = append(r.calls, "DeleteAllByLivestreamIDMatchingNGWord")
-	r.gotLivestreamID = livestreamID
-	r.deletedWords = append(r.deletedWords, word)
-	return r.deleteErr
-}
-
-func (r *fakeLivecommentRepository) Create(ctx context.Context, q repository.Querier, livecomment *model.LivecommentModel) (model.LivecommentID, error) {
-	r.calls = append(r.calls, "Create")
-	r.gotCreated = livecomment
-	return r.createID, r.createErr
+	return r.findWithDetailsByID(ctx, q, id)
 }
 
 func (r *fakeLivecommentRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.Livecomment, error) {
-	r.calls = append(r.calls, "FindAllWithDetailsByLivestreamID")
-	r.gotLivestreamID = livestreamID
-	return r.livecomments, r.err
+	return r.findAllWithDetailsByLivestreamID(ctx, q, livestreamID)
 }
 
 func (r *fakeLivecommentRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, limit model.Limit) ([]*model.Livecomment, error) {
-	r.calls = append(r.calls, "FindAllWithDetailsByLivestreamIDLimited")
-	r.gotLivestreamID = livestreamID
-	r.gotLimit = limit
-	return r.livecomments, r.err
+	return r.findAllWithDetailsByLivestreamIDLimited(ctx, q, livestreamID, limit)
+}
+
+func (r *fakeLivecommentRepository) FindAllByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.LivecommentModel, error) {
+	return r.findAllByLivestreamID(ctx, q, livestreamID)
+}
+
+func (r *fakeLivecommentRepository) Create(ctx context.Context, q repository.Querier, livecomment *model.LivecommentModel) (model.LivecommentID, error) {
+	return r.create(ctx, q, livecomment)
+}
+
+func (r *fakeLivecommentRepository) DeleteAllByLivestreamIDMatchingNGWord(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, word string) error {
+	return r.deleteAllByLivestreamIDMatchingNGWord(ctx, q, livestreamID, word)
+}
+
+func (r *fakeLivecommentRepository) SumTip(ctx context.Context, q repository.Querier) (int64, error) {
+	return r.sumTip(ctx, q)
+}
+
+func (r *fakeLivecommentRepository) SumTipByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+	return r.sumTipByLivestreamID(ctx, q, livestreamID)
+}
+
+func (r *fakeLivecommentRepository) SumTipByLivestreamOwnerID(ctx context.Context, q repository.Querier, userID model.UserID) (int64, error) {
+	return r.sumTipByLivestreamOwnerID(ctx, q, userID)
+}
+
+func (r *fakeLivecommentRepository) MaxTipByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error) {
+	return r.maxTipByLivestreamID(ctx, q, livestreamID)
 }

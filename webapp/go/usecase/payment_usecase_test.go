@@ -4,10 +4,15 @@ import (
 	"context"
 	"errors"
 	"testing"
+
+	"github.com/isucon/isucon13/webapp/go/domain/repository"
 )
 
 func TestPaymentUsecase_FindTotalTip(t *testing.T) {
-	u := NewPaymentUsecase(&fakeTxManager{}, &fakeLivecommentRepository{totalTip: 1500})
+	repo := &fakeLivecommentRepository{
+		sumTip: func(context.Context, repository.Querier) (int64, error) { return 1500, nil },
+	}
+	u := NewPaymentUsecase(&fakeTxManager{}, repo)
 
 	got, err := u.FindTotalTip(context.Background())
 	if err != nil {
@@ -20,7 +25,10 @@ func TestPaymentUsecase_FindTotalTip(t *testing.T) {
 
 func TestPaymentUsecase_FindTotalTip_Error(t *testing.T) {
 	boom := errors.New("boom")
-	u := NewPaymentUsecase(&fakeTxManager{}, &fakeLivecommentRepository{totalTipErr: boom})
+	repo := &fakeLivecommentRepository{
+		sumTip: func(context.Context, repository.Querier) (int64, error) { return 0, boom },
+	}
+	u := NewPaymentUsecase(&fakeTxManager{}, repo)
 
 	_, err := u.FindTotalTip(context.Background())
 	if !errors.Is(err, boom) {
