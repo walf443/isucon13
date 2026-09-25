@@ -14,34 +14,26 @@ type LivecommentUsecase interface {
 	// FindAllByLivestreamID は指定したライブ配信へのライブコメントを作成日時の降順で返す。
 	// limit が nil でなければ最大 *limit 件に絞る。
 	FindAllByLivestreamID(ctx context.Context, livestreamID model.LivestreamID, limit *model.Limit) ([]*model.Livecomment, error)
-	// FindAllReportsByLivestreamID は指定したライブ配信へのライブコメントの報告を返す。
-	// userID のユーザが配信者でない場合 ErrNotLivestreamOwner を返す。
-	FindAllReportsByLivestreamID(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID) ([]*model.LivecommentReport, error)
 	// Create はライブコメントを投稿し、ユーザ・ライブ配信を含めて返す。
 	// ライブ配信が存在しない場合 ErrLivestreamNotFound、配信者の NG ワードに当たった場合 ErrSpamLivecomment を返す。
 	Create(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID, comment string, tip int64) (*model.Livecomment, error)
-	// Report はライブコメントを報告し、報告したユーザ・報告されたライブコメントを含めて返す。
-	// ライブ配信が存在しない場合 ErrLivestreamNotFound、ライブコメントが存在しない場合 ErrLivecommentNotFound を返す。
-	Report(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID, livecommentID model.LivecommentID) (*model.LivecommentReport, error)
 }
 
 type livecommentUsecase struct {
 	txManager       repository.TxManager
 	livestreamRepo  repository.LivestreamRepository
 	livecommentRepo repository.LivecommentRepository
-	reportRepo      repository.LivecommentReportRepository
 	ngWordRepo      repository.NGWordRepository
 	logger          Logger
 	// now は現在時刻を返す。テストで差し替えられるようにしている。
 	now func() time.Time
 }
 
-func NewLivecommentUsecase(txManager repository.TxManager, livestreamRepo repository.LivestreamRepository, livecommentRepo repository.LivecommentRepository, reportRepo repository.LivecommentReportRepository, ngWordRepo repository.NGWordRepository, logger Logger) LivecommentUsecase {
+func NewLivecommentUsecase(txManager repository.TxManager, livestreamRepo repository.LivestreamRepository, livecommentRepo repository.LivecommentRepository, ngWordRepo repository.NGWordRepository, logger Logger) LivecommentUsecase {
 	return &livecommentUsecase{
 		txManager:       txManager,
 		livestreamRepo:  livestreamRepo,
 		livecommentRepo: livecommentRepo,
-		reportRepo:      reportRepo,
 		ngWordRepo:      ngWordRepo,
 		logger:          logger,
 		now:             time.Now,
@@ -66,30 +58,6 @@ func (u *livecommentUsecase) FindAllByLivestreamID(ctx context.Context, livestre
 		return nil, err
 	}
 	return livecomments, nil
-}
-
-func (u *livecommentUsecase) FindAllReportsByLivestreamID(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID) ([]*model.LivecommentReport, error) {
-	var reports []*model.LivecommentReport
-	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
-		// ライブ配信が存在しない場合も (404 ではなく) エラーのまま返す (移行前と同じ)
-		livestream, err := u.livestreamRepo.FindByID(ctx, q, livestreamID)
-		if err != nil {
-			return fmt.Errorf("failed to get livestream: %w", err)
-		}
-		if !livestream.IsOwnedBy(userID) {
-			return ErrNotLivestreamOwner
-		}
-
-		reports, err = u.reportRepo.FindAllWithDetailsByLivestreamID(ctx, q, livestreamID)
-		if err != nil {
-			return fmt.Errorf("failed to get livecomment reports: %w", err)
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return reports, nil
 }
 
 func (u *livecommentUsecase) Create(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID, comment string, tip int64) (*model.Livecomment, error) {
@@ -145,46 +113,4 @@ func (u *livecommentUsecase) Create(ctx context.Context, userID model.UserID, li
 		return nil, err
 	}
 	return livecomment, nil
-}
-
-func (u *livecommentUsecase) Report(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID, livecommentID model.LivecommentID) (*model.LivecommentReport, error) {
-	var report *model.LivecommentReport
-	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
-		// ライブコメントがそのライブ配信へのものかは確認しない (移行前と同じ)
-		_, err := u.livestreamRepo.FindByID(ctx, q, livestreamID)
-		if errors.Is(err, repository.ErrNotFound) {
-			return ErrLivestreamNotFound
-		}
-		if err != nil {
-			return fmt.Errorf("failed to get livestream: %w", err)
-		}
-
-		_, err = u.livecommentRepo.FindByID(ctx, q, livecommentID)
-		if errors.Is(err, repository.ErrNotFound) {
-			return ErrLivecommentNotFound
-		}
-		if err != nil {
-			return fmt.Errorf("failed to get livecomment: %w", err)
-		}
-
-		reportID, err := u.reportRepo.Create(ctx, q, &model.LivecommentReportModel{
-			UserID:        userID,
-			LivestreamID:  livestreamID,
-			LivecommentID: livecommentID,
-			CreatedAt:     u.now().Unix(),
-		})
-		if err != nil {
-			return fmt.Errorf("failed to insert livecomment report: %w", err)
-		}
-
-		report, err = u.reportRepo.FindWithDetailsByID(ctx, q, reportID)
-		if err != nil {
-			return fmt.Errorf("failed to fill livecomment report: %w", err)
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return report, nil
 }

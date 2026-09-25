@@ -15,6 +15,7 @@ type Usecases struct {
 	LivestreamReservation usecase.LivestreamReservationUsecase
 	Reaction              usecase.ReactionUsecase
 	Livecomment           usecase.LivecommentUsecase
+	LivecommentReport     usecase.LivecommentReportUsecase
 	NGWord                usecase.NGWordUsecase
 	LivestreamViewer      usecase.LivestreamViewerUsecase
 	Statistics            usecase.StatisticsUsecase
@@ -31,7 +32,7 @@ func RegisterRoutes(e *echo.Echo, u Usecases, fallbackImagePath string) {
 	icon := newIconHandler(u.Icon, fallbackImagePath)
 	livestream := newLivestreamHandler(u.Livestream, u.LivestreamReservation)
 	reaction := newReactionHandler(u.Reaction)
-	livecomment := newLivecommentHandler(u.Livecomment)
+	livecomment := newLivecommentHandler(u.Livecomment, u.LivecommentReport)
 	ngWord := newNGWordHandler(u.NGWord)
 	viewer := newLivestreamViewerHandler(u.LivestreamViewer)
 	statistics := newStatisticsHandler(u.Statistics)

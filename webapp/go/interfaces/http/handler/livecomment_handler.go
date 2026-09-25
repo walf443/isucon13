@@ -53,10 +53,11 @@ type PostLivecommentRequest struct {
 
 type livecommentHandler struct {
 	livecommentUsecase usecase.LivecommentUsecase
+	reportUsecase      usecase.LivecommentReportUsecase
 }
 
-func newLivecommentHandler(livecommentUsecase usecase.LivecommentUsecase) *livecommentHandler {
-	return &livecommentHandler{livecommentUsecase: livecommentUsecase}
+func newLivecommentHandler(livecommentUsecase usecase.LivecommentUsecase, reportUsecase usecase.LivecommentReportUsecase) *livecommentHandler {
+	return &livecommentHandler{livecommentUsecase: livecommentUsecase, reportUsecase: reportUsecase}
 }
 
 // GET /api/livestream/:livestream_id/livecomment
@@ -109,7 +110,7 @@ func (h *livecommentHandler) GetLivecommentReports(c echo.Context) error {
 		return err
 	}
 
-	reportModels, err := h.livecommentUsecase.FindAllReportsByLivestreamID(ctx, userID, livestreamID)
+	reportModels, err := h.reportUsecase.FindAllByLivestreamID(ctx, userID, livestreamID)
 	if errors.Is(err, usecase.ErrNotLivestreamOwner) {
 		return echo.NewHTTPError(http.StatusForbidden, "can't get other streamer's livecomment reports")
 	}
@@ -187,7 +188,7 @@ func (h *livecommentHandler) PostLivecommentReport(c echo.Context) error {
 		return err
 	}
 
-	report, err := h.livecommentUsecase.Report(ctx, userID, livestreamID, livecommentID)
+	report, err := h.reportUsecase.Create(ctx, userID, livestreamID, livecommentID)
 	if errors.Is(err, usecase.ErrLivestreamNotFound) {
 		return echo.NewHTTPError(http.StatusNotFound, "livestream not found")
 	}

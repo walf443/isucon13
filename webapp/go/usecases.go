@@ -45,7 +45,8 @@ func newUsecases(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 	livestreamUsecase := usecase.NewLivestreamUsecase(txManager, userRepo, tagRepo, livestreamRepo)
 	livestreamReservationUsecase := usecase.NewLivestreamReservationUsecase(txManager, livestreamRepo, reservationSlotRepo, logger)
 	reactionUsecase := usecase.NewReactionUsecase(txManager, reactionRepo)
-	livecommentUsecase := usecase.NewLivecommentUsecase(txManager, livestreamRepo, livecommentRepo, livecommentReportRepo, ngWordRepo, logger)
+	livecommentUsecase := usecase.NewLivecommentUsecase(txManager, livestreamRepo, livecommentRepo, ngWordRepo, logger)
+	livecommentReportUsecase := usecase.NewLivecommentReportUsecase(txManager, livestreamRepo, livecommentRepo, livecommentReportRepo)
 	ngWordUsecase := usecase.NewNGWordUsecase(txManager, livestreamRepo, livecommentRepo, ngWordRepo)
 	viewerUsecase := usecase.NewLivestreamViewerUsecase(txManager, viewerRepo)
 	statisticsUsecase := usecase.NewStatisticsUsecase(txManager, userRepo, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo, livecommentReportRepo)
@@ -61,6 +62,7 @@ func newUsecases(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 		LivestreamReservation: livestreamReservationUsecase,
 		Reaction:              reactionUsecase,
 		Livecomment:           livecommentUsecase,
+		LivecommentReport:     livecommentReportUsecase,
 		NGWord:                ngWordUsecase,
 		LivestreamViewer:      viewerUsecase,
 		Statistics:            statisticsUsecase,

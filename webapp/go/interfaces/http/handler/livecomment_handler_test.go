@@ -14,16 +14,13 @@ import (
 type fakeLivecommentUsecase struct {
 	livecomment  *model.Livecomment
 	livecomments []*model.Livecomment
-	report       *model.LivecommentReport
-	reports      []*model.LivecommentReport
 	err          error
 
-	gotLivestreamID  model.LivestreamID
-	gotLivecommentID model.LivecommentID
-	gotLimit         *model.Limit
-	gotUserID        model.UserID
-	gotComment       string
-	gotTip           int64
+	gotLivestreamID model.LivestreamID
+	gotLimit        *model.Limit
+	gotUserID       model.UserID
+	gotComment      string
+	gotTip          int64
 }
 
 func (u *fakeLivecommentUsecase) Create(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID, comment string, tip int64) (*model.Livecomment, error) {
@@ -34,23 +31,33 @@ func (u *fakeLivecommentUsecase) Create(ctx context.Context, userID model.UserID
 	return u.livecomment, u.err
 }
 
-func (u *fakeLivecommentUsecase) Report(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID, livecommentID model.LivecommentID) (*model.LivecommentReport, error) {
-	u.gotUserID = userID
-	u.gotLivestreamID = livestreamID
-	u.gotLivecommentID = livecommentID
-	return u.report, u.err
-}
-
 func (u *fakeLivecommentUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID model.LivestreamID, limit *model.Limit) ([]*model.Livecomment, error) {
 	u.gotLivestreamID = livestreamID
 	u.gotLimit = limit
 	return u.livecomments, u.err
 }
 
-func (u *fakeLivecommentUsecase) FindAllReportsByLivestreamID(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID) ([]*model.LivecommentReport, error) {
+type fakeLivecommentReportUsecase struct {
+	report  *model.LivecommentReport
+	reports []*model.LivecommentReport
+	err     error
+
+	gotUserID        model.UserID
+	gotLivestreamID  model.LivestreamID
+	gotLivecommentID model.LivecommentID
+}
+
+func (u *fakeLivecommentReportUsecase) FindAllByLivestreamID(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID) ([]*model.LivecommentReport, error) {
 	u.gotUserID = userID
 	u.gotLivestreamID = livestreamID
 	return u.reports, u.err
+}
+
+func (u *fakeLivecommentReportUsecase) Create(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID, livecommentID model.LivecommentID) (*model.LivecommentReport, error) {
+	u.gotUserID = userID
+	u.gotLivestreamID = livestreamID
+	u.gotLivecommentID = livecommentID
+	return u.report, u.err
 }
 
 var (
@@ -117,7 +124,7 @@ func TestLivecommentHandler_GetLivecomments(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rec := serve(t, newLivecommentHandler(tt.usecase).GetLivecomments, testRequest{method: http.MethodGet, route: "/api/livestream/:livestream_id/livecomment", path: tt.path, cookie: tt.cookie})
+			rec := serve(t, newLivecommentHandler(tt.usecase, nil).GetLivecomments, testRequest{method: http.MethodGet, route: "/api/livestream/:livestream_id/livecomment", path: tt.path, cookie: tt.cookie})
 			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusOK {
 				if tt.usecase.gotLivestreamID != 10 {
@@ -134,7 +141,7 @@ func TestLivecommentHandler_GetLivecomments(t *testing.T) {
 func TestLivecommentHandler_GetLivecomments_Limit(t *testing.T) {
 	testLimitQueryParam(t, maxLivecommentsLimit, func(t *testing.T, limit string) (*httptest.ResponseRecorder, *model.Limit) {
 		u := &fakeLivecommentUsecase{}
-		rec := serve(t, newLivecommentHandler(u).GetLivecomments, testRequest{method: http.MethodGet, route: "/api/livestream/:livestream_id/livecomment", path: "/api/livestream/10/livecomment?limit=" + limit, cookie: sessionAs(1)})
+		rec := serve(t, newLivecommentHandler(u, nil).GetLivecomments, testRequest{method: http.MethodGet, route: "/api/livestream/:livestream_id/livecomment", path: "/api/livestream/10/livecomment?limit=" + limit, cookie: sessionAs(1)})
 		return rec, u.gotLimit
 	})
 }
@@ -151,7 +158,7 @@ func TestLivecommentHandler_GetLivecommentReports(t *testing.T) {
 		name     string
 		path     string
 		cookie   func(t *testing.T) *http.Cookie
-		usecase  *fakeLivecommentUsecase
+		usecase  *fakeLivecommentReportUsecase
 		wantCode int
 		wantBody string
 	}{
@@ -159,7 +166,7 @@ func TestLivecommentHandler_GetLivecommentReports(t *testing.T) {
 			name:     "returns reports",
 			path:     "/api/livestream/10/report",
 			cookie:   sessionAs(2),
-			usecase:  &fakeLivecommentUsecase{reports: []*model.LivecommentReport{report}},
+			usecase:  &fakeLivecommentReportUsecase{reports: []*model.LivecommentReport{report}},
 			wantCode: http.StatusOK,
 			wantBody: `[{"id":7,"reporter":{"id":3,"name":"carol","theme":{"id":13,"dark_mode":false},"icon_hash":"ccc"},"livecomment":` + testLivecommentJSON + `,"created_at":1700000100}]` + "\n",
 		},
@@ -167,7 +174,7 @@ func TestLivecommentHandler_GetLivecommentReports(t *testing.T) {
 			name:     "returns empty array when no reports",
 			path:     "/api/livestream/10/report",
 			cookie:   sessionAs(2),
-			usecase:  &fakeLivecommentUsecase{},
+			usecase:  &fakeLivecommentReportUsecase{},
 			wantCode: http.StatusOK,
 			wantBody: "[]\n",
 		},
@@ -175,14 +182,14 @@ func TestLivecommentHandler_GetLivecommentReports(t *testing.T) {
 			name:     "returns 400 when livestream_id is not integer",
 			path:     "/api/livestream/abc/report",
 			cookie:   sessionAs(2),
-			usecase:  &fakeLivecommentUsecase{},
+			usecase:  &fakeLivecommentReportUsecase{},
 			wantCode: http.StatusBadRequest,
 		},
 		{
 			name:     "returns 403 when not the owner",
 			path:     "/api/livestream/10/report",
 			cookie:   sessionAs(2),
-			usecase:  &fakeLivecommentUsecase{err: usecase.ErrNotLivestreamOwner},
+			usecase:  &fakeLivecommentReportUsecase{err: usecase.ErrNotLivestreamOwner},
 			wantCode: http.StatusForbidden,
 			wantBody: errorBody(http.StatusForbidden, "can't get other streamer's livecomment reports"),
 		},
@@ -190,14 +197,14 @@ func TestLivecommentHandler_GetLivecommentReports(t *testing.T) {
 			name:     "returns 500 on unexpected error",
 			path:     "/api/livestream/10/report",
 			cookie:   sessionAs(2),
-			usecase:  &fakeLivecommentUsecase{err: errors.New("boom")},
+			usecase:  &fakeLivecommentReportUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rec := serve(t, newLivecommentHandler(tt.usecase).GetLivecommentReports, testRequest{method: http.MethodGet, route: "/api/livestream/:livestream_id/report", path: tt.path, cookie: tt.cookie})
+			rec := serve(t, newLivecommentHandler(nil, tt.usecase).GetLivecommentReports, testRequest{method: http.MethodGet, route: "/api/livestream/:livestream_id/report", path: tt.path, cookie: tt.cookie})
 			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusOK && (tt.usecase.gotUserID != 2 || tt.usecase.gotLivestreamID != 10) {
 				t.Errorf("userID = %d, livestreamID = %d", tt.usecase.gotUserID, tt.usecase.gotLivestreamID)
@@ -271,7 +278,7 @@ func TestLivecommentHandler_PostLivecomment(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rec := serve(t, newLivecommentHandler(tt.usecase).PostLivecomment, testRequest{method: http.MethodPost, route: "/api/livestream/:livestream_id/livecomment", path: tt.path, body: tt.body, cookie: tt.cookie})
+			rec := serve(t, newLivecommentHandler(tt.usecase, nil).PostLivecomment, testRequest{method: http.MethodPost, route: "/api/livestream/:livestream_id/livecomment", path: tt.path, body: tt.body, cookie: tt.cookie})
 			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusCreated {
 				if tt.usecase.gotUserID != 1 || tt.usecase.gotLivestreamID != 10 || tt.usecase.gotComment != "hello" || tt.usecase.gotTip != 100 {
@@ -294,7 +301,7 @@ func TestLivecommentHandler_PostLivecommentReport(t *testing.T) {
 		name     string
 		path     string
 		cookie   func(t *testing.T) *http.Cookie
-		usecase  *fakeLivecommentUsecase
+		usecase  *fakeLivecommentReportUsecase
 		wantCode int
 		wantBody string
 	}{
@@ -302,7 +309,7 @@ func TestLivecommentHandler_PostLivecommentReport(t *testing.T) {
 			name:     "creates report",
 			path:     "/api/livestream/10/livecomment/50/report",
 			cookie:   sessionAs(3),
-			usecase:  &fakeLivecommentUsecase{report: report},
+			usecase:  &fakeLivecommentReportUsecase{report: report},
 			wantCode: http.StatusCreated,
 			wantBody: `{"id":7,"reporter":{"id":3,"name":"carol","theme":{"id":13,"dark_mode":false},"icon_hash":"ccc"},"livecomment":` + testLivecommentJSON + `,"created_at":1700000100}` + "\n",
 		},
@@ -310,7 +317,7 @@ func TestLivecommentHandler_PostLivecommentReport(t *testing.T) {
 			name:     "returns 400 when livestream_id is not integer",
 			path:     "/api/livestream/abc/livecomment/50/report",
 			cookie:   sessionAs(3),
-			usecase:  &fakeLivecommentUsecase{},
+			usecase:  &fakeLivecommentReportUsecase{},
 			wantCode: http.StatusBadRequest,
 			wantBody: errorBody(http.StatusBadRequest, "livestream_id in path must be integer"),
 		},
@@ -318,7 +325,7 @@ func TestLivecommentHandler_PostLivecommentReport(t *testing.T) {
 			name:     "returns 400 when livecomment_id is not integer",
 			path:     "/api/livestream/10/livecomment/abc/report",
 			cookie:   sessionAs(3),
-			usecase:  &fakeLivecommentUsecase{},
+			usecase:  &fakeLivecommentReportUsecase{},
 			wantCode: http.StatusBadRequest,
 			wantBody: errorBody(http.StatusBadRequest, "livecomment_id in path must be integer"),
 		},
@@ -326,7 +333,7 @@ func TestLivecommentHandler_PostLivecommentReport(t *testing.T) {
 			name:     "returns 404 when livestream is not found",
 			path:     "/api/livestream/10/livecomment/50/report",
 			cookie:   sessionAs(3),
-			usecase:  &fakeLivecommentUsecase{err: usecase.ErrLivestreamNotFound},
+			usecase:  &fakeLivecommentReportUsecase{err: usecase.ErrLivestreamNotFound},
 			wantCode: http.StatusNotFound,
 			wantBody: errorBody(http.StatusNotFound, "livestream not found"),
 		},
@@ -334,7 +341,7 @@ func TestLivecommentHandler_PostLivecommentReport(t *testing.T) {
 			name:     "returns 404 when livecomment is not found",
 			path:     "/api/livestream/10/livecomment/50/report",
 			cookie:   sessionAs(3),
-			usecase:  &fakeLivecommentUsecase{err: usecase.ErrLivecommentNotFound},
+			usecase:  &fakeLivecommentReportUsecase{err: usecase.ErrLivecommentNotFound},
 			wantCode: http.StatusNotFound,
 			wantBody: errorBody(http.StatusNotFound, "livecomment not found"),
 		},
@@ -342,14 +349,14 @@ func TestLivecommentHandler_PostLivecommentReport(t *testing.T) {
 			name:     "returns 500 on unexpected error",
 			path:     "/api/livestream/10/livecomment/50/report",
 			cookie:   sessionAs(3),
-			usecase:  &fakeLivecommentUsecase{err: errors.New("boom")},
+			usecase:  &fakeLivecommentReportUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rec := serve(t, newLivecommentHandler(tt.usecase).PostLivecommentReport, testRequest{method: http.MethodPost, route: "/api/livestream/:livestream_id/livecomment/:livecomment_id/report", path: tt.path, cookie: tt.cookie})
+			rec := serve(t, newLivecommentHandler(nil, tt.usecase).PostLivecommentReport, testRequest{method: http.MethodPost, route: "/api/livestream/:livestream_id/livecomment/:livecomment_id/report", path: tt.path, cookie: tt.cookie})
 			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 			if tt.wantCode == http.StatusCreated && (tt.usecase.gotUserID != 3 || tt.usecase.gotLivestreamID != 10 || tt.usecase.gotLivecommentID != 50) {
 				t.Errorf("userID = %d, livestreamID = %d, livecommentID = %d", tt.usecase.gotUserID, tt.usecase.gotLivestreamID, tt.usecase.gotLivecommentID)
