@@ -191,8 +191,16 @@ func TestUserUsecase_Register_ReservedUsername(t *testing.T) {
 	u := NewUserUsecase(txManager, userRepo, &fakeThemeRepository{}, dns)
 
 	_, err := u.Register(context.Background(), RegisterUserInput{Name: "pipe", Password: "x"})
-	if !errors.Is(err, ErrReservedUsername) {
-		t.Fatalf("err = %v, want ErrReservedUsername", err)
+	reserved, ok := errors.AsType[*ReservedUsernameError](err)
+	if !ok {
+		t.Fatalf("err = %v, want *ReservedUsernameError", err)
+	}
+	if reserved.Name != "pipe" {
+		t.Errorf("reserved name = %q, want %q", reserved.Name, "pipe")
+	}
+	// メッセージは移行前の 400 のメッセージと同じ
+	if want := "the username 'pipe' is reserved"; err.Error() != want {
+		t.Errorf("err = %q, want %q", err.Error(), want)
 	}
 	// トランザクションを開始する前に弾く (移行前と同じ)
 	if txManager.runs != 0 || len(userCalls) != 0 {

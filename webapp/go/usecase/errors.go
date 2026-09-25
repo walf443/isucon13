@@ -8,8 +8,15 @@ import (
 // ErrUserNotFound は指定されたユーザが存在しないことを表す。
 var ErrUserNotFound = errors.New("user not found")
 
-// ErrReservedUsername は予約済みのユーザ名で登録しようとしたことを表す。
-var ErrReservedUsername = errors.New("the username is reserved")
+// ReservedUsernameError は予約済みのユーザ名 Name で登録しようとしたことを表す。
+// Name には利用者の入力ではなく、予約済みの名前の一覧にある値を入れる。
+type ReservedUsernameError struct {
+	Name string
+}
+
+func (e *ReservedUsernameError) Error() string {
+	return fmt.Sprintf("the username '%s' is reserved", e.Name)
+}
 
 // ErrInvalidCredentials はユーザ名かパスワードが間違っていることを表す。
 var ErrInvalidCredentials = errors.New("invalid username or password")

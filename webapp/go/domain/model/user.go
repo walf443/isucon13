@@ -1,11 +1,23 @@
 package model
 
+import "slices"
+
 type UserID = ID[UserModel]
 
-// IsReservedUsername は name がユーザ名として登録できない予約済みの名前かどうかを返す。
-// "pipe" は配信サービス自体のサブドメイン (pipe.u.isucon.dev) と重なるので使えない。
-func IsReservedUsername(name string) bool {
-	return name == "pipe"
+// reservedUsernames はユーザ名として登録できない予約済みの名前。
+var reservedUsernames = []string{
+	// 配信サービス自体のサブドメイン (pipe.u.isucon.dev) と重なる
+	"pipe",
+}
+
+// FindReservedUsername は name がユーザ名として登録できない予約済みの名前かどうかを調べる。
+// 予約済みの名前と完全に一致する場合だけ、その予約済みの名前 (name ではなく一覧にある値) と true を返す。
+func FindReservedUsername(name string) (string, bool) {
+	i := slices.Index(reservedUsernames, name)
+	if i < 0 {
+		return "", false
+	}
+	return reservedUsernames[i], true
 }
 
 type UserModel struct {

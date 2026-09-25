@@ -15,7 +15,7 @@ type UserUsecase interface {
 	// FindByName はユーザが存在しない場合 ErrUserNotFound を返す。
 	FindByName(ctx context.Context, name string) (*model.User, error)
 	// Register はユーザを登録し、サブドメインの DNS レコードを登録して、テーマ・アイコンを含めたユーザを返す。
-	// 予約済みのユーザ名の場合 ErrReservedUsername を返す。
+	// 予約済みのユーザ名の場合 *ReservedUsernameError を返す。
 	Register(ctx context.Context, input RegisterUserInput) (*model.User, error)
 	// Login はユーザ名とパスワードを検証し、ユーザを返す。
 	// ユーザが存在しないかパスワードが違う場合 ErrInvalidCredentials を返す。
@@ -75,8 +75,8 @@ func (u *userUsecase) findUser(ctx context.Context, find func(q repository.Queri
 }
 
 func (u *userUsecase) Register(ctx context.Context, input RegisterUserInput) (*model.User, error) {
-	if model.IsReservedUsername(input.Name) {
-		return nil, ErrReservedUsername
+	if reserved, ok := model.FindReservedUsername(input.Name); ok {
+		return nil, &ReservedUsernameError{Name: reserved}
 	}
 
 	hashedPassword, err := model.HashPassword(input.Password)

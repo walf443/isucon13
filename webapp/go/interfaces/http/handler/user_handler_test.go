@@ -167,9 +167,17 @@ func TestUserHandler_Register(t *testing.T) {
 		{
 			name:     "returns 400 for reserved username",
 			body:     `{"name":"pipe","password":"x"}`,
-			usecase:  &fakeUserUsecase{err: usecase.ErrReservedUsername},
+			usecase:  &fakeUserUsecase{err: &usecase.ReservedUsernameError{Name: "pipe"}},
 			wantCode: http.StatusBadRequest,
 			wantBody: errorBody(http.StatusBadRequest, "the username 'pipe' is reserved"),
+		},
+		{
+			// メッセージには usecase のエラーにある予約済みの名前を使い、リクエストのユーザ名はそのまま返さない
+			name:     "uses the reserved name from the error, not the request",
+			body:     `{"name":"<b>ADMIN</b>","password":"x"}`,
+			usecase:  &fakeUserUsecase{err: &usecase.ReservedUsernameError{Name: "admin"}},
+			wantCode: http.StatusBadRequest,
+			wantBody: errorBody(http.StatusBadRequest, "the username 'admin' is reserved"),
 		},
 		{
 			// DNS の登録エラーなどは usecase のメッセージをそのまま返す

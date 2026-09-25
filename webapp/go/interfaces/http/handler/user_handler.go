@@ -130,8 +130,8 @@ func (h *userHandler) Register(c echo.Context) error {
 		Password:    req.Password,
 		DarkMode:    req.Theme.DarkMode,
 	})
-	if errors.Is(err, usecase.ErrReservedUsername) {
-		return echo.NewHTTPError(http.StatusBadRequest, "the username 'pipe' is reserved")
+	if reserved, ok := errors.AsType[*usecase.ReservedUsernameError](err); ok {
+		return echo.NewHTTPError(http.StatusBadRequest, reserved.Error())
 	}
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
