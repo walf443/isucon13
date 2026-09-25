@@ -7,34 +7,24 @@ import (
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
 )
 
+// fakeIconRepository はテストで設定した関数に処理を委ねる IconRepository。
+// 関数を設定していないメソッドを呼ぶと panic する (埋め込んだインターフェースは nil)。
 type fakeIconRepository struct {
-	image     []byte
-	err       error
-	createID  model.IconID
-	createErr error
-	deleteErr error
+	repository.IconRepository
 
-	// calls は呼ばれたメソッド名を順に記録する
-	calls     []string
-	gotUserID model.UserID
-	gotImage  []byte
+	findImageByUserID func(ctx context.Context, q repository.Querier, userID model.UserID) ([]byte, error)
+	create            func(ctx context.Context, q repository.Querier, userID model.UserID, image []byte) (model.IconID, error)
+	deleteByUserID    func(ctx context.Context, q repository.Querier, userID model.UserID) error
 }
 
 func (r *fakeIconRepository) FindImageByUserID(ctx context.Context, q repository.Querier, userID model.UserID) ([]byte, error) {
-	r.calls = append(r.calls, "FindImageByUserID")
-	r.gotUserID = userID
-	return r.image, r.err
+	return r.findImageByUserID(ctx, q, userID)
 }
 
 func (r *fakeIconRepository) Create(ctx context.Context, q repository.Querier, userID model.UserID, image []byte) (model.IconID, error) {
-	r.calls = append(r.calls, "Create")
-	r.gotUserID = userID
-	r.gotImage = image
-	return r.createID, r.createErr
+	return r.create(ctx, q, userID, image)
 }
 
 func (r *fakeIconRepository) DeleteByUserID(ctx context.Context, q repository.Querier, userID model.UserID) error {
-	r.calls = append(r.calls, "DeleteByUserID")
-	r.gotUserID = userID
-	return r.deleteErr
+	return r.deleteByUserID(ctx, q, userID)
 }

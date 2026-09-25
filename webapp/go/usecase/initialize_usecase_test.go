@@ -8,15 +8,21 @@ import (
 )
 
 func TestInitializeUsecase_Initialize(t *testing.T) {
-	initializer := &fakeInitializer{out: []byte("+ mysql ...\n")}
+	runs := 0
+	initializer := &fakeInitializer{
+		initialize: func() ([]byte, error) {
+			runs++
+			return []byte("+ mysql ...\n"), nil
+		},
+	}
 	logger := &fakeLogger{}
 	u := NewInitializeUsecase(initializer, logger)
 
 	if err := u.Initialize(context.Background()); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if initializer.runs != 1 {
-		t.Errorf("runs = %d, want 1", initializer.runs)
+	if runs != 1 {
+		t.Errorf("runs = %d, want 1", runs)
 	}
 	// 成功時はログを出さない (移行前と同じ)
 	if len(logger.lines) != 0 || len(logger.warnLines) != 0 {
@@ -27,7 +33,10 @@ func TestInitializeUsecase_Initialize(t *testing.T) {
 func TestInitializeUsecase_Initialize_Error(t *testing.T) {
 	exitErr := errors.New("exit status 1")
 	logger := &fakeLogger{}
-	u := NewInitializeUsecase(&fakeInitializer{out: []byte("ERROR 2003: Can't connect"), err: exitErr}, logger)
+	initializer := &fakeInitializer{
+		initialize: func() ([]byte, error) { return []byte("ERROR 2003: Can't connect"), exitErr },
+	}
+	u := NewInitializeUsecase(initializer, logger)
 
 	err := u.Initialize(context.Background())
 	if !errors.Is(err, exitErr) {

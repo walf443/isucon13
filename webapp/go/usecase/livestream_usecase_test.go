@@ -155,7 +155,14 @@ func TestLivestreamUsecase_FindAllByUsername_Errors(t *testing.T) {
 
 func TestLivestreamUsecase_FindAllByTagName(t *testing.T) {
 	want := []*model.Livestream{{ID: 2}, {ID: 1}}
-	tagRepo := &fakeTagRepository{ids: []model.TagID{7}}
+	tagRepo := &fakeTagRepository{
+		findIDsByName: func(_ context.Context, _ repository.Querier, name string) ([]model.TagID, error) {
+			if name != "ゲーム実況" {
+				t.Errorf("tag name = %q", name)
+			}
+			return []model.TagID{7}, nil
+		},
+	}
 	livestreamRepo := &fakeLivestreamRepository{livestreams: want}
 	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, tagRepo, livestreamRepo, &fakeReservationSlotRepository{}, &fakeLogger{})
 
@@ -166,9 +173,6 @@ func TestLivestreamUsecase_FindAllByTagName(t *testing.T) {
 	if !slices.Equal(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
-	if tagRepo.gotName != "ゲーム実況" {
-		t.Errorf("tag name = %q", tagRepo.gotName)
-	}
 	if !slices.Equal(livestreamRepo.gotTagIDs, []model.TagID{7}) {
 		t.Errorf("tagIDs = %v, want [7]", livestreamRepo.gotTagIDs)
 	}
@@ -176,7 +180,10 @@ func TestLivestreamUsecase_FindAllByTagName(t *testing.T) {
 
 func TestLivestreamUsecase_FindAllByTagName_TagNotFound(t *testing.T) {
 	livestreamRepo := &fakeLivestreamRepository{}
-	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, &fakeTagRepository{ids: nil}, livestreamRepo, &fakeReservationSlotRepository{}, &fakeLogger{})
+	tagRepo := &fakeTagRepository{
+		findIDsByName: func(context.Context, repository.Querier, string) ([]model.TagID, error) { return nil, nil },
+	}
+	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, tagRepo, livestreamRepo, &fakeReservationSlotRepository{}, &fakeLogger{})
 
 	got, err := u.FindAllByTagName(context.Background(), "nothing")
 	if err != nil {
@@ -195,17 +202,22 @@ func TestLivestreamUsecase_FindAllByTagName_Errors(t *testing.T) {
 	boom := errors.New("boom")
 
 	tests := []struct {
-		name           string
-		tagRepo        *fakeTagRepository
+		name string
+		// tagIDs, tagErr はタグの検索が返す値
+		tagIDs         []model.TagID
+		tagErr         error
 		livestreamRepo *fakeLivestreamRepository
 	}{
-		{name: "tag repository error", tagRepo: &fakeTagRepository{err: boom}, livestreamRepo: &fakeLivestreamRepository{}},
-		{name: "livestream repository error", tagRepo: &fakeTagRepository{ids: []model.TagID{7}}, livestreamRepo: &fakeLivestreamRepository{err: boom}},
+		{name: "tag repository error", tagErr: boom, livestreamRepo: &fakeLivestreamRepository{}},
+		{name: "livestream repository error", tagIDs: []model.TagID{7}, livestreamRepo: &fakeLivestreamRepository{err: boom}},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, tt.tagRepo, tt.livestreamRepo, &fakeReservationSlotRepository{}, &fakeLogger{})
+			tagRepo := &fakeTagRepository{
+				findIDsByName: func(context.Context, repository.Querier, string) ([]model.TagID, error) { return tt.tagIDs, tt.tagErr },
+			}
+			u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, tagRepo, tt.livestreamRepo, &fakeReservationSlotRepository{}, &fakeLogger{})
 			_, err := u.FindAllByTagName(context.Background(), "ゲーム実況")
 			if !errors.Is(err, boom) {
 				t.Fatalf("err = %v, want %v", err, boom)

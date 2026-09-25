@@ -1,12 +1,11 @@
 package usecase
 
+// fakeDNSRecordRegistrar はテストで設定した関数に処理を委ねる DNSRecordRegistrar。
+// メソッドが 1 つだけなのでインターフェースは埋め込まない。関数を設定せずに呼ぶと panic する。
 type fakeDNSRecordRegistrar struct {
-	err error
-
-	gotNames []string
+	addRecord func(name string) error
 }
 
 func (r *fakeDNSRecordRegistrar) AddRecord(name string) error {
-	r.gotNames = append(r.gotNames, name)
-	return r.err
+	return r.addRecord(name)
 }

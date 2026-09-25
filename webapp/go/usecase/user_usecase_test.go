@@ -97,7 +97,13 @@ func TestUserUsecase_Register(t *testing.T) {
 			return nil
 		},
 	}
-	dns := &fakeDNSRecordRegistrar{}
+	var dnsNames []string
+	dns := &fakeDNSRecordRegistrar{
+		addRecord: func(name string) error {
+			dnsNames = append(dnsNames, name)
+			return nil
+		},
+	}
 	u := NewUserUsecase(txManager, userRepo, themeRepo, dns)
 
 	got, err := u.Register(context.Background(), RegisterUserInput{
@@ -128,8 +134,8 @@ func TestUserUsecase_Register(t *testing.T) {
 	if want := (model.ThemeModel{UserID: 5, DarkMode: true}); createdTheme == nil || *createdTheme != want {
 		t.Errorf("theme = %+v, want %+v", createdTheme, want)
 	}
-	if want := []string{"alice"}; !slices.Equal(dns.gotNames, want) {
-		t.Errorf("dns names = %v, want %v", dns.gotNames, want)
+	if want := []string{"alice"}; !slices.Equal(dnsNames, want) {
+		t.Errorf("dns names = %v, want %v", dnsNames, want)
 	}
 	if want := []string{"Create", "FindWithDetailsByID"}; !slices.Equal(userRepo.calls, want) || userRepo.gotID != 5 {
 		t.Errorf("user calls = %v, id = %d", userRepo.calls, userRepo.gotID)
@@ -142,7 +148,12 @@ func TestUserUsecase_Register(t *testing.T) {
 func TestUserUsecase_Register_ReservedUsername(t *testing.T) {
 	txManager := &fakeTxManager{}
 	userRepo := &fakeUserRepository{}
-	dns := &fakeDNSRecordRegistrar{}
+	dns := &fakeDNSRecordRegistrar{
+		addRecord: func(name string) error {
+			t.Errorf("AddRecord(%q) should not be called", name)
+			return nil
+		},
+	}
 	u := NewUserUsecase(txManager, userRepo, &fakeThemeRepository{}, dns)
 
 	_, err := u.Register(context.Background(), RegisterUserInput{Name: "pipe", Password: "x"})
@@ -150,8 +161,8 @@ func TestUserUsecase_Register_ReservedUsername(t *testing.T) {
 		t.Fatalf("err = %v, want ErrReservedUsername", err)
 	}
 	// トランザクションを開始する前に弾く (移行前と同じ)
-	if txManager.runs != 0 || len(userRepo.calls) != 0 || len(dns.gotNames) != 0 {
-		t.Errorf("tx runs = %d, user calls = %v, dns names = %v", txManager.runs, userRepo.calls, dns.gotNames)
+	if txManager.runs != 0 || len(userRepo.calls) != 0 {
+		t.Errorf("tx runs = %d, user calls = %v", txManager.runs, userRepo.calls)
 	}
 }
 
@@ -165,16 +176,16 @@ func TestUserUsecase_Register_Errors(t *testing.T) {
 		userRepo *fakeUserRepository
 		// themeCreateErr はテーマの登録が返すエラー
 		themeCreateErr error
-		dns            *fakeDNSRecordRegistrar
-		wantErr        error
-		wantMsg        string
-		wantCalls      []string
-		wantDNS        []string
+		// dnsErr は DNS の登録が返すエラー
+		dnsErr    error
+		wantErr   error
+		wantMsg   string
+		wantCalls []string
+		wantDNS   []string
 	}{
 		{
 			name:      "insert user fails",
 			userRepo:  &fakeUserRepository{createErr: boom},
-			dns:       &fakeDNSRecordRegistrar{},
 			wantErr:   boom,
 			wantMsg:   "failed to insert user: boom",
 			wantCalls: []string{"Create"},
@@ -183,7 +194,6 @@ func TestUserUsecase_Register_Errors(t *testing.T) {
 			name:           "insert theme fails",
 			userRepo:       &fakeUserRepository{createID: 5},
 			themeCreateErr: boom,
-			dns:            &fakeDNSRecordRegistrar{},
 			wantErr:        boom,
 			wantMsg:        "failed to insert user theme: boom",
 			wantCalls:      []string{"Create"},
@@ -191,7 +201,7 @@ func TestUserUsecase_Register_Errors(t *testing.T) {
 		{
 			name:      "dns registration fails",
 			userRepo:  &fakeUserRepository{createID: 5},
-			dns:       &fakeDNSRecordRegistrar{err: dnsErr},
+			dnsErr:    dnsErr,
 			wantErr:   dnsErr,
 			wantMsg:   dnsErr.Error(),
 			wantCalls: []string{"Create"},
@@ -200,7 +210,6 @@ func TestUserUsecase_Register_Errors(t *testing.T) {
 		{
 			name:      "fill fails",
 			userRepo:  &fakeUserRepository{createID: 5, err: boom},
-			dns:       &fakeDNSRecordRegistrar{},
 			wantErr:   boom,
 			wantMsg:   "failed to fill user: boom",
 			wantCalls: []string{"Create", "FindWithDetailsByID"},
@@ -213,7 +222,14 @@ func TestUserUsecase_Register_Errors(t *testing.T) {
 			themeRepo := &fakeThemeRepository{
 				create: func(context.Context, repository.Querier, *model.ThemeModel) error { return tt.themeCreateErr },
 			}
-			u := NewUserUsecase(&fakeTxManager{}, tt.userRepo, themeRepo, tt.dns)
+			var dnsNames []string
+			dns := &fakeDNSRecordRegistrar{
+				addRecord: func(name string) error {
+					dnsNames = append(dnsNames, name)
+					return tt.dnsErr
+				},
+			}
+			u := NewUserUsecase(&fakeTxManager{}, tt.userRepo, themeRepo, dns)
 			_, err := u.Register(context.Background(), RegisterUserInput{Name: "alice", Password: "x"})
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
@@ -224,8 +240,8 @@ func TestUserUsecase_Register_Errors(t *testing.T) {
 			if !slices.Equal(tt.userRepo.calls, tt.wantCalls) {
 				t.Errorf("user calls = %v, want %v", tt.userRepo.calls, tt.wantCalls)
 			}
-			if !slices.Equal(tt.dns.gotNames, tt.wantDNS) {
-				t.Errorf("dns names = %v, want %v", tt.dns.gotNames, tt.wantDNS)
+			if !slices.Equal(dnsNames, tt.wantDNS) {
+				t.Errorf("dns names = %v, want %v", dnsNames, tt.wantDNS)
 			}
 		})
 	}

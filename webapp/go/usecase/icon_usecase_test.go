@@ -7,6 +7,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
 )
 
@@ -14,41 +15,50 @@ func TestIconUsecase_FindImageByUsername(t *testing.T) {
 	boom := errors.New("boom")
 
 	tests := []struct {
-		name      string
-		userRepo  *fakeUserRepository
-		iconRepo  *fakeIconRepository
+		name     string
+		userRepo *fakeUserRepository
+		// iconImage, iconErr はアイコンの取得が返す値
+		iconImage []byte
+		iconErr   error
 		wantImage []byte
 		wantErr   error
 	}{
 		{
 			name:      "returns registered icon",
 			userRepo:  &fakeUserRepository{id: 1},
-			iconRepo:  &fakeIconRepository{image: []byte("icon")},
+			iconImage: []byte("icon"),
 			wantImage: []byte("icon"),
 		},
 		{
 			name:     "user not found",
 			userRepo: &fakeUserRepository{err: repository.ErrNotFound},
-			iconRepo: &fakeIconRepository{},
 			wantErr:  ErrUserNotFound,
 		},
 		{
 			name:     "icon not registered",
 			userRepo: &fakeUserRepository{id: 1},
-			iconRepo: &fakeIconRepository{err: repository.ErrNotFound},
+			iconErr:  repository.ErrNotFound,
 			wantErr:  ErrIconNotFound,
 		},
 		{
 			name:     "icon repository error",
 			userRepo: &fakeUserRepository{id: 1},
-			iconRepo: &fakeIconRepository{err: boom},
+			iconErr:  boom,
 			wantErr:  boom,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u := NewIconUsecase(&fakeTxManager{}, tt.userRepo, tt.iconRepo)
+			iconRepo := &fakeIconRepository{
+				findImageByUserID: func(_ context.Context, _ repository.Querier, userID model.UserID) ([]byte, error) {
+					if userID != 1 {
+						t.Errorf("userID = %d, want 1", userID)
+					}
+					return tt.iconImage, tt.iconErr
+				},
+			}
+			u := NewIconUsecase(&fakeTxManager{}, tt.userRepo, iconRepo)
 
 			image, err := u.FindImageByUsername(context.Background(), "alice")
 			if !errors.Is(err, tt.wantErr) {
@@ -57,16 +67,33 @@ func TestIconUsecase_FindImageByUsername(t *testing.T) {
 			if !bytes.Equal(image, tt.wantImage) {
 				t.Errorf("image = %q, want %q", image, tt.wantImage)
 			}
-			if tt.wantErr == nil && tt.iconRepo.gotUserID != 1 {
-				t.Errorf("userID = %d, want 1", tt.iconRepo.gotUserID)
-			}
 		})
 	}
 }
 
+// newIconRepositoryForUpdate は Update で呼ばれるメソッドを、呼ばれた順に calls へ記録する fakeIconRepository を返す。
+func newIconRepositoryForUpdate(t *testing.T, calls *[]string, deleteErr, createErr error) *fakeIconRepository {
+	return &fakeIconRepository{
+		deleteByUserID: func(_ context.Context, _ repository.Querier, userID model.UserID) error {
+			*calls = append(*calls, "DeleteByUserID")
+			if userID != 1 {
+				t.Errorf("delete userID = %d, want 1", userID)
+			}
+			return deleteErr
+		},
+		create: func(_ context.Context, _ repository.Querier, userID model.UserID, image []byte) (model.IconID, error) {
+			*calls = append(*calls, "Create")
+			if userID != 1 || string(image) != "new icon" {
+				t.Errorf("create userID = %d, image = %q", userID, image)
+			}
+			return 100, createErr
+		},
+	}
+}
+
 func TestIconUsecase_Update(t *testing.T) {
-	iconRepo := &fakeIconRepository{createID: 100}
-	u := NewIconUsecase(&fakeTxManager{}, &fakeUserRepository{}, iconRepo)
+	var calls []string
+	u := NewIconUsecase(&fakeTxManager{}, &fakeUserRepository{}, newIconRepositoryForUpdate(t, &calls, nil, nil))
 
 	iconID, err := u.Update(context.Background(), 1, []byte("new icon"))
 	if err != nil {
@@ -76,11 +103,8 @@ func TestIconUsecase_Update(t *testing.T) {
 		t.Errorf("iconID = %d, want 100", iconID)
 	}
 	// 古いアイコンを消してから登録する
-	if want := []string{"DeleteByUserID", "Create"}; !slices.Equal(iconRepo.calls, want) {
-		t.Errorf("calls = %v, want %v", iconRepo.calls, want)
-	}
-	if iconRepo.gotUserID != 1 || string(iconRepo.gotImage) != "new icon" {
-		t.Errorf("userID = %d, image = %q", iconRepo.gotUserID, iconRepo.gotImage)
+	if want := []string{"DeleteByUserID", "Create"}; !slices.Equal(calls, want) {
+		t.Errorf("calls = %v, want %v", calls, want)
 	}
 }
 
@@ -89,31 +113,33 @@ func TestIconUsecase_Update_Errors(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		iconRepo  *fakeIconRepository
+		deleteErr error
+		createErr error
 		wantCalls []string
 	}{
 		{
 			name:      "delete fails",
-			iconRepo:  &fakeIconRepository{deleteErr: boom},
+			deleteErr: boom,
 			wantCalls: []string{"DeleteByUserID"},
 		},
 		{
 			name:      "create fails",
-			iconRepo:  &fakeIconRepository{createErr: boom},
+			createErr: boom,
 			wantCalls: []string{"DeleteByUserID", "Create"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u := NewIconUsecase(&fakeTxManager{}, &fakeUserRepository{}, tt.iconRepo)
+			var calls []string
+			u := NewIconUsecase(&fakeTxManager{}, &fakeUserRepository{}, newIconRepositoryForUpdate(t, &calls, tt.deleteErr, tt.createErr))
 
 			_, err := u.Update(context.Background(), 1, []byte("new icon"))
 			if !errors.Is(err, boom) {
 				t.Fatalf("err = %v, want %v", err, boom)
 			}
-			if !slices.Equal(tt.iconRepo.calls, tt.wantCalls) {
-				t.Errorf("calls = %v, want %v", tt.iconRepo.calls, tt.wantCalls)
+			if !slices.Equal(calls, tt.wantCalls) {
+				t.Errorf("calls = %v, want %v", calls, tt.wantCalls)
 			}
 		})
 	}
