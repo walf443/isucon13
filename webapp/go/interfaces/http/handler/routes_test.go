@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 // 移行前 (package main の routes.go) と同じルーティングになっていることを確認する。
@@ -69,6 +70,48 @@ func TestRegisterRoutes(t *testing.T) {
 		// Name は "<パッケージ>.(*xxxHandler).Method-fm" の形式
 		if !strings.HasSuffix(name, "."+w.handler+"-fm") {
 			t.Errorf("%s %s is handled by %s, want %s", w.method, w.path, name, w.handler)
+		}
+	}
+}
+
+// セッションが無い場合に、公開 API 以外は 403 を返し、公開 API は 403 を返さないことを確認する。
+func TestRegisterRoutes_RequireSession(t *testing.T) {
+	// セッション無しで使える API (移行前と同じ)
+	public := map[string]bool{
+		"POST /api/initialize":         true,
+		"GET /api/tag":                 true,
+		"GET /api/livestream/search":   true,
+		"POST /api/register":           true,
+		"POST /api/login":              true,
+		"GET /api/user/:username/icon": true,
+		"GET /api/payment":             true,
+	}
+	// パスパラメータは妥当な値にする (不正な値だと先に 400 を返す API がある)
+	pathParams := strings.NewReplacer(":livestream_id", "1", ":livecomment_id", "1", ":username", "alice")
+
+	e := newTestEcho()
+	// usecase は nil なので、セッションの検証を通り抜けると panic する。テストを止めずに 500 として扱う
+	e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{DisablePrintStack: true}))
+	RegisterRoutes(e, Usecases{}, "")
+
+	seen := map[string]bool{}
+	for _, r := range e.Routes() {
+		key := r.Method + " " + r.Path
+		seen[key] = true
+		t.Run(key, func(t *testing.T) {
+			rec := send(t, e, testRequest{method: r.Method, path: pathParams.Replace(r.Path)})
+			if public[key] {
+				if rec.Code == http.StatusForbidden {
+					t.Errorf("public route returned 403 (body: %s)", rec.Body.String())
+				}
+				return
+			}
+			assertResponse(t, rec, http.StatusForbidden, `{"message":"failed to get EXPIRES value from session"}`+"\n")
+		})
+	}
+	for key := range public {
+		if !seen[key] {
+			t.Errorf("public route %s is not registered", key)
 		}
 	}
 }

@@ -38,13 +38,6 @@ func TestThemeHandler_GetStreamerTheme(t *testing.T) {
 			wantBody: `{"id":10,"dark_mode":true}` + "\n",
 		},
 		{
-			// Cookie が無くても空のセッションが返るので、EXPIRES 不在として 403 になる (移行前と同じ挙動)
-			name:     "returns 403 without session",
-			cookie:   nil,
-			usecase:  &fakeThemeUsecase{},
-			wantCode: http.StatusForbidden,
-		},
-		{
 			name: "returns 401 when session has expired",
 			cookie: func(t *testing.T) *http.Cookie {
 				return newSessionCookie(t, 1, time.Now().Add(-time.Hour))

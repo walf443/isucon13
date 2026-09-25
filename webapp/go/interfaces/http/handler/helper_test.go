@@ -74,7 +74,12 @@ func serve(t *testing.T, h echo.HandlerFunc, req testRequest) *httptest.Response
 	t.Helper()
 	e := newTestEcho()
 	e.Add(req.method, req.route, h)
+	return send(t, e, req)
+}
 
+// send は e に req を送り、レスポンスを返す。req.route は使わない。
+func send(t *testing.T, e *echo.Echo, req testRequest) *httptest.ResponseRecorder {
+	t.Helper()
 	var httpReq *http.Request
 	if req.body != "" {
 		httpReq = httptest.NewRequest(req.method, req.path, strings.NewReader(req.body))

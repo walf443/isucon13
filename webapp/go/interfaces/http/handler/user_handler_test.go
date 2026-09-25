@@ -68,12 +68,6 @@ func TestUserHandler_GetUser(t *testing.T) {
 			wantBody: `{"id":1,"name":"alice","display_name":"Alice","description":"hello","theme":{"id":10,"dark_mode":true},"icon_hash":"abc"}` + "\n",
 		},
 		{
-			name:     "returns 403 without session",
-			cookie:   nil,
-			usecase:  &fakeUserUsecase{},
-			wantCode: http.StatusForbidden,
-		},
-		{
 			name:     "returns 404 when user is not found",
 			cookie:   sessionAs(1),
 			usecase:  &fakeUserUsecase{err: usecase.ErrUserNotFound},
@@ -119,12 +113,6 @@ func TestUserHandler_GetMe(t *testing.T) {
 			}},
 			wantCode: http.StatusOK,
 			wantBody: `{"id":42,"name":"alice","display_name":"Alice","description":"hello","theme":{"id":10,"dark_mode":false},"icon_hash":"abc"}` + "\n",
-		},
-		{
-			name:     "returns 403 without session",
-			cookie:   nil,
-			usecase:  &fakeUserUsecase{},
-			wantCode: http.StatusForbidden,
 		},
 		{
 			name:     "returns 404 when session user is not found",

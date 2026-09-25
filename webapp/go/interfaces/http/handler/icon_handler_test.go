@@ -108,13 +108,6 @@ func TestIconHandler_PostIcon(t *testing.T) {
 			wantBody: `{"id":100}` + "\n",
 		},
 		{
-			name:     "returns 403 without session",
-			cookie:   nil,
-			body:     `{"image":"bmV3IGljb24="}`,
-			usecase:  &fakeIconUsecase{},
-			wantCode: http.StatusForbidden,
-		},
-		{
 			name:     "returns 400 on invalid json",
 			cookie:   sessionAs(42),
 			body:     `{`,

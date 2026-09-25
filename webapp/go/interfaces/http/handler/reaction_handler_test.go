@@ -80,13 +80,6 @@ func TestReactionHandler_GetReactions(t *testing.T) {
 			wantLimit: func() *model.Limit { l := model.Limit(5); return &l }(),
 		},
 		{
-			name:     "returns 403 without session",
-			path:     "/api/livestream/10/reaction",
-			cookie:   nil,
-			usecase:  &fakeReactionUsecase{},
-			wantCode: http.StatusForbidden,
-		},
-		{
 			name:     "returns 400 when livestream_id is not integer",
 			path:     "/api/livestream/abc/reaction",
 			cookie:   sessionAs(1),
@@ -145,14 +138,6 @@ func TestReactionHandler_PostReaction(t *testing.T) {
 			body:     `{"emoji_name":"tada"}`,
 			usecase:  &fakeReactionUsecase{},
 			wantCode: http.StatusBadRequest,
-		},
-		{
-			name:     "returns 403 without session",
-			path:     "/api/livestream/10/reaction",
-			cookie:   nil,
-			body:     `{"emoji_name":"tada"}`,
-			usecase:  &fakeReactionUsecase{},
-			wantCode: http.StatusForbidden,
 		},
 		{
 			name:     "returns 400 on invalid json",

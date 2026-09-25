@@ -108,13 +108,6 @@ func TestLivestreamHandler_GetLivestream(t *testing.T) {
 			wantBody: `{"id":10,"owner":{"id":2,"name":"alice","display_name":"Alice","description":"hello","theme":{"id":20,"dark_mode":true},"icon_hash":"abc"},"title":"","description":"","playlist_url":"","thumbnail_url":"","tags":[],"start_at":0,"end_at":0}` + "\n",
 		},
 		{
-			name:     "returns 403 without session",
-			path:     "/api/livestream/10",
-			cookie:   nil,
-			usecase:  &fakeLivestreamUsecase{},
-			wantCode: http.StatusForbidden,
-		},
-		{
 			name:     "returns 400 when livestream_id is not integer",
 			path:     "/api/livestream/abc",
 			cookie:   sessionAs(1),
@@ -181,12 +174,6 @@ func TestLivestreamHandler_GetMyLivestreams(t *testing.T) {
 			wantBody: "[]\n",
 		},
 		{
-			name:     "returns 403 without session",
-			cookie:   nil,
-			usecase:  &fakeLivestreamUsecase{},
-			wantCode: http.StatusForbidden,
-		},
-		{
 			name:     "returns 500 on unexpected error",
 			cookie:   sessionAs(42),
 			usecase:  &fakeLivestreamUsecase{err: errors.New("boom")},
@@ -228,12 +215,6 @@ func TestLivestreamHandler_GetUserLivestreams(t *testing.T) {
 			usecase:  &fakeLivestreamUsecase{livestreams: nil},
 			wantCode: http.StatusOK,
 			wantBody: "[]\n",
-		},
-		{
-			name:     "returns 403 without session",
-			cookie:   nil,
-			usecase:  &fakeLivestreamUsecase{},
-			wantCode: http.StatusForbidden,
 		},
 		{
 			name:     "returns 404 when user is not found",
@@ -385,13 +366,6 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 			}},
 			wantCode: http.StatusCreated,
 			wantBody: `{"id":10,"owner":{"id":2,"name":"alice","theme":{"id":20,"dark_mode":true},"icon_hash":"abc"},"title":"stream","description":"desc","playlist_url":"https://example.com/p.m3u8","thumbnail_url":"https://example.com/t.jpg","tags":[{"id":1,"name":"ゲーム実況"},{"id":3,"name":"雑談"}],"start_at":1700874000,"end_at":1700877600}` + "\n",
-		},
-		{
-			name:     "returns 403 without session",
-			cookie:   nil,
-			body:     reqBody,
-			usecase:  &fakeLivestreamUsecase{},
-			wantCode: http.StatusForbidden,
 		},
 		{
 			name:     "returns 400 on invalid json",

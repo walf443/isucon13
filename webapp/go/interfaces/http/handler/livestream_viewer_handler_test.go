@@ -52,14 +52,6 @@ func TestLivestreamViewerHandler(t *testing.T) {
 			wantCalled: "Enter",
 		},
 		{
-			name:     "enter returns 403 without session",
-			method:   http.MethodPost,
-			path:     "/api/livestream/10/enter",
-			cookie:   nil,
-			usecase:  &fakeLivestreamViewerUsecase{},
-			wantCode: http.StatusForbidden,
-		},
-		{
 			// enter だけメッセージに "in path" が無い (移行前と同じ)
 			name:     "enter returns 400 when livestream_id is not integer",
 			method:   http.MethodPost,
@@ -87,14 +79,6 @@ func TestLivestreamViewerHandler(t *testing.T) {
 			usecase:    &fakeLivestreamViewerUsecase{},
 			wantCode:   http.StatusOK,
 			wantCalled: "Exit",
-		},
-		{
-			name:     "exit returns 403 without session",
-			method:   http.MethodDelete,
-			path:     "/api/livestream/10/exit",
-			cookie:   nil,
-			usecase:  &fakeLivestreamViewerUsecase{},
-			wantCode: http.StatusForbidden,
 		},
 		{
 			name:     "exit returns 400 when livestream_id is not integer",

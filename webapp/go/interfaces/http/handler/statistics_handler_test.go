@@ -52,12 +52,6 @@ func TestStatisticsHandler_GetUserStatistics(t *testing.T) {
 			wantBody: `{"rank":2,"viewers_count":7,"total_reactions":5,"total_livecomments":3,"total_tip":25,"favorite_emoji":"smile"}` + "\n",
 		},
 		{
-			name:     "returns 403 without session",
-			cookie:   nil,
-			usecase:  &fakeStatisticsUsecase{},
-			wantCode: http.StatusForbidden,
-		},
-		{
 			// 他のエンドポイントと違い 404 ではなく 400 (移行前と同じ)
 			name:     "returns 400 when user is not found",
 			cookie:   sessionAs(1),
@@ -107,13 +101,6 @@ func TestStatisticsHandler_GetLivestreamStatistics(t *testing.T) {
 			}},
 			wantCode: http.StatusOK,
 			wantBody: `{"rank":2,"viewers_count":7,"total_reactions":5,"total_reports":1,"max_tip":300}` + "\n",
-		},
-		{
-			name:     "returns 403 without session",
-			path:     "/api/livestream/10/statistics",
-			cookie:   nil,
-			usecase:  &fakeStatisticsUsecase{},
-			wantCode: http.StatusForbidden,
 		},
 		{
 			name:     "returns 400 when livestream_id is not integer",

@@ -100,13 +100,6 @@ func TestLivecommentHandler_GetLivecomments(t *testing.T) {
 			wantLimit: func() *model.Limit { l := model.Limit(5); return &l }(),
 		},
 		{
-			name:     "returns 403 without session",
-			path:     "/api/livestream/10/livecomment",
-			cookie:   nil,
-			usecase:  &fakeLivecommentUsecase{},
-			wantCode: http.StatusForbidden,
-		},
-		{
 			name:     "returns 400 when livestream_id is not integer",
 			path:     "/api/livestream/abc/livecomment",
 			cookie:   sessionAs(1),
@@ -179,13 +172,6 @@ func TestLivecommentHandler_GetLivecommentReports(t *testing.T) {
 			wantBody: "[]\n",
 		},
 		{
-			name:     "returns 403 without session",
-			path:     "/api/livestream/10/report",
-			cookie:   nil,
-			usecase:  &fakeLivecommentUsecase{},
-			wantCode: http.StatusForbidden,
-		},
-		{
 			name:     "returns 400 when livestream_id is not integer",
 			path:     "/api/livestream/abc/report",
 			cookie:   sessionAs(2),
@@ -238,14 +224,6 @@ func TestLivecommentHandler_PostLivecomment(t *testing.T) {
 			usecase:  &fakeLivecommentUsecase{livecomment: testLivecomment},
 			wantCode: http.StatusCreated,
 			wantBody: testLivecommentJSON + "\n",
-		},
-		{
-			name:     "returns 403 without session",
-			path:     "/api/livestream/10/livecomment",
-			cookie:   nil,
-			body:     `{"comment":"hello","tip":100}`,
-			usecase:  &fakeLivecommentUsecase{},
-			wantCode: http.StatusForbidden,
 		},
 		{
 			name:     "returns 400 when livestream_id is not integer",
@@ -327,13 +305,6 @@ func TestLivecommentHandler_PostLivecommentReport(t *testing.T) {
 			usecase:  &fakeLivecommentUsecase{report: report},
 			wantCode: http.StatusCreated,
 			wantBody: `{"id":7,"reporter":{"id":3,"name":"carol","theme":{"id":13,"dark_mode":false},"icon_hash":"ccc"},"livecomment":` + testLivecommentJSON + `,"created_at":1700000100}` + "\n",
-		},
-		{
-			name:     "returns 403 without session",
-			path:     "/api/livestream/10/livecomment/50/report",
-			cookie:   nil,
-			usecase:  &fakeLivecommentUsecase{},
-			wantCode: http.StatusForbidden,
 		},
 		{
 			name:     "returns 400 when livestream_id is not integer",

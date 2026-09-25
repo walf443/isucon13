@@ -63,13 +63,6 @@ func TestNGWordHandler_GetNGWords(t *testing.T) {
 			wantBody: "null\n",
 		},
 		{
-			name:     "returns 403 without session",
-			path:     "/api/livestream/10/ngwords",
-			cookie:   nil,
-			usecase:  &fakeNGWordUsecase{},
-			wantCode: http.StatusForbidden,
-		},
-		{
 			name:     "returns 400 when livestream_id is not integer",
 			path:     "/api/livestream/abc/ngwords",
 			cookie:   sessionAs(2),
@@ -114,14 +107,6 @@ func TestNGWordHandler_Moderate(t *testing.T) {
 			usecase:  &fakeNGWordUsecase{wordID: 7},
 			wantCode: http.StatusCreated,
 			wantBody: `{"word_id":7}` + "\n",
-		},
-		{
-			name:     "returns 403 without session",
-			path:     "/api/livestream/10/moderate",
-			cookie:   nil,
-			body:     `{"ng_word":"bad"}`,
-			usecase:  &fakeNGWordUsecase{},
-			wantCode: http.StatusForbidden,
 		},
 		{
 			name:     "returns 400 when livestream_id is not integer",
