@@ -248,3 +248,29 @@ func TestLivecommentReportRepository_CreateAndFindWithDetailsByID(t *testing.T) 
 		t.Errorf("err = %v, want ErrNotFound", err)
 	}
 }
+
+func TestLivecommentRepository_SumTip(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+	repo := NewLivecommentRepository(nil)
+
+	before, err := repo.SumTip(ctx, tx)
+	if err != nil {
+		t.Fatalf("SumTip returned error: %v", err)
+	}
+
+	ownerID := insertTestUser(t, tx, "alice")
+	stream := insertTestLivestream(t, tx, ownerID, "s1")
+	otherStream := insertTestLivestream(t, tx, ownerID, "s2")
+	insertTestLivecommentWithTip(t, tx, ownerID, stream, 100)
+	insertTestLivecommentWithTip(t, tx, ownerID, otherStream, 250)
+
+	// ライブ配信によらず全てのライブコメントのチップを合計する
+	after, err := repo.SumTip(ctx, tx)
+	if err != nil {
+		t.Fatalf("SumTip returned error: %v", err)
+	}
+	if after-before != 350 {
+		t.Errorf("total tip = %d (before %d), want +350", after, before)
+	}
+}

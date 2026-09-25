@@ -314,6 +314,9 @@ type fakeLivecommentRepository struct {
 	// tipsByOwnerID は SumTipByLivestreamOwnerID が返すチップ合計
 	tipsByOwnerID map[model.UserID]int64
 	sumTipErr     error
+	// totalTip は SumTip が返すチップ合計
+	totalTip    int64
+	totalTipErr error
 	// tipsByLivestreamID は SumTipByLivestreamID が返すチップ合計
 	tipsByLivestreamID    map[model.LivestreamID]int64
 	sumTipByLivestreamErr error
@@ -340,6 +343,10 @@ type fakeLivecommentRepository struct {
 
 func (r *fakeLivecommentRepository) FindAllByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.LivecommentModel, error) {
 	return r.livecommentModelsByLivestreamID[livestreamID], r.findAllByLivestreamIDErr
+}
+
+func (r *fakeLivecommentRepository) SumTip(ctx context.Context, q repository.Querier) (int64, error) {
+	return r.totalTip, r.totalTipErr
 }
 
 func (r *fakeLivecommentRepository) SumTipByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) (int64, error) {

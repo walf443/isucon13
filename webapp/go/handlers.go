@@ -23,6 +23,7 @@ type handlers struct {
 	ngWord      *handler.NGWordHandler
 	viewer      *handler.LivestreamViewerHandler
 	statistics  *handler.StatisticsHandler
+	payment     *handler.PaymentHandler
 }
 
 // newHandlers は repository・usecase・handler を組み立てる。
@@ -58,6 +59,7 @@ func newHandlers(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 	ngWordUsecase := usecase.NewNGWordUsecase(txManager, livestreamRepo, livecommentRepo, ngWordRepo)
 	viewerUsecase := usecase.NewLivestreamViewerUsecase(txManager, viewerRepo)
 	statisticsUsecase := usecase.NewStatisticsUsecase(txManager, userRepo, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo, livecommentReportRepo)
+	paymentUsecase := usecase.NewPaymentUsecase(txManager, livecommentRepo)
 
 	return &handlers{
 		tag:         handler.NewTagHandler(tagUsecase),
@@ -70,5 +72,6 @@ func newHandlers(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 		ngWord:      handler.NewNGWordHandler(ngWordUsecase),
 		viewer:      handler.NewLivestreamViewerHandler(viewerUsecase),
 		statistics:  handler.NewStatisticsHandler(statisticsUsecase),
+		payment:     handler.NewPaymentHandler(paymentUsecase),
 	}, nil
 }

@@ -55,5 +55,5 @@ func registerRoutes(e *echo.Echo, h *handlers) {
 	e.GET("/api/livestream/:livestream_id/statistics", h.statistics.GetLivestreamStatistics)
 
 	// 課金情報
-	e.GET("/api/payment", GetPaymentResult)
+	e.GET("/api/payment", h.payment.GetPaymentResult)
 }
