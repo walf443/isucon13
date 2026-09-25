@@ -36,9 +36,9 @@ func registerRoutes(e *echo.Echo, h *handlers) {
 
 	// livestream_viewersにINSERTするため必要
 	// ユーザ視聴開始 (viewer)
-	e.POST("/api/livestream/:livestream_id/enter", enterLivestreamHandler)
+	e.POST("/api/livestream/:livestream_id/enter", h.viewer.EnterLivestream)
 	// ユーザ視聴終了 (viewer)
-	e.DELETE("/api/livestream/:livestream_id/exit", exitLivestreamHandler)
+	e.DELETE("/api/livestream/:livestream_id/exit", h.viewer.ExitLivestream)
 
 	// user
 	e.POST("/api/register", registerHandler)

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -21,12 +20,6 @@ type ReserveLivestreamRequest struct {
 	ThumbnailUrl string  `json:"thumbnail_url"`
 	StartAt      int64   `json:"start_at"`
 	EndAt        int64   `json:"end_at"`
-}
-
-type LivestreamViewerModel struct {
-	UserID       int64 `db:"user_id" json:"user_id"`
-	LivestreamID int64 `db:"livestream_id" json:"livestream_id"`
-	CreatedAt    int64 `db:"created_at" json:"created_at"`
 }
 
 type LivestreamModel struct {
@@ -166,81 +159,6 @@ func reserveLivestreamHandler(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusCreated, livestream)
-}
-
-// viewerテーブルの廃止
-func enterLivestreamHandler(c echo.Context) error {
-	ctx := c.Request().Context()
-	if err := verifyUserSession(c); err != nil {
-		// echo.NewHTTPErrorが返っているのでそのまま出力
-		return err
-	}
-
-	// error already checked
-	sess, _ := session.Get(defaultSessionIDKey, c)
-	// existence already checked
-	userID := sess.Values[defaultUserIDKey].(int64)
-
-	livestreamID, err := strconv.Atoi(c.Param("livestream_id"))
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id must be integer")
-	}
-
-	tx, err := dbConn.BeginTxx(ctx, nil)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to begin transaction: "+err.Error())
-	}
-	defer tx.Rollback()
-
-	viewer := LivestreamViewerModel{
-		UserID:       int64(userID),
-		LivestreamID: int64(livestreamID),
-		CreatedAt:    time.Now().Unix(),
-	}
-
-	if _, err := tx.NamedExecContext(ctx, "INSERT INTO livestream_viewers_history (user_id, livestream_id, created_at) VALUES(:user_id, :livestream_id, :created_at)", viewer); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to insert livestream_view_history: "+err.Error())
-	}
-
-	if err := tx.Commit(); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
-	}
-
-	return c.NoContent(http.StatusOK)
-}
-
-func exitLivestreamHandler(c echo.Context) error {
-	ctx := c.Request().Context()
-	if err := verifyUserSession(c); err != nil {
-		// echo.NewHTTPErrorが返っているのでそのまま出力
-		return err
-	}
-
-	// error already checked
-	sess, _ := session.Get(defaultSessionIDKey, c)
-	// existence already checked
-	userID := sess.Values[defaultUserIDKey].(int64)
-
-	livestreamID, err := strconv.Atoi(c.Param("livestream_id"))
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
-	}
-
-	tx, err := dbConn.BeginTxx(ctx, nil)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to begin transaction: "+err.Error())
-	}
-	defer tx.Rollback()
-
-	if _, err := tx.ExecContext(ctx, "DELETE FROM livestream_viewers_history WHERE user_id = ? AND livestream_id = ?", userID, livestreamID); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to delete livestream_view_history: "+err.Error())
-	}
-
-	if err := tx.Commit(); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
-	}
-
-	return c.NoContent(http.StatusOK)
 }
 
 func fillLivestreamResponse(ctx context.Context, tx *sqlx.Tx, livestreamModel LivestreamModel) (Livestream, error) {

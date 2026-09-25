@@ -1,0 +1,24 @@
+package mysql
+
+import (
+	"context"
+
+	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain/repository"
+)
+
+type livestreamViewersHistoryRepository struct{}
+
+func NewLivestreamViewersHistoryRepository() repository.LivestreamViewersHistoryRepository {
+	return &livestreamViewersHistoryRepository{}
+}
+
+func (r *livestreamViewersHistoryRepository) Create(ctx context.Context, q repository.Querier, viewer *model.LivestreamViewersHistoryModel) error {
+	_, err := q.ExecContext(ctx, "INSERT INTO livestream_viewers_history (user_id, livestream_id, created_at) VALUES(?, ?, ?)", viewer.UserID, viewer.LivestreamID, viewer.CreatedAt)
+	return err
+}
+
+func (r *livestreamViewersHistoryRepository) DeleteByUserIDAndLivestreamID(ctx context.Context, q repository.Querier, userID model.UserID, livestreamID model.LivestreamID) error {
+	_, err := q.ExecContext(ctx, "DELETE FROM livestream_viewers_history WHERE user_id = ? AND livestream_id = ?", userID, livestreamID)
+	return err
+}

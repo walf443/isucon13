@@ -295,6 +295,25 @@ func (r *fakeLivecommentReportRepository) FindAllWithDetailsByLivestreamID(ctx c
 	return r.reports, r.err
 }
 
+type fakeLivestreamViewersHistoryRepository struct {
+	err error
+
+	gotCreated      *model.LivestreamViewersHistoryModel
+	gotUserID       model.UserID
+	gotLivestreamID model.LivestreamID
+}
+
+func (r *fakeLivestreamViewersHistoryRepository) Create(ctx context.Context, q repository.Querier, viewer *model.LivestreamViewersHistoryModel) error {
+	r.gotCreated = viewer
+	return r.err
+}
+
+func (r *fakeLivestreamViewersHistoryRepository) DeleteByUserIDAndLivestreamID(ctx context.Context, q repository.Querier, userID model.UserID, livestreamID model.LivestreamID) error {
+	r.gotUserID = userID
+	r.gotLivestreamID = livestreamID
+	return r.err
+}
+
 type fakeNGWordRepository struct {
 	ngWords   []*model.NGWordModel
 	err       error
