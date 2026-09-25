@@ -8,7 +8,31 @@ import (
 	"time"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
+	"github.com/isucon/isucon13/webapp/go/domain/repository"
 )
+
+// newReactionRepositoryForFindAll は一覧取得で呼ばれたメソッドを calls に記録し、reactions (取得に失敗させる場合は err) を返す fakeReactionRepository を返す。
+// ライブ配信 10 のリアクションを取得すること、limit 付きの場合はその値を gotLimit に取り出す。
+func newReactionRepositoryForFindAll(t *testing.T, calls *[]string, gotLimit *model.Limit, reactions []*model.Reaction, err error) *fakeReactionRepository {
+	checkLivestreamID := func(livestreamID model.LivestreamID) {
+		if livestreamID != 10 {
+			t.Errorf("livestreamID = %d, want 10", livestreamID)
+		}
+	}
+	return &fakeReactionRepository{
+		findAllWithDetailsByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID model.LivestreamID) ([]*model.Reaction, error) {
+			*calls = append(*calls, "FindAllWithDetailsByLivestreamID")
+			checkLivestreamID(livestreamID)
+			return reactions, err
+		},
+		findAllWithDetailsByLivestreamIDLimited: func(_ context.Context, _ repository.Querier, livestreamID model.LivestreamID, limit model.Limit) ([]*model.Reaction, error) {
+			*calls = append(*calls, "FindAllWithDetailsByLivestreamIDLimited")
+			checkLivestreamID(livestreamID)
+			*gotLimit = limit
+			return reactions, err
+		},
+	}
+}
 
 func TestReactionUsecase_FindAllByLivestreamID(t *testing.T) {
 	limit := model.Limit(5)
@@ -26,8 +50,9 @@ func TestReactionUsecase_FindAllByLivestreamID(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			want := []*model.Reaction{{ID: 1}}
-			repo := &fakeReactionRepository{reactions: want}
-			u := NewReactionUsecase(&fakeTxManager{}, repo)
+			var calls []string
+			var gotLimit model.Limit
+			u := NewReactionUsecase(&fakeTxManager{}, newReactionRepositoryForFindAll(t, &calls, &gotLimit, want, nil))
 
 			got, err := u.FindAllByLivestreamID(context.Background(), 10, tt.limit)
 			if err != nil {
@@ -36,11 +61,11 @@ func TestReactionUsecase_FindAllByLivestreamID(t *testing.T) {
 			if !slices.Equal(got, want) {
 				t.Errorf("got %+v, want %+v", got, want)
 			}
-			if !slices.Equal(repo.calls, tt.wantCalls) {
-				t.Errorf("calls = %v, want %v", repo.calls, tt.wantCalls)
+			if !slices.Equal(calls, tt.wantCalls) {
+				t.Errorf("calls = %v, want %v", calls, tt.wantCalls)
 			}
-			if repo.gotLivestreamID != 10 || repo.gotLimit != tt.wantLimit {
-				t.Errorf("livestreamID = %d, limit = %d", repo.gotLivestreamID, repo.gotLimit)
+			if gotLimit != tt.wantLimit {
+				t.Errorf("limit = %d, want %d", gotLimit, tt.wantLimit)
 			}
 		})
 	}
@@ -48,7 +73,9 @@ func TestReactionUsecase_FindAllByLivestreamID(t *testing.T) {
 
 func TestReactionUsecase_FindAllByLivestreamID_Error(t *testing.T) {
 	boom := errors.New("boom")
-	u := NewReactionUsecase(&fakeTxManager{}, &fakeReactionRepository{err: boom})
+	var calls []string
+	var gotLimit model.Limit
+	u := NewReactionUsecase(&fakeTxManager{}, newReactionRepositoryForFindAll(t, &calls, &gotLimit, nil, boom))
 
 	_, err := u.FindAllByLivestreamID(context.Background(), 10, nil)
 	if !errors.Is(err, boom) {
@@ -56,10 +83,30 @@ func TestReactionUsecase_FindAllByLivestreamID_Error(t *testing.T) {
 	}
 }
 
+// newReactionRepositoryForCreate は Create で呼ばれるメソッドを、呼ばれた順に calls へ記録する fakeReactionRepository を返す。
+// 登録したリアクションは created に取り出し、ID 100 で読み直したリアクションとして reaction を返す。
+func newReactionRepositoryForCreate(t *testing.T, calls *[]string, created **model.ReactionModel, reaction *model.Reaction, createErr, fillErr error) *fakeReactionRepository {
+	return &fakeReactionRepository{
+		create: func(_ context.Context, _ repository.Querier, r *model.ReactionModel) (model.ReactionID, error) {
+			*calls = append(*calls, "Create")
+			*created = r
+			return 100, createErr
+		},
+		findWithDetailsByID: func(_ context.Context, _ repository.Querier, id model.ReactionID) (*model.Reaction, error) {
+			*calls = append(*calls, "FindWithDetailsByID")
+			if id != 100 {
+				t.Errorf("id = %d, want 100", id)
+			}
+			return reaction, fillErr
+		},
+	}
+}
+
 func TestReactionUsecase_Create(t *testing.T) {
 	want := &model.Reaction{ID: 100, EmojiName: "tada"}
-	repo := &fakeReactionRepository{createID: 100, reaction: want}
-	u := NewReactionUsecase(&fakeTxManager{}, repo).(*reactionUsecase)
+	var calls []string
+	var created *model.ReactionModel
+	u := NewReactionUsecase(&fakeTxManager{}, newReactionRepositoryForCreate(t, &calls, &created, want, nil, nil)).(*reactionUsecase)
 	u.now = func() time.Time { return time.Unix(1700000000, 0) }
 
 	got, err := u.Create(context.Background(), 1, 10, "tada")
@@ -70,15 +117,12 @@ func TestReactionUsecase_Create(t *testing.T) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
 	// 登録してから、登録した ID で読み直す
-	if wantCalls := []string{"Create", "FindWithDetailsByID"}; !slices.Equal(repo.calls, wantCalls) {
-		t.Errorf("calls = %v, want %v", repo.calls, wantCalls)
+	if wantCalls := []string{"Create", "FindWithDetailsByID"}; !slices.Equal(calls, wantCalls) {
+		t.Errorf("calls = %v, want %v", calls, wantCalls)
 	}
 	wantCreated := model.ReactionModel{UserID: 1, LivestreamID: 10, EmojiName: "tada", CreatedAt: 1700000000}
-	if *repo.gotCreated != wantCreated {
-		t.Errorf("created = %+v, want %+v", *repo.gotCreated, wantCreated)
-	}
-	if repo.gotID != 100 {
-		t.Errorf("id = %d, want 100", repo.gotID)
+	if created == nil || *created != wantCreated {
+		t.Errorf("created = %+v, want %+v", created, wantCreated)
 	}
 }
 
@@ -87,22 +131,25 @@ func TestReactionUsecase_Create_Errors(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		repo      *fakeReactionRepository
+		createErr error
+		fillErr   error
 		wantCalls []string
 	}{
-		{name: "create fails", repo: &fakeReactionRepository{createErr: boom}, wantCalls: []string{"Create"}},
-		{name: "fill fails", repo: &fakeReactionRepository{createID: 100, err: boom}, wantCalls: []string{"Create", "FindWithDetailsByID"}},
+		{name: "create fails", createErr: boom, wantCalls: []string{"Create"}},
+		{name: "fill fails", fillErr: boom, wantCalls: []string{"Create", "FindWithDetailsByID"}},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u := NewReactionUsecase(&fakeTxManager{}, tt.repo)
+			var calls []string
+			var created *model.ReactionModel
+			u := NewReactionUsecase(&fakeTxManager{}, newReactionRepositoryForCreate(t, &calls, &created, nil, tt.createErr, tt.fillErr))
 			_, err := u.Create(context.Background(), 1, 10, "tada")
 			if !errors.Is(err, boom) {
 				t.Fatalf("err = %v, want %v", err, boom)
 			}
-			if !slices.Equal(tt.repo.calls, tt.wantCalls) {
-				t.Errorf("calls = %v, want %v", tt.repo.calls, tt.wantCalls)
+			if !slices.Equal(calls, tt.wantCalls) {
+				t.Errorf("calls = %v, want %v", calls, tt.wantCalls)
 			}
 		})
 	}
