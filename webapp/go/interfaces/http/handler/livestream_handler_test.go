@@ -119,6 +119,7 @@ func TestLivestreamHandler_GetLivestream(t *testing.T) {
 			cookie:   sessionAs(1),
 			usecase:  &fakeLivestreamUsecase{},
 			wantCode: http.StatusBadRequest,
+			wantBody: errorBody(http.StatusBadRequest, "livestream_id in path must be integer"),
 		},
 		{
 			name:     "returns 404 when livestream is not found",
@@ -126,6 +127,7 @@ func TestLivestreamHandler_GetLivestream(t *testing.T) {
 			cookie:   sessionAs(1),
 			usecase:  &fakeLivestreamUsecase{err: usecase.ErrLivestreamNotFound},
 			wantCode: http.StatusNotFound,
+			wantBody: errorBody(http.StatusNotFound, "not found livestream that has the given id"),
 		},
 		{
 			name:     "returns 500 on unexpected error",
@@ -133,6 +135,7 @@ func TestLivestreamHandler_GetLivestream(t *testing.T) {
 			cookie:   sessionAs(1),
 			usecase:  &fakeLivestreamUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 
@@ -184,6 +187,7 @@ func TestLivestreamHandler_GetMyLivestreams(t *testing.T) {
 			cookie:   sessionAs(42),
 			usecase:  &fakeLivestreamUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 
@@ -235,6 +239,7 @@ func TestLivestreamHandler_GetUserLivestreams(t *testing.T) {
 			cookie:   sessionAs(1),
 			usecase:  &fakeLivestreamUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 
@@ -313,6 +318,7 @@ func TestLivestreamHandler_SearchLivestreams(t *testing.T) {
 			query:    "",
 			usecase:  &fakeLivestreamUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 

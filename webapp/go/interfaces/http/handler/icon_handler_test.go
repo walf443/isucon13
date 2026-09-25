@@ -66,11 +66,13 @@ func TestIconHandler_GetIcon(t *testing.T) {
 			name:     "returns 404 when user is not found",
 			usecase:  &fakeIconUsecase{err: usecase.ErrUserNotFound},
 			wantCode: http.StatusNotFound,
+			wantBody: errorBody(http.StatusNotFound, "not found user that has the given username"),
 		},
 		{
 			name:     "returns 500 on unexpected error",
 			usecase:  &fakeIconUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 
@@ -113,6 +115,7 @@ func TestIconHandler_PostIcon(t *testing.T) {
 			body:     `{`,
 			usecase:  &fakeIconUsecase{},
 			wantCode: http.StatusBadRequest,
+			wantBody: errorBody(http.StatusBadRequest, "failed to decode the request body as json"),
 		},
 		{
 			name:     "returns 500 on unexpected error",
@@ -120,6 +123,7 @@ func TestIconHandler_PostIcon(t *testing.T) {
 			body:     `{"image":"bmV3IGljb24="}`,
 			usecase:  &fakeIconUsecase{updateErr: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 

@@ -112,6 +112,7 @@ func TestLivecommentHandler_GetLivecomments(t *testing.T) {
 			cookie:   sessionAs(1),
 			usecase:  &fakeLivecommentUsecase{},
 			wantCode: http.StatusBadRequest,
+			wantBody: errorBody(http.StatusBadRequest, "livestream_id in path must be integer"),
 		},
 		{
 			name:     "returns 500 on unexpected error",
@@ -119,6 +120,7 @@ func TestLivecommentHandler_GetLivecomments(t *testing.T) {
 			cookie:   sessionAs(1),
 			usecase:  &fakeLivecommentUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 
@@ -184,6 +186,7 @@ func TestLivecommentHandler_GetLivecommentReports(t *testing.T) {
 			cookie:   sessionAs(2),
 			usecase:  &fakeLivecommentReportUsecase{},
 			wantCode: http.StatusBadRequest,
+			wantBody: errorBody(http.StatusBadRequest, "livestream_id in path must be integer"),
 		},
 		{
 			name:     "returns 403 when not the owner",
@@ -199,6 +202,7 @@ func TestLivecommentHandler_GetLivecommentReports(t *testing.T) {
 			cookie:   sessionAs(2),
 			usecase:  &fakeLivecommentReportUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 
@@ -239,6 +243,7 @@ func TestLivecommentHandler_PostLivecomment(t *testing.T) {
 			body:     `{"comment":"hello","tip":100}`,
 			usecase:  &fakeLivecommentUsecase{},
 			wantCode: http.StatusBadRequest,
+			wantBody: errorBody(http.StatusBadRequest, "livestream_id in path must be integer"),
 		},
 		{
 			name:     "returns 400 on invalid json",
@@ -247,6 +252,7 @@ func TestLivecommentHandler_PostLivecomment(t *testing.T) {
 			body:     `{`,
 			usecase:  &fakeLivecommentUsecase{},
 			wantCode: http.StatusBadRequest,
+			wantBody: errorBody(http.StatusBadRequest, "failed to decode the request body as json"),
 		},
 		{
 			name:     "returns 404 when livestream is not found",
@@ -273,6 +279,7 @@ func TestLivecommentHandler_PostLivecomment(t *testing.T) {
 			body:     `{"comment":"hello","tip":100}`,
 			usecase:  &fakeLivecommentUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 
@@ -351,6 +358,7 @@ func TestLivecommentHandler_PostLivecommentReport(t *testing.T) {
 			cookie:   sessionAs(3),
 			usecase:  &fakeLivecommentReportUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 

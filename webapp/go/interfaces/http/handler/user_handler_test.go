@@ -78,12 +78,14 @@ func TestUserHandler_GetUser(t *testing.T) {
 			cookie:   sessionAs(1),
 			usecase:  &fakeUserUsecase{err: usecase.ErrUserNotFound},
 			wantCode: http.StatusNotFound,
+			wantBody: errorBody(http.StatusNotFound, "not found user that has the given username"),
 		},
 		{
 			name:     "returns 500 on unexpected error",
 			cookie:   sessionAs(1),
 			usecase:  &fakeUserUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 
@@ -125,12 +127,14 @@ func TestUserHandler_GetMe(t *testing.T) {
 			cookie:   sessionAs(42),
 			usecase:  &fakeUserUsecase{err: usecase.ErrUserNotFound},
 			wantCode: http.StatusNotFound,
+			wantBody: errorBody(http.StatusNotFound, "not found user that has the userid in session"),
 		},
 		{
 			name:     "returns 500 on unexpected error",
 			cookie:   sessionAs(42),
 			usecase:  &fakeUserUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 

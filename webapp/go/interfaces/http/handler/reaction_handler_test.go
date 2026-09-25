@@ -85,6 +85,7 @@ func TestReactionHandler_GetReactions(t *testing.T) {
 			cookie:   sessionAs(1),
 			usecase:  &fakeReactionUsecase{},
 			wantCode: http.StatusBadRequest,
+			wantBody: errorBody(http.StatusBadRequest, "livestream_id in path must be integer"),
 		},
 		{
 			name:     "returns 500 on unexpected error",
@@ -92,6 +93,7 @@ func TestReactionHandler_GetReactions(t *testing.T) {
 			cookie:   sessionAs(1),
 			usecase:  &fakeReactionUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 
@@ -138,6 +140,7 @@ func TestReactionHandler_PostReaction(t *testing.T) {
 			body:     `{"emoji_name":"tada"}`,
 			usecase:  &fakeReactionUsecase{},
 			wantCode: http.StatusBadRequest,
+			wantBody: errorBody(http.StatusBadRequest, "livestream_id in path must be integer"),
 		},
 		{
 			name:     "returns 400 on invalid json",
@@ -146,6 +149,7 @@ func TestReactionHandler_PostReaction(t *testing.T) {
 			body:     `{`,
 			usecase:  &fakeReactionUsecase{},
 			wantCode: http.StatusBadRequest,
+			wantBody: errorBody(http.StatusBadRequest, "failed to decode the request body as json"),
 		},
 		{
 			name:     "returns 500 on unexpected error",
@@ -154,6 +158,7 @@ func TestReactionHandler_PostReaction(t *testing.T) {
 			body:     `{"emoji_name":"tada"}`,
 			usecase:  &fakeReactionUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 

@@ -68,6 +68,7 @@ func TestNGWordHandler_GetNGWords(t *testing.T) {
 			cookie:   sessionAs(2),
 			usecase:  &fakeNGWordUsecase{},
 			wantCode: http.StatusBadRequest,
+			wantBody: errorBody(http.StatusBadRequest, "livestream_id in path must be integer"),
 		},
 		{
 			name:     "returns 500 on unexpected error",
@@ -75,6 +76,7 @@ func TestNGWordHandler_GetNGWords(t *testing.T) {
 			cookie:   sessionAs(2),
 			usecase:  &fakeNGWordUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 
@@ -115,6 +117,7 @@ func TestNGWordHandler_Moderate(t *testing.T) {
 			body:     `{"ng_word":"bad"}`,
 			usecase:  &fakeNGWordUsecase{},
 			wantCode: http.StatusBadRequest,
+			wantBody: errorBody(http.StatusBadRequest, "livestream_id in path must be integer"),
 		},
 		{
 			name:     "returns 400 on invalid json",
@@ -123,6 +126,7 @@ func TestNGWordHandler_Moderate(t *testing.T) {
 			body:     `{`,
 			usecase:  &fakeNGWordUsecase{},
 			wantCode: http.StatusBadRequest,
+			wantBody: errorBody(http.StatusBadRequest, "failed to decode the request body as json"),
 		},
 		{
 			// 他の配信者のライブ配信は 403 ではなく 400 (移行前と同じ)
@@ -141,6 +145,7 @@ func TestNGWordHandler_Moderate(t *testing.T) {
 			body:     `{"ng_word":"bad"}`,
 			usecase:  &fakeNGWordUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 

@@ -44,18 +44,21 @@ func TestThemeHandler_GetStreamerTheme(t *testing.T) {
 			},
 			usecase:  &fakeThemeUsecase{},
 			wantCode: http.StatusUnauthorized,
+			wantBody: errorBody(http.StatusUnauthorized, "session has expired"),
 		},
 		{
 			name:     "returns 404 when user is not found",
 			cookie:   sessionAs(1),
 			usecase:  &fakeThemeUsecase{err: usecase.ErrUserNotFound},
 			wantCode: http.StatusNotFound,
+			wantBody: errorBody(http.StatusNotFound, "not found user that has the given username"),
 		},
 		{
 			name:     "returns 500 on unexpected error",
 			cookie:   sessionAs(1),
 			usecase:  &fakeThemeUsecase{err: errors.New("boom")},
 			wantCode: http.StatusInternalServerError,
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
 		},
 	}
 
