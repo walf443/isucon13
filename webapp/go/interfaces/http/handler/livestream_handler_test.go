@@ -375,35 +375,6 @@ func TestLivestreamHandler_SearchLivestreams(t *testing.T) {
 			wantTagName: "nothing",
 		},
 		{
-			name:     "returns 400 when limit is not integer",
-			query:    "?limit=abc",
-			usecase:  &fakeLivestreamUsecase{},
-			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"limit query parameter must be integer"}` + "\n",
-		},
-		{
-			// 0 件の取得や負の数、上限を超える値は 400 (移行前は 0 は空配列、負の数は 500、上限なし)
-			name:     "returns 400 when limit is zero",
-			query:    "?limit=0",
-			usecase:  &fakeLivestreamUsecase{},
-			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"limit query parameter must be between 1 and 100"}` + "\n",
-		},
-		{
-			name:     "returns 400 when limit is negative",
-			query:    "?limit=-1",
-			usecase:  &fakeLivestreamUsecase{},
-			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"limit query parameter must be between 1 and 100"}` + "\n",
-		},
-		{
-			name:     "returns 400 when limit is over the max",
-			query:    "?limit=101",
-			usecase:  &fakeLivestreamUsecase{},
-			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"limit query parameter must be between 1 and 100"}` + "\n",
-		},
-		{
 			name:     "returns 500 on unexpected error",
 			query:    "",
 			usecase:  &fakeLivestreamUsecase{err: errors.New("boom")},
@@ -438,6 +409,20 @@ func TestLivestreamHandler_SearchLivestreams(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestLivestreamHandler_SearchLivestreams_Limit(t *testing.T) {
+	testLimitQueryParam(t, maxLivestreamsLimit, func(t *testing.T, limit string) (*httptest.ResponseRecorder, *model.Limit) {
+		u := &fakeLivestreamUsecase{}
+		e := newTestEcho()
+		e.GET("/api/livestream/search", newLivestreamHandler(u).SearchLivestreams)
+
+		// セッションは不要
+		req := httptest.NewRequest(http.MethodGet, "/api/livestream/search?limit="+limit, nil)
+		rec := httptest.NewRecorder()
+		e.ServeHTTP(rec, req)
+		return rec, u.gotLimit
+	})
 }
 
 func TestLivestreamHandler_ReserveLivestream(t *testing.T) {

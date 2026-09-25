@@ -100,39 +100,6 @@ func TestReactionHandler_GetReactions(t *testing.T) {
 			wantCode: http.StatusBadRequest,
 		},
 		{
-			name:     "returns 400 when limit is not integer",
-			path:     "/api/livestream/10/reaction?limit=abc",
-			cookie:   validCookie,
-			usecase:  &fakeReactionUsecase{},
-			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"limit query parameter must be integer"}` + "\n",
-		},
-		{
-			// 0 件の取得や負の数、上限を超える値は 400 (移行前は 0 は空配列、負の数は 500、上限なし)
-			name:     "returns 400 when limit is zero",
-			path:     "/api/livestream/10/reaction?limit=0",
-			cookie:   validCookie,
-			usecase:  &fakeReactionUsecase{},
-			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"limit query parameter must be between 1 and 100"}` + "\n",
-		},
-		{
-			name:     "returns 400 when limit is negative",
-			path:     "/api/livestream/10/reaction?limit=-1",
-			cookie:   validCookie,
-			usecase:  &fakeReactionUsecase{},
-			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"limit query parameter must be between 1 and 100"}` + "\n",
-		},
-		{
-			name:     "returns 400 when limit is over the max",
-			path:     "/api/livestream/10/reaction?limit=101",
-			cookie:   validCookie,
-			usecase:  &fakeReactionUsecase{},
-			wantCode: http.StatusBadRequest,
-			wantBody: `{"message":"limit query parameter must be between 1 and 100"}` + "\n",
-		},
-		{
 			name:     "returns 500 on unexpected error",
 			path:     "/api/livestream/10/reaction",
 			cookie:   validCookie,
@@ -255,4 +222,18 @@ func TestReactionHandler_PostReaction(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestReactionHandler_GetReactions_Limit(t *testing.T) {
+	testLimitQueryParam(t, maxReactionsLimit, func(t *testing.T, limit string) (*httptest.ResponseRecorder, *model.Limit) {
+		u := &fakeReactionUsecase{}
+		e := newTestEcho()
+		e.GET("/api/livestream/:livestream_id/reaction", newReactionHandler(u).GetReactions)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/livestream/10/reaction?limit="+limit, nil)
+		req.AddCookie(newSessionCookie(t, 1, time.Now().Add(time.Hour)))
+		rec := httptest.NewRecorder()
+		e.ServeHTTP(rec, req)
+		return rec, u.gotLimit
+	})
 }

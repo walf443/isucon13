@@ -1,12 +1,15 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/gorilla/sessions"
+	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 )
@@ -43,4 +46,46 @@ func newSessionCookie(t *testing.T, userID int64, expires time.Time) *http.Cooki
 		t.Fatalf("len(cookies) = %d, want 1", len(cookies))
 	}
 	return cookies[0]
+}
+
+// testLimitQueryParam は limit クエリパラメータの検証を、境界値を含めて確認する。
+// max はその API の limit の上限。do は limit クエリに値を付けてリクエストし、レスポンスと usecase に渡った limit を返す。
+func testLimitQueryParam(t *testing.T, max model.Limit, do func(t *testing.T, limit string) (*httptest.ResponseRecorder, *model.Limit)) {
+	t.Helper()
+	outOfRange := fmt.Sprintf(`{"message":"limit query parameter must be between 1 and %d"}`, max) + "\n"
+	notInteger := `{"message":"limit query parameter must be integer"}` + "\n"
+	maxStr := strconv.FormatInt(int64(max), 10)
+	overMaxStr := strconv.FormatInt(int64(max)+1, 10)
+
+	tests := []struct {
+		limit     string
+		wantCode  int
+		wantBody  string
+		wantLimit model.Limit
+	}{
+		{limit: "1", wantCode: http.StatusOK, wantLimit: 1},
+		{limit: maxStr, wantCode: http.StatusOK, wantLimit: max},
+		// 0 件の取得や負の数、上限を超える値は 400 (移行前は 0 は空配列、負の数は 500、上限なし)
+		{limit: "0", wantCode: http.StatusBadRequest, wantBody: outOfRange},
+		{limit: "-1", wantCode: http.StatusBadRequest, wantBody: outOfRange},
+		{limit: overMaxStr, wantCode: http.StatusBadRequest, wantBody: outOfRange},
+		{limit: "abc", wantCode: http.StatusBadRequest, wantBody: notInteger},
+	}
+	for _, tt := range tests {
+		t.Run("limit="+tt.limit, func(t *testing.T) {
+			rec, gotLimit := do(t, tt.limit)
+			if rec.Code != tt.wantCode {
+				t.Fatalf("code = %d, want %d (body: %s)", rec.Code, tt.wantCode, rec.Body.String())
+			}
+			if tt.wantBody != "" && rec.Body.String() != tt.wantBody {
+				t.Errorf("body = %s\nwant   %s", rec.Body.String(), tt.wantBody)
+			}
+			if tt.wantCode == http.StatusOK && (gotLimit == nil || *gotLimit != tt.wantLimit) {
+				t.Errorf("limit = %v, want %d", gotLimit, tt.wantLimit)
+			}
+			if tt.wantCode != http.StatusOK && gotLimit != nil {
+				t.Errorf("usecase was called with limit %d, want not called", *gotLimit)
+			}
+		})
+	}
 }
