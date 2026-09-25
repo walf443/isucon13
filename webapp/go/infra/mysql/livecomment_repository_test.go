@@ -8,10 +8,9 @@ import (
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
-	"github.com/jmoiron/sqlx"
 )
 
-func insertTestLivecomment(t *testing.T, tx *sqlx.Tx, userID model.UserID, livestreamID model.LivestreamID, comment string, createdAt int64) model.LivecommentID {
+func insertTestLivecomment(t *testing.T, tx repository.Querier, userID model.UserID, livestreamID model.LivestreamID, comment string, createdAt int64) model.LivecommentID {
 	t.Helper()
 	res, err := tx.ExecContext(context.Background(), "INSERT INTO livecomments (user_id, livestream_id, comment, tip, created_at) VALUES (?, ?, ?, ?, ?)", userID, livestreamID, comment, 10, createdAt)
 	if err != nil {

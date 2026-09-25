@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
-	"github.com/jmoiron/sqlx"
+	"github.com/isucon/isucon13/webapp/go/domain/repository"
 )
 
-func findTestLivestreamViewersHistories(t *testing.T, tx *sqlx.Tx) []model.LivestreamViewersHistoryModel {
+func findTestLivestreamViewersHistories(t *testing.T, tx repository.Querier) []model.LivestreamViewersHistoryModel {
 	t.Helper()
 	var viewers []model.LivestreamViewersHistoryModel
 	if err := tx.SelectContext(context.Background(), &viewers, "SELECT id, user_id, livestream_id, created_at FROM livestream_viewers_history ORDER BY id"); err != nil {

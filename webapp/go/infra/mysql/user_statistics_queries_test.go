@@ -8,19 +8,18 @@ import (
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
-	"github.com/jmoiron/sqlx"
 )
 
 // ユーザ統計情報 (GET /api/user/:username/statistics) で使う集計系のクエリのテスト
 
-func insertTestReaction(t *testing.T, tx *sqlx.Tx, userID model.UserID, livestreamID model.LivestreamID, emojiName string) {
+func insertTestReaction(t *testing.T, tx repository.Querier, userID model.UserID, livestreamID model.LivestreamID, emojiName string) {
 	t.Helper()
 	if _, err := NewReactionRepository("").Create(context.Background(), tx, &model.ReactionModel{UserID: userID, LivestreamID: livestreamID, EmojiName: emojiName, CreatedAt: 100}); err != nil {
 		t.Fatalf("failed to insert reaction: %v", err)
 	}
 }
 
-func insertTestLivecommentWithTip(t *testing.T, tx *sqlx.Tx, userID model.UserID, livestreamID model.LivestreamID, tip int64) model.LivecommentID {
+func insertTestLivecommentWithTip(t *testing.T, tx repository.Querier, userID model.UserID, livestreamID model.LivestreamID, tip int64) model.LivecommentID {
 	t.Helper()
 	id, err := NewLivecommentRepository("").Create(context.Background(), tx, &model.LivecommentModel{UserID: userID, LivestreamID: livestreamID, Comment: "c", Tip: tip, CreatedAt: 100})
 	if err != nil {

@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
-	"github.com/jmoiron/sqlx"
+	"github.com/isucon/isucon13/webapp/go/domain/repository"
 )
 
-func insertTestReservationSlot(t *testing.T, tx *sqlx.Tx, slot int64, startAt int64, endAt int64) model.ReservationSlotID {
+func insertTestReservationSlot(t *testing.T, tx repository.Querier, slot int64, startAt int64, endAt int64) model.ReservationSlotID {
 	t.Helper()
 	res, err := tx.ExecContext(context.Background(), "INSERT INTO reservation_slots (slot, start_at, end_at) VALUES (?, ?, ?)", slot, startAt, endAt)
 	if err != nil {

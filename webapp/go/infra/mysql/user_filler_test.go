@@ -7,10 +7,9 @@ import (
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
-	"github.com/jmoiron/sqlx"
 )
 
-func insertTestUser(t *testing.T, tx *sqlx.Tx, name string) model.UserID {
+func insertTestUser(t *testing.T, tx repository.Querier, name string) model.UserID {
 	t.Helper()
 	res, err := tx.ExecContext(context.Background(), "INSERT INTO users (name, display_name, password, description) VALUES (?, ?, ?, ?)", name, "Display "+name, "hashed", "desc "+name)
 	if err != nil {
@@ -20,7 +19,7 @@ func insertTestUser(t *testing.T, tx *sqlx.Tx, name string) model.UserID {
 	return model.UserID(id)
 }
 
-func insertTestTheme(t *testing.T, tx *sqlx.Tx, userID model.UserID, darkMode bool) model.ThemeID {
+func insertTestTheme(t *testing.T, tx repository.Querier, userID model.UserID, darkMode bool) model.ThemeID {
 	t.Helper()
 	res, err := tx.ExecContext(context.Background(), "INSERT INTO themes (user_id, dark_mode) VALUES (?, ?)", userID, darkMode)
 	if err != nil {

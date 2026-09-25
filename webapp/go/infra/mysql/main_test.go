@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/isucon/isucon13/webapp/go/domain/repository"
 	"github.com/jmoiron/sqlx"
 	"github.com/testcontainers/testcontainers-go/modules/mysql"
 )
@@ -62,9 +63,9 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// beginTestTx はテスト終了時にロールバックされるトランザクションを返す。
-// repository は Querier を受け取るので、tx を渡せばテスト間でデータが干渉しない。
-func beginTestTx(t *testing.T) *sqlx.Tx {
+// beginTestTx はテスト終了時にロールバックされるトランザクションを、repository.Querier として返す。
+// repository は Querier を受け取るので、これを渡せばテスト間でデータが干渉しない。
+func beginTestTx(t *testing.T) repository.Querier {
 	t.Helper()
 	if testDB == nil {
 		t.Skip("skipping test that requires MySQL in short mode")
@@ -77,5 +78,5 @@ func beginTestTx(t *testing.T) *sqlx.Tx {
 	t.Cleanup(func() {
 		_ = tx.Rollback()
 	})
-	return tx
+	return newQuerier(tx)
 }

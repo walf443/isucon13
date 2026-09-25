@@ -23,7 +23,7 @@ func (m *txManager) RunInTx(ctx context.Context, fn func(q repository.Querier) e
 	}
 	defer tx.Rollback()
 
-	if err := fn(tx); err != nil {
+	if err := fn(newQuerier(tx)); err != nil {
 		return err
 	}
 

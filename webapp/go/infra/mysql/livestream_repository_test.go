@@ -9,10 +9,9 @@ import (
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
-	"github.com/jmoiron/sqlx"
 )
 
-func insertTestLivestream(t *testing.T, tx *sqlx.Tx, userID model.UserID, title string) model.LivestreamID {
+func insertTestLivestream(t *testing.T, tx repository.Querier, userID model.UserID, title string) model.LivestreamID {
 	t.Helper()
 	res, err := tx.ExecContext(context.Background(),
 		"INSERT INTO livestreams (user_id, title, description, playlist_url, thumbnail_url, start_at, end_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -24,7 +23,7 @@ func insertTestLivestream(t *testing.T, tx *sqlx.Tx, userID model.UserID, title 
 	return model.LivestreamID(id)
 }
 
-func insertTestTag(t *testing.T, tx *sqlx.Tx, livestreamID model.LivestreamID, name string) model.TagModel {
+func insertTestTag(t *testing.T, tx repository.Querier, livestreamID model.LivestreamID, name string) model.TagModel {
 	t.Helper()
 	ctx := context.Background()
 	res, err := tx.ExecContext(ctx, "INSERT INTO tags (name) VALUES (?)", name)
