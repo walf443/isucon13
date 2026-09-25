@@ -4,11 +4,9 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
-	"github.com/labstack/echo/v4"
 )
 
 type fakeTagUsecase struct {
@@ -42,37 +40,18 @@ func TestTagHandler_GetTags(t *testing.T) {
 			wantCode: http.StatusOK,
 			wantBody: `{"tags":[]}` + "\n",
 		},
+		{
+			name:     "returns 500 on unexpected error",
+			usecase:  &fakeTagUsecase{err: errors.New("boom")},
+			wantCode: http.StatusInternalServerError,
+			wantBody: errorBody(http.StatusInternalServerError, "boom"),
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := echo.New()
-			req := httptest.NewRequest(http.MethodGet, "/api/tag", nil)
-			rec := httptest.NewRecorder()
-			c := e.NewContext(req, rec)
-
-			if err := newTagHandler(tt.usecase).GetTags(c); err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if rec.Code != tt.wantCode {
-				t.Errorf("code = %d, want %d", rec.Code, tt.wantCode)
-			}
-			if rec.Body.String() != tt.wantBody {
-				t.Errorf("body = %q, want %q", rec.Body.String(), tt.wantBody)
-			}
+			rec := serve(t, newTagHandler(tt.usecase).GetTags, testRequest{method: http.MethodGet, route: "/api/tag", path: "/api/tag"})
+			assertResponse(t, rec, tt.wantCode, tt.wantBody)
 		})
-	}
-}
-
-func TestTagHandler_GetTags_Error(t *testing.T) {
-	e := echo.New()
-	req := httptest.NewRequest(http.MethodGet, "/api/tag", nil)
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	err := newTagHandler(&fakeTagUsecase{err: errors.New("boom")}).GetTags(c)
-
-	if he, ok := errors.AsType[*echo.HTTPError](err); !ok || he.Code != http.StatusInternalServerError {
-		t.Fatalf("err = %v, want 500 HTTPError", err)
 	}
 }
