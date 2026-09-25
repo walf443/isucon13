@@ -14,11 +14,6 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type PostLivecommentRequest struct {
-	Comment string `json:"comment"`
-	Tip     int64  `json:"tip"`
-}
-
 type LivecommentModel struct {
 	ID           int64  `db:"id"`
 	UserID       int64  `db:"user_id"`
@@ -62,101 +57,6 @@ type NGWord struct {
 	LivestreamID int64  `json:"livestream_id" db:"livestream_id"`
 	Word         string `json:"word" db:"word"`
 	CreatedAt    int64  `json:"created_at" db:"created_at"`
-}
-
-func postLivecommentHandler(c echo.Context) error {
-	ctx := c.Request().Context()
-	defer c.Request().Body.Close()
-
-	if err := verifyUserSession(c); err != nil {
-		return err
-	}
-
-	livestreamID, err := strconv.Atoi(c.Param("livestream_id"))
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
-	}
-
-	// error already checked
-	sess, _ := session.Get(defaultSessionIDKey, c)
-	// existence already checked
-	userID := sess.Values[defaultUserIDKey].(int64)
-
-	var req *PostLivecommentRequest
-	if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
-	}
-
-	tx, err := dbConn.BeginTxx(ctx, nil)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to begin transaction: "+err.Error())
-	}
-	defer tx.Rollback()
-
-	var livestreamModel LivestreamModel
-	if err := tx.GetContext(ctx, &livestreamModel, "SELECT * FROM livestreams WHERE id = ?", livestreamID); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return echo.NewHTTPError(http.StatusNotFound, "livestream not found")
-		} else {
-			return echo.NewHTTPError(http.StatusInternalServerError, "failed to get livestream: "+err.Error())
-		}
-	}
-
-	// スパム判定
-	var ngwords []*NGWord
-	if err := tx.SelectContext(ctx, &ngwords, "SELECT id, user_id, livestream_id, word FROM ng_words WHERE user_id = ? AND livestream_id = ?", livestreamModel.UserID, livestreamModel.ID); err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get NG words: "+err.Error())
-	}
-
-	var hitSpam int
-	for _, ngword := range ngwords {
-		query := `
-		SELECT COUNT(*)
-		FROM
-		(SELECT ? AS text) AS texts
-		INNER JOIN
-		(SELECT CONCAT('%', ?, '%')	AS pattern) AS patterns
-		ON texts.text LIKE patterns.pattern;
-		`
-		if err := tx.GetContext(ctx, &hitSpam, query, req.Comment, ngword.Word); err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, "failed to get hitspam: "+err.Error())
-		}
-		c.Logger().Infof("[hitSpam=%d] comment = %s", hitSpam, req.Comment)
-		if hitSpam >= 1 {
-			return echo.NewHTTPError(http.StatusBadRequest, "このコメントがスパム判定されました")
-		}
-	}
-
-	now := time.Now().Unix()
-	livecommentModel := LivecommentModel{
-		UserID:       userID,
-		LivestreamID: int64(livestreamID),
-		Comment:      req.Comment,
-		Tip:          req.Tip,
-		CreatedAt:    now,
-	}
-
-	rs, err := tx.NamedExecContext(ctx, "INSERT INTO livecomments (user_id, livestream_id, comment, tip, created_at) VALUES (:user_id, :livestream_id, :comment, :tip, :created_at)", livecommentModel)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to insert livecomment: "+err.Error())
-	}
-
-	livecommentID, err := rs.LastInsertId()
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get last inserted livecomment id: "+err.Error())
-	}
-	livecommentModel.ID = livecommentID
-
-	livecomment, err := fillLivecommentResponse(ctx, tx, livecommentModel)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill livecomment: "+err.Error())
-	}
-
-	if err := tx.Commit(); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
-	}
-
-	return c.JSON(http.StatusCreated, livecomment)
 }
 
 func reportLivecommentHandler(c echo.Context) error {

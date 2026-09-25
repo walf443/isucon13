@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+	"fmt"
+	"slices"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
@@ -196,12 +198,29 @@ func (r *fakeReactionRepository) Create(ctx context.Context, q repository.Querie
 }
 
 type fakeLivecommentRepository struct {
+	livecomment  *model.Livecomment
 	livecomments []*model.Livecomment
 	err          error
+	createID     model.LivecommentID
+	createErr    error
+	gotID        model.LivecommentID
+	gotCreated   *model.LivecommentModel
 
 	calls           []string
 	gotLivestreamID model.LivestreamID
 	gotLimit        int64
+}
+
+func (r *fakeLivecommentRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.LivecommentID) (*model.Livecomment, error) {
+	r.calls = append(r.calls, "FindWithDetailsByID")
+	r.gotID = id
+	return r.livecomment, r.err
+}
+
+func (r *fakeLivecommentRepository) Create(ctx context.Context, q repository.Querier, livecomment *model.LivecommentModel) (model.LivecommentID, error) {
+	r.calls = append(r.calls, "Create")
+	r.gotCreated = livecomment
+	return r.createID, r.createErr
 }
 
 func (r *fakeLivecommentRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.Livecomment, error) {
@@ -234,13 +253,35 @@ func (r *fakeLivecommentReportRepository) FindAllWithDetailsByLivestreamID(ctx c
 type fakeNGWordRepository struct {
 	ngWords []*model.NGWordModel
 	err     error
+	// hitWords は Matches で当たりとする NG ワード
+	hitWords []string
+	matchErr error
 
 	gotUserID       model.UserID
 	gotLivestreamID model.LivestreamID
+	gotComments     []string
+	matchedWords    []string
+}
+
+func (r *fakeNGWordRepository) Matches(ctx context.Context, q repository.Querier, comment string, word string) (bool, error) {
+	r.gotComments = append(r.gotComments, comment)
+	r.matchedWords = append(r.matchedWords, word)
+	if r.matchErr != nil {
+		return false, r.matchErr
+	}
+	return slices.Contains(r.hitWords, word), nil
 }
 
 func (r *fakeNGWordRepository) FindAllByUserIDAndLivestreamID(ctx context.Context, q repository.Querier, userID model.UserID, livestreamID model.LivestreamID) ([]*model.NGWordModel, error) {
 	r.gotUserID = userID
 	r.gotLivestreamID = livestreamID
 	return r.ngWords, r.err
+}
+
+type fakeLogger struct {
+	lines []string
+}
+
+func (l *fakeLogger) Infof(format string, args ...interface{}) {
+	l.lines = append(l.lines, fmt.Sprintf(format, args...))
 }

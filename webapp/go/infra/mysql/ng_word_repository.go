@@ -20,3 +20,19 @@ func (r *ngWordRepository) FindAllByUserIDAndLivestreamID(ctx context.Context, q
 	}
 	return ngWords, nil
 }
+
+func (r *ngWordRepository) Matches(ctx context.Context, q repository.Querier, comment string, word string) (bool, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM
+		(SELECT ? AS text) AS texts
+		INNER JOIN
+		(SELECT CONCAT('%', ?, '%')	AS pattern) AS patterns
+		ON texts.text LIKE patterns.pattern;
+		`
+	var hitSpam int
+	if err := q.GetContext(ctx, &hitSpam, query, comment, word); err != nil {
+		return false, err
+	}
+	return hitSpam >= 1, nil
+}

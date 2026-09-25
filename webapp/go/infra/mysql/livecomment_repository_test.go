@@ -130,3 +130,35 @@ func TestLivecommentReportRepository_LivecommentNotFound(t *testing.T) {
 		t.Errorf("err = %v, should not be ErrNotFound", err)
 	}
 }
+
+func TestLivecommentRepository_CreateAndFindWithDetailsByID(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	ownerID := insertTestUser(t, tx, "alice")
+	insertTestTheme(t, tx, ownerID, true)
+	viewerID := insertTestUser(t, tx, "bob")
+	insertTestTheme(t, tx, viewerID, false)
+	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
+	repo := NewLivecommentRepository(nil)
+
+	id, err := repo.Create(ctx, tx, &model.LivecommentModel{UserID: viewerID, LivestreamID: livestreamID, Comment: "hello", Tip: 500, CreatedAt: 1700000000})
+	if err != nil {
+		t.Fatalf("Create returned error: %v", err)
+	}
+
+	got, err := repo.FindWithDetailsByID(ctx, tx, id)
+	if err != nil {
+		t.Fatalf("FindWithDetailsByID returned error: %v", err)
+	}
+	if got.ID != id || got.Comment != "hello" || got.Tip != 500 || got.CreatedAt != 1700000000 {
+		t.Errorf("livecomment = %+v", got)
+	}
+	if got.User.ID != viewerID || got.Livestream.ID != livestreamID || got.Livestream.Owner.ID != ownerID {
+		t.Errorf("user = %+v, livestream = %+v", got.User, got.Livestream)
+	}
+
+	if _, err := repo.FindWithDetailsByID(ctx, tx, 999999); !errors.Is(err, repository.ErrNotFound) {
+		t.Errorf("err = %v, want ErrNotFound", err)
+	}
+}

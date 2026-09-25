@@ -52,3 +52,36 @@ func TestNGWordRepository_FindAllByUserIDAndLivestreamID(t *testing.T) {
 		t.Errorf("got %+v, want empty", none)
 	}
 }
+
+func TestNGWordRepository_Matches(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+	repo := NewNGWordRepository()
+
+	tests := []struct {
+		name    string
+		comment string
+		word    string
+		want    bool
+	}{
+		{name: "contains the word", comment: "これはひどい配信だ", word: "ひどい", want: true},
+		{name: "equals the word", comment: "spam", word: "spam", want: true},
+		{name: "does not contain the word", comment: "楽しい配信", word: "ひどい", want: false},
+		// 以下は MySQL の LIKE による判定の性質 (移行前と同じ挙動であることを確認する)
+		{name: "case insensitive", comment: "THIS IS SPAM", word: "spam", want: true},
+		{name: "percent in word is a wildcard", comment: "abc", word: "a%c", want: true},
+		{name: "underscore in word is a wildcard", comment: "abc", word: "a_c", want: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := repo.Matches(ctx, tx, tt.comment, tt.word)
+			if err != nil {
+				t.Fatalf("Matches returned error: %v", err)
+			}
+			if got != tt.want {
+				t.Errorf("Matches(%q, %q) = %v, want %v", tt.comment, tt.word, got, tt.want)
+			}
+		})
+	}
+}

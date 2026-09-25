@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -44,6 +45,11 @@ func newLivecommentReport(r *model.LivecommentReport) LivecommentReport {
 		Livecomment: newLivecomment(&r.Livecomment),
 		CreatedAt:   r.CreatedAt,
 	}
+}
+
+type PostLivecommentRequest struct {
+	Comment string `json:"comment"`
+	Tip     int64  `json:"tip"`
 }
 
 type LivecommentHandler struct {
@@ -122,4 +128,43 @@ func (h *LivecommentHandler) GetLivecommentReports(c echo.Context) error {
 		reports[i] = newLivecommentReport(r)
 	}
 	return c.JSON(http.StatusOK, reports)
+}
+
+// ライブコメント投稿
+// POST /api/livestream/:livestream_id/livecomment
+func (h *LivecommentHandler) PostLivecomment(c echo.Context) error {
+	ctx := c.Request().Context()
+	defer c.Request().Body.Close()
+
+	if err := VerifyUserSession(c); err != nil {
+		return err
+	}
+
+	livestreamID, err := strconv.Atoi(c.Param("livestream_id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
+	}
+
+	userID, err := getSessionUserID(c)
+	if err != nil {
+		return err
+	}
+
+	var req PostLivecommentRequest
+	if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
+	}
+
+	livecomment, err := h.livecommentUsecase.Create(ctx, userID, model.LivestreamID(livestreamID), req.Comment, req.Tip)
+	if errors.Is(err, usecase.ErrLivestreamNotFound) {
+		return echo.NewHTTPError(http.StatusNotFound, "livestream not found")
+	}
+	if errors.Is(err, usecase.ErrSpamLivecomment) {
+		return echo.NewHTTPError(http.StatusBadRequest, "このコメントがスパム判定されました")
+	}
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusCreated, newLivecomment(livecomment))
 }

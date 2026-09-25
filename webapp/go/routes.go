@@ -22,7 +22,7 @@ func registerRoutes(e *echo.Echo, h *handlers) {
 	// get polling livecomment timeline
 	e.GET("/api/livestream/:livestream_id/livecomment", h.livecomment.GetLivecomments)
 	// ライブコメント投稿
-	e.POST("/api/livestream/:livestream_id/livecomment", postLivecommentHandler)
+	e.POST("/api/livestream/:livestream_id/livecomment", h.livecomment.PostLivecomment)
 	e.POST("/api/livestream/:livestream_id/reaction", h.reaction.PostReaction)
 	e.GET("/api/livestream/:livestream_id/reaction", h.reaction.GetReactions)
 

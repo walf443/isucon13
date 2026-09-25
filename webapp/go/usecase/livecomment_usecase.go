@@ -2,7 +2,9 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
@@ -15,6 +17,9 @@ type LivecommentUsecase interface {
 	// FindAllReportsByLivestreamID は指定したライブ配信へのライブコメントの報告を返す。
 	// userID のユーザが配信者でない場合 ErrNotLivestreamOwner を返す。
 	FindAllReportsByLivestreamID(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID) ([]*model.LivecommentReport, error)
+	// Create はライブコメントを投稿し、ユーザ・ライブ配信を含めて返す。
+	// ライブ配信が存在しない場合 ErrLivestreamNotFound、配信者の NG ワードに当たった場合 ErrSpamLivecomment を返す。
+	Create(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID, comment string, tip int64) (*model.Livecomment, error)
 }
 
 type livecommentUsecase struct {
@@ -22,10 +27,22 @@ type livecommentUsecase struct {
 	livestreamRepo  repository.LivestreamRepository
 	livecommentRepo repository.LivecommentRepository
 	reportRepo      repository.LivecommentReportRepository
+	ngWordRepo      repository.NGWordRepository
+	logger          Logger
+	// now は現在時刻を返す。テストで差し替えられるようにしている。
+	now func() time.Time
 }
 
-func NewLivecommentUsecase(txManager repository.TxManager, livestreamRepo repository.LivestreamRepository, livecommentRepo repository.LivecommentRepository, reportRepo repository.LivecommentReportRepository) LivecommentUsecase {
-	return &livecommentUsecase{txManager: txManager, livestreamRepo: livestreamRepo, livecommentRepo: livecommentRepo, reportRepo: reportRepo}
+func NewLivecommentUsecase(txManager repository.TxManager, livestreamRepo repository.LivestreamRepository, livecommentRepo repository.LivecommentRepository, reportRepo repository.LivecommentReportRepository, ngWordRepo repository.NGWordRepository, logger Logger) LivecommentUsecase {
+	return &livecommentUsecase{
+		txManager:       txManager,
+		livestreamRepo:  livestreamRepo,
+		livecommentRepo: livecommentRepo,
+		reportRepo:      reportRepo,
+		ngWordRepo:      ngWordRepo,
+		logger:          logger,
+		now:             time.Now,
+	}
 }
 
 func (u *livecommentUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID model.LivestreamID, limit *int64) ([]*model.Livecomment, error) {
@@ -70,4 +87,59 @@ func (u *livecommentUsecase) FindAllReportsByLivestreamID(ctx context.Context, u
 		return nil, err
 	}
 	return reports, nil
+}
+
+func (u *livecommentUsecase) Create(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID, comment string, tip int64) (*model.Livecomment, error) {
+	var livecomment *model.Livecomment
+	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
+		livestream, err := u.livestreamRepo.FindByID(ctx, q, livestreamID)
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrLivestreamNotFound
+		}
+		if err != nil {
+			return fmt.Errorf("failed to get livestream: %w", err)
+		}
+
+		// スパム判定 (配信者が登録した NG ワードに当たるか)
+		ngWords, err := u.ngWordRepo.FindAllByUserIDAndLivestreamID(ctx, q, livestream.UserID, livestream.ID)
+		if err != nil {
+			return fmt.Errorf("failed to get NG words: %w", err)
+		}
+		for _, ngWord := range ngWords {
+			hit, err := u.ngWordRepo.Matches(ctx, q, comment, ngWord.Word)
+			if err != nil {
+				return fmt.Errorf("failed to get hitspam: %w", err)
+			}
+			// 移行前は SQL の COUNT(*) (常に 0 か 1) をそのままログに出していたので、同じ形式で出す
+			hitSpam := 0
+			if hit {
+				hitSpam = 1
+			}
+			u.logger.Infof("[hitSpam=%d] comment = %s", hitSpam, comment)
+			if hit {
+				return ErrSpamLivecomment
+			}
+		}
+
+		livecommentID, err := u.livecommentRepo.Create(ctx, q, &model.LivecommentModel{
+			UserID:       userID,
+			LivestreamID: livestreamID,
+			Comment:      comment,
+			Tip:          tip,
+			CreatedAt:    u.now().Unix(),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to insert livecomment: %w", err)
+		}
+
+		livecomment, err = u.livecommentRepo.FindWithDetailsByID(ctx, q, livecommentID)
+		if err != nil {
+			return fmt.Errorf("failed to fill livecomment: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return livecomment, nil
 }

@@ -23,7 +23,7 @@ type handlers struct {
 }
 
 // newHandlers は repository・usecase・handler を組み立てる。
-func newHandlers(db *sqlx.DB, fallbackImagePath string) (*handlers, error) {
+func newHandlers(db *sqlx.DB, fallbackImagePath string, logger usecase.Logger) (*handlers, error) {
 	fallbackIcon, err := os.ReadFile(fallbackImagePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read fallback image: %w", err)
@@ -47,7 +47,7 @@ func newHandlers(db *sqlx.DB, fallbackImagePath string) (*handlers, error) {
 	iconUsecase := usecase.NewIconUsecase(txManager, userRepo, iconRepo)
 	livestreamUsecase := usecase.NewLivestreamUsecase(txManager, userRepo, tagRepo, livestreamRepo)
 	reactionUsecase := usecase.NewReactionUsecase(txManager, reactionRepo)
-	livecommentUsecase := usecase.NewLivecommentUsecase(txManager, livestreamRepo, livecommentRepo, livecommentReportRepo)
+	livecommentUsecase := usecase.NewLivecommentUsecase(txManager, livestreamRepo, livecommentRepo, livecommentReportRepo, ngWordRepo, logger)
 	ngWordUsecase := usecase.NewNGWordUsecase(txManager, ngWordRepo)
 
 	return &handlers{

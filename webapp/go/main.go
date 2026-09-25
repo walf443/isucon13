@@ -137,7 +137,7 @@ func main() {
 	defer conn.Close()
 	dbConn = conn
 
-	h, err := newHandlers(dbConn, fallbackImage)
+	h, err := newHandlers(dbConn, fallbackImage, e.Logger)
 	if err != nil {
 		e.Logger.Errorf("failed to initialize handlers: %v", err)
 		os.Exit(1)

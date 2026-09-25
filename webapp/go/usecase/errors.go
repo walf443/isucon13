@@ -13,3 +13,6 @@ var ErrLivestreamNotFound = errors.New("livestream not found")
 
 // ErrNotLivestreamOwner はライブ配信の配信者でないユーザが、配信者向けの操作をしようとしたことを表す。
 var ErrNotLivestreamOwner = errors.New("not the owner of the livestream")
+
+// ErrSpamLivecomment はライブコメントが配信者の NG ワードに当たったことを表す。
+var ErrSpamLivecomment = errors.New("livecomment is judged as spam")
