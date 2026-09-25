@@ -3,6 +3,8 @@ package mysql
 import (
 	"context"
 	"testing"
+
+	"github.com/isucon/isucon13/webapp/go/domain/model"
 )
 
 func TestTagRepository_FindAll(t *testing.T) {
@@ -57,7 +59,8 @@ func TestTagRepository_FindIDsByName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to insert tag: %v", err)
 	}
-	wantID, _ := res.LastInsertId()
+	lastID, _ := res.LastInsertId()
+	wantID := model.TagID(lastID)
 	repo := NewTagRepository()
 
 	ids, err := repo.FindIDsByName(ctx, tx, "ゲーム実況")

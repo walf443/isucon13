@@ -1,7 +1,9 @@
 package model
 
+type UserID = ID[UserModel]
+
 type UserModel struct {
-	ID             int64  `db:"id"`
+	ID             UserID `db:"id"`
 	Name           string `db:"name"`
 	DisplayName    string `db:"display_name"`
 	Description    string `db:"description"`
@@ -10,7 +12,7 @@ type UserModel struct {
 
 // User はテーマ・アイコンを含めたユーザの情報。
 type User struct {
-	ID          int64
+	ID          UserID
 	Name        string
 	DisplayName string
 	Description string

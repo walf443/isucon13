@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/usecase"
 	"github.com/labstack/echo/v4"
 )
@@ -14,7 +15,7 @@ type PostIconRequest struct {
 }
 
 type PostIconResponse struct {
-	ID int64 `json:"id"`
+	ID model.IconID `json:"id"`
 }
 
 type IconHandler struct {

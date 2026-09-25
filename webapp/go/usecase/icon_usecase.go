@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
 )
 
@@ -13,7 +14,7 @@ type IconUsecase interface {
 	// アイコンが未登録の場合 ErrIconNotFound を返す。
 	FindImageByUsername(ctx context.Context, username string) ([]byte, error)
 	// Update はユーザのアイコンを置き換え、新しいアイコンの ID を返す。
-	Update(ctx context.Context, userID int64, image []byte) (int64, error)
+	Update(ctx context.Context, userID model.UserID, image []byte) (model.IconID, error)
 }
 
 type iconUsecase struct {
@@ -52,8 +53,8 @@ func (u *iconUsecase) FindImageByUsername(ctx context.Context, username string) 
 	return image, nil
 }
 
-func (u *iconUsecase) Update(ctx context.Context, userID int64, image []byte) (int64, error) {
-	var iconID int64
+func (u *iconUsecase) Update(ctx context.Context, userID model.UserID, image []byte) (model.IconID, error) {
+	var iconID model.IconID
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		if err := u.iconRepo.DeleteByUserID(ctx, q, userID); err != nil {
 			return fmt.Errorf("failed to delete old user icon: %w", err)

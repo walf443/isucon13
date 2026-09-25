@@ -18,8 +18,8 @@ func NewUserRepository(fallbackIcon []byte) repository.UserRepository {
 	return &userRepository{fallbackIcon: fallbackIcon}
 }
 
-func (r *userRepository) FindIDByName(ctx context.Context, q repository.Querier, name string) (int64, error) {
-	var id int64
+func (r *userRepository) FindIDByName(ctx context.Context, q repository.Querier, name string) (model.UserID, error) {
+	var id model.UserID
 	err := q.GetContext(ctx, &id, "SELECT id FROM users WHERE name = ?", name)
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, repository.ErrNotFound
@@ -42,7 +42,7 @@ func (r *userRepository) FindByName(ctx context.Context, q repository.Querier, n
 	return &user, nil
 }
 
-func (r *userRepository) FindByID(ctx context.Context, q repository.Querier, id int64) (*model.UserModel, error) {
+func (r *userRepository) FindByID(ctx context.Context, q repository.Querier, id model.UserID) (*model.UserModel, error) {
 	var user model.UserModel
 	err := q.GetContext(ctx, &user, "SELECT id, name, display_name, description, password FROM users WHERE id = ?", id)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -54,7 +54,7 @@ func (r *userRepository) FindByID(ctx context.Context, q repository.Querier, id 
 	return &user, nil
 }
 
-func (r *userRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id int64) (*model.User, error) {
+func (r *userRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.UserID) (*model.User, error) {
 	userModel, err := r.FindByID(ctx, q, id)
 	if err != nil {
 		return nil, err

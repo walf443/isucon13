@@ -6,6 +6,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
 )
 
@@ -64,7 +65,7 @@ func TestIconRepository_DeleteByUserID(t *testing.T) {
 	tx := beginTestTx(t)
 	repo := NewIconRepository()
 
-	for _, userID := range []int64{42, 43} {
+	for _, userID := range []model.UserID{42, 43} {
 		if _, err := repo.Create(ctx, tx, userID, []byte("icon")); err != nil {
 			t.Fatalf("Create returned error: %v", err)
 		}

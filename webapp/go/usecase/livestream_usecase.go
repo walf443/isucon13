@@ -11,9 +11,9 @@ import (
 
 type LivestreamUsecase interface {
 	// FindByID はライブ配信が存在しない場合 ErrLivestreamNotFound を返す。
-	FindByID(ctx context.Context, id int64) (*model.Livestream, error)
+	FindByID(ctx context.Context, id model.LivestreamID) (*model.Livestream, error)
 	// FindAllByUserID は指定したユーザが配信者のライブ配信を返す。
-	FindAllByUserID(ctx context.Context, userID int64) ([]*model.Livestream, error)
+	FindAllByUserID(ctx context.Context, userID model.UserID) ([]*model.Livestream, error)
 	// FindAllByUsername は指定したユーザが配信者のライブ配信を返す。
 	// ユーザが存在しない場合 ErrUserNotFound を返す。
 	FindAllByUsername(ctx context.Context, username string) ([]*model.Livestream, error)
@@ -35,7 +35,7 @@ func NewLivestreamUsecase(txManager repository.TxManager, userRepo repository.Us
 	return &livestreamUsecase{txManager: txManager, userRepo: userRepo, tagRepo: tagRepo, livestreamRepo: livestreamRepo}
 }
 
-func (u *livestreamUsecase) FindByID(ctx context.Context, id int64) (*model.Livestream, error) {
+func (u *livestreamUsecase) FindByID(ctx context.Context, id model.LivestreamID) (*model.Livestream, error) {
 	var livestream *model.Livestream
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		var err error
@@ -54,7 +54,7 @@ func (u *livestreamUsecase) FindByID(ctx context.Context, id int64) (*model.Live
 	return livestream, nil
 }
 
-func (u *livestreamUsecase) FindAllByUserID(ctx context.Context, userID int64) ([]*model.Livestream, error) {
+func (u *livestreamUsecase) FindAllByUserID(ctx context.Context, userID model.UserID) ([]*model.Livestream, error) {
 	var livestreams []*model.Livestream
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		var err error

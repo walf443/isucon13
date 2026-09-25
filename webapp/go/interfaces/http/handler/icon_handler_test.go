@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/isucon/isucon13/webapp/go/domain/model"
 	"github.com/isucon/isucon13/webapp/go/usecase"
 )
 
@@ -18,11 +19,11 @@ type fakeIconUsecase struct {
 	image []byte
 	err   error
 
-	iconID    int64
+	iconID    model.IconID
 	updateErr error
 
 	gotUsername string
-	gotUserID   int64
+	gotUserID   model.UserID
 	gotImage    []byte
 }
 
@@ -31,7 +32,7 @@ func (u *fakeIconUsecase) FindImageByUsername(ctx context.Context, username stri
 	return u.image, u.err
 }
 
-func (u *fakeIconUsecase) Update(ctx context.Context, userID int64, image []byte) (int64, error) {
+func (u *fakeIconUsecase) Update(ctx context.Context, userID model.UserID, image []byte) (model.IconID, error) {
 	u.gotUserID = userID
 	u.gotImage = image
 	return u.iconID, u.updateErr

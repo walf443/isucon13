@@ -18,7 +18,7 @@ func NewReactionRepository(fallbackIcon []byte) repository.ReactionRepository {
 	return &reactionRepository{fallbackIcon: fallbackIcon}
 }
 
-func (r *reactionRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id int64) (*model.Reaction, error) {
+func (r *reactionRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.ReactionID) (*model.Reaction, error) {
 	var reactionModel model.ReactionModel
 	err := q.GetContext(ctx, &reactionModel, "SELECT id, emoji_name, user_id, livestream_id, created_at FROM reactions WHERE id = ?", id)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -35,7 +35,7 @@ func (r *reactionRepository) FindWithDetailsByID(ctx context.Context, q reposito
 	return reactions[0], nil
 }
 
-func (r *reactionRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID int64) ([]*model.Reaction, error) {
+func (r *reactionRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.Reaction, error) {
 	var reactionModels []*model.ReactionModel
 	if err := q.SelectContext(ctx, &reactionModels, "SELECT id, emoji_name, user_id, livestream_id, created_at FROM reactions WHERE livestream_id = ? ORDER BY created_at DESC", livestreamID); err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func (r *reactionRepository) FindAllWithDetailsByLivestreamID(ctx context.Contex
 	return fillReactions(ctx, q, reactionModels, r.fallbackIcon)
 }
 
-func (r *reactionRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID int64, limit int64) ([]*model.Reaction, error) {
+func (r *reactionRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, limit int64) ([]*model.Reaction, error) {
 	var reactionModels []*model.ReactionModel
 	if err := q.SelectContext(ctx, &reactionModels, "SELECT id, emoji_name, user_id, livestream_id, created_at FROM reactions WHERE livestream_id = ? ORDER BY created_at DESC LIMIT ?", livestreamID, limit); err != nil {
 		return nil, err
@@ -51,10 +51,14 @@ func (r *reactionRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context
 	return fillReactions(ctx, q, reactionModels, r.fallbackIcon)
 }
 
-func (r *reactionRepository) Create(ctx context.Context, q repository.Querier, reaction *model.ReactionModel) (int64, error) {
+func (r *reactionRepository) Create(ctx context.Context, q repository.Querier, reaction *model.ReactionModel) (model.ReactionID, error) {
 	rs, err := q.ExecContext(ctx, "INSERT INTO reactions (user_id, livestream_id, emoji_name, created_at) VALUES (?, ?, ?, ?)", reaction.UserID, reaction.LivestreamID, reaction.EmojiName, reaction.CreatedAt)
 	if err != nil {
 		return 0, err
 	}
-	return rs.LastInsertId()
+	id, err := rs.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	return model.ReactionID(id), nil
 }

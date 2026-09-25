@@ -18,8 +18,8 @@ type fakeLivestreamUsecase struct {
 	livestreams []*model.Livestream
 	err         error
 
-	gotID       int64
-	gotUserID   int64
+	gotID       model.LivestreamID
+	gotUserID   model.UserID
 	gotUsername string
 	gotTagName  string
 	gotLimit    *int64
@@ -44,12 +44,12 @@ func (u *fakeLivestreamUsecase) FindAllByUsername(ctx context.Context, username 
 	return u.livestreams, u.err
 }
 
-func (u *fakeLivestreamUsecase) FindAllByUserID(ctx context.Context, userID int64) ([]*model.Livestream, error) {
+func (u *fakeLivestreamUsecase) FindAllByUserID(ctx context.Context, userID model.UserID) ([]*model.Livestream, error) {
 	u.gotUserID = userID
 	return u.livestreams, u.err
 }
 
-func (u *fakeLivestreamUsecase) FindByID(ctx context.Context, id int64) (*model.Livestream, error) {
+func (u *fakeLivestreamUsecase) FindByID(ctx context.Context, id model.LivestreamID) (*model.Livestream, error) {
 	u.gotID = id
 	return u.livestream, u.err
 }

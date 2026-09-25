@@ -15,11 +15,11 @@ import (
 type fakeUserUsecase struct {
 	user    *model.User
 	err     error
-	gotID   int64
+	gotID   model.UserID
 	gotName string
 }
 
-func (u *fakeUserUsecase) FindByID(ctx context.Context, id int64) (*model.User, error) {
+func (u *fakeUserUsecase) FindByID(ctx context.Context, id model.UserID) (*model.User, error) {
 	u.gotID = id
 	return u.user, u.err
 }

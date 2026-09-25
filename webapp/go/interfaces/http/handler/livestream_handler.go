@@ -11,15 +11,15 @@ import (
 )
 
 type Livestream struct {
-	ID           int64  `json:"id"`
-	Owner        User   `json:"owner"`
-	Title        string `json:"title"`
-	Description  string `json:"description"`
-	PlaylistUrl  string `json:"playlist_url"`
-	ThumbnailUrl string `json:"thumbnail_url"`
-	Tags         []Tag  `json:"tags"`
-	StartAt      int64  `json:"start_at"`
-	EndAt        int64  `json:"end_at"`
+	ID           model.LivestreamID `json:"id"`
+	Owner        User               `json:"owner"`
+	Title        string             `json:"title"`
+	Description  string             `json:"description"`
+	PlaylistUrl  string             `json:"playlist_url"`
+	ThumbnailUrl string             `json:"thumbnail_url"`
+	Tags         []Tag              `json:"tags"`
+	StartAt      int64              `json:"start_at"`
+	EndAt        int64              `json:"end_at"`
 }
 
 func newLivestream(l *model.Livestream) Livestream {
@@ -69,7 +69,7 @@ func (h *LivestreamHandler) GetLivestream(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
 
-	livestream, err := h.livestreamUsecase.FindByID(ctx, int64(livestreamID))
+	livestream, err := h.livestreamUsecase.FindByID(ctx, model.LivestreamID(livestreamID))
 	if errors.Is(err, usecase.ErrLivestreamNotFound) {
 		return echo.NewHTTPError(http.StatusNotFound, "not found livestream that has the given id")
 	}

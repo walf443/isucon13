@@ -11,7 +11,7 @@ import (
 
 type UserUsecase interface {
 	// FindByID はユーザが存在しない場合 ErrUserNotFound を返す。
-	FindByID(ctx context.Context, id int64) (*model.User, error)
+	FindByID(ctx context.Context, id model.UserID) (*model.User, error)
 	// FindByName はユーザが存在しない場合 ErrUserNotFound を返す。
 	FindByName(ctx context.Context, name string) (*model.User, error)
 }
@@ -25,7 +25,7 @@ func NewUserUsecase(txManager repository.TxManager, userRepo repository.UserRepo
 	return &userUsecase{txManager: txManager, userRepo: userRepo}
 }
 
-func (u *userUsecase) FindByID(ctx context.Context, id int64) (*model.User, error) {
+func (u *userUsecase) FindByID(ctx context.Context, id model.UserID) (*model.User, error) {
 	return u.findUser(ctx, func(q repository.Querier) (*model.User, error) {
 		return u.userRepo.FindWithDetailsByID(ctx, q, id)
 	})

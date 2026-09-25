@@ -10,24 +10,24 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-func insertTestUser(t *testing.T, tx *sqlx.Tx, name string) int64 {
+func insertTestUser(t *testing.T, tx *sqlx.Tx, name string) model.UserID {
 	t.Helper()
 	res, err := tx.ExecContext(context.Background(), "INSERT INTO users (name, display_name, password, description) VALUES (?, ?, ?, ?)", name, "Display "+name, "hashed", "desc "+name)
 	if err != nil {
 		t.Fatalf("failed to insert user: %v", err)
 	}
 	id, _ := res.LastInsertId()
-	return id
+	return model.UserID(id)
 }
 
-func insertTestTheme(t *testing.T, tx *sqlx.Tx, userID int64, darkMode bool) int64 {
+func insertTestTheme(t *testing.T, tx *sqlx.Tx, userID model.UserID, darkMode bool) model.ThemeID {
 	t.Helper()
 	res, err := tx.ExecContext(context.Background(), "INSERT INTO themes (user_id, dark_mode) VALUES (?, ?)", userID, darkMode)
 	if err != nil {
 		t.Fatalf("failed to insert theme: %v", err)
 	}
 	id, _ := res.LastInsertId()
-	return id
+	return model.ThemeID(id)
 }
 
 func TestUserRepository_FindWithDetails(t *testing.T) {

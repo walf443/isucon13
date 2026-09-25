@@ -15,13 +15,13 @@ func (m *fakeTxManager) RunInTx(ctx context.Context, fn func(q repository.Querie
 
 type fakeTagRepository struct {
 	tags []*model.TagModel
-	ids  []int64
+	ids  []model.TagID
 	err  error
 
 	gotName string
 }
 
-func (r *fakeTagRepository) FindIDsByName(ctx context.Context, q repository.Querier, name string) ([]int64, error) {
+func (r *fakeTagRepository) FindIDsByName(ctx context.Context, q repository.Querier, name string) ([]model.TagID, error) {
 	r.gotName = name
 	return r.ids, r.err
 }
@@ -31,21 +31,21 @@ func (r *fakeTagRepository) FindAll(ctx context.Context, q repository.Querier) (
 }
 
 type fakeUserRepository struct {
-	id          int64
+	id          model.UserID
 	user        *model.UserModel
 	userDetails *model.User
 	err         error
 
-	gotID   int64
+	gotID   model.UserID
 	gotName string
 }
 
-func (r *fakeUserRepository) FindIDByName(ctx context.Context, q repository.Querier, name string) (int64, error) {
+func (r *fakeUserRepository) FindIDByName(ctx context.Context, q repository.Querier, name string) (model.UserID, error) {
 	r.gotName = name
 	return r.id, r.err
 }
 
-func (r *fakeUserRepository) FindByID(ctx context.Context, q repository.Querier, id int64) (*model.UserModel, error) {
+func (r *fakeUserRepository) FindByID(ctx context.Context, q repository.Querier, id model.UserID) (*model.UserModel, error) {
 	r.gotID = id
 	return r.user, r.err
 }
@@ -55,7 +55,7 @@ func (r *fakeUserRepository) FindByName(ctx context.Context, q repository.Querie
 	return r.user, r.err
 }
 
-func (r *fakeUserRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id int64) (*model.User, error) {
+func (r *fakeUserRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.UserID) (*model.User, error) {
 	r.gotID = id
 	return r.userDetails, r.err
 }
@@ -68,10 +68,10 @@ func (r *fakeUserRepository) FindWithDetailsByName(ctx context.Context, q reposi
 type fakeThemeRepository struct {
 	theme     *model.ThemeModel
 	err       error
-	gotUserID int64
+	gotUserID model.UserID
 }
 
-func (r *fakeThemeRepository) FindByUserID(ctx context.Context, q repository.Querier, userID int64) (*model.ThemeModel, error) {
+func (r *fakeThemeRepository) FindByUserID(ctx context.Context, q repository.Querier, userID model.UserID) (*model.ThemeModel, error) {
 	r.gotUserID = userID
 	return r.theme, r.err
 }
@@ -79,30 +79,30 @@ func (r *fakeThemeRepository) FindByUserID(ctx context.Context, q repository.Que
 type fakeIconRepository struct {
 	image     []byte
 	err       error
-	createID  int64
+	createID  model.IconID
 	createErr error
 	deleteErr error
 
 	// calls は呼ばれたメソッド名を順に記録する
 	calls     []string
-	gotUserID int64
+	gotUserID model.UserID
 	gotImage  []byte
 }
 
-func (r *fakeIconRepository) FindImageByUserID(ctx context.Context, q repository.Querier, userID int64) ([]byte, error) {
+func (r *fakeIconRepository) FindImageByUserID(ctx context.Context, q repository.Querier, userID model.UserID) ([]byte, error) {
 	r.calls = append(r.calls, "FindImageByUserID")
 	r.gotUserID = userID
 	return r.image, r.err
 }
 
-func (r *fakeIconRepository) Create(ctx context.Context, q repository.Querier, userID int64, image []byte) (int64, error) {
+func (r *fakeIconRepository) Create(ctx context.Context, q repository.Querier, userID model.UserID, image []byte) (model.IconID, error) {
 	r.calls = append(r.calls, "Create")
 	r.gotUserID = userID
 	r.gotImage = image
 	return r.createID, r.createErr
 }
 
-func (r *fakeIconRepository) DeleteByUserID(ctx context.Context, q repository.Querier, userID int64) error {
+func (r *fakeIconRepository) DeleteByUserID(ctx context.Context, q repository.Querier, userID model.UserID) error {
 	r.calls = append(r.calls, "DeleteByUserID")
 	r.gotUserID = userID
 	return r.deleteErr
@@ -113,15 +113,15 @@ type fakeLivestreamRepository struct {
 	livestreams []*model.Livestream
 	err         error
 
-	gotID     int64
-	gotUserID int64
-	gotTagIDs []int64
+	gotID     model.LivestreamID
+	gotUserID model.UserID
+	gotTagIDs []model.TagID
 	gotLimit  int64
 	// calls は呼ばれたメソッド名を順に記録する
 	calls []string
 }
 
-func (r *fakeLivestreamRepository) FindAllWithDetailsByTagIDs(ctx context.Context, q repository.Querier, tagIDs []int64) ([]*model.Livestream, error) {
+func (r *fakeLivestreamRepository) FindAllWithDetailsByTagIDs(ctx context.Context, q repository.Querier, tagIDs []model.TagID) ([]*model.Livestream, error) {
 	r.calls = append(r.calls, "FindAllWithDetailsByTagIDs")
 	r.gotTagIDs = tagIDs
 	return r.livestreams, r.err
@@ -138,12 +138,12 @@ func (r *fakeLivestreamRepository) FindAllWithDetailsLimited(ctx context.Context
 	return r.livestreams, r.err
 }
 
-func (r *fakeLivestreamRepository) FindAllWithDetailsByUserID(ctx context.Context, q repository.Querier, userID int64) ([]*model.Livestream, error) {
+func (r *fakeLivestreamRepository) FindAllWithDetailsByUserID(ctx context.Context, q repository.Querier, userID model.UserID) ([]*model.Livestream, error) {
 	r.gotUserID = userID
 	return r.livestreams, r.err
 }
 
-func (r *fakeLivestreamRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id int64) (*model.Livestream, error) {
+func (r *fakeLivestreamRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.LivestreamID) (*model.Livestream, error) {
 	r.gotID = id
 	return r.livestream, r.err
 }
@@ -152,37 +152,37 @@ type fakeReactionRepository struct {
 	reaction  *model.Reaction
 	reactions []*model.Reaction
 	err       error
-	createID  int64
+	createID  model.ReactionID
 	createErr error
 
 	// calls は呼ばれたメソッド名を順に記録する
 	calls           []string
-	gotID           int64
-	gotLivestreamID int64
+	gotID           model.ReactionID
+	gotLivestreamID model.LivestreamID
 	gotLimit        int64
 	gotCreated      *model.ReactionModel
 }
 
-func (r *fakeReactionRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id int64) (*model.Reaction, error) {
+func (r *fakeReactionRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.ReactionID) (*model.Reaction, error) {
 	r.calls = append(r.calls, "FindWithDetailsByID")
 	r.gotID = id
 	return r.reaction, r.err
 }
 
-func (r *fakeReactionRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID int64) ([]*model.Reaction, error) {
+func (r *fakeReactionRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID) ([]*model.Reaction, error) {
 	r.calls = append(r.calls, "FindAllWithDetailsByLivestreamID")
 	r.gotLivestreamID = livestreamID
 	return r.reactions, r.err
 }
 
-func (r *fakeReactionRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID int64, limit int64) ([]*model.Reaction, error) {
+func (r *fakeReactionRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID model.LivestreamID, limit int64) ([]*model.Reaction, error) {
 	r.calls = append(r.calls, "FindAllWithDetailsByLivestreamIDLimited")
 	r.gotLivestreamID = livestreamID
 	r.gotLimit = limit
 	return r.reactions, r.err
 }
 
-func (r *fakeReactionRepository) Create(ctx context.Context, q repository.Querier, reaction *model.ReactionModel) (int64, error) {
+func (r *fakeReactionRepository) Create(ctx context.Context, q repository.Querier, reaction *model.ReactionModel) (model.ReactionID, error) {
 	r.calls = append(r.calls, "Create")
 	r.gotCreated = reaction
 	return r.createID, r.createErr

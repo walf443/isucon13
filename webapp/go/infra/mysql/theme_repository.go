@@ -15,7 +15,7 @@ func NewThemeRepository() repository.ThemeRepository {
 	return &themeRepository{}
 }
 
-func (r *themeRepository) FindByUserID(ctx context.Context, q repository.Querier, userID int64) (*model.ThemeModel, error) {
+func (r *themeRepository) FindByUserID(ctx context.Context, q repository.Querier, userID model.UserID) (*model.ThemeModel, error) {
 	var theme model.ThemeModel
 	err := q.GetContext(ctx, &theme, "SELECT id, user_id, dark_mode FROM themes WHERE user_id = ?", userID)
 	if errors.Is(err, sql.ErrNoRows) {

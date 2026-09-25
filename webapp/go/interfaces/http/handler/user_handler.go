@@ -10,12 +10,12 @@ import (
 )
 
 type User struct {
-	ID          int64  `json:"id"`
-	Name        string `json:"name"`
-	DisplayName string `json:"display_name,omitempty"`
-	Description string `json:"description,omitempty"`
-	Theme       Theme  `json:"theme,omitempty"`
-	IconHash    string `json:"icon_hash,omitempty"`
+	ID          model.UserID `json:"id"`
+	Name        string       `json:"name"`
+	DisplayName string       `json:"display_name,omitempty"`
+	Description string       `json:"description,omitempty"`
+	Theme       Theme        `json:"theme,omitempty"`
+	IconHash    string       `json:"icon_hash,omitempty"`
 }
 
 func newUser(u *model.User) User {

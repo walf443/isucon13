@@ -20,7 +20,7 @@ func NewLivestreamRepository(fallbackIcon []byte) repository.LivestreamRepositor
 	return &livestreamRepository{fallbackIcon: fallbackIcon}
 }
 
-func (r *livestreamRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id int64) (*model.Livestream, error) {
+func (r *livestreamRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id model.LivestreamID) (*model.Livestream, error) {
 	var livestreamModel model.LivestreamModel
 	err := q.GetContext(ctx, &livestreamModel, "SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM livestreams WHERE id = ?", id)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -37,7 +37,7 @@ func (r *livestreamRepository) FindWithDetailsByID(ctx context.Context, q reposi
 	return livestreams[0], nil
 }
 
-func (r *livestreamRepository) FindAllWithDetailsByUserID(ctx context.Context, q repository.Querier, userID int64) ([]*model.Livestream, error) {
+func (r *livestreamRepository) FindAllWithDetailsByUserID(ctx context.Context, q repository.Querier, userID model.UserID) ([]*model.Livestream, error) {
 	var livestreamModels []*model.LivestreamModel
 	if err := q.SelectContext(ctx, &livestreamModels, "SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM livestreams WHERE user_id = ?", userID); err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func (r *livestreamRepository) FindAllWithDetailsByUserID(ctx context.Context, q
 	return fillLivestreams(ctx, q, livestreamModels, r.fallbackIcon)
 }
 
-func (r *livestreamRepository) FindAllWithDetailsByTagIDs(ctx context.Context, q repository.Querier, tagIDs []int64) ([]*model.Livestream, error) {
+func (r *livestreamRepository) FindAllWithDetailsByTagIDs(ctx context.Context, q repository.Querier, tagIDs []model.TagID) ([]*model.Livestream, error) {
 	query, params, err := sqlx.In("SELECT id, livestream_id, tag_id FROM livestream_tags WHERE tag_id IN (?) ORDER BY livestream_id DESC", tagIDs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct IN query: %w", err)

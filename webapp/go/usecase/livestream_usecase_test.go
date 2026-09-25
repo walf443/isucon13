@@ -155,7 +155,7 @@ func TestLivestreamUsecase_FindAllByUsername_Errors(t *testing.T) {
 
 func TestLivestreamUsecase_FindAllByTagName(t *testing.T) {
 	want := []*model.Livestream{{ID: 2}, {ID: 1}}
-	tagRepo := &fakeTagRepository{ids: []int64{7}}
+	tagRepo := &fakeTagRepository{ids: []model.TagID{7}}
 	livestreamRepo := &fakeLivestreamRepository{livestreams: want}
 	u := NewLivestreamUsecase(&fakeTxManager{}, &fakeUserRepository{}, tagRepo, livestreamRepo)
 
@@ -169,7 +169,7 @@ func TestLivestreamUsecase_FindAllByTagName(t *testing.T) {
 	if tagRepo.gotName != "ゲーム実況" {
 		t.Errorf("tag name = %q", tagRepo.gotName)
 	}
-	if !slices.Equal(livestreamRepo.gotTagIDs, []int64{7}) {
+	if !slices.Equal(livestreamRepo.gotTagIDs, []model.TagID{7}) {
 		t.Errorf("tagIDs = %v, want [7]", livestreamRepo.gotTagIDs)
 	}
 }
@@ -200,7 +200,7 @@ func TestLivestreamUsecase_FindAllByTagName_Errors(t *testing.T) {
 		livestreamRepo *fakeLivestreamRepository
 	}{
 		{name: "tag repository error", tagRepo: &fakeTagRepository{err: boom}, livestreamRepo: &fakeLivestreamRepository{}},
-		{name: "livestream repository error", tagRepo: &fakeTagRepository{ids: []int64{7}}, livestreamRepo: &fakeLivestreamRepository{err: boom}},
+		{name: "livestream repository error", tagRepo: &fakeTagRepository{ids: []model.TagID{7}}, livestreamRepo: &fakeLivestreamRepository{err: boom}},
 	}
 
 	for _, tt := range tests {

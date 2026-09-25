@@ -17,7 +17,8 @@ func TestUserRepository_FindIDByName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to insert user: %v", err)
 	}
-	wantID, _ := res.LastInsertId()
+	lastID, _ := res.LastInsertId()
+	wantID := model.UserID(lastID)
 
 	id, err := NewUserRepository(nil).FindIDByName(ctx, tx, "alice")
 	if err != nil {
@@ -45,7 +46,8 @@ func TestUserRepository_FindByName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to insert user: %v", err)
 	}
-	wantID, _ := res.LastInsertId()
+	lastID, _ := res.LastInsertId()
+	wantID := model.UserID(lastID)
 
 	user, err := NewUserRepository(nil).FindByName(ctx, tx, "alice")
 	if err != nil {
@@ -74,7 +76,8 @@ func TestUserRepository_FindByID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to insert user: %v", err)
 	}
-	id, _ := res.LastInsertId()
+	lastID, _ := res.LastInsertId()
+	id := model.UserID(lastID)
 
 	user, err := NewUserRepository(nil).FindByID(ctx, tx, id)
 	if err != nil {

@@ -17,19 +17,19 @@ type fakeReactionUsecase struct {
 	reaction  *model.Reaction
 	err       error
 
-	gotLivestreamID int64
+	gotLivestreamID model.LivestreamID
 	gotLimit        *int64
-	gotUserID       int64
+	gotUserID       model.UserID
 	gotEmojiName    string
 }
 
-func (u *fakeReactionUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID int64, limit *int64) ([]*model.Reaction, error) {
+func (u *fakeReactionUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID model.LivestreamID, limit *int64) ([]*model.Reaction, error) {
 	u.gotLivestreamID = livestreamID
 	u.gotLimit = limit
 	return u.reactions, u.err
 }
 
-func (u *fakeReactionUsecase) Create(ctx context.Context, userID int64, livestreamID int64, emojiName string) (*model.Reaction, error) {
+func (u *fakeReactionUsecase) Create(ctx context.Context, userID model.UserID, livestreamID model.LivestreamID, emojiName string) (*model.Reaction, error) {
 	u.gotUserID = userID
 	u.gotLivestreamID = livestreamID
 	u.gotEmojiName = emojiName

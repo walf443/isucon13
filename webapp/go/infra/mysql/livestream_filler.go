@@ -9,9 +9,9 @@ import (
 )
 
 type livestreamTagModel struct {
-	ID           int64 `db:"id"`
-	LivestreamID int64 `db:"livestream_id"`
-	TagID        int64 `db:"tag_id"`
+	ID           int64              `db:"id"`
+	LivestreamID model.LivestreamID `db:"livestream_id"`
+	TagID        model.TagID        `db:"tag_id"`
 }
 
 // fillLivestreams は livestreamModels に配信者・タグを埋めた model.Livestream を、同じ順序で返す。

@@ -11,11 +11,11 @@ import (
 )
 
 type Reaction struct {
-	ID         int64      `json:"id"`
-	EmojiName  string     `json:"emoji_name"`
-	User       User       `json:"user"`
-	Livestream Livestream `json:"livestream"`
-	CreatedAt  int64      `json:"created_at"`
+	ID         model.ReactionID `json:"id"`
+	EmojiName  string           `json:"emoji_name"`
+	User       User             `json:"user"`
+	Livestream Livestream       `json:"livestream"`
+	CreatedAt  int64            `json:"created_at"`
 }
 
 func newReaction(r *model.Reaction) Reaction {
@@ -64,7 +64,7 @@ func (h *ReactionHandler) GetReactions(c echo.Context) error {
 		limit = &limit64
 	}
 
-	reactionModels, err := h.reactionUsecase.FindAllByLivestreamID(ctx, int64(livestreamID), limit)
+	reactionModels, err := h.reactionUsecase.FindAllByLivestreamID(ctx, model.LivestreamID(livestreamID), limit)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -99,7 +99,7 @@ func (h *ReactionHandler) PostReaction(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
 	}
 
-	reaction, err := h.reactionUsecase.Create(ctx, userID, int64(livestreamID), req.EmojiName)
+	reaction, err := h.reactionUsecase.Create(ctx, userID, model.LivestreamID(livestreamID), req.EmojiName)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}

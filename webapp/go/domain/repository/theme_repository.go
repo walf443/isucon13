@@ -8,5 +8,5 @@ import (
 
 type ThemeRepository interface {
 	// FindByUserID はテーマが存在しない場合 ErrNotFound を返す。
-	FindByUserID(ctx context.Context, q Querier, userID int64) (*model.ThemeModel, error)
+	FindByUserID(ctx context.Context, q Querier, userID model.UserID) (*model.ThemeModel, error)
 }

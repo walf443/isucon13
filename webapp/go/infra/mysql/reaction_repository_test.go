@@ -10,8 +10,8 @@ import (
 	"github.com/isucon/isucon13/webapp/go/domain/repository"
 )
 
-func reactionIDs(reactions []*model.Reaction) []int64 {
-	ids := make([]int64, len(reactions))
+func reactionIDs(reactions []*model.Reaction) []model.ReactionID {
+	ids := make([]model.ReactionID, len(reactions))
 	for i, r := range reactions {
 		ids[i] = r.ID
 	}
@@ -90,7 +90,7 @@ func TestReactionRepository_FindAllWithDetailsByLivestreamID(t *testing.T) {
 	otherLivestreamID := insertTestLivestream(t, tx, userID, "other")
 	repo := NewReactionRepository(nil)
 
-	create := func(livestreamID int64, createdAt int64) int64 {
+	create := func(livestreamID model.LivestreamID, createdAt int64) model.ReactionID {
 		t.Helper()
 		id, err := repo.Create(ctx, tx, &model.ReactionModel{UserID: userID, LivestreamID: livestreamID, EmojiName: "tada", CreatedAt: createdAt})
 		if err != nil {
@@ -108,7 +108,7 @@ func TestReactionRepository_FindAllWithDetailsByLivestreamID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindAllWithDetailsByLivestreamID returned error: %v", err)
 	}
-	if want := []int64{r1, r3, r2}; !slices.Equal(reactionIDs(all), want) {
+	if want := []model.ReactionID{r1, r3, r2}; !slices.Equal(reactionIDs(all), want) {
 		t.Errorf("ids = %v, want %v", reactionIDs(all), want)
 	}
 
@@ -116,7 +116,7 @@ func TestReactionRepository_FindAllWithDetailsByLivestreamID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindAllWithDetailsByLivestreamIDLimited returned error: %v", err)
 	}
-	if want := []int64{r1, r3}; !slices.Equal(reactionIDs(limited), want) {
+	if want := []model.ReactionID{r1, r3}; !slices.Equal(reactionIDs(limited), want) {
 		t.Errorf("ids = %v, want %v", reactionIDs(limited), want)
 	}
 }
