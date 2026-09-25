@@ -18,15 +18,7 @@ func NewLivecommentReportRepository(defaultIconHash domain.IconHash) repository.
 	return &livecommentReportRepository{defaultIconHash: defaultIconHash}
 }
 
-func (r *livecommentReportRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentReport, error) {
-	var reportModels []*domain.LivecommentReportModel
-	if err := q.SelectContext(ctx, &reportModels, "SELECT id, user_id, livestream_id, livecomment_id, created_at FROM livecomment_reports WHERE livestream_id = ?", livestreamID); err != nil {
-		return nil, err
-	}
-	return fillLivecommentReports(ctx, q, reportModels, r.defaultIconHash)
-}
-
-func (r *livecommentReportRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id domain.LivecommentReportID) (*domain.LivecommentReport, error) {
+func (r *livecommentReportRepository) FindByID(ctx context.Context, q repository.Querier, id domain.LivecommentReportID) (*domain.LivecommentReportModel, error) {
 	var reportModel domain.LivecommentReportModel
 	err := q.GetContext(ctx, &reportModel, "SELECT id, user_id, livestream_id, livecomment_id, created_at FROM livecomment_reports WHERE id = ?", id)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -35,8 +27,32 @@ func (r *livecommentReportRepository) FindWithDetailsByID(ctx context.Context, q
 	if err != nil {
 		return nil, err
 	}
+	return &reportModel, nil
+}
 
-	reports, err := fillLivecommentReports(ctx, q, []*domain.LivecommentReportModel{&reportModel}, r.defaultIconHash)
+func (r *livecommentReportRepository) FindAllByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentReportModel, error) {
+	var reportModels []*domain.LivecommentReportModel
+	if err := q.SelectContext(ctx, &reportModels, "SELECT id, user_id, livestream_id, livecomment_id, created_at FROM livecomment_reports WHERE livestream_id = ?", livestreamID); err != nil {
+		return nil, err
+	}
+	return reportModels, nil
+}
+
+func (r *livecommentReportRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentReport, error) {
+	reportModels, err := r.FindAllByLivestreamID(ctx, q, livestreamID)
+	if err != nil {
+		return nil, err
+	}
+	return fillLivecommentReports(ctx, q, reportModels, r.defaultIconHash)
+}
+
+func (r *livecommentReportRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id domain.LivecommentReportID) (*domain.LivecommentReport, error) {
+	reportModel, err := r.FindByID(ctx, q, id)
+	if err != nil {
+		return nil, err
+	}
+
+	reports, err := fillLivecommentReports(ctx, q, []*domain.LivecommentReportModel{reportModel}, r.defaultIconHash)
 	if err != nil {
 		return nil, err
 	}

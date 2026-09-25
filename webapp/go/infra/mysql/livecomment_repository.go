@@ -19,17 +19,33 @@ func NewLivecommentRepository(defaultIconHash domain.IconHash) repository.Liveco
 	return &livecommentRepository{defaultIconHash: defaultIconHash}
 }
 
-func (r *livecommentRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Livecomment, error) {
+func (r *livecommentRepository) FindAllByLivestreamIDOrderByCreatedAtDesc(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentModel, error) {
 	var livecommentModels []*domain.LivecommentModel
 	if err := q.SelectContext(ctx, &livecommentModels, "SELECT id, user_id, livestream_id, comment, tip, created_at FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC", livestreamID); err != nil {
+		return nil, err
+	}
+	return livecommentModels, nil
+}
+
+func (r *livecommentRepository) FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.LivecommentModel, error) {
+	var livecommentModels []*domain.LivecommentModel
+	if err := q.SelectContext(ctx, &livecommentModels, "SELECT id, user_id, livestream_id, comment, tip, created_at FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC LIMIT ?", livestreamID, limit); err != nil {
+		return nil, err
+	}
+	return livecommentModels, nil
+}
+
+func (r *livecommentRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Livecomment, error) {
+	livecommentModels, err := r.FindAllByLivestreamIDOrderByCreatedAtDesc(ctx, q, livestreamID)
+	if err != nil {
 		return nil, err
 	}
 	return fillLivecomments(ctx, q, livecommentModels, r.defaultIconHash)
 }
 
 func (r *livecommentRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Livecomment, error) {
-	var livecommentModels []*domain.LivecommentModel
-	if err := q.SelectContext(ctx, &livecommentModels, "SELECT id, user_id, livestream_id, comment, tip, created_at FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC LIMIT ?", livestreamID, limit); err != nil {
+	livecommentModels, err := r.FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx, q, livestreamID, limit)
+	if err != nil {
 		return nil, err
 	}
 	return fillLivecomments(ctx, q, livecommentModels, r.defaultIconHash)
@@ -48,16 +64,12 @@ func (r *livecommentRepository) FindByID(ctx context.Context, q repository.Queri
 }
 
 func (r *livecommentRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id domain.LivecommentID) (*domain.Livecomment, error) {
-	var livecommentModel domain.LivecommentModel
-	err := q.GetContext(ctx, &livecommentModel, "SELECT id, user_id, livestream_id, comment, tip, created_at FROM livecomments WHERE id = ?", id)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, repository.ErrNotFound
-	}
+	livecommentModel, err := r.FindByID(ctx, q, id)
 	if err != nil {
 		return nil, err
 	}
 
-	livecomments, err := fillLivecomments(ctx, q, []*domain.LivecommentModel{&livecommentModel}, r.defaultIconHash)
+	livecomments, err := fillLivecomments(ctx, q, []*domain.LivecommentModel{livecommentModel}, r.defaultIconHash)
 	if err != nil {
 		return nil, err
 	}

@@ -18,7 +18,7 @@ func NewReactionRepository(defaultIconHash domain.IconHash) repository.ReactionR
 	return &reactionRepository{defaultIconHash: defaultIconHash}
 }
 
-func (r *reactionRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id domain.ReactionID) (*domain.Reaction, error) {
+func (r *reactionRepository) FindByID(ctx context.Context, q repository.Querier, id domain.ReactionID) (*domain.ReactionModel, error) {
 	var reactionModel domain.ReactionModel
 	err := q.GetContext(ctx, &reactionModel, "SELECT id, emoji_name, user_id, livestream_id, created_at FROM reactions WHERE id = ?", id)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -27,8 +27,32 @@ func (r *reactionRepository) FindWithDetailsByID(ctx context.Context, q reposito
 	if err != nil {
 		return nil, err
 	}
+	return &reactionModel, nil
+}
 
-	reactions, err := fillReactions(ctx, q, []*domain.ReactionModel{&reactionModel}, r.defaultIconHash)
+func (r *reactionRepository) FindAllByLivestreamIDOrderByCreatedAtDesc(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.ReactionModel, error) {
+	var reactionModels []*domain.ReactionModel
+	if err := q.SelectContext(ctx, &reactionModels, "SELECT id, emoji_name, user_id, livestream_id, created_at FROM reactions WHERE livestream_id = ? ORDER BY created_at DESC", livestreamID); err != nil {
+		return nil, err
+	}
+	return reactionModels, nil
+}
+
+func (r *reactionRepository) FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.ReactionModel, error) {
+	var reactionModels []*domain.ReactionModel
+	if err := q.SelectContext(ctx, &reactionModels, "SELECT id, emoji_name, user_id, livestream_id, created_at FROM reactions WHERE livestream_id = ? ORDER BY created_at DESC LIMIT ?", livestreamID, limit); err != nil {
+		return nil, err
+	}
+	return reactionModels, nil
+}
+
+func (r *reactionRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id domain.ReactionID) (*domain.Reaction, error) {
+	reactionModel, err := r.FindByID(ctx, q, id)
+	if err != nil {
+		return nil, err
+	}
+
+	reactions, err := fillReactions(ctx, q, []*domain.ReactionModel{reactionModel}, r.defaultIconHash)
 	if err != nil {
 		return nil, err
 	}
@@ -36,16 +60,16 @@ func (r *reactionRepository) FindWithDetailsByID(ctx context.Context, q reposito
 }
 
 func (r *reactionRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Reaction, error) {
-	var reactionModels []*domain.ReactionModel
-	if err := q.SelectContext(ctx, &reactionModels, "SELECT id, emoji_name, user_id, livestream_id, created_at FROM reactions WHERE livestream_id = ? ORDER BY created_at DESC", livestreamID); err != nil {
+	reactionModels, err := r.FindAllByLivestreamIDOrderByCreatedAtDesc(ctx, q, livestreamID)
+	if err != nil {
 		return nil, err
 	}
 	return fillReactions(ctx, q, reactionModels, r.defaultIconHash)
 }
 
 func (r *reactionRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Reaction, error) {
-	var reactionModels []*domain.ReactionModel
-	if err := q.SelectContext(ctx, &reactionModels, "SELECT id, emoji_name, user_id, livestream_id, created_at FROM reactions WHERE livestream_id = ? ORDER BY created_at DESC LIMIT ?", livestreamID, limit); err != nil {
+	reactionModels, err := r.FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx, q, livestreamID, limit)
+	if err != nil {
 		return nil, err
 	}
 	return fillReactions(ctx, q, reactionModels, r.defaultIconHash)

@@ -15,6 +15,10 @@ type LivestreamRepository interface {
 	FindAll(ctx context.Context, q Querier) ([]*domain.LivestreamModel, error)
 	// FindAllByUserID は指定したユーザが配信者のライブ配信を返す (順序は不定)。
 	FindAllByUserID(ctx context.Context, q Querier, userID domain.UserID) ([]*domain.LivestreamModel, error)
+	// FindAllOrderByIDDesc は全てのライブ配信を ID の降順で返す。
+	FindAllOrderByIDDesc(ctx context.Context, q Querier) ([]*domain.LivestreamModel, error)
+	// FindAllOrderByIDDescLimited は ID の降順で最大 limit 件のライブ配信を返す。
+	FindAllOrderByIDDescLimited(ctx context.Context, q Querier, limit domain.Limit) ([]*domain.LivestreamModel, error)
 	// FindWithDetailsByID は配信者・タグを含めたライブ配信を返す。
 	// ライブ配信が存在しない場合 ErrNotFound を返す。配信者やタグが欠けている場合は ErrNotFound ではないエラーを返す。
 	FindWithDetailsByID(ctx context.Context, q Querier, id domain.LivestreamID) (*domain.Livestream, error)

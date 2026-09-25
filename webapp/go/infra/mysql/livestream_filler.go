@@ -8,12 +8,6 @@ import (
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
-type livestreamTagModel struct {
-	ID           int64               `db:"id"`
-	LivestreamID domain.LivestreamID `db:"livestream_id"`
-	TagID        domain.TagID        `db:"tag_id"`
-}
-
 // fillLivestreams は livestreamModels に配信者・タグを埋めた domain.Livestream を、同じ順序で返す。
 //
 // 配信者やタグが無いのはデータ不整合なので、repository.ErrNotFound (ライブ配信不在) には変換しない。
@@ -33,7 +27,7 @@ func fillLivestreams(ctx context.Context, q repository.Querier, livestreamModels
 
 	livestreams := make([]*domain.Livestream, len(livestreamModels))
 	for i, livestreamModel := range livestreamModels {
-		var livestreamTagModels []*livestreamTagModel
+		var livestreamTagModels []*domain.LivestreamTagModel
 		if err := q.SelectContext(ctx, &livestreamTagModels, "SELECT id, livestream_id, tag_id FROM livestream_tags WHERE livestream_id = ?", livestreamModel.ID); err != nil {
 			return nil, fmt.Errorf("failed to get tags of livestream %d: %w", livestreamModel.ID, err)
 		}

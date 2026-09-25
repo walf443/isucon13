@@ -8,7 +8,6 @@ import (
 
 	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
-	"github.com/jmoiron/sqlx"
 )
 
 type livestreamRepository struct {
@@ -56,17 +55,29 @@ func (r *livestreamRepository) FindAllByUserID(ctx context.Context, q repository
 	return livestreamModels, nil
 }
 
-func (r *livestreamRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id domain.LivestreamID) (*domain.Livestream, error) {
-	var livestreamModel domain.LivestreamModel
-	err := q.GetContext(ctx, &livestreamModel, "SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM livestreams WHERE id = ?", id)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, repository.ErrNotFound
+func (r *livestreamRepository) FindAllOrderByIDDesc(ctx context.Context, q repository.Querier) ([]*domain.LivestreamModel, error) {
+	var livestreamModels []*domain.LivestreamModel
+	if err := q.SelectContext(ctx, &livestreamModels, "SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM livestreams ORDER BY id DESC"); err != nil {
+		return nil, err
 	}
+	return livestreamModels, nil
+}
+
+func (r *livestreamRepository) FindAllOrderByIDDescLimited(ctx context.Context, q repository.Querier, limit domain.Limit) ([]*domain.LivestreamModel, error) {
+	var livestreamModels []*domain.LivestreamModel
+	if err := q.SelectContext(ctx, &livestreamModels, "SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM livestreams ORDER BY id DESC LIMIT ?", limit); err != nil {
+		return nil, err
+	}
+	return livestreamModels, nil
+}
+
+func (r *livestreamRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id domain.LivestreamID) (*domain.Livestream, error) {
+	livestreamModel, err := r.FindByID(ctx, q, id)
 	if err != nil {
 		return nil, err
 	}
 
-	livestreams, err := fillLivestreams(ctx, q, []*domain.LivestreamModel{&livestreamModel}, r.defaultIconHash)
+	livestreams, err := fillLivestreams(ctx, q, []*domain.LivestreamModel{livestreamModel}, r.defaultIconHash)
 	if err != nil {
 		return nil, err
 	}
@@ -74,20 +85,16 @@ func (r *livestreamRepository) FindWithDetailsByID(ctx context.Context, q reposi
 }
 
 func (r *livestreamRepository) FindAllWithDetailsByUserID(ctx context.Context, q repository.Querier, userID domain.UserID) ([]*domain.Livestream, error) {
-	var livestreamModels []*domain.LivestreamModel
-	if err := q.SelectContext(ctx, &livestreamModels, "SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM livestreams WHERE user_id = ?", userID); err != nil {
+	livestreamModels, err := r.FindAllByUserID(ctx, q, userID)
+	if err != nil {
 		return nil, err
 	}
 	return fillLivestreams(ctx, q, livestreamModels, r.defaultIconHash)
 }
 
 func (r *livestreamRepository) FindAllWithDetailsByTagIDs(ctx context.Context, q repository.Querier, tagIDs []domain.TagID) ([]*domain.Livestream, error) {
-	query, params, err := sqlx.In("SELECT id, livestream_id, tag_id FROM livestream_tags WHERE tag_id IN (?) ORDER BY livestream_id DESC", tagIDs)
+	livestreamTagModels, err := NewLivestreamTagRepository().FindAllByTagIDs(ctx, q, tagIDs)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct IN query: %w", err)
-	}
-	var livestreamTagModels []*livestreamTagModel
-	if err := q.SelectContext(ctx, &livestreamTagModels, query, params...); err != nil {
 		return nil, err
 	}
 
@@ -103,16 +110,16 @@ func (r *livestreamRepository) FindAllWithDetailsByTagIDs(ctx context.Context, q
 }
 
 func (r *livestreamRepository) FindAllWithDetails(ctx context.Context, q repository.Querier) ([]*domain.Livestream, error) {
-	var livestreamModels []*domain.LivestreamModel
-	if err := q.SelectContext(ctx, &livestreamModels, "SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM livestreams ORDER BY id DESC"); err != nil {
+	livestreamModels, err := r.FindAllOrderByIDDesc(ctx, q)
+	if err != nil {
 		return nil, err
 	}
 	return fillLivestreams(ctx, q, livestreamModels, r.defaultIconHash)
 }
 
 func (r *livestreamRepository) FindAllWithDetailsLimited(ctx context.Context, q repository.Querier, limit domain.Limit) ([]*domain.Livestream, error) {
-	var livestreamModels []*domain.LivestreamModel
-	if err := q.SelectContext(ctx, &livestreamModels, "SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM livestreams ORDER BY id DESC LIMIT ?", limit); err != nil {
+	livestreamModels, err := r.FindAllOrderByIDDescLimited(ctx, q, limit)
+	if err != nil {
 		return nil, err
 	}
 	return fillLivestreams(ctx, q, livestreamModels, r.defaultIconHash)

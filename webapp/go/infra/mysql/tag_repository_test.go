@@ -2,9 +2,11 @@ package mysql
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
+	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 func TestTagRepository_FindAll(t *testing.T) {
@@ -77,5 +79,29 @@ func TestTagRepository_FindIDsByName(t *testing.T) {
 	}
 	if len(ids) != 0 {
 		t.Errorf("ids = %v, want empty", ids)
+	}
+}
+
+func TestTagRepository_FindByID(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	res, err := tx.ExecContext(ctx, "INSERT INTO tags (name) VALUES (?)", "ゲーム実況")
+	if err != nil {
+		t.Fatalf("failed to insert tag: %v", err)
+	}
+	lastID, _ := res.LastInsertId()
+	repo := NewTagRepository()
+
+	got, err := repo.FindByID(ctx, tx, domain.TagID(lastID))
+	if err != nil {
+		t.Fatalf("FindByID returned error: %v", err)
+	}
+	if want := (domain.TagModel{ID: domain.TagID(lastID), Name: "ゲーム実況"}); *got != want {
+		t.Errorf("tag = %+v, want %+v", *got, want)
+	}
+
+	if _, err := repo.FindByID(ctx, tx, 999999); !errors.Is(err, repository.ErrNotFound) {
+		t.Errorf("err = %v, want ErrNotFound", err)
 	}
 }
