@@ -14,7 +14,7 @@ import (
 
 func insertTestReaction(t *testing.T, tx repository.Querier, userID domain.UserID, livestreamID domain.LivestreamID, emojiName string) {
 	t.Helper()
-	if _, err := NewReactionRepository("").Create(context.Background(), tx, &domain.ReactionModel{UserID: userID, LivestreamID: livestreamID, EmojiName: emojiName, CreatedAt: 100}); err != nil {
+	if _, err := NewReactionRepository().Create(context.Background(), tx, &domain.ReactionModel{UserID: userID, LivestreamID: livestreamID, EmojiName: emojiName, CreatedAt: 100}); err != nil {
 		t.Fatalf("failed to insert reaction: %v", err)
 	}
 }
@@ -54,7 +54,7 @@ func TestUserRepository_FindAll(t *testing.T) {
 func TestReactionRepository_CountByLivestreamOwner(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)
-	repo := NewReactionRepository("")
+	repo := NewReactionRepository()
 
 	ownerID := insertTestUser(t, tx, "alice")
 	otherOwnerID := insertTestUser(t, tx, "bob")
@@ -95,7 +95,7 @@ func TestReactionRepository_CountByLivestreamOwner(t *testing.T) {
 func TestReactionRepository_FindFavoriteEmojiByLivestreamOwnerName(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)
-	repo := NewReactionRepository("")
+	repo := NewReactionRepository()
 
 	ownerID := insertTestUser(t, tx, "alice")
 	viewerID := insertTestUser(t, tx, "bob")

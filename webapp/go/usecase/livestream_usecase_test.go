@@ -78,7 +78,7 @@ func TestLivestreamUsecase_FindByID_Errors(t *testing.T) {
 			// 配信者の欠損はデータ不整合なので 404 (ErrLivestreamNotFound) にしない
 			name:           "owner not found",
 			livestreamRepo: newLivestreamRepositoryWithModels(nil, testLivestreamModel1),
-			modify:         func(f *livestreamFixture) { delete(f.owners, 42) },
+			modify:         func(f *livestreamFixture) { delete(f.users, 42) },
 			wantErr:        repository.ErrNotFound,
 			wantMsg:        "failed to get livestream: failed to get owner of livestream 1: not found",
 		},

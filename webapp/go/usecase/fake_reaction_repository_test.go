@@ -12,27 +12,27 @@ import (
 type fakeReactionRepository struct {
 	repository.ReactionRepository
 
-	findWithDetailsByID                     func(ctx context.Context, q repository.Querier, id domain.ReactionID) (*domain.Reaction, error)
-	findAllWithDetailsByLivestreamID        func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Reaction, error)
-	findAllWithDetailsByLivestreamIDLimited func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Reaction, error)
-	create                                  func(ctx context.Context, q repository.Querier, reaction *domain.ReactionModel) (domain.ReactionID, error)
-	countByLivestreamID                     func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error)
-	countTotalByLivestreamID                func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error)
-	countByLivestreamOwnerID                func(ctx context.Context, q repository.Querier, userID domain.UserID) (int64, error)
-	countByLivestreamOwnerName              func(ctx context.Context, q repository.Querier, name string) (int64, error)
-	findFavoriteEmojiByLivestreamOwnerName  func(ctx context.Context, q repository.Querier, name string) (string, error)
+	findByID                                         func(ctx context.Context, q repository.Querier, id domain.ReactionID) (*domain.ReactionModel, error)
+	findAllByLivestreamIDOrderByCreatedAtDesc        func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.ReactionModel, error)
+	findAllByLivestreamIDOrderByCreatedAtDescLimited func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.ReactionModel, error)
+	create                                           func(ctx context.Context, q repository.Querier, reaction *domain.ReactionModel) (domain.ReactionID, error)
+	countByLivestreamID                              func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error)
+	countTotalByLivestreamID                         func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error)
+	countByLivestreamOwnerID                         func(ctx context.Context, q repository.Querier, userID domain.UserID) (int64, error)
+	countByLivestreamOwnerName                       func(ctx context.Context, q repository.Querier, name string) (int64, error)
+	findFavoriteEmojiByLivestreamOwnerName           func(ctx context.Context, q repository.Querier, name string) (string, error)
 }
 
-func (r *fakeReactionRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id domain.ReactionID) (*domain.Reaction, error) {
-	return r.findWithDetailsByID(ctx, q, id)
+func (r *fakeReactionRepository) FindByID(ctx context.Context, q repository.Querier, id domain.ReactionID) (*domain.ReactionModel, error) {
+	return r.findByID(ctx, q, id)
 }
 
-func (r *fakeReactionRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Reaction, error) {
-	return r.findAllWithDetailsByLivestreamID(ctx, q, livestreamID)
+func (r *fakeReactionRepository) FindAllByLivestreamIDOrderByCreatedAtDesc(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.ReactionModel, error) {
+	return r.findAllByLivestreamIDOrderByCreatedAtDesc(ctx, q, livestreamID)
 }
 
-func (r *fakeReactionRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Reaction, error) {
-	return r.findAllWithDetailsByLivestreamIDLimited(ctx, q, livestreamID, limit)
+func (r *fakeReactionRepository) FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.ReactionModel, error) {
+	return r.findAllByLivestreamIDOrderByCreatedAtDescLimited(ctx, q, livestreamID, limit)
 }
 
 func (r *fakeReactionRepository) Create(ctx context.Context, q repository.Querier, reaction *domain.ReactionModel) (domain.ReactionID, error) {

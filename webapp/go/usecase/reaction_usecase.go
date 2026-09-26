@@ -18,28 +18,41 @@ type ReactionUsecase interface {
 }
 
 type reactionUsecase struct {
-	txManager    repository.TxManager
-	reactionRepo repository.ReactionRepository
+	txManager      repository.TxManager
+	reactionRepo   repository.ReactionRepository
+	reactionFiller *ReactionFiller
 	// now は現在時刻を返す。テストで差し替えられるようにしている。
 	now func() time.Time
 }
 
-func NewReactionUsecase(txManager repository.TxManager, reactionRepo repository.ReactionRepository) ReactionUsecase {
-	return &reactionUsecase{txManager: txManager, reactionRepo: reactionRepo, now: time.Now}
+func NewReactionUsecase(txManager repository.TxManager, reactionRepo repository.ReactionRepository, reactionFiller *ReactionFiller) ReactionUsecase {
+	return &reactionUsecase{txManager: txManager, reactionRepo: reactionRepo, reactionFiller: reactionFiller, now: time.Now}
+}
+
+// reactionModelID は orderedBy に渡すための、リアクションの ID を取り出す関数。
+func reactionModelID(reactionModel *domain.ReactionModel) domain.ReactionID {
+	return reactionModel.ID
 }
 
 func (u *reactionUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.Reaction, error) {
 	var reactions []*domain.Reaction
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
+		var reactionModels []*domain.ReactionModel
 		var err error
 		if limit == nil {
-			reactions, err = u.reactionRepo.FindAllWithDetailsByLivestreamID(ctx, q, livestreamID)
+			reactionModels, err = u.reactionRepo.FindAllByLivestreamIDOrderByCreatedAtDesc(ctx, q, livestreamID)
 		} else {
-			reactions, err = u.reactionRepo.FindAllWithDetailsByLivestreamIDLimited(ctx, q, livestreamID, *limit)
+			reactionModels, err = u.reactionRepo.FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx, q, livestreamID, *limit)
 		}
 		if err != nil {
 			return fmt.Errorf("failed to get reactions: %w", err)
 		}
+
+		filled, err := u.reactionFiller.Fill(ctx, q, reactionModels)
+		if err != nil {
+			return fmt.Errorf("failed to get reactions: %w", err)
+		}
+		reactions = orderedBy(reactionModels, reactionModelID, filled)
 		return nil
 	})
 	if err != nil {
@@ -61,10 +74,15 @@ func (u *reactionUsecase) Create(ctx context.Context, userID domain.UserID, live
 			return fmt.Errorf("failed to insert reaction: %w", err)
 		}
 
-		reaction, err = u.reactionRepo.FindWithDetailsByID(ctx, q, reactionID)
+		reactionModel, err := u.reactionRepo.FindByID(ctx, q, reactionID)
 		if err != nil {
 			return fmt.Errorf("failed to fill reaction: %w", err)
 		}
+		reactions, err := u.reactionFiller.Fill(ctx, q, []*domain.ReactionModel{reactionModel})
+		if err != nil {
+			return fmt.Errorf("failed to fill reaction: %w", err)
+		}
+		reaction = reactions[reactionID]
 		return nil
 	})
 	if err != nil {

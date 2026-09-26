@@ -332,7 +332,7 @@ func TestLivestreamReservationUsecase_Reserve_FillFails(t *testing.T) {
 	var addedTagIDs []domain.TagID
 	livestreamRepo, livestreamTagRepo := newLivestreamRepositoriesForReserve(t, &livestreamCalls, &created, &addedTagIDs, livestreamReserveResults{livestream: testReservedLivestreamModel})
 	f := testLivestreamFixture()
-	delete(f.owners, 42)
+	delete(f.users, 42)
 	u := NewLivestreamReservationUsecase(&fakeTxManager{}, livestreamRepo, livestreamTagRepo, slotRepo, f.filler(), &fakeLogger{})
 
 	_, err := u.Reserve(context.Background(), 1, testReserveInput)

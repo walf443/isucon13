@@ -9,13 +9,10 @@ import (
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
-type reactionRepository struct {
-	// defaultIconHash はアイコン未登録のユーザに使う既定のアイコンのハッシュ。
-	defaultIconHash domain.IconHash
-}
+type reactionRepository struct{}
 
-func NewReactionRepository(defaultIconHash domain.IconHash) repository.ReactionRepository {
-	return &reactionRepository{defaultIconHash: defaultIconHash}
+func NewReactionRepository() repository.ReactionRepository {
+	return &reactionRepository{}
 }
 
 func (r *reactionRepository) FindByID(ctx context.Context, q repository.Querier, id domain.ReactionID) (*domain.ReactionModel, error) {
@@ -44,35 +41,6 @@ func (r *reactionRepository) FindAllByLivestreamIDOrderByCreatedAtDescLimited(ct
 		return nil, err
 	}
 	return reactionModels, nil
-}
-
-func (r *reactionRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id domain.ReactionID) (*domain.Reaction, error) {
-	reactionModel, err := r.FindByID(ctx, q, id)
-	if err != nil {
-		return nil, err
-	}
-
-	reactions, err := fillReactions(ctx, q, []*domain.ReactionModel{reactionModel}, r.defaultIconHash)
-	if err != nil {
-		return nil, err
-	}
-	return reactions[0], nil
-}
-
-func (r *reactionRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Reaction, error) {
-	reactionModels, err := r.FindAllByLivestreamIDOrderByCreatedAtDesc(ctx, q, livestreamID)
-	if err != nil {
-		return nil, err
-	}
-	return fillReactions(ctx, q, reactionModels, r.defaultIconHash)
-}
-
-func (r *reactionRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Reaction, error) {
-	reactionModels, err := r.FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx, q, livestreamID, limit)
-	if err != nil {
-		return nil, err
-	}
-	return fillReactions(ctx, q, reactionModels, r.defaultIconHash)
 }
 
 func (r *reactionRepository) Create(ctx context.Context, q repository.Querier, reaction *domain.ReactionModel) (domain.ReactionID, error) {

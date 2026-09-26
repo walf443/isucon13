@@ -11,21 +11,25 @@ import (
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
-// livestreamFixture は LivestreamFiller が引くデータ (配信者・タグ) を持つ。
-// 配信者のテーマは ID が配信者の ID の 10 倍のものとし、アイコンは未登録とする。
+// livestreamFixture は LivestreamFiller などが引くデータ (ユーザ・タグ) を持つ。
+// ユーザのテーマは ID がユーザの ID の 10 倍のものとし、アイコンは未登録とする。
 type livestreamFixture struct {
-	owners map[domain.UserID]*domain.UserModel
-	tags   map[domain.TagID]*domain.TagModel
+	users map[domain.UserID]*domain.UserModel
+	tags  map[domain.TagID]*domain.TagModel
 	// livestreamTags はライブ配信ごとに付いているタグの ID。
 	livestreamTags map[domain.LivestreamID][]domain.TagID
 	// calls は呼ばれた repository のメソッドと引数を記録する。
 	calls []string
 }
 
-// testLivestreamFixture は配信者 alice (ID 42) とタグ 7, 8 を持ち、ライブ配信 1 にタグ 7, 8、ライブ配信 2 にタグ 7 が付いている。
+// testLivestreamFixture は配信者 alice (ID 42)・視聴者 bob (ID 43) とタグ 7, 8 を持ち、
+// ライブ配信 1 にタグ 7, 8、ライブ配信 2 にタグ 7 が付いている。
 func testLivestreamFixture() *livestreamFixture {
 	return &livestreamFixture{
-		owners: map[domain.UserID]*domain.UserModel{42: {ID: 42, Name: "alice"}},
+		users: map[domain.UserID]*domain.UserModel{
+			42: {ID: 42, Name: "alice"},
+			43: {ID: 43, Name: "bob", DisplayName: "Bob"},
+		},
 		tags: map[domain.TagID]*domain.TagModel{
 			7: {ID: 7, Name: "ゲーム実況"},
 			8: {ID: 8, Name: "雑談"},
@@ -38,21 +42,43 @@ func (f *livestreamFixture) record(call string) {
 	f.calls = append(f.calls, call)
 }
 
-func (f *livestreamFixture) filler() *LivestreamFiller {
-	themes := map[domain.UserID]*domain.ThemeModel{}
-	for id := range f.owners {
-		themes[id] = &domain.ThemeModel{ID: domain.ThemeID(id * 10), UserID: id}
-	}
-	userRepo := &fakeUserRepository{
+// userRepo は f のユーザを ID で引ける fakeUserRepository を返す。
+func (f *livestreamFixture) userRepo() *fakeUserRepository {
+	return &fakeUserRepository{
 		findByID: func(_ context.Context, _ repository.Querier, id domain.UserID) (*domain.UserModel, error) {
 			f.record(fmt.Sprintf("user %d", id))
-			owner, ok := f.owners[id]
+			user, ok := f.users[id]
 			if !ok {
 				return nil, repository.ErrNotFound
 			}
-			return owner, nil
+			return user, nil
 		},
 	}
+}
+
+// userFiller は f のユーザのテーマを返す UserFiller を返す。
+func (f *livestreamFixture) userFiller() *UserFiller {
+	themes := map[domain.UserID]*domain.ThemeModel{}
+	for id := range f.users {
+		themes[id] = &domain.ThemeModel{ID: domain.ThemeID(id * 10), UserID: id}
+	}
+	return newUserFillerForTest(themes, nil, nil)
+}
+
+// user は、このデータでユーザ id を埋めた結果として期待する domain.User を返す。
+func (f *livestreamFixture) user(id domain.UserID) domain.User {
+	user := f.users[id]
+	return domain.User{
+		ID:          user.ID,
+		Name:        user.Name,
+		DisplayName: user.DisplayName,
+		Description: user.Description,
+		Theme:       domain.ThemeModel{ID: domain.ThemeID(user.ID * 10), UserID: user.ID},
+		IconHash:    "default-hash",
+	}
+}
+
+func (f *livestreamFixture) filler() *LivestreamFiller {
 	livestreamTagRepo := &fakeLivestreamTagRepository{
 		findAllByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivestreamTagModel, error) {
 			f.record(fmt.Sprintf("livestream tags %d", livestreamID))
@@ -73,26 +99,18 @@ func (f *livestreamFixture) filler() *LivestreamFiller {
 			return tag, nil
 		},
 	}
-	return NewLivestreamFiller(userRepo, livestreamTagRepo, tagRepo, newUserFillerForTest(themes, nil, nil))
+	return NewLivestreamFiller(f.userRepo(), livestreamTagRepo, tagRepo, f.userFiller())
 }
 
 // livestream は、このデータで livestreamModel を埋めた結果として期待する domain.Livestream を返す。
 func (f *livestreamFixture) livestream(livestreamModel *domain.LivestreamModel) *domain.Livestream {
-	owner := f.owners[livestreamModel.UserID]
 	tags := make([]domain.TagModel, len(f.livestreamTags[livestreamModel.ID]))
 	for i, tagID := range f.livestreamTags[livestreamModel.ID] {
 		tags[i] = *f.tags[tagID]
 	}
 	return &domain.Livestream{
-		ID: livestreamModel.ID,
-		Owner: domain.User{
-			ID:          owner.ID,
-			Name:        owner.Name,
-			DisplayName: owner.DisplayName,
-			Description: owner.Description,
-			Theme:       domain.ThemeModel{ID: domain.ThemeID(owner.ID * 10), UserID: owner.ID},
-			IconHash:    "default-hash",
-		},
+		ID:           livestreamModel.ID,
+		Owner:        f.user(livestreamModel.UserID),
 		Title:        livestreamModel.Title,
 		Description:  livestreamModel.Description,
 		PlaylistUrl:  livestreamModel.PlaylistUrl,
@@ -139,7 +157,7 @@ func TestLivestreamFiller_Fill_Errors(t *testing.T) {
 	}{
 		{
 			name:    "owner not found",
-			modify:  func(f *livestreamFixture) { delete(f.owners, 42) },
+			modify:  func(f *livestreamFixture) { delete(f.users, 42) },
 			wantErr: repository.ErrNotFound,
 			wantMsg: "failed to get owner of livestream 1: not found",
 		},

@@ -68,7 +68,7 @@ func TestLivestreamStatisticsQueries(t *testing.T) {
 		t.Fatalf("failed to insert report: %v", err)
 	}
 
-	reactionRepo := NewReactionRepository("")
+	reactionRepo := NewReactionRepository()
 	livecommentRepo := NewLivecommentRepository("")
 
 	tests := []struct {

@@ -7,13 +7,6 @@ import (
 )
 
 type ReactionRepository interface {
-	// FindWithDetailsByID はユーザ・ライブ配信を含めたリアクションを返す。
-	// リアクションが存在しない場合 ErrNotFound を返す。
-	FindWithDetailsByID(ctx context.Context, q Querier, id domain.ReactionID) (*domain.Reaction, error)
-	// FindAllWithDetailsByLivestreamID は指定したライブ配信へのリアクションを、作成日時の降順で返す。
-	FindAllWithDetailsByLivestreamID(ctx context.Context, q Querier, livestreamID domain.LivestreamID) ([]*domain.Reaction, error)
-	// FindAllWithDetailsByLivestreamIDLimited は指定したライブ配信へのリアクションを、作成日時の降順で最大 limit 件返す。
-	FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Reaction, error)
 	// FindByID はリアクションが存在しない場合 ErrNotFound を返す。
 	FindByID(ctx context.Context, q Querier, id domain.ReactionID) (*domain.ReactionModel, error)
 	// FindAllByLivestreamIDOrderByCreatedAtDesc は指定したライブ配信へのリアクションを、作成日時の降順で返す。

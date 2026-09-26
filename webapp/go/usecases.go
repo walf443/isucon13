@@ -30,7 +30,7 @@ func newUsecases(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 	iconRepo := mysql.NewIconRepository()
 	livestreamRepo := mysql.NewLivestreamRepository()
 	livestreamTagRepo := mysql.NewLivestreamTagRepository()
-	reactionRepo := mysql.NewReactionRepository(defaultIconHash)
+	reactionRepo := mysql.NewReactionRepository()
 	livecommentRepo := mysql.NewLivecommentRepository(defaultIconHash)
 	livecommentReportRepo := mysql.NewLivecommentReportRepository(defaultIconHash)
 	ngWordRepo := mysql.NewNGWordRepository()
@@ -39,6 +39,7 @@ func newUsecases(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 
 	userFiller := usecase.NewUserFiller(themeRepo, iconRepo, defaultIconHash)
 	livestreamFiller := usecase.NewLivestreamFiller(userRepo, livestreamTagRepo, tagRepo, userFiller)
+	reactionFiller := usecase.NewReactionFiller(userRepo, livestreamRepo, userFiller, livestreamFiller)
 
 	tagUsecase := usecase.NewTagUsecase(txManager, tagRepo)
 	themeUsecase := usecase.NewThemeUsecase(txManager, userRepo, themeRepo)
@@ -49,7 +50,7 @@ func newUsecases(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress
 	iconUsecase := usecase.NewIconUsecase(txManager, userRepo, iconRepo)
 	livestreamUsecase := usecase.NewLivestreamUsecase(txManager, userRepo, tagRepo, livestreamRepo, livestreamTagRepo, livestreamFiller)
 	livestreamReservationUsecase := usecase.NewLivestreamReservationUsecase(txManager, livestreamRepo, livestreamTagRepo, reservationSlotRepo, livestreamFiller, logger)
-	reactionUsecase := usecase.NewReactionUsecase(txManager, reactionRepo)
+	reactionUsecase := usecase.NewReactionUsecase(txManager, reactionRepo, reactionFiller)
 	livecommentUsecase := usecase.NewLivecommentUsecase(txManager, livestreamRepo, livecommentRepo, ngWordRepo, logger)
 	livecommentReportUsecase := usecase.NewLivecommentReportUsecase(txManager, livestreamRepo, livecommentRepo, livecommentReportRepo)
 	ngWordUsecase := usecase.NewNGWordUsecase(txManager, livestreamRepo, livecommentRepo, ngWordRepo)
