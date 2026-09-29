@@ -29,11 +29,6 @@ func NewReactionUsecase(txManager repository.TxManager, reactionRepo repository.
 	return &reactionUsecase{txManager: txManager, reactionRepo: reactionRepo, reactionFiller: reactionFiller, now: time.Now}
 }
 
-// reactionModelID は orderedBy に渡すための、リアクションの ID を取り出す関数。
-func reactionIDOf(reaction *domain.Reaction) domain.ReactionID {
-	return reaction.ID
-}
-
 func (u *reactionUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.ReactionDetail, error) {
 	var reactionDetails []*domain.ReactionDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
@@ -52,7 +47,7 @@ func (u *reactionUsecase) FindAllByLivestreamID(ctx context.Context, livestreamI
 		if err != nil {
 			return fmt.Errorf("failed to get reactions: %w", err)
 		}
-		reactionDetails = orderedBy(reactions, reactionIDOf, filled)
+		reactionDetails = orderedBy(reactions, filled)
 		return nil
 	})
 	if err != nil {

@@ -41,11 +41,6 @@ func NewLivecommentReportUsecase(txManager repository.TxManager, livestreamRepo 
 	}
 }
 
-// livecommentReportModelID は orderedBy に渡すための、報告の ID を取り出す関数。
-func livecommentReportIDOf(report *domain.LivecommentReport) domain.LivecommentReportID {
-	return report.ID
-}
-
 func (u *livecommentReportUsecase) FindAllByLivestreamID(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.LivecommentReportDetail, error) {
 	var reportDetails []*domain.LivecommentReportDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
@@ -66,7 +61,7 @@ func (u *livecommentReportUsecase) FindAllByLivestreamID(ctx context.Context, us
 		if err != nil {
 			return fmt.Errorf("failed to get livecomment reports: %w", err)
 		}
-		reportDetails = orderedBy(reports, livecommentReportIDOf, filled)
+		reportDetails = orderedBy(reports, filled)
 		return nil
 	})
 	if err != nil {

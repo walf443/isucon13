@@ -44,18 +44,13 @@ func NewLivestreamUsecase(txManager repository.TxManager, userRepo repository.Us
 	}
 }
 
-// livestreamModelID は orderedBy に渡すための、ライブ配信の ID を取り出す関数。
-func livestreamIDOf(livestream *domain.Livestream) domain.LivestreamID {
-	return livestream.ID
-}
-
 // fillLivestreams は livestreams に配信者・タグを埋めて、同じ順序で返す。
 func (u *livestreamUsecase) fillLivestreams(ctx context.Context, q repository.Querier, livestreams []*domain.Livestream) ([]*domain.LivestreamDetail, error) {
 	filled, err := u.livestreamFiller.Fill(ctx, q, livestreams)
 	if err != nil {
 		return nil, err
 	}
-	return orderedBy(livestreams, livestreamIDOf, filled), nil
+	return orderedBy(livestreams, filled), nil
 }
 
 func (u *livestreamUsecase) FindByID(ctx context.Context, id domain.LivestreamID) (*domain.LivestreamDetail, error) {

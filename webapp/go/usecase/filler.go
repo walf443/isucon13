@@ -6,12 +6,16 @@ import (
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
+// hasPrimaryKey は ID を PrimaryKey で取り出せるエンティティ。
+type hasPrimaryKey[K comparable] interface {
+	PrimaryKey() K
+}
+
 // orderedBy は filled (Filler の Fill の結果) の値を、models と同じ順序 (重複も含む) で並べて返す。
-// id は model から filled のキー (ID) を取り出す。
-func orderedBy[M any, K comparable, V any](models []M, id func(M) K, filled map[K]V) []V {
+func orderedBy[M hasPrimaryKey[K], K comparable, V any](models []M, filled map[K]V) []V {
 	values := make([]V, len(models))
 	for i, model := range models {
-		values[i] = filled[id(model)]
+		values[i] = filled[model.PrimaryKey()]
 	}
 	return values
 }

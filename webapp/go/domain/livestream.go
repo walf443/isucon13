@@ -18,6 +18,11 @@ type Livestream struct {
 	EndAt        int64        `db:"end_at"`
 }
 
+// PrimaryKey はエンティティを一意に識別する ID を返す。ID ごとの map に詰めたものを元の順序に並べ直すときなどに、ジェネリクスから ID を取り出すために使う。
+func (l *Livestream) PrimaryKey() LivestreamID {
+	return l.ID
+}
+
 // IsOwnedBy は userID のユーザがこのライブ配信の配信者かどうかを返す。
 func (l *Livestream) IsOwnedBy(userID UserID) bool {
 	return l.UserID == userID

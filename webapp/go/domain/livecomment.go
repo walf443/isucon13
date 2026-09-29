@@ -16,6 +16,11 @@ type Livecomment struct {
 	CreatedAt    int64         `db:"created_at"`
 }
 
+// PrimaryKey はエンティティを一意に識別する ID を返す。ID ごとの map に詰めたものを元の順序に並べ直すときなどに、ジェネリクスから ID を取り出すために使う。
+func (l *Livecomment) PrimaryKey() LivecommentID {
+	return l.ID
+}
+
 // LivecommentDetail はコメントしたユーザ・ライブ配信を含めたライブコメントの情報。
 type LivecommentDetail struct {
 	ID         LivecommentID
@@ -34,6 +39,11 @@ type LivecommentReport struct {
 	LivestreamID  LivestreamID        `db:"livestream_id"`
 	LivecommentID LivecommentID       `db:"livecomment_id"`
 	CreatedAt     int64               `db:"created_at"`
+}
+
+// PrimaryKey はエンティティを一意に識別する ID を返す。ID ごとの map に詰めたものを元の順序に並べ直すときなどに、ジェネリクスから ID を取り出すために使う。
+func (r *LivecommentReport) PrimaryKey() LivecommentReportID {
+	return r.ID
 }
 
 // LivecommentReportDetail は報告したユーザ・報告されたライブコメントを含めた報告の情報。
