@@ -17,7 +17,7 @@ type reactionResponse struct {
 	CreatedAt  int64              `json:"created_at"`
 }
 
-func newReaction(r *domain.Reaction) reactionResponse {
+func newReaction(r *domain.ReactionDetail) reactionResponse {
 	return reactionResponse{
 		ID:         r.ID,
 		EmojiName:  r.EmojiName,

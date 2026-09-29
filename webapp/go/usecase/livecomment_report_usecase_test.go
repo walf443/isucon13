@@ -38,7 +38,7 @@ func TestLivecommentReportUsecase_FindAllByLivestreamID(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// repository が返した順序のまま
-	want := []*domain.LivecommentReport{
+	want := []*domain.LivecommentReportDetail{
 		f.report(testReportModel2, testLivecommentModel2, testLivestreamModel1),
 		f.report(testReportModel1, testLivecommentModel1, testLivestreamModel1),
 	}

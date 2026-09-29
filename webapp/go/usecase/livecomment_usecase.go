@@ -13,10 +13,10 @@ import (
 type LivecommentUsecase interface {
 	// FindAllByLivestreamID は指定したライブ配信へのライブコメントを作成日時の降順で返す。
 	// limit が nil でなければ最大 *limit 件に絞る。
-	FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.Livecomment, error)
+	FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.LivecommentDetail, error)
 	// Create はライブコメントを投稿し、ユーザ・ライブ配信を含めて返す。
 	// ライブ配信が存在しない場合 ErrLivestreamNotFound、配信者の NG ワードに当たった場合 ErrSpamLivecomment を返す。
-	Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, comment string, tip int64) (*domain.Livecomment, error)
+	Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, comment string, tip int64) (*domain.LivecommentDetail, error)
 }
 
 type livecommentUsecase struct {
@@ -47,8 +47,8 @@ func livecommentModelID(livecommentModel *domain.LivecommentModel) domain.Liveco
 	return livecommentModel.ID
 }
 
-func (u *livecommentUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.Livecomment, error) {
-	var livecomments []*domain.Livecomment
+func (u *livecommentUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.LivecommentDetail, error) {
+	var livecomments []*domain.LivecommentDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		var livecommentModels []*domain.LivecommentModel
 		var err error
@@ -74,8 +74,8 @@ func (u *livecommentUsecase) FindAllByLivestreamID(ctx context.Context, livestre
 	return livecomments, nil
 }
 
-func (u *livecommentUsecase) Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, comment string, tip int64) (*domain.Livecomment, error) {
-	var livecomment *domain.Livecomment
+func (u *livecommentUsecase) Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, comment string, tip int64) (*domain.LivecommentDetail, error) {
+	var livecomment *domain.LivecommentDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		livestream, err := u.livestreamRepo.FindByID(ctx, q, livestreamID)
 		if errors.Is(err, repository.ErrNotFound) {

@@ -66,9 +66,9 @@ func (f *livestreamFixture) userFiller() *UserFiller {
 }
 
 // user は、このデータでユーザ id を埋めた結果として期待する domain.User を返す。
-func (f *livestreamFixture) user(id domain.UserID) domain.User {
+func (f *livestreamFixture) user(id domain.UserID) domain.UserDetail {
 	user := f.users[id]
-	return domain.User{
+	return domain.UserDetail{
 		ID:          user.ID,
 		Name:        user.Name,
 		DisplayName: user.DisplayName,
@@ -103,12 +103,12 @@ func (f *livestreamFixture) filler() *LivestreamFiller {
 }
 
 // livestream は、このデータで livestreamModel を埋めた結果として期待する domain.Livestream を返す。
-func (f *livestreamFixture) livestream(livestreamModel *domain.LivestreamModel) *domain.Livestream {
+func (f *livestreamFixture) livestream(livestreamModel *domain.LivestreamModel) *domain.LivestreamDetail {
 	tags := make([]domain.TagModel, len(f.livestreamTags[livestreamModel.ID]))
 	for i, tagID := range f.livestreamTags[livestreamModel.ID] {
 		tags[i] = *f.tags[tagID]
 	}
-	return &domain.Livestream{
+	return &domain.LivestreamDetail{
 		ID:           livestreamModel.ID,
 		Owner:        f.user(livestreamModel.UserID),
 		Title:        livestreamModel.Title,
@@ -135,7 +135,7 @@ func TestLivestreamFiller_Fill(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	want := map[domain.LivestreamID]*domain.Livestream{
+	want := map[domain.LivestreamID]*domain.LivestreamDetail{
 		1: f.livestream(testLivestreamModel1),
 		2: f.livestream(testLivestreamModel2),
 	}

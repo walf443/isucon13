@@ -11,8 +11,8 @@ import (
 )
 
 type fakeReactionUsecase struct {
-	reactions []*domain.Reaction
-	reaction  *domain.Reaction
+	reactions []*domain.ReactionDetail
+	reaction  *domain.ReactionDetail
 	err       error
 
 	gotLivestreamID domain.LivestreamID
@@ -21,13 +21,13 @@ type fakeReactionUsecase struct {
 	gotEmojiName    string
 }
 
-func (u *fakeReactionUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.Reaction, error) {
+func (u *fakeReactionUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.ReactionDetail, error) {
 	u.gotLivestreamID = livestreamID
 	u.gotLimit = limit
 	return u.reactions, u.err
 }
 
-func (u *fakeReactionUsecase) Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, emojiName string) (*domain.Reaction, error) {
+func (u *fakeReactionUsecase) Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, emojiName string) (*domain.ReactionDetail, error) {
 	u.gotUserID = userID
 	u.gotLivestreamID = livestreamID
 	u.gotEmojiName = emojiName
@@ -35,13 +35,13 @@ func (u *fakeReactionUsecase) Create(ctx context.Context, userID domain.UserID, 
 }
 
 var (
-	testReaction = &domain.Reaction{
+	testReaction = &domain.ReactionDetail{
 		ID:        100,
 		EmojiName: "tada",
-		User:      domain.User{ID: 1, Name: "bob", Theme: domain.ThemeModel{ID: 11, UserID: 1}, IconHash: "bbb"},
-		Livestream: domain.Livestream{
+		User:      domain.UserDetail{ID: 1, Name: "bob", Theme: domain.ThemeModel{ID: 11, UserID: 1}, IconHash: "bbb"},
+		Livestream: domain.LivestreamDetail{
 			ID:    10,
-			Owner: domain.User{ID: 2, Name: "alice", Theme: domain.ThemeModel{ID: 12, UserID: 2, DarkMode: true}, IconHash: "aaa"},
+			Owner: domain.UserDetail{ID: 2, Name: "alice", Theme: domain.ThemeModel{ID: 12, UserID: 2, DarkMode: true}, IconHash: "aaa"},
 			Title: "stream",
 		},
 		CreatedAt: 1700000000,
@@ -66,7 +66,7 @@ func TestReactionHandler_GetReactions(t *testing.T) {
 			name:     "returns reactions",
 			path:     "/api/livestream/10/reaction",
 			cookie:   sessionAs(1),
-			usecase:  &fakeReactionUsecase{reactions: []*domain.Reaction{testReaction}},
+			usecase:  &fakeReactionUsecase{reactions: []*domain.ReactionDetail{testReaction}},
 			wantCode: http.StatusOK,
 			wantBody: "[" + testReactionJSON + "]\n",
 		},

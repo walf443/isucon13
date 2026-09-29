@@ -23,7 +23,7 @@ type userResponse struct {
 	IconHash    string        `json:"icon_hash,omitempty"`
 }
 
-func newUser(u *domain.User) userResponse {
+func newUser(u *domain.UserDetail) userResponse {
 	return userResponse{
 		ID:          u.ID,
 		Name:        u.Name,

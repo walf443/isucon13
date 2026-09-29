@@ -124,7 +124,7 @@ func TestLivestreamUsecase_FindAllByUserID(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// repository が返した順序のまま
-	if want := []*domain.Livestream{f.livestream(testLivestreamModel2), f.livestream(testLivestreamModel1)}; !reflect.DeepEqual(got, want) {
+	if want := []*domain.LivestreamDetail{f.livestream(testLivestreamModel2), f.livestream(testLivestreamModel1)}; !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
 }
@@ -164,7 +164,7 @@ func TestLivestreamUsecase_FindAllByUsername(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := []*domain.Livestream{f.livestream(testLivestreamModel1)}; !reflect.DeepEqual(got, want) {
+	if want := []*domain.LivestreamDetail{f.livestream(testLivestreamModel1)}; !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
 }
@@ -242,7 +242,7 @@ func TestLivestreamUsecase_FindAllByTagName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	want := []*domain.Livestream{f.livestream(testLivestreamModel2), f.livestream(testLivestreamModel1), f.livestream(testLivestreamModel1)}
+	want := []*domain.LivestreamDetail{f.livestream(testLivestreamModel2), f.livestream(testLivestreamModel1), f.livestream(testLivestreamModel1)}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
@@ -348,7 +348,7 @@ func TestLivestreamUsecase_FindAll(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if want := []*domain.Livestream{f.livestream(testLivestreamModel2), f.livestream(testLivestreamModel1)}; !reflect.DeepEqual(got, want) {
+			if want := []*domain.LivestreamDetail{f.livestream(testLivestreamModel2), f.livestream(testLivestreamModel1)}; !reflect.DeepEqual(got, want) {
 				t.Errorf("got %+v, want %+v", got, want)
 			}
 			if !slices.Equal(calls, tt.wantCalls) {

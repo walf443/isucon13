@@ -14,8 +14,8 @@ import (
 )
 
 type fakeLivestreamUsecase struct {
-	livestream  *domain.Livestream
-	livestreams []*domain.Livestream
+	livestream  *domain.LivestreamDetail
+	livestreams []*domain.LivestreamDetail
 	err         error
 
 	gotID       domain.LivestreamID
@@ -28,48 +28,48 @@ type fakeLivestreamUsecase struct {
 }
 
 type fakeLivestreamReservationUsecase struct {
-	livestream *domain.Livestream
+	livestream *domain.LivestreamDetail
 	err        error
 
 	gotUserID domain.UserID
 	gotInput  usecase.ReserveLivestreamInput
 }
 
-func (u *fakeLivestreamReservationUsecase) Reserve(ctx context.Context, userID domain.UserID, input usecase.ReserveLivestreamInput) (*domain.Livestream, error) {
+func (u *fakeLivestreamReservationUsecase) Reserve(ctx context.Context, userID domain.UserID, input usecase.ReserveLivestreamInput) (*domain.LivestreamDetail, error) {
 	u.gotUserID = userID
 	u.gotInput = input
 	return u.livestream, u.err
 }
 
-func (u *fakeLivestreamUsecase) FindAllByTagName(ctx context.Context, tagName string) ([]*domain.Livestream, error) {
+func (u *fakeLivestreamUsecase) FindAllByTagName(ctx context.Context, tagName string) ([]*domain.LivestreamDetail, error) {
 	u.calls = append(u.calls, "FindAllByTagName")
 	u.gotTagName = tagName
 	return u.livestreams, u.err
 }
 
-func (u *fakeLivestreamUsecase) FindAll(ctx context.Context, limit *domain.Limit) ([]*domain.Livestream, error) {
+func (u *fakeLivestreamUsecase) FindAll(ctx context.Context, limit *domain.Limit) ([]*domain.LivestreamDetail, error) {
 	u.calls = append(u.calls, "FindAll")
 	u.gotLimit = limit
 	return u.livestreams, u.err
 }
 
-func (u *fakeLivestreamUsecase) FindAllByUsername(ctx context.Context, username string) ([]*domain.Livestream, error) {
+func (u *fakeLivestreamUsecase) FindAllByUsername(ctx context.Context, username string) ([]*domain.LivestreamDetail, error) {
 	u.gotUsername = username
 	return u.livestreams, u.err
 }
 
-func (u *fakeLivestreamUsecase) FindAllByUserID(ctx context.Context, userID domain.UserID) ([]*domain.Livestream, error) {
+func (u *fakeLivestreamUsecase) FindAllByUserID(ctx context.Context, userID domain.UserID) ([]*domain.LivestreamDetail, error) {
 	u.gotUserID = userID
 	return u.livestreams, u.err
 }
 
-func (u *fakeLivestreamUsecase) FindByID(ctx context.Context, id domain.LivestreamID) (*domain.Livestream, error) {
+func (u *fakeLivestreamUsecase) FindByID(ctx context.Context, id domain.LivestreamID) (*domain.LivestreamDetail, error) {
 	u.gotID = id
 	return u.livestream, u.err
 }
 
 func TestLivestreamHandler_GetLivestream(t *testing.T) {
-	owner := domain.User{
+	owner := domain.UserDetail{
 		ID:          2,
 		Name:        "alice",
 		DisplayName: "Alice",
@@ -90,7 +90,7 @@ func TestLivestreamHandler_GetLivestream(t *testing.T) {
 			name:   "returns livestream",
 			path:   "/api/livestream/10",
 			cookie: sessionAs(1),
-			usecase: &fakeLivestreamUsecase{livestream: &domain.Livestream{
+			usecase: &fakeLivestreamUsecase{livestream: &domain.LivestreamDetail{
 				ID:           10,
 				Owner:        owner,
 				Title:        "stream",
@@ -109,7 +109,7 @@ func TestLivestreamHandler_GetLivestream(t *testing.T) {
 			name:     "returns empty tags as array",
 			path:     "/api/livestream/10",
 			cookie:   sessionAs(1),
-			usecase:  &fakeLivestreamUsecase{livestream: &domain.Livestream{ID: 10, Owner: owner}},
+			usecase:  &fakeLivestreamUsecase{livestream: &domain.LivestreamDetail{ID: 10, Owner: owner}},
 			wantCode: http.StatusOK,
 			wantBody: `{"id":10,"owner":{"id":2,"name":"alice","display_name":"Alice","description":"hello","theme":{"id":20,"dark_mode":true},"icon_hash":"abc"},"title":"","description":"","playlist_url":"","thumbnail_url":"","tags":[],"start_at":0,"end_at":0}` + "\n",
 		},
@@ -151,7 +151,7 @@ func TestLivestreamHandler_GetLivestream(t *testing.T) {
 }
 
 func TestLivestreamHandler_GetMyLivestreams(t *testing.T) {
-	owner := domain.User{ID: 42, Name: "alice", Theme: domain.ThemeModel{ID: 20, UserID: 42}, IconHash: "abc"}
+	owner := domain.UserDetail{ID: 42, Name: "alice", Theme: domain.ThemeModel{ID: 20, UserID: 42}, IconHash: "abc"}
 	ownerJSON := `{"id":42,"name":"alice","theme":{"id":20,"dark_mode":false},"icon_hash":"abc"}`
 
 	tests := []struct {
@@ -164,7 +164,7 @@ func TestLivestreamHandler_GetMyLivestreams(t *testing.T) {
 		{
 			name:   "returns livestreams of logged-in user",
 			cookie: sessionAs(42),
-			usecase: &fakeLivestreamUsecase{livestreams: []*domain.Livestream{
+			usecase: &fakeLivestreamUsecase{livestreams: []*domain.LivestreamDetail{
 				{ID: 1, Owner: owner, Title: "s1", Tags: []domain.TagModel{{ID: 1, Name: "t1"}}},
 				{ID: 2, Owner: owner, Title: "s2"},
 			}},
@@ -203,7 +203,7 @@ func TestLivestreamHandler_GetMyLivestreams(t *testing.T) {
 }
 
 func TestLivestreamHandler_GetUserLivestreams(t *testing.T) {
-	owner := domain.User{ID: 42, Name: "alice", Theme: domain.ThemeModel{ID: 20, UserID: 42}, IconHash: "abc"}
+	owner := domain.UserDetail{ID: 42, Name: "alice", Theme: domain.ThemeModel{ID: 20, UserID: 42}, IconHash: "abc"}
 
 	tests := []struct {
 		name     string
@@ -215,7 +215,7 @@ func TestLivestreamHandler_GetUserLivestreams(t *testing.T) {
 		{
 			name:     "returns livestreams of the user",
 			cookie:   sessionAs(1),
-			usecase:  &fakeLivestreamUsecase{livestreams: []*domain.Livestream{{ID: 1, Owner: owner, Title: "s1"}}},
+			usecase:  &fakeLivestreamUsecase{livestreams: []*domain.LivestreamDetail{{ID: 1, Owner: owner, Title: "s1"}}},
 			wantCode: http.StatusOK,
 			wantBody: `[{"id":1,"owner":{"id":42,"name":"alice","theme":{"id":20,"dark_mode":false},"icon_hash":"abc"},"title":"s1","description":"","playlist_url":"","thumbnail_url":"","tags":[],"start_at":0,"end_at":0}]` + "\n",
 		},
@@ -255,8 +255,8 @@ func TestLivestreamHandler_GetUserLivestreams(t *testing.T) {
 }
 
 func TestLivestreamHandler_SearchLivestreams(t *testing.T) {
-	owner := domain.User{ID: 42, Name: "alice", Theme: domain.ThemeModel{ID: 20, UserID: 42}, IconHash: "abc"}
-	found := []*domain.Livestream{{ID: 1, Owner: owner, Title: "s1"}}
+	owner := domain.UserDetail{ID: 42, Name: "alice", Theme: domain.ThemeModel{ID: 20, UserID: 42}, IconHash: "abc"}
+	found := []*domain.LivestreamDetail{{ID: 1, Owner: owner, Title: "s1"}}
 	foundJSON := `[{"id":1,"owner":{"id":42,"name":"alice","theme":{"id":20,"dark_mode":false},"icon_hash":"abc"},"title":"s1","description":"","playlist_url":"","thumbnail_url":"","tags":[],"start_at":0,"end_at":0}]` + "\n"
 	five := domain.Limit(5)
 
@@ -307,7 +307,7 @@ func TestLivestreamHandler_SearchLivestreams(t *testing.T) {
 		{
 			name:        "returns empty array when nothing found",
 			query:       "?tag=nothing",
-			usecase:     &fakeLivestreamUsecase{livestreams: []*domain.Livestream{}},
+			usecase:     &fakeLivestreamUsecase{livestreams: []*domain.LivestreamDetail{}},
 			wantCode:    http.StatusOK,
 			wantBody:    "[]\n",
 			wantCalls:   []string{"FindAllByTagName"},
@@ -350,7 +350,7 @@ func TestLivestreamHandler_SearchLivestreams_Limit(t *testing.T) {
 }
 
 func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
-	owner := domain.User{ID: 2, Name: "alice", Theme: domain.ThemeModel{ID: 20, UserID: 2, DarkMode: true}, IconHash: "abc"}
+	owner := domain.UserDetail{ID: 2, Name: "alice", Theme: domain.ThemeModel{ID: 20, UserID: 2, DarkMode: true}, IconHash: "abc"}
 	reqBody := `{"tags":[1,3],"title":"stream","description":"desc","playlist_url":"https://example.com/p.m3u8","thumbnail_url":"https://example.com/t.jpg","start_at":1700874000,"end_at":1700877600}`
 
 	tests := []struct {
@@ -365,7 +365,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 			name:   "reserves livestream",
 			cookie: sessionAs(2),
 			body:   reqBody,
-			usecase: &fakeLivestreamReservationUsecase{livestream: &domain.Livestream{
+			usecase: &fakeLivestreamReservationUsecase{livestream: &domain.LivestreamDetail{
 				ID:           10,
 				Owner:        owner,
 				Title:        "stream",

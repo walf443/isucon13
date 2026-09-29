@@ -11,17 +11,17 @@ import (
 
 type LivestreamUsecase interface {
 	// FindByID はライブ配信が存在しない場合 ErrLivestreamNotFound を返す。
-	FindByID(ctx context.Context, id domain.LivestreamID) (*domain.Livestream, error)
+	FindByID(ctx context.Context, id domain.LivestreamID) (*domain.LivestreamDetail, error)
 	// FindAllByUserID は指定したユーザが配信者のライブ配信を返す。
-	FindAllByUserID(ctx context.Context, userID domain.UserID) ([]*domain.Livestream, error)
+	FindAllByUserID(ctx context.Context, userID domain.UserID) ([]*domain.LivestreamDetail, error)
 	// FindAllByUsername は指定したユーザが配信者のライブ配信を返す。
 	// ユーザが存在しない場合 ErrUserNotFound を返す。
-	FindAllByUsername(ctx context.Context, username string) ([]*domain.Livestream, error)
+	FindAllByUsername(ctx context.Context, username string) ([]*domain.LivestreamDetail, error)
 	// FindAllByTagName は指定した名前のタグが付いたライブ配信を ID の降順で返す。
 	// タグが存在しない場合は空のスライスを返す。
-	FindAllByTagName(ctx context.Context, tagName string) ([]*domain.Livestream, error)
+	FindAllByTagName(ctx context.Context, tagName string) ([]*domain.LivestreamDetail, error)
 	// FindAll はライブ配信を ID の降順で返す。limit が nil でなければ最大 *limit 件に絞る。
-	FindAll(ctx context.Context, limit *domain.Limit) ([]*domain.Livestream, error)
+	FindAll(ctx context.Context, limit *domain.Limit) ([]*domain.LivestreamDetail, error)
 }
 
 type livestreamUsecase struct {
@@ -50,7 +50,7 @@ func livestreamModelID(livestreamModel *domain.LivestreamModel) domain.Livestrea
 }
 
 // fillLivestreams は livestreamModels に配信者・タグを埋めて、同じ順序で返す。
-func (u *livestreamUsecase) fillLivestreams(ctx context.Context, q repository.Querier, livestreamModels []*domain.LivestreamModel) ([]*domain.Livestream, error) {
+func (u *livestreamUsecase) fillLivestreams(ctx context.Context, q repository.Querier, livestreamModels []*domain.LivestreamModel) ([]*domain.LivestreamDetail, error) {
 	filled, err := u.livestreamFiller.Fill(ctx, q, livestreamModels)
 	if err != nil {
 		return nil, err
@@ -58,8 +58,8 @@ func (u *livestreamUsecase) fillLivestreams(ctx context.Context, q repository.Qu
 	return orderedBy(livestreamModels, livestreamModelID, filled), nil
 }
 
-func (u *livestreamUsecase) FindByID(ctx context.Context, id domain.LivestreamID) (*domain.Livestream, error) {
-	var livestream *domain.Livestream
+func (u *livestreamUsecase) FindByID(ctx context.Context, id domain.LivestreamID) (*domain.LivestreamDetail, error) {
+	var livestream *domain.LivestreamDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		livestreamModel, err := u.livestreamRepo.FindByID(ctx, q, id)
 		// ライブ配信不在 (404) にするのはライブ配信自体が無い場合だけ。配信者やタグの欠損は 500 にする
@@ -83,8 +83,8 @@ func (u *livestreamUsecase) FindByID(ctx context.Context, id domain.LivestreamID
 	return livestream, nil
 }
 
-func (u *livestreamUsecase) FindAllByUserID(ctx context.Context, userID domain.UserID) ([]*domain.Livestream, error) {
-	var livestreams []*domain.Livestream
+func (u *livestreamUsecase) FindAllByUserID(ctx context.Context, userID domain.UserID) ([]*domain.LivestreamDetail, error) {
+	var livestreams []*domain.LivestreamDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		var err error
 		livestreams, err = u.findAllByUserID(ctx, q, userID)
@@ -96,8 +96,8 @@ func (u *livestreamUsecase) FindAllByUserID(ctx context.Context, userID domain.U
 	return livestreams, nil
 }
 
-func (u *livestreamUsecase) FindAllByUsername(ctx context.Context, username string) ([]*domain.Livestream, error) {
-	var livestreams []*domain.Livestream
+func (u *livestreamUsecase) FindAllByUsername(ctx context.Context, username string) ([]*domain.LivestreamDetail, error) {
+	var livestreams []*domain.LivestreamDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		userID, err := u.userRepo.FindIDByName(ctx, q, username)
 		if errors.Is(err, repository.ErrNotFound) {
@@ -116,7 +116,7 @@ func (u *livestreamUsecase) FindAllByUsername(ctx context.Context, username stri
 	return livestreams, nil
 }
 
-func (u *livestreamUsecase) findAllByUserID(ctx context.Context, q repository.Querier, userID domain.UserID) ([]*domain.Livestream, error) {
+func (u *livestreamUsecase) findAllByUserID(ctx context.Context, q repository.Querier, userID domain.UserID) ([]*domain.LivestreamDetail, error) {
 	livestreamModels, err := u.livestreamRepo.FindAllByUserID(ctx, q, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get livestreams: %w", err)
@@ -128,8 +128,8 @@ func (u *livestreamUsecase) findAllByUserID(ctx context.Context, q repository.Qu
 	return livestreams, nil
 }
 
-func (u *livestreamUsecase) FindAllByTagName(ctx context.Context, tagName string) ([]*domain.Livestream, error) {
-	var livestreams []*domain.Livestream
+func (u *livestreamUsecase) FindAllByTagName(ctx context.Context, tagName string) ([]*domain.LivestreamDetail, error) {
+	var livestreams []*domain.LivestreamDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		tagIDs, err := u.tagRepo.FindIDsByName(ctx, q, tagName)
 		if err != nil {
@@ -137,7 +137,7 @@ func (u *livestreamUsecase) FindAllByTagName(ctx context.Context, tagName string
 		}
 		// 該当するタグが無ければ IN () が作れないので、検索せずに空を返す
 		if len(tagIDs) == 0 {
-			livestreams = []*domain.Livestream{}
+			livestreams = []*domain.LivestreamDetail{}
 			return nil
 		}
 
@@ -172,8 +172,8 @@ func (u *livestreamUsecase) FindAllByTagName(ctx context.Context, tagName string
 	return livestreams, nil
 }
 
-func (u *livestreamUsecase) FindAll(ctx context.Context, limit *domain.Limit) ([]*domain.Livestream, error) {
-	var livestreams []*domain.Livestream
+func (u *livestreamUsecase) FindAll(ctx context.Context, limit *domain.Limit) ([]*domain.LivestreamDetail, error) {
+	var livestreams []*domain.LivestreamDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		var livestreamModels []*domain.LivestreamModel
 		var err error

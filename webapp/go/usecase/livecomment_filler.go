@@ -24,7 +24,7 @@ func NewLivecommentFiller(userRepo repository.UserRepository, livestreamRepo rep
 // 同じユーザ・ライブ配信が複数含まれていても 1 回だけ取得する。並び順は呼び出し側で決める。
 //
 // ユーザやライブ配信が無いのはデータ不整合なので、呼び出し側はこのエラーをライブコメント不在として扱わないこと。
-func (f *LivecommentFiller) Fill(ctx context.Context, q repository.Querier, livecommentModels []*domain.LivecommentModel) (map[domain.LivecommentID]*domain.Livecomment, error) {
+func (f *LivecommentFiller) Fill(ctx context.Context, q repository.Querier, livecommentModels []*domain.LivecommentModel) (map[domain.LivecommentID]*domain.LivecommentDetail, error) {
 	userModels := make([]*domain.UserModel, 0, len(livecommentModels))
 	fetchedUsers := make(map[domain.UserID]bool, len(livecommentModels))
 	livestreamModels := make([]*domain.LivestreamModel, 0, len(livecommentModels))
@@ -58,9 +58,9 @@ func (f *LivecommentFiller) Fill(ctx context.Context, q repository.Querier, live
 		return nil, err
 	}
 
-	livecomments := make(map[domain.LivecommentID]*domain.Livecomment, len(livecommentModels))
+	livecomments := make(map[domain.LivecommentID]*domain.LivecommentDetail, len(livecommentModels))
 	for _, livecommentModel := range livecommentModels {
-		livecomments[livecommentModel.ID] = &domain.Livecomment{
+		livecomments[livecommentModel.ID] = &domain.LivecommentDetail{
 			ID:         livecommentModel.ID,
 			User:       *users[livecommentModel.UserID],
 			Livestream: *livestreams[livecommentModel.LivestreamID],

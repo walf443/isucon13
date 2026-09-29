@@ -25,7 +25,7 @@ func NewLivestreamFiller(userRepo repository.UserRepository, livestreamTagRepo r
 // 同じライブ配信・配信者・タグが複数含まれていても 1 回だけ取得する。並び順は呼び出し側で決める。
 //
 // 配信者やタグが無いのはデータ不整合なので、呼び出し側はこのエラーをライブ配信不在 (404) として扱わないこと。
-func (f *LivestreamFiller) Fill(ctx context.Context, q repository.Querier, livestreamModels []*domain.LivestreamModel) (map[domain.LivestreamID]*domain.Livestream, error) {
+func (f *LivestreamFiller) Fill(ctx context.Context, q repository.Querier, livestreamModels []*domain.LivestreamModel) (map[domain.LivestreamID]*domain.LivestreamDetail, error) {
 	ownerModels := make([]*domain.UserModel, 0, len(livestreamModels))
 	fetchedOwners := make(map[domain.UserID]bool, len(livestreamModels))
 	for _, livestreamModel := range livestreamModels {
@@ -44,7 +44,7 @@ func (f *LivestreamFiller) Fill(ctx context.Context, q repository.Querier, lives
 		return nil, err
 	}
 
-	livestreams := make(map[domain.LivestreamID]*domain.Livestream, len(livestreamModels))
+	livestreams := make(map[domain.LivestreamID]*domain.LivestreamDetail, len(livestreamModels))
 	tagsByID := map[domain.TagID]*domain.TagModel{}
 	for _, livestreamModel := range livestreamModels {
 		if _, ok := livestreams[livestreamModel.ID]; ok {
@@ -68,7 +68,7 @@ func (f *LivestreamFiller) Fill(ctx context.Context, q repository.Querier, lives
 			tags[i] = *tag
 		}
 
-		livestreams[livestreamModel.ID] = &domain.Livestream{
+		livestreams[livestreamModel.ID] = &domain.LivestreamDetail{
 			ID:           livestreamModel.ID,
 			Owner:        *owners[livestreamModel.UserID],
 			Title:        livestreamModel.Title,

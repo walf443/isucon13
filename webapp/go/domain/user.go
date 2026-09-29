@@ -28,8 +28,8 @@ type UserModel struct {
 	HashedPassword HashedPassword `db:"password"`
 }
 
-// User はテーマ・アイコンを含めたユーザの情報。
-type User struct {
+// UserDetail はテーマ・アイコンを含めたユーザの情報。
+type UserDetail struct {
 	ID          UserID
 	Name        string
 	DisplayName string

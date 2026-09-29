@@ -14,7 +14,7 @@ import (
 )
 
 type fakeUserUsecase struct {
-	user      *domain.User
+	user      *domain.UserDetail
 	userModel *domain.UserModel
 	err       error
 	gotID     domain.UserID
@@ -24,13 +24,13 @@ type fakeUserUsecase struct {
 }
 
 type fakeUserRegistrationUsecase struct {
-	user *domain.User
+	user *domain.UserDetail
 	err  error
 
 	gotInput usecase.RegisterUserInput
 }
 
-func (u *fakeUserRegistrationUsecase) Register(ctx context.Context, input usecase.RegisterUserInput) (*domain.User, error) {
+func (u *fakeUserRegistrationUsecase) Register(ctx context.Context, input usecase.RegisterUserInput) (*domain.UserDetail, error) {
 	u.gotInput = input
 	return u.user, u.err
 }
@@ -41,12 +41,12 @@ func (u *fakeUserUsecase) Login(ctx context.Context, username string, password s
 	return u.userModel, u.err
 }
 
-func (u *fakeUserUsecase) FindByID(ctx context.Context, id domain.UserID) (*domain.User, error) {
+func (u *fakeUserUsecase) FindByID(ctx context.Context, id domain.UserID) (*domain.UserDetail, error) {
 	u.gotID = id
 	return u.user, u.err
 }
 
-func (u *fakeUserUsecase) FindByName(ctx context.Context, name string) (*domain.User, error) {
+func (u *fakeUserUsecase) FindByName(ctx context.Context, name string) (*domain.UserDetail, error) {
 	u.gotName = name
 	return u.user, u.err
 }
@@ -62,7 +62,7 @@ func TestUserHandler_GetUser(t *testing.T) {
 		{
 			name:   "returns user",
 			cookie: sessionAs(1),
-			usecase: &fakeUserUsecase{user: &domain.User{
+			usecase: &fakeUserUsecase{user: &domain.UserDetail{
 				ID:          1,
 				Name:        "alice",
 				DisplayName: "Alice",
@@ -111,7 +111,7 @@ func TestUserHandler_GetMe(t *testing.T) {
 		{
 			name:   "returns logged-in user",
 			cookie: sessionAs(42),
-			usecase: &fakeUserUsecase{user: &domain.User{
+			usecase: &fakeUserUsecase{user: &domain.UserDetail{
 				ID:          42,
 				Name:        "alice",
 				DisplayName: "Alice",
@@ -150,7 +150,7 @@ func TestUserHandler_GetMe(t *testing.T) {
 }
 
 func TestUserHandler_Register(t *testing.T) {
-	user := &domain.User{ID: 5, Name: "alice", DisplayName: "Alice", Description: "hello", Theme: domain.ThemeModel{ID: 9, UserID: 5, DarkMode: true}, IconHash: "abc"}
+	user := &domain.UserDetail{ID: 5, Name: "alice", DisplayName: "Alice", Description: "hello", Theme: domain.ThemeModel{ID: 9, UserID: 5, DarkMode: true}, IconHash: "abc"}
 	reqBody := `{"name":"alice","display_name":"Alice","description":"hello","password":"s3cret","theme":{"dark_mode":true}}`
 
 	tests := []struct {

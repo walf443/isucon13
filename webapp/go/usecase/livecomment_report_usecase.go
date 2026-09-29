@@ -14,10 +14,10 @@ import (
 type LivecommentReportUsecase interface {
 	// FindAllByLivestreamID は指定したライブ配信へのライブコメントの報告を返す。
 	// userID のユーザが配信者でない場合 ErrNotLivestreamOwner を返す。
-	FindAllByLivestreamID(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.LivecommentReport, error)
+	FindAllByLivestreamID(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.LivecommentReportDetail, error)
 	// Create はライブコメントを報告し、報告したユーザ・報告されたライブコメントを含めて返す。
 	// ライブ配信が存在しない場合 ErrLivestreamNotFound、ライブコメントが存在しない場合 ErrLivecommentNotFound を返す。
-	Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, livecommentID domain.LivecommentID) (*domain.LivecommentReport, error)
+	Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, livecommentID domain.LivecommentID) (*domain.LivecommentReportDetail, error)
 }
 
 type livecommentReportUsecase struct {
@@ -46,8 +46,8 @@ func livecommentReportModelID(reportModel *domain.LivecommentReportModel) domain
 	return reportModel.ID
 }
 
-func (u *livecommentReportUsecase) FindAllByLivestreamID(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.LivecommentReport, error) {
-	var reports []*domain.LivecommentReport
+func (u *livecommentReportUsecase) FindAllByLivestreamID(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.LivecommentReportDetail, error) {
+	var reports []*domain.LivecommentReportDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		// ライブ配信が存在しない場合も (404 ではなく) エラーのまま返す (移行前と同じ)
 		livestream, err := u.livestreamRepo.FindByID(ctx, q, livestreamID)
@@ -75,8 +75,8 @@ func (u *livecommentReportUsecase) FindAllByLivestreamID(ctx context.Context, us
 	return reports, nil
 }
 
-func (u *livecommentReportUsecase) Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, livecommentID domain.LivecommentID) (*domain.LivecommentReport, error) {
-	var report *domain.LivecommentReport
+func (u *livecommentReportUsecase) Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, livecommentID domain.LivecommentID) (*domain.LivecommentReportDetail, error) {
+	var report *domain.LivecommentReportDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		// ライブコメントがそのライブ配信へのものかは確認しない (移行前と同じ)
 		_, err := u.livestreamRepo.FindByID(ctx, q, livestreamID)

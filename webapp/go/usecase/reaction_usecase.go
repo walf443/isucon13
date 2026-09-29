@@ -12,9 +12,9 @@ import (
 type ReactionUsecase interface {
 	// FindAllByLivestreamID は指定したライブ配信へのリアクションを作成日時の降順で返す。
 	// limit が nil でなければ最大 *limit 件に絞る。
-	FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.Reaction, error)
+	FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.ReactionDetail, error)
 	// Create はリアクションを登録し、ユーザ・ライブ配信を含めて返す。
-	Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, emojiName string) (*domain.Reaction, error)
+	Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, emojiName string) (*domain.ReactionDetail, error)
 }
 
 type reactionUsecase struct {
@@ -34,8 +34,8 @@ func reactionModelID(reactionModel *domain.ReactionModel) domain.ReactionID {
 	return reactionModel.ID
 }
 
-func (u *reactionUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.Reaction, error) {
-	var reactions []*domain.Reaction
+func (u *reactionUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.ReactionDetail, error) {
+	var reactions []*domain.ReactionDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		var reactionModels []*domain.ReactionModel
 		var err error
@@ -61,8 +61,8 @@ func (u *reactionUsecase) FindAllByLivestreamID(ctx context.Context, livestreamI
 	return reactions, nil
 }
 
-func (u *reactionUsecase) Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, emojiName string) (*domain.Reaction, error) {
-	var reaction *domain.Reaction
+func (u *reactionUsecase) Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, emojiName string) (*domain.ReactionDetail, error) {
+	var reaction *domain.ReactionDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		reactionID, err := u.reactionRepo.Create(ctx, q, &domain.ReactionModel{
 			UserID:       userID,

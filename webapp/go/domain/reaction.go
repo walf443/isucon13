@@ -10,11 +10,11 @@ type ReactionModel struct {
 	CreatedAt    int64        `db:"created_at"`
 }
 
-// Reaction はリアクションしたユーザ・ライブ配信を含めたリアクションの情報。
-type Reaction struct {
+// ReactionDetail はリアクションしたユーザ・ライブ配信を含めたリアクションの情報。
+type ReactionDetail struct {
 	ID         ReactionID
 	EmojiName  string
-	User       User
-	Livestream Livestream
+	User       UserDetail
+	Livestream LivestreamDetail
 	CreatedAt  int64
 }

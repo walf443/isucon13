@@ -61,7 +61,7 @@ func TestReactionUsecase_FindAllByLivestreamID(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			// repository が返した順序のまま
-			want := []*domain.Reaction{f.reaction(testReactionModel1, testLivestreamModel1), f.reaction(testReactionModel2, testLivestreamModel1)}
+			want := []*domain.ReactionDetail{f.reaction(testReactionModel1, testLivestreamModel1), f.reaction(testReactionModel2, testLivestreamModel1)}
 			if !reflect.DeepEqual(got, want) {
 				t.Errorf("got %+v, want %+v", got, want)
 			}

@@ -52,7 +52,7 @@ repository だけは数が多く、usecase の型と名前を分けたいので 
 
 ### 詳細の組み立ては usecase の Filler が行う
 
-複数のテーブルを組み合わせた読み取り用のモデル (`domain.User` / `Livestream` / `Livecomment` / `Reaction` / `LivecommentReport`) は、
+複数のテーブルを組み合わせた読み取り用のモデル (`domain.UserDetail` / `LivestreamDetail` / `LivecommentDetail` / `ReactionDetail` / `LivecommentReportDetail`) は、
 usecase の `XxxFiller` (`UserFiller` / `LivestreamFiller` など) が repository の単発のメソッドを組み合わせて組み立てる。
 
 - `Fill(ctx, q, models)` は、行の型の一覧を受け取り、ID ごとの map で返す。並び順は呼び出し側で決める (`orderedBy` で元の順序に並べ直す)

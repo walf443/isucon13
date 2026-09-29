@@ -12,7 +12,7 @@ import (
 type UserRegistrationUsecase interface {
 	// Register はユーザを登録し、サブドメインの DNS レコードを登録して、テーマ・アイコンを含めたユーザを返す。
 	// 予約済みのユーザ名の場合 *ReservedUsernameError を返す。
-	Register(ctx context.Context, input RegisterUserInput) (*domain.User, error)
+	Register(ctx context.Context, input RegisterUserInput) (*domain.UserDetail, error)
 }
 
 // RegisterUserInput は登録するユーザの内容。
@@ -37,7 +37,7 @@ func NewUserRegistrationUsecase(txManager repository.TxManager, userRepo reposit
 	return &userRegistrationUsecase{txManager: txManager, userRepo: userRepo, themeRepo: themeRepo, dnsRegistrar: dnsRegistrar, userFiller: userFiller}
 }
 
-func (u *userRegistrationUsecase) Register(ctx context.Context, input RegisterUserInput) (*domain.User, error) {
+func (u *userRegistrationUsecase) Register(ctx context.Context, input RegisterUserInput) (*domain.UserDetail, error) {
 	if reserved, ok := domain.FindReservedUsername(input.Name); ok {
 		return nil, &ReservedUsernameError{Name: reserved}
 	}
@@ -47,7 +47,7 @@ func (u *userRegistrationUsecase) Register(ctx context.Context, input RegisterUs
 		return nil, fmt.Errorf("failed to generate hashed password: %w", err)
 	}
 
-	var user *domain.User
+	var user *domain.UserDetail
 	err = u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		userID, err := u.userRepo.Create(ctx, q, &domain.UserModel{
 			Name:           input.Name,

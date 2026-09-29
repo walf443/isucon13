@@ -19,7 +19,7 @@ type livecommentResponse struct {
 	CreatedAt  int64                `json:"created_at"`
 }
 
-func newLivecomment(l *domain.Livecomment) livecommentResponse {
+func newLivecomment(l *domain.LivecommentDetail) livecommentResponse {
 	return livecommentResponse{
 		ID:         l.ID,
 		User:       newUser(&l.User),
@@ -37,7 +37,7 @@ type livecommentReportResponse struct {
 	CreatedAt   int64                      `json:"created_at"`
 }
 
-func newLivecommentReport(r *domain.LivecommentReport) livecommentReportResponse {
+func newLivecommentReport(r *domain.LivecommentReportDetail) livecommentReportResponse {
 	return livecommentReportResponse{
 		ID:          r.ID,
 		Reporter:    newUser(&r.Reporter),

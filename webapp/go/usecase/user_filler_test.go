@@ -56,7 +56,7 @@ func TestUserFiller_Fill(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	want := map[domain.UserID]domain.User{
+	want := map[domain.UserID]domain.UserDetail{
 		1: {ID: 1, Name: "alice", DisplayName: "Alice", Description: "hi", Theme: *themes[1], IconHash: domain.HashIcon([]byte("icon"))},
 		// アイコン未登録のユーザは既定のハッシュ
 		2: {ID: 2, Name: "bob", Theme: *themes[2], IconHash: "default-hash"},

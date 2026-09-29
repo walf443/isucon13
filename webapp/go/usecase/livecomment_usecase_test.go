@@ -61,7 +61,7 @@ func TestLivecommentUsecase_FindAllByLivestreamID(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			// repository が返した順序のまま
-			want := []*domain.Livecomment{f.livecomment(testLivecommentModel1, testLivestreamModel1), f.livecomment(testLivecommentModel2, testLivestreamModel1)}
+			want := []*domain.LivecommentDetail{f.livecomment(testLivecommentModel1, testLivestreamModel1), f.livecomment(testLivecommentModel2, testLivestreamModel1)}
 			if !reflect.DeepEqual(got, want) {
 				t.Errorf("got %+v, want %+v", got, want)
 			}

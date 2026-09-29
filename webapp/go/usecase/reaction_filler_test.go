@@ -17,8 +17,8 @@ func (f *livestreamFixture) reactionFiller(livestreamModels ...*domain.Livestrea
 
 // reaction は、このデータで reactionModel を埋めた結果として期待する domain.Reaction を返す。
 // livestreamModel は reactionModel のライブ配信。
-func (f *livestreamFixture) reaction(reactionModel *domain.ReactionModel, livestreamModel *domain.LivestreamModel) *domain.Reaction {
-	return &domain.Reaction{
+func (f *livestreamFixture) reaction(reactionModel *domain.ReactionModel, livestreamModel *domain.LivestreamModel) *domain.ReactionDetail {
+	return &domain.ReactionDetail{
 		ID:         reactionModel.ID,
 		EmojiName:  reactionModel.EmojiName,
 		User:       f.user(reactionModel.UserID),
@@ -41,7 +41,7 @@ func TestReactionFiller_Fill(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	want := map[domain.ReactionID]*domain.Reaction{
+	want := map[domain.ReactionID]*domain.ReactionDetail{
 		1: f.reaction(testReactionModel1, testLivestreamModel1),
 		2: f.reaction(testReactionModel2, testLivestreamModel1),
 		3: f.reaction(testReactionModel3, testLivestreamModel2),

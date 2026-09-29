@@ -32,8 +32,8 @@ func (f *livestreamFixture) livecommentFiller(livestreamModels ...*domain.Livest
 
 // livecomment は、このデータで livecommentModel を埋めた結果として期待する domain.Livecomment を返す。
 // livestreamModel は livecommentModel のライブ配信。
-func (f *livestreamFixture) livecomment(livecommentModel *domain.LivecommentModel, livestreamModel *domain.LivestreamModel) *domain.Livecomment {
-	return &domain.Livecomment{
+func (f *livestreamFixture) livecomment(livecommentModel *domain.LivecommentModel, livestreamModel *domain.LivestreamModel) *domain.LivecommentDetail {
+	return &domain.LivecommentDetail{
 		ID:         livecommentModel.ID,
 		User:       f.user(livecommentModel.UserID),
 		Livestream: *f.livestream(livestreamModel),
@@ -57,7 +57,7 @@ func TestLivecommentFiller_Fill(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	want := map[domain.LivecommentID]*domain.Livecomment{
+	want := map[domain.LivecommentID]*domain.LivecommentDetail{
 		50: f.livecomment(testLivecommentModel1, testLivestreamModel1),
 		51: f.livecomment(testLivecommentModel2, testLivestreamModel1),
 		52: f.livecomment(testLivecommentModel3, testLivestreamModel2),

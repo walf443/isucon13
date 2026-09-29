@@ -23,10 +23,10 @@ func (l *LivestreamModel) IsOwnedBy(userID UserID) bool {
 	return l.UserID == userID
 }
 
-// Livestream は配信者・タグを含めたライブ配信の情報。
-type Livestream struct {
+// LivestreamDetail は配信者・タグを含めたライブ配信の情報。
+type LivestreamDetail struct {
 	ID           LivestreamID
-	Owner        User
+	Owner        UserDetail
 	Title        string
 	Description  string
 	PlaylistUrl  string

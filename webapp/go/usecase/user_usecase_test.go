@@ -14,7 +14,7 @@ import (
 var (
 	aliceModel = &domain.UserModel{ID: 1, Name: "alice", DisplayName: "Alice", Description: "hi"}
 	aliceTheme = &domain.ThemeModel{ID: 10, UserID: 1, DarkMode: true}
-	aliceUser  = domain.User{ID: 1, Name: "alice", DisplayName: "Alice", Description: "hi", Theme: *aliceTheme, IconHash: "default-hash"}
+	aliceUser  = domain.UserDetail{ID: 1, Name: "alice", DisplayName: "Alice", Description: "hi", Theme: *aliceTheme, IconHash: "default-hash"}
 )
 
 func TestUserUsecase_FindByName(t *testing.T) {

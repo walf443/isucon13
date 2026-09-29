@@ -13,7 +13,7 @@ type LivestreamReservationUsecase interface {
 	// Reserve はライブ配信を予約し、配信者・タグを含めて返す。
 	// 予約区間が予約可能期間に掛かっていない場合 ErrBadReservationTimeRange、
 	// 予約区間に空きの無い予約枠がある場合 *ReservationSlotUnavailableError を返す。
-	Reserve(ctx context.Context, userID domain.UserID, input ReserveLivestreamInput) (*domain.Livestream, error)
+	Reserve(ctx context.Context, userID domain.UserID, input ReserveLivestreamInput) (*domain.LivestreamDetail, error)
 }
 
 // ReserveLivestreamInput は予約するライブ配信の内容。
@@ -47,8 +47,8 @@ func NewLivestreamReservationUsecase(txManager repository.TxManager, livestreamR
 	}
 }
 
-func (u *livestreamReservationUsecase) Reserve(ctx context.Context, userID domain.UserID, input ReserveLivestreamInput) (*domain.Livestream, error) {
-	var livestream *domain.Livestream
+func (u *livestreamReservationUsecase) Reserve(ctx context.Context, userID domain.UserID, input ReserveLivestreamInput) (*domain.LivestreamDetail, error) {
+	var livestream *domain.LivestreamDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		// 移行前はトランザクション開始後に期間をチェックしていたので、同じくトランザクション内で行う
 		period := domain.ReservationPeriod{StartAt: input.StartAt, EndAt: input.EndAt}

@@ -22,7 +22,7 @@ type livestreamResponse struct {
 	EndAt        int64               `json:"end_at"`
 }
 
-func newLivestream(l *domain.Livestream) livestreamResponse {
+func newLivestream(l *domain.LivestreamDetail) livestreamResponse {
 	tags := make([]tagResponse, len(l.Tags))
 	for i, tag := range l.Tags {
 		tags[i] = tagResponse{ID: tag.ID, Name: tag.Name}
@@ -40,7 +40,7 @@ func newLivestream(l *domain.Livestream) livestreamResponse {
 	}
 }
 
-func newLivestreams(ls []*domain.Livestream) []livestreamResponse {
+func newLivestreams(ls []*domain.LivestreamDetail) []livestreamResponse {
 	livestreams := make([]livestreamResponse, len(ls))
 	for i, l := range ls {
 		livestreams[i] = newLivestream(l)
@@ -123,7 +123,7 @@ func (h *livestreamHandler) GetUserLivestreams(c echo.Context) error {
 func (h *livestreamHandler) SearchLivestreams(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	var livestreams []*domain.Livestream
+	var livestreams []*domain.LivestreamDetail
 	var err error
 	if tagName := c.QueryParam("tag"); tagName != "" {
 		// タグによる取得 (limit は無視する)

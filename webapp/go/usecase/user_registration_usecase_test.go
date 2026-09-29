@@ -35,7 +35,7 @@ func registeredUserFiller() *UserFiller {
 }
 
 func TestUserRegistrationUsecase_Register(t *testing.T) {
-	want := domain.User{ID: 5, Name: "alice", DisplayName: "Alice", Description: "hello", Theme: domain.ThemeModel{ID: 50, UserID: 5, DarkMode: true}, IconHash: "default-hash"}
+	want := domain.UserDetail{ID: 5, Name: "alice", DisplayName: "Alice", Description: "hello", Theme: domain.ThemeModel{ID: 50, UserID: 5, DarkMode: true}, IconHash: "default-hash"}
 	txManager := &fakeTxManager{}
 	var userCalls []string
 	var created *domain.UserModel

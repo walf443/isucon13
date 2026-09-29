@@ -17,8 +17,8 @@ func (f *livestreamFixture) reportFiller(livecommentModels ...*domain.Livecommen
 
 // report は、このデータで reportModel を埋めた結果として期待する domain.LivecommentReport を返す。
 // livecommentModel, livestreamModel は報告されたライブコメントとそのライブ配信。
-func (f *livestreamFixture) report(reportModel *domain.LivecommentReportModel, livecommentModel *domain.LivecommentModel, livestreamModel *domain.LivestreamModel) *domain.LivecommentReport {
-	return &domain.LivecommentReport{
+func (f *livestreamFixture) report(reportModel *domain.LivecommentReportModel, livecommentModel *domain.LivecommentModel, livestreamModel *domain.LivestreamModel) *domain.LivecommentReportDetail {
+	return &domain.LivecommentReportDetail{
 		ID:          reportModel.ID,
 		Reporter:    f.user(reportModel.UserID),
 		Livecomment: *f.livecomment(livecommentModel, livestreamModel),
@@ -39,7 +39,7 @@ func TestLivecommentReportFiller_Fill(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	want := map[domain.LivecommentReportID]*domain.LivecommentReport{
+	want := map[domain.LivecommentReportID]*domain.LivecommentReportDetail{
 		7: f.report(testReportModel1, testLivecommentModel1, testLivestreamModel1),
 		8: f.report(testReportModel2, testLivecommentModel2, testLivestreamModel1),
 	}

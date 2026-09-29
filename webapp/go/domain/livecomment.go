@@ -16,11 +16,11 @@ type LivecommentModel struct {
 	CreatedAt    int64         `db:"created_at"`
 }
 
-// Livecomment はコメントしたユーザ・ライブ配信を含めたライブコメントの情報。
-type Livecomment struct {
+// LivecommentDetail はコメントしたユーザ・ライブ配信を含めたライブコメントの情報。
+type LivecommentDetail struct {
 	ID         LivecommentID
-	User       User
-	Livestream Livestream
+	User       UserDetail
+	Livestream LivestreamDetail
 	Comment    string
 	Tip        int64
 	CreatedAt  int64
@@ -36,10 +36,10 @@ type LivecommentReportModel struct {
 	CreatedAt     int64               `db:"created_at"`
 }
 
-// LivecommentReport は報告したユーザ・報告されたライブコメントを含めた報告の情報。
-type LivecommentReport struct {
+// LivecommentReportDetail は報告したユーザ・報告されたライブコメントを含めた報告の情報。
+type LivecommentReportDetail struct {
 	ID          LivecommentReportID
-	Reporter    User
-	Livecomment Livecomment
+	Reporter    UserDetail
+	Livecomment LivecommentDetail
 	CreatedAt   int64
 }

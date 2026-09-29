@@ -25,7 +25,7 @@ func NewLivecommentReportFiller(userRepo repository.UserRepository, livecommentR
 // 同じユーザ・ライブコメントが複数含まれていても 1 回だけ取得する。並び順は呼び出し側で決める。
 //
 // ユーザやライブコメントが無いのはデータ不整合なので、呼び出し側はこのエラーを報告不在として扱わないこと。
-func (f *LivecommentReportFiller) Fill(ctx context.Context, q repository.Querier, reportModels []*domain.LivecommentReportModel) (map[domain.LivecommentReportID]*domain.LivecommentReport, error) {
+func (f *LivecommentReportFiller) Fill(ctx context.Context, q repository.Querier, reportModels []*domain.LivecommentReportModel) (map[domain.LivecommentReportID]*domain.LivecommentReportDetail, error) {
 	reporterModels := make([]*domain.UserModel, 0, len(reportModels))
 	fetchedReporters := make(map[domain.UserID]bool, len(reportModels))
 	livecommentModels := make([]*domain.LivecommentModel, 0, len(reportModels))
@@ -59,9 +59,9 @@ func (f *LivecommentReportFiller) Fill(ctx context.Context, q repository.Querier
 		return nil, err
 	}
 
-	reports := make(map[domain.LivecommentReportID]*domain.LivecommentReport, len(reportModels))
+	reports := make(map[domain.LivecommentReportID]*domain.LivecommentReportDetail, len(reportModels))
 	for _, reportModel := range reportModels {
-		reports[reportModel.ID] = &domain.LivecommentReport{
+		reports[reportModel.ID] = &domain.LivecommentReportDetail{
 			ID:          reportModel.ID,
 			Reporter:    *reporters[reportModel.UserID],
 			Livecomment: *livecomments[reportModel.LivecommentID],
