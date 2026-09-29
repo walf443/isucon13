@@ -36,7 +36,7 @@ func (f *UserFiller) Fill(ctx context.Context, q repository.Querier, users []*do
 
 		theme, err := f.themeRepo.FindByUserID(ctx, q, user.ID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get theme of user %d: %w", user.ID, err)
+			return nil, fmt.Errorf("failed to get theme of user %d: %w", user.ID, asMissingDetail(err))
 		}
 
 		image, err := f.iconRepo.FindImageByUserID(ctx, q, user.ID)

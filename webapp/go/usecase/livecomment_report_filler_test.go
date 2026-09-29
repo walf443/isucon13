@@ -77,7 +77,7 @@ func TestLivecommentReportFiller_Fill_Errors(t *testing.T) {
 			f := testLivestreamFixture()
 			tt.modify(f)
 			_, err := f.reportFiller(tt.livecomments...).Fill(context.Background(), nil, []*domain.LivecommentReport{testReport1})
-			if !errors.Is(err, repository.ErrNotFound) || err.Error() != tt.wantMsg {
+			if !errors.Is(err, errMissingDetail) || errors.Is(err, repository.ErrNotFound) || err.Error() != tt.wantMsg {
 				t.Errorf("err = %v, want %q", err, tt.wantMsg)
 			}
 		})

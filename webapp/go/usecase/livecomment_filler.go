@@ -33,7 +33,7 @@ func (f *LivecommentFiller) Fill(ctx context.Context, q repository.Querier, live
 		if !fetchedUsers[livecomment.UserID] {
 			user, err := f.userRepo.FindByID(ctx, q, livecomment.UserID)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get user of livecomment %d: %w", livecomment.ID, err)
+				return nil, fmt.Errorf("failed to get user of livecomment %d: %w", livecomment.ID, asMissingDetail(err))
 			}
 			users = append(users, user)
 			fetchedUsers[livecomment.UserID] = true
@@ -42,7 +42,7 @@ func (f *LivecommentFiller) Fill(ctx context.Context, q repository.Querier, live
 		if !fetchedLivestreams[livecomment.LivestreamID] {
 			livestream, err := f.livestreamRepo.FindByID(ctx, q, livecomment.LivestreamID)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get livestream of livecomment %d: %w", livecomment.ID, err)
+				return nil, fmt.Errorf("failed to get livestream of livecomment %d: %w", livecomment.ID, asMissingDetail(err))
 			}
 			livestreams = append(livestreams, livestream)
 			fetchedLivestreams[livecomment.LivestreamID] = true

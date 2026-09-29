@@ -33,7 +33,7 @@ func (f *ReactionFiller) Fill(ctx context.Context, q repository.Querier, reactio
 		if !fetchedUsers[reaction.UserID] {
 			user, err := f.userRepo.FindByID(ctx, q, reaction.UserID)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get user of reaction %d: %w", reaction.ID, err)
+				return nil, fmt.Errorf("failed to get user of reaction %d: %w", reaction.ID, asMissingDetail(err))
 			}
 			users = append(users, user)
 			fetchedUsers[reaction.UserID] = true
@@ -42,7 +42,7 @@ func (f *ReactionFiller) Fill(ctx context.Context, q repository.Querier, reactio
 		if !fetchedLivestreams[reaction.LivestreamID] {
 			livestream, err := f.livestreamRepo.FindByID(ctx, q, reaction.LivestreamID)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get livestream of reaction %d: %w", reaction.ID, err)
+				return nil, fmt.Errorf("failed to get livestream of reaction %d: %w", reaction.ID, asMissingDetail(err))
 			}
 			livestreams = append(livestreams, livestream)
 			fetchedLivestreams[reaction.LivestreamID] = true

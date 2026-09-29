@@ -79,7 +79,7 @@ func TestLivestreamUsecase_FindByID_Errors(t *testing.T) {
 			name:           "owner not found",
 			livestreamRepo: newLivestreamRepositoryWithLivestreams(nil, testLivestream1),
 			modify:         func(f *livestreamFixture) { delete(f.users, 42) },
-			wantErr:        repository.ErrNotFound,
+			wantErr:        errMissingDetail,
 			wantMsg:        "failed to get livestream: failed to get owner of livestream 1: not found",
 		},
 	}
@@ -289,7 +289,7 @@ func TestLivestreamUsecase_FindAllByTagName_Errors(t *testing.T) {
 		{
 			name:           "livestream not found",
 			livestreamRepo: newLivestreamRepositoryWithLivestreams(nil),
-			wantErr:        repository.ErrNotFound,
+			wantErr:        errMissingDetail,
 			wantMsg:        "failed to get livestreams: failed to get livestream 2: not found",
 		},
 	}

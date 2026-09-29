@@ -34,7 +34,7 @@ func (f *LivecommentReportFiller) Fill(ctx context.Context, q repository.Querier
 		if !fetchedReporters[report.UserID] {
 			reporter, err := f.userRepo.FindByID(ctx, q, report.UserID)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get reporter of livecomment report %d: %w", report.ID, err)
+				return nil, fmt.Errorf("failed to get reporter of livecomment report %d: %w", report.ID, asMissingDetail(err))
 			}
 			reporters = append(reporters, reporter)
 			fetchedReporters[report.UserID] = true
@@ -43,7 +43,7 @@ func (f *LivecommentReportFiller) Fill(ctx context.Context, q repository.Querier
 		if !fetchedLivecomments[report.LivecommentID] {
 			livecomment, err := f.livecommentRepo.FindByID(ctx, q, report.LivecommentID)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get livecomment of livecomment report %d: %w", report.ID, err)
+				return nil, fmt.Errorf("failed to get livecomment of livecomment report %d: %w", report.ID, asMissingDetail(err))
 			}
 			livecomments = append(livecomments, livecomment)
 			fetchedLivecomments[report.LivecommentID] = true

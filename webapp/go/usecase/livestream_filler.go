@@ -34,7 +34,7 @@ func (f *LivestreamFiller) Fill(ctx context.Context, q repository.Querier, lives
 		}
 		owner, err := f.userRepo.FindByID(ctx, q, livestream.UserID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get owner of livestream %d: %w", livestream.ID, err)
+			return nil, fmt.Errorf("failed to get owner of livestream %d: %w", livestream.ID, asMissingDetail(err))
 		}
 		owners = append(owners, owner)
 		fetchedOwners[livestream.UserID] = true
@@ -61,7 +61,7 @@ func (f *LivestreamFiller) Fill(ctx context.Context, q repository.Querier, lives
 			if !ok {
 				tag, err = f.tagRepo.FindByID(ctx, q, livestreamTag.TagID)
 				if err != nil {
-					return nil, fmt.Errorf("failed to get tag %d of livestream %d: %w", livestreamTag.TagID, livestream.ID, err)
+					return nil, fmt.Errorf("failed to get tag %d of livestream %d: %w", livestreamTag.TagID, livestream.ID, asMissingDetail(err))
 				}
 				tagsByID[livestreamTag.TagID] = tag
 			}

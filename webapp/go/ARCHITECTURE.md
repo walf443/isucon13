@@ -59,7 +59,9 @@ usecase の `XxxFiller` (`UserFiller` / `LivestreamFiller` など) が repositor
   - 1 件だけの場合も長さ 1 のスライスで渡す。まとめて取得する作りにしておけば、将来 `IN (...)` で取得するように変えても呼び出し側は変わらない
 - 同じ ID が複数含まれていても 1 回だけ取得する
 - 主となる行 (ユーザ・ライブ配信など) は呼び出し側が引き、見つからない場合の 404 への変換やエラーメッセージも呼び出し側で決める
-  - 付随するデータ (テーマ・配信者・タグなど) が無いのはデータ不整合なので 500 にする。Filler のエラーを 404 に変換しないこと
+  - 付随するデータ (テーマ・配信者・タグなど) が無いのはデータ不整合なので 500 にする
+  - Filler は付随するデータの `repository.ErrNotFound` を `asMissingDetail` で `errMissingDetail` に置き換えてから返す (メッセージは変えない)。
+    呼び出し側が誤って Filler のエラーに `errors.Is(err, repository.ErrNotFound)` を使っても、404 にならない
 - Filler は他の Filler を使う (`LivestreamFiller` は配信者に `UserFiller` を使う、など)。`usecases.go` でそれぞれ 1 つ作って共有する
 
 ### SQL

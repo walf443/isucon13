@@ -336,7 +336,7 @@ func TestLivestreamReservationUsecase_Reserve_FillFails(t *testing.T) {
 	u := NewLivestreamReservationUsecase(&fakeTxManager{}, livestreamRepo, livestreamTagRepo, slotRepo, f.filler(), &fakeLogger{})
 
 	_, err := u.Reserve(context.Background(), 1, testReserveInput)
-	if want := "failed to fill livestream: failed to get owner of livestream 100: not found"; !errors.Is(err, repository.ErrNotFound) || err.Error() != want {
+	if want := "failed to fill livestream: failed to get owner of livestream 100: not found"; !errors.Is(err, errMissingDetail) || err.Error() != want {
 		t.Errorf("err = %v, want %q", err, want)
 	}
 }

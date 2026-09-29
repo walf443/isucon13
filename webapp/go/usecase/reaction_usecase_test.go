@@ -90,7 +90,7 @@ func TestReactionUsecase_FindAllByLivestreamID_Errors(t *testing.T) {
 			// ライブ配信 2 は引けないので組み立てに失敗する
 			name:    "fill fails",
 			models:  []*domain.Reaction{testReaction3},
-			wantErr: repository.ErrNotFound,
+			wantErr: errMissingDetail,
 			wantMsg: "failed to get reactions: failed to get livestream of reaction 3: not found",
 		},
 	}
@@ -175,7 +175,7 @@ func TestReactionUsecase_Create_Errors(t *testing.T) {
 		{
 			name:      "fill fails",
 			modify:    func(f *livestreamFixture) { delete(f.users, 43) },
-			wantErr:   repository.ErrNotFound,
+			wantErr:   errMissingDetail,
 			wantMsg:   "failed to fill reaction: failed to get user of reaction 100: not found",
 			wantCalls: []string{"Create", "FindByID"},
 		},

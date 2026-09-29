@@ -90,7 +90,7 @@ func TestLivecommentUsecase_FindAllByLivestreamID_Errors(t *testing.T) {
 			// ライブ配信 2 は引けないので組み立てに失敗する
 			name:    "fill fails",
 			models:  []*domain.Livecomment{testLivecomment3},
-			wantErr: repository.ErrNotFound,
+			wantErr: errMissingDetail,
 			wantMsg: "failed to get livecomments: failed to get livestream of livecomment 52: not found",
 		},
 	}
@@ -265,7 +265,7 @@ func TestLivecommentUsecase_Create_Errors(t *testing.T) {
 			name:       "fill fails",
 			livestream: owned,
 			modify:     func(f *livestreamFixture) { delete(f.users, 43) },
-			wantErr:    repository.ErrNotFound,
+			wantErr:    errMissingDetail,
 			wantCalls:  []string{"Create", "FindByID"},
 		},
 	}

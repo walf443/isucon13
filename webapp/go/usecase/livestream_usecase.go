@@ -153,7 +153,7 @@ func (u *livestreamUsecase) FindAllByTagName(ctx context.Context, tagName string
 			if !ok {
 				livestream, err = u.livestreamRepo.FindByID(ctx, q, livestreamTag.LivestreamID)
 				if err != nil {
-					return fmt.Errorf("failed to get livestreams: failed to get livestream %d: %w", livestreamTag.LivestreamID, err)
+					return fmt.Errorf("failed to get livestreams: failed to get livestream %d: %w", livestreamTag.LivestreamID, asMissingDetail(err))
 				}
 				fetched[livestreamTag.LivestreamID] = livestream
 			}

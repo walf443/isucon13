@@ -78,7 +78,7 @@ func TestUserUsecase_Errors(t *testing.T) {
 			// テーマ欠損はデータ不整合なので 404 (ErrUserNotFound) にしない
 			name:    "theme not found",
 			user:    alice,
-			wantErr: repository.ErrNotFound,
+			wantErr: errMissingDetail,
 			wantMsg: "failed to get user: failed to get theme of user 1: not found",
 		},
 	}

@@ -80,7 +80,7 @@ func TestReactionFiller_Fill_Errors(t *testing.T) {
 			f := testLivestreamFixture()
 			tt.modify(f)
 			_, err := f.reactionFiller(tt.livestreams...).Fill(context.Background(), nil, []*domain.Reaction{testReaction1})
-			if !errors.Is(err, repository.ErrNotFound) || err.Error() != tt.wantMsg {
+			if !errors.Is(err, errMissingDetail) || errors.Is(err, repository.ErrNotFound) || err.Error() != tt.wantMsg {
 				t.Errorf("err = %v, want %q", err, tt.wantMsg)
 			}
 		})

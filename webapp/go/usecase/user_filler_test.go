@@ -101,7 +101,7 @@ func TestUserFiller_Fill_Errors(t *testing.T) {
 					return nil, repository.ErrNotFound
 				},
 			},
-			wantErr: repository.ErrNotFound,
+			wantErr: errMissingDetail,
 			wantMsg: "failed to get theme of user 1: not found",
 		},
 		{
@@ -123,7 +123,7 @@ func TestUserFiller_Fill_Errors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := NewUserFiller(tt.themeRepo, tt.iconRepo, "")
 			_, err := f.Fill(context.Background(), nil, []*domain.User{{ID: 1}})
-			if !errors.Is(err, tt.wantErr) || err.Error() != tt.wantMsg {
+			if !errors.Is(err, tt.wantErr) || (tt.wantErr == errMissingDetail && errors.Is(err, repository.ErrNotFound)) || err.Error() != tt.wantMsg {
 				t.Errorf("err = %v, want %q", err, tt.wantMsg)
 			}
 		})

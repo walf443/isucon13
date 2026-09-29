@@ -158,13 +158,13 @@ func TestLivestreamFiller_Fill_Errors(t *testing.T) {
 		{
 			name:    "owner not found",
 			modify:  func(f *livestreamFixture) { delete(f.users, 42) },
-			wantErr: repository.ErrNotFound,
+			wantErr: errMissingDetail,
 			wantMsg: "failed to get owner of livestream 1: not found",
 		},
 		{
 			name:    "tag not found",
 			modify:  func(f *livestreamFixture) { delete(f.tags, 8) },
-			wantErr: repository.ErrNotFound,
+			wantErr: errMissingDetail,
 			wantMsg: "failed to get tag 8 of livestream 1: not found",
 		},
 	}
@@ -174,7 +174,7 @@ func TestLivestreamFiller_Fill_Errors(t *testing.T) {
 			f := testLivestreamFixture()
 			tt.modify(f)
 			_, err := f.filler().Fill(context.Background(), nil, []*domain.Livestream{testLivestream1})
-			if !errors.Is(err, tt.wantErr) || err.Error() != tt.wantMsg {
+			if !errors.Is(err, tt.wantErr) || (tt.wantErr == errMissingDetail && errors.Is(err, repository.ErrNotFound)) || err.Error() != tt.wantMsg {
 				t.Errorf("err = %v, want %q", err, tt.wantMsg)
 			}
 		})

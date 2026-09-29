@@ -179,7 +179,7 @@ func TestUserRegistrationUsecase_Register_Errors(t *testing.T) {
 		{
 			name:         "fill fails",
 			themeMissing: true,
-			wantErr:      repository.ErrNotFound,
+			wantErr:      errMissingDetail,
 			wantMsg:      "failed to fill user: failed to get theme of user 5: not found",
 			wantCalls:    []string{"Create", "FindByID"},
 			wantDNS:      []string{"alice"},
