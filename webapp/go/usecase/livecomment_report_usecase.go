@@ -42,12 +42,12 @@ func NewLivecommentReportUsecase(txManager repository.TxManager, livestreamRepo 
 }
 
 // livecommentReportModelID は orderedBy に渡すための、報告の ID を取り出す関数。
-func livecommentReportModelID(reportModel *domain.LivecommentReport) domain.LivecommentReportID {
-	return reportModel.ID
+func livecommentReportIDOf(report *domain.LivecommentReport) domain.LivecommentReportID {
+	return report.ID
 }
 
 func (u *livecommentReportUsecase) FindAllByLivestreamID(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.LivecommentReportDetail, error) {
-	var reports []*domain.LivecommentReportDetail
+	var reportDetails []*domain.LivecommentReportDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		// ライブ配信が存在しない場合も (404 ではなく) エラーのまま返す (移行前と同じ)
 		livestream, err := u.livestreamRepo.FindByID(ctx, q, livestreamID)
@@ -58,25 +58,25 @@ func (u *livecommentReportUsecase) FindAllByLivestreamID(ctx context.Context, us
 			return ErrNotLivestreamOwner
 		}
 
-		reportModels, err := u.reportRepo.FindAllByLivestreamID(ctx, q, livestreamID)
+		reports, err := u.reportRepo.FindAllByLivestreamID(ctx, q, livestreamID)
 		if err != nil {
 			return fmt.Errorf("failed to get livecomment reports: %w", err)
 		}
-		filled, err := u.reportFiller.Fill(ctx, q, reportModels)
+		filled, err := u.reportFiller.Fill(ctx, q, reports)
 		if err != nil {
 			return fmt.Errorf("failed to get livecomment reports: %w", err)
 		}
-		reports = orderedBy(reportModels, livecommentReportModelID, filled)
+		reportDetails = orderedBy(reports, livecommentReportIDOf, filled)
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return reports, nil
+	return reportDetails, nil
 }
 
 func (u *livecommentReportUsecase) Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, livecommentID domain.LivecommentID) (*domain.LivecommentReportDetail, error) {
-	var report *domain.LivecommentReportDetail
+	var reportDetail *domain.LivecommentReportDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		// ライブコメントがそのライブ配信へのものかは確認しない (移行前と同じ)
 		_, err := u.livestreamRepo.FindByID(ctx, q, livestreamID)
@@ -105,19 +105,19 @@ func (u *livecommentReportUsecase) Create(ctx context.Context, userID domain.Use
 			return fmt.Errorf("failed to insert livecomment report: %w", err)
 		}
 
-		reportModel, err := u.reportRepo.FindByID(ctx, q, reportID)
+		report, err := u.reportRepo.FindByID(ctx, q, reportID)
 		if err != nil {
 			return fmt.Errorf("failed to fill livecomment report: %w", err)
 		}
-		reports, err := u.reportFiller.Fill(ctx, q, []*domain.LivecommentReport{reportModel})
+		reportDetails, err := u.reportFiller.Fill(ctx, q, []*domain.LivecommentReport{report})
 		if err != nil {
 			return fmt.Errorf("failed to fill livecomment report: %w", err)
 		}
-		report = reports[reportID]
+		reportDetail = reportDetails[reportID]
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return report, nil
+	return reportDetail, nil
 }

@@ -65,7 +65,7 @@ func (f *livestreamFixture) userFiller() *UserFiller {
 	return newUserFillerForTest(themes, nil, nil)
 }
 
-// user は、このデータでユーザ id を埋めた結果として期待する domain.User を返す。
+// user は、このデータでユーザ id を埋めた結果として期待する domain.UserDetail を返す。
 func (f *livestreamFixture) user(id domain.UserID) domain.UserDetail {
 	user := f.users[id]
 	return domain.UserDetail{
@@ -102,42 +102,42 @@ func (f *livestreamFixture) filler() *LivestreamFiller {
 	return NewLivestreamFiller(f.userRepo(), livestreamTagRepo, tagRepo, f.userFiller())
 }
 
-// livestream は、このデータで livestreamModel を埋めた結果として期待する domain.Livestream を返す。
-func (f *livestreamFixture) livestream(livestreamModel *domain.Livestream) *domain.LivestreamDetail {
-	tags := make([]domain.Tag, len(f.livestreamTags[livestreamModel.ID]))
-	for i, tagID := range f.livestreamTags[livestreamModel.ID] {
+// livestream は、このデータで livestream を埋めた結果として期待する domain.LivestreamDetail を返す。
+func (f *livestreamFixture) livestream(livestream *domain.Livestream) *domain.LivestreamDetail {
+	tags := make([]domain.Tag, len(f.livestreamTags[livestream.ID]))
+	for i, tagID := range f.livestreamTags[livestream.ID] {
 		tags[i] = *f.tags[tagID]
 	}
 	return &domain.LivestreamDetail{
-		ID:           livestreamModel.ID,
-		Owner:        f.user(livestreamModel.UserID),
-		Title:        livestreamModel.Title,
-		Description:  livestreamModel.Description,
-		PlaylistUrl:  livestreamModel.PlaylistUrl,
-		ThumbnailUrl: livestreamModel.ThumbnailUrl,
+		ID:           livestream.ID,
+		Owner:        f.user(livestream.UserID),
+		Title:        livestream.Title,
+		Description:  livestream.Description,
+		PlaylistUrl:  livestream.PlaylistUrl,
+		ThumbnailUrl: livestream.ThumbnailUrl,
 		Tags:         tags,
-		StartAt:      livestreamModel.StartAt,
-		EndAt:        livestreamModel.EndAt,
+		StartAt:      livestream.StartAt,
+		EndAt:        livestream.EndAt,
 	}
 }
 
 var (
-	testLivestreamModel1 = &domain.Livestream{ID: 1, UserID: 42, Title: "first", Description: "desc", PlaylistUrl: "p", ThumbnailUrl: "t", StartAt: 100, EndAt: 200}
-	testLivestreamModel2 = &domain.Livestream{ID: 2, UserID: 42, Title: "second"}
+	testLivestream1 = &domain.Livestream{ID: 1, UserID: 42, Title: "first", Description: "desc", PlaylistUrl: "p", ThumbnailUrl: "t", StartAt: 100, EndAt: 200}
+	testLivestream2 = &domain.Livestream{ID: 2, UserID: 42, Title: "second"}
 )
 
 func TestLivestreamFiller_Fill(t *testing.T) {
 	f := testLivestreamFixture()
 
 	// 同じライブ配信・配信者・タグが重複していても 1 回だけ取得する
-	got, err := f.filler().Fill(context.Background(), nil, []*domain.Livestream{testLivestreamModel1, testLivestreamModel2, testLivestreamModel1})
+	got, err := f.filler().Fill(context.Background(), nil, []*domain.Livestream{testLivestream1, testLivestream2, testLivestream1})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	want := map[domain.LivestreamID]*domain.LivestreamDetail{
-		1: f.livestream(testLivestreamModel1),
-		2: f.livestream(testLivestreamModel2),
+		1: f.livestream(testLivestream1),
+		2: f.livestream(testLivestream2),
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("livestreams = %+v, want %+v", got, want)
@@ -173,7 +173,7 @@ func TestLivestreamFiller_Fill_Errors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := testLivestreamFixture()
 			tt.modify(f)
-			_, err := f.filler().Fill(context.Background(), nil, []*domain.Livestream{testLivestreamModel1})
+			_, err := f.filler().Fill(context.Background(), nil, []*domain.Livestream{testLivestream1})
 			if !errors.Is(err, tt.wantErr) || err.Error() != tt.wantMsg {
 				t.Errorf("err = %v, want %q", err, tt.wantMsg)
 			}
@@ -191,7 +191,7 @@ func TestLivestreamFiller_Fill_RepositoryErrors(t *testing.T) {
 		},
 	}
 
-	_, err := filler.Fill(context.Background(), nil, []*domain.Livestream{testLivestreamModel1})
+	_, err := filler.Fill(context.Background(), nil, []*domain.Livestream{testLivestream1})
 	if want := "failed to get tags of livestream 1: boom"; !errors.Is(err, boom) || err.Error() != want {
 		t.Errorf("err = %v, want %q", err, want)
 	}

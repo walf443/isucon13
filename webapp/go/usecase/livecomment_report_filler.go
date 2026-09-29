@@ -9,7 +9,7 @@ import (
 )
 
 // LivecommentReportFiller はライブコメントの報告に報告したユーザ・報告されたライブコメントを埋めた
-// domain.LivecommentReport を組み立てる。
+// domain.LivecommentReportDetail を組み立てる。
 type LivecommentReportFiller struct {
 	userRepo          repository.UserRepository
 	livecommentRepo   repository.LivecommentRepository
@@ -21,52 +21,52 @@ func NewLivecommentReportFiller(userRepo repository.UserRepository, livecommentR
 	return &LivecommentReportFiller{userRepo: userRepo, livecommentRepo: livecommentRepo, userFiller: userFiller, livecommentFiller: livecommentFiller}
 }
 
-// Fill は reportModels に報告したユーザ・報告されたライブコメントを埋めた domain.LivecommentReport を、報告の ID ごとに返す。
+// Fill は reports に報告したユーザ・報告されたライブコメントを埋めた domain.LivecommentReportDetail を、報告の ID ごとに返す。
 // 同じユーザ・ライブコメントが複数含まれていても 1 回だけ取得する。並び順は呼び出し側で決める。
 //
 // ユーザやライブコメントが無いのはデータ不整合なので、呼び出し側はこのエラーを報告不在として扱わないこと。
-func (f *LivecommentReportFiller) Fill(ctx context.Context, q repository.Querier, reportModels []*domain.LivecommentReport) (map[domain.LivecommentReportID]*domain.LivecommentReportDetail, error) {
-	reporterModels := make([]*domain.User, 0, len(reportModels))
-	fetchedReporters := make(map[domain.UserID]bool, len(reportModels))
-	livecommentModels := make([]*domain.Livecomment, 0, len(reportModels))
-	fetchedLivecomments := make(map[domain.LivecommentID]bool, len(reportModels))
-	for _, reportModel := range reportModels {
-		if !fetchedReporters[reportModel.UserID] {
-			reporterModel, err := f.userRepo.FindByID(ctx, q, reportModel.UserID)
+func (f *LivecommentReportFiller) Fill(ctx context.Context, q repository.Querier, reports []*domain.LivecommentReport) (map[domain.LivecommentReportID]*domain.LivecommentReportDetail, error) {
+	reporters := make([]*domain.User, 0, len(reports))
+	fetchedReporters := make(map[domain.UserID]bool, len(reports))
+	livecomments := make([]*domain.Livecomment, 0, len(reports))
+	fetchedLivecomments := make(map[domain.LivecommentID]bool, len(reports))
+	for _, report := range reports {
+		if !fetchedReporters[report.UserID] {
+			reporter, err := f.userRepo.FindByID(ctx, q, report.UserID)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get reporter of livecomment report %d: %w", reportModel.ID, err)
+				return nil, fmt.Errorf("failed to get reporter of livecomment report %d: %w", report.ID, err)
 			}
-			reporterModels = append(reporterModels, reporterModel)
-			fetchedReporters[reportModel.UserID] = true
+			reporters = append(reporters, reporter)
+			fetchedReporters[report.UserID] = true
 		}
 
-		if !fetchedLivecomments[reportModel.LivecommentID] {
-			livecommentModel, err := f.livecommentRepo.FindByID(ctx, q, reportModel.LivecommentID)
+		if !fetchedLivecomments[report.LivecommentID] {
+			livecomment, err := f.livecommentRepo.FindByID(ctx, q, report.LivecommentID)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get livecomment of livecomment report %d: %w", reportModel.ID, err)
+				return nil, fmt.Errorf("failed to get livecomment of livecomment report %d: %w", report.ID, err)
 			}
-			livecommentModels = append(livecommentModels, livecommentModel)
-			fetchedLivecomments[reportModel.LivecommentID] = true
+			livecomments = append(livecomments, livecomment)
+			fetchedLivecomments[report.LivecommentID] = true
 		}
 	}
 
-	reporters, err := f.userFiller.Fill(ctx, q, reporterModels)
+	reporterDetails, err := f.userFiller.Fill(ctx, q, reporters)
 	if err != nil {
 		return nil, err
 	}
-	livecomments, err := f.livecommentFiller.Fill(ctx, q, livecommentModels)
+	livecommentDetails, err := f.livecommentFiller.Fill(ctx, q, livecomments)
 	if err != nil {
 		return nil, err
 	}
 
-	reports := make(map[domain.LivecommentReportID]*domain.LivecommentReportDetail, len(reportModels))
-	for _, reportModel := range reportModels {
-		reports[reportModel.ID] = &domain.LivecommentReportDetail{
-			ID:          reportModel.ID,
-			Reporter:    *reporters[reportModel.UserID],
-			Livecomment: *livecomments[reportModel.LivecommentID],
-			CreatedAt:   reportModel.CreatedAt,
+	reportDetails := make(map[domain.LivecommentReportID]*domain.LivecommentReportDetail, len(reports))
+	for _, report := range reports {
+		reportDetails[report.ID] = &domain.LivecommentReportDetail{
+			ID:          report.ID,
+			Reporter:    *reporterDetails[report.UserID],
+			Livecomment: *livecommentDetails[report.LivecommentID],
+			CreatedAt:   report.CreatedAt,
 		}
 	}
-	return reports, nil
+	return reportDetails, nil
 }

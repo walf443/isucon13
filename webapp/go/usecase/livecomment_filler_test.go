@@ -10,9 +10,9 @@ import (
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
-// newLivecommentRepositoryWithModels は ID で models を引ける fakeLivecommentRepository を返す。
+// newLivecommentRepositoryWithLivecomments は ID で models を引ける fakeLivecommentRepository を返す。
 // 見つからない ID には ErrNotFound を返す。
-func newLivecommentRepositoryWithModels(models ...*domain.Livecomment) *fakeLivecommentRepository {
+func newLivecommentRepositoryWithLivecomments(models ...*domain.Livecomment) *fakeLivecommentRepository {
 	return &fakeLivecommentRepository{
 		findByID: func(_ context.Context, _ repository.Querier, id domain.LivecommentID) (*domain.Livecomment, error) {
 			for _, m := range models {
@@ -25,42 +25,42 @@ func newLivecommentRepositoryWithModels(models ...*domain.Livecomment) *fakeLive
 	}
 }
 
-// livecommentFiller は f のユーザと livestreamModels のライブ配信を引く LivecommentFiller を返す。
-func (f *livestreamFixture) livecommentFiller(livestreamModels ...*domain.Livestream) *LivecommentFiller {
-	return NewLivecommentFiller(f.userRepo(), newLivestreamRepositoryWithModels(nil, livestreamModels...), f.userFiller(), f.filler())
+// livecommentFiller は f のユーザと livestreams のライブ配信を引く LivecommentFiller を返す。
+func (f *livestreamFixture) livecommentFiller(livestreams ...*domain.Livestream) *LivecommentFiller {
+	return NewLivecommentFiller(f.userRepo(), newLivestreamRepositoryWithLivestreams(nil, livestreams...), f.userFiller(), f.filler())
 }
 
-// livecomment は、このデータで livecommentModel を埋めた結果として期待する domain.Livecomment を返す。
-// livestreamModel は livecommentModel のライブ配信。
-func (f *livestreamFixture) livecomment(livecommentModel *domain.Livecomment, livestreamModel *domain.Livestream) *domain.LivecommentDetail {
+// livecomment は、このデータで livecomment を埋めた結果として期待する domain.LivecommentDetail を返す。
+// livestream は livecomment のライブ配信。
+func (f *livestreamFixture) livecomment(livecomment *domain.Livecomment, livestream *domain.Livestream) *domain.LivecommentDetail {
 	return &domain.LivecommentDetail{
-		ID:         livecommentModel.ID,
-		User:       f.user(livecommentModel.UserID),
-		Livestream: *f.livestream(livestreamModel),
-		Comment:    livecommentModel.Comment,
-		Tip:        livecommentModel.Tip,
-		CreatedAt:  livecommentModel.CreatedAt,
+		ID:         livecomment.ID,
+		User:       f.user(livecomment.UserID),
+		Livestream: *f.livestream(livestream),
+		Comment:    livecomment.Comment,
+		Tip:        livecomment.Tip,
+		CreatedAt:  livecomment.CreatedAt,
 	}
 }
 
 var (
-	testLivecommentModel1 = &domain.Livecomment{ID: 50, UserID: 43, LivestreamID: 1, Comment: "hello", Tip: 10, CreatedAt: 300}
-	testLivecommentModel2 = &domain.Livecomment{ID: 51, UserID: 42, LivestreamID: 1, Comment: "thanks", CreatedAt: 200}
-	testLivecommentModel3 = &domain.Livecomment{ID: 52, UserID: 43, LivestreamID: 2, Comment: "hi", CreatedAt: 100}
+	testLivecomment1 = &domain.Livecomment{ID: 50, UserID: 43, LivestreamID: 1, Comment: "hello", Tip: 10, CreatedAt: 300}
+	testLivecomment2 = &domain.Livecomment{ID: 51, UserID: 42, LivestreamID: 1, Comment: "thanks", CreatedAt: 200}
+	testLivecomment3 = &domain.Livecomment{ID: 52, UserID: 43, LivestreamID: 2, Comment: "hi", CreatedAt: 100}
 )
 
 func TestLivecommentFiller_Fill(t *testing.T) {
 	f := testLivestreamFixture()
 
-	got, err := f.livecommentFiller(testLivestreamModel1, testLivestreamModel2).Fill(context.Background(), nil, []*domain.Livecomment{testLivecommentModel1, testLivecommentModel2, testLivecommentModel3})
+	got, err := f.livecommentFiller(testLivestream1, testLivestream2).Fill(context.Background(), nil, []*domain.Livecomment{testLivecomment1, testLivecomment2, testLivecomment3})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	want := map[domain.LivecommentID]*domain.LivecommentDetail{
-		50: f.livecomment(testLivecommentModel1, testLivestreamModel1),
-		51: f.livecomment(testLivecommentModel2, testLivestreamModel1),
-		52: f.livecomment(testLivecommentModel3, testLivestreamModel2),
+		50: f.livecomment(testLivecomment1, testLivestream1),
+		51: f.livecomment(testLivecomment2, testLivestream1),
+		52: f.livecomment(testLivecomment3, testLivestream2),
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("livecomments = %+v, want %+v", got, want)
@@ -73,16 +73,16 @@ func TestLivecommentFiller_Fill(t *testing.T) {
 
 func TestLivecommentFiller_Fill_Errors(t *testing.T) {
 	tests := []struct {
-		name             string
-		modify           func(f *livestreamFixture)
-		livestreamModels []*domain.Livestream
-		wantMsg          string
+		name        string
+		modify      func(f *livestreamFixture)
+		livestreams []*domain.Livestream
+		wantMsg     string
 	}{
 		{
-			name:             "user not found",
-			modify:           func(f *livestreamFixture) { delete(f.users, 43) },
-			livestreamModels: []*domain.Livestream{testLivestreamModel1},
-			wantMsg:          "failed to get user of livecomment 50: not found",
+			name:        "user not found",
+			modify:      func(f *livestreamFixture) { delete(f.users, 43) },
+			livestreams: []*domain.Livestream{testLivestream1},
+			wantMsg:     "failed to get user of livecomment 50: not found",
 		},
 		{
 			name:    "livestream not found",
@@ -95,7 +95,7 @@ func TestLivecommentFiller_Fill_Errors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := testLivestreamFixture()
 			tt.modify(f)
-			_, err := f.livecommentFiller(tt.livestreamModels...).Fill(context.Background(), nil, []*domain.Livecomment{testLivecommentModel1})
+			_, err := f.livecommentFiller(tt.livestreams...).Fill(context.Background(), nil, []*domain.Livecomment{testLivecomment1})
 			if !errors.Is(err, repository.ErrNotFound) || err.Error() != tt.wantMsg {
 				t.Errorf("err = %v, want %q", err, tt.wantMsg)
 			}

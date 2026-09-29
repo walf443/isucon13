@@ -48,7 +48,7 @@ func NewLivestreamReservationUsecase(txManager repository.TxManager, livestreamR
 }
 
 func (u *livestreamReservationUsecase) Reserve(ctx context.Context, userID domain.UserID, input ReserveLivestreamInput) (*domain.LivestreamDetail, error) {
-	var livestream *domain.LivestreamDetail
+	var livestreamDetail *domain.LivestreamDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		// 移行前はトランザクション開始後に期間をチェックしていたので、同じくトランザクション内で行う
 		period := domain.ReservationPeriod{StartAt: input.StartAt, EndAt: input.EndAt}
@@ -99,19 +99,19 @@ func (u *livestreamReservationUsecase) Reserve(ctx context.Context, userID domai
 			}
 		}
 
-		livestreamModel, err := u.livestreamRepo.FindByID(ctx, q, livestreamID)
+		livestream, err := u.livestreamRepo.FindByID(ctx, q, livestreamID)
 		if err != nil {
 			return fmt.Errorf("failed to fill livestream: %w", err)
 		}
-		livestreams, err := u.livestreamFiller.Fill(ctx, q, []*domain.Livestream{livestreamModel})
+		livestreamDetails, err := u.livestreamFiller.Fill(ctx, q, []*domain.Livestream{livestream})
 		if err != nil {
 			return fmt.Errorf("failed to fill livestream: %w", err)
 		}
-		livestream = livestreams[livestreamID]
+		livestreamDetail = livestreamDetails[livestreamID]
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return livestream, nil
+	return livestreamDetail, nil
 }

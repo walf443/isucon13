@@ -10,9 +10,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// aliceModel と aliceUser は、テーマ・アイコンを埋める前後のユーザ alice。
+// alice と aliceUser は、テーマ・アイコンを埋める前後のユーザ alice。
 var (
-	aliceModel = &domain.User{ID: 1, Name: "alice", DisplayName: "Alice", Description: "hi"}
+	alice      = &domain.User{ID: 1, Name: "alice", DisplayName: "Alice", Description: "hi"}
 	aliceTheme = &domain.Theme{ID: 10, UserID: 1, DarkMode: true}
 	aliceUser  = domain.UserDetail{ID: 1, Name: "alice", DisplayName: "Alice", Description: "hi", Theme: *aliceTheme, IconHash: "default-hash"}
 )
@@ -23,18 +23,18 @@ func TestUserUsecase_FindByName(t *testing.T) {
 			if name != "alice" {
 				t.Errorf("name = %q, want %q", name, "alice")
 			}
-			return aliceModel, nil
+			return alice, nil
 		},
 	}
 	userFiller := newUserFillerForTest(map[domain.UserID]*domain.Theme{1: aliceTheme}, nil, nil)
 	u := NewUserUsecase(&fakeTxManager{}, userRepo, userFiller)
 
-	user, err := u.FindByName(context.Background(), "alice")
+	userDetail, err := u.FindByName(context.Background(), "alice")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if *user != aliceUser {
-		t.Errorf("user = %+v, want %+v", *user, aliceUser)
+	if *userDetail != aliceUser {
+		t.Errorf("user = %+v, want %+v", *userDetail, aliceUser)
 	}
 }
 
@@ -44,18 +44,18 @@ func TestUserUsecase_FindByID(t *testing.T) {
 			if id != 1 {
 				t.Errorf("id = %d, want 1", id)
 			}
-			return aliceModel, nil
+			return alice, nil
 		},
 	}
 	userFiller := newUserFillerForTest(map[domain.UserID]*domain.Theme{1: aliceTheme}, nil, nil)
 	u := NewUserUsecase(&fakeTxManager{}, userRepo, userFiller)
 
-	user, err := u.FindByID(context.Background(), 1)
+	userDetail, err := u.FindByID(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if *user != aliceUser {
-		t.Errorf("user = %+v, want %+v", *user, aliceUser)
+	if *userDetail != aliceUser {
+		t.Errorf("user = %+v, want %+v", *userDetail, aliceUser)
 	}
 }
 
@@ -77,7 +77,7 @@ func TestUserUsecase_Errors(t *testing.T) {
 		{
 			// テーマ欠損はデータ不整合なので 404 (ErrUserNotFound) にしない
 			name:    "theme not found",
-			user:    aliceModel,
+			user:    alice,
 			wantErr: repository.ErrNotFound,
 			wantMsg: "failed to get user: failed to get theme of user 1: not found",
 		},

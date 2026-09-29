@@ -42,9 +42,9 @@ func (u *userUsecase) FindByName(ctx context.Context, name string) (*domain.User
 }
 
 func (u *userUsecase) findUser(ctx context.Context, find func(q repository.Querier) (*domain.User, error)) (*domain.UserDetail, error) {
-	var user *domain.UserDetail
+	var userDetail *domain.UserDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
-		userModel, err := find(q)
+		user, err := find(q)
 		// ユーザ不在 (404) にするのはユーザ自体が無い場合だけ。テーマ欠損などは 500 にする
 		if errors.Is(err, repository.ErrNotFound) {
 			return ErrUserNotFound
@@ -53,17 +53,17 @@ func (u *userUsecase) findUser(ctx context.Context, find func(q repository.Queri
 			return fmt.Errorf("failed to get user: %w", err)
 		}
 
-		users, err := u.userFiller.Fill(ctx, q, []*domain.User{userModel})
+		userDetails, err := u.userFiller.Fill(ctx, q, []*domain.User{user})
 		if err != nil {
 			return fmt.Errorf("failed to get user: %w", err)
 		}
-		user = users[userModel.ID]
+		userDetail = userDetails[user.ID]
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return user, nil
+	return userDetail, nil
 }
 
 func (u *userUsecase) Login(ctx context.Context, username string, password string) (*domain.User, error) {

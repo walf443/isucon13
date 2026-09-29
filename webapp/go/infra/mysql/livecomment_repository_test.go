@@ -122,7 +122,7 @@ func TestLivecommentRepository_SumTip(t *testing.T) {
 	}
 }
 
-func livecommentModelIDs(livecomments []*domain.Livecomment) []domain.LivecommentID {
+func livecommentIDs(livecomments []*domain.Livecomment) []domain.LivecommentID {
 	ids := make([]domain.LivecommentID, len(livecomments))
 	for i, l := range livecomments {
 		ids[i] = l.ID
@@ -147,7 +147,7 @@ func TestLivecommentRepository_FindAllByLivestreamIDOrderByCreatedAtDesc(t *test
 	if err != nil {
 		t.Fatalf("FindAllByLivestreamIDOrderByCreatedAtDesc returned error: %v", err)
 	}
-	if ids, want := livecommentModelIDs(got), []domain.LivecommentID{newest, middle, oldest}; !slices.Equal(ids, want) {
+	if ids, want := livecommentIDs(got), []domain.LivecommentID{newest, middle, oldest}; !slices.Equal(ids, want) {
 		t.Errorf("IDs = %v, want %v", ids, want)
 	}
 
@@ -155,7 +155,7 @@ func TestLivecommentRepository_FindAllByLivestreamIDOrderByCreatedAtDesc(t *test
 	if err != nil {
 		t.Fatalf("FindAllByLivestreamIDOrderByCreatedAtDescLimited returned error: %v", err)
 	}
-	if ids, want := livecommentModelIDs(got), []domain.LivecommentID{newest, middle}; !slices.Equal(ids, want) {
+	if ids, want := livecommentIDs(got), []domain.LivecommentID{newest, middle}; !slices.Equal(ids, want) {
 		t.Errorf("IDs = %v, want %v", ids, want)
 	}
 }

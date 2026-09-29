@@ -2,7 +2,7 @@ package domain
 
 import "testing"
 
-func TestLivestreamModel_IsOwnedBy(t *testing.T) {
+func TestLivestream_IsOwnedBy(t *testing.T) {
 	l := &Livestream{ID: 10, UserID: 1}
 
 	tests := []struct {

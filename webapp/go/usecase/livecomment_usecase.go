@@ -43,39 +43,39 @@ func NewLivecommentUsecase(txManager repository.TxManager, livestreamRepo reposi
 }
 
 // livecommentModelID は orderedBy に渡すための、ライブコメントの ID を取り出す関数。
-func livecommentModelID(livecommentModel *domain.Livecomment) domain.LivecommentID {
-	return livecommentModel.ID
+func livecommentIDOf(livecomment *domain.Livecomment) domain.LivecommentID {
+	return livecomment.ID
 }
 
 func (u *livecommentUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.LivecommentDetail, error) {
-	var livecomments []*domain.LivecommentDetail
+	var livecommentDetails []*domain.LivecommentDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
-		var livecommentModels []*domain.Livecomment
+		var livecomments []*domain.Livecomment
 		var err error
 		if limit == nil {
-			livecommentModels, err = u.livecommentRepo.FindAllByLivestreamIDOrderByCreatedAtDesc(ctx, q, livestreamID)
+			livecomments, err = u.livecommentRepo.FindAllByLivestreamIDOrderByCreatedAtDesc(ctx, q, livestreamID)
 		} else {
-			livecommentModels, err = u.livecommentRepo.FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx, q, livestreamID, *limit)
+			livecomments, err = u.livecommentRepo.FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx, q, livestreamID, *limit)
 		}
 		if err != nil {
 			return fmt.Errorf("failed to get livecomments: %w", err)
 		}
 
-		filled, err := u.livecommentFiller.Fill(ctx, q, livecommentModels)
+		filled, err := u.livecommentFiller.Fill(ctx, q, livecomments)
 		if err != nil {
 			return fmt.Errorf("failed to get livecomments: %w", err)
 		}
-		livecomments = orderedBy(livecommentModels, livecommentModelID, filled)
+		livecommentDetails = orderedBy(livecomments, livecommentIDOf, filled)
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return livecomments, nil
+	return livecommentDetails, nil
 }
 
 func (u *livecommentUsecase) Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, comment string, tip int64) (*domain.LivecommentDetail, error) {
-	var livecomment *domain.LivecommentDetail
+	var livecommentDetail *domain.LivecommentDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		livestream, err := u.livestreamRepo.FindByID(ctx, q, livestreamID)
 		if errors.Is(err, repository.ErrNotFound) {
@@ -117,19 +117,19 @@ func (u *livecommentUsecase) Create(ctx context.Context, userID domain.UserID, l
 			return fmt.Errorf("failed to insert livecomment: %w", err)
 		}
 
-		livecommentModel, err := u.livecommentRepo.FindByID(ctx, q, livecommentID)
+		livecomment, err := u.livecommentRepo.FindByID(ctx, q, livecommentID)
 		if err != nil {
 			return fmt.Errorf("failed to fill livecomment: %w", err)
 		}
-		livecomments, err := u.livecommentFiller.Fill(ctx, q, []*domain.Livecomment{livecommentModel})
+		livecommentDetails, err := u.livecommentFiller.Fill(ctx, q, []*domain.Livecomment{livecomment})
 		if err != nil {
 			return fmt.Errorf("failed to fill livecomment: %w", err)
 		}
-		livecomment = livecomments[livecommentID]
+		livecommentDetail = livecommentDetails[livecommentID]
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return livecomment, nil
+	return livecommentDetail, nil
 }

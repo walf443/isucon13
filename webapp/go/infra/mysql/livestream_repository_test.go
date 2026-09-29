@@ -160,7 +160,7 @@ func TestLivestreamRepository_CreateAndLivestreamTagRepository_Create(t *testing
 	}
 }
 
-func livestreamModelIDs(livestreams []*domain.Livestream) []domain.LivestreamID {
+func livestreamIDs(livestreams []*domain.Livestream) []domain.LivestreamID {
 	ids := make([]domain.LivestreamID, len(livestreams))
 	for i, l := range livestreams {
 		ids[i] = l.ID
@@ -182,7 +182,7 @@ func TestLivestreamRepository_FindAllOrderByIDDesc(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindAllOrderByIDDesc returned error: %v", err)
 	}
-	if ids, want := livestreamModelIDs(got), []domain.LivestreamID{third, second, first}; !slices.Equal(ids, want) {
+	if ids, want := livestreamIDs(got), []domain.LivestreamID{third, second, first}; !slices.Equal(ids, want) {
 		t.Errorf("IDs = %v, want %v", ids, want)
 	}
 
@@ -190,7 +190,7 @@ func TestLivestreamRepository_FindAllOrderByIDDesc(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindAllOrderByIDDescLimited returned error: %v", err)
 	}
-	if ids, want := livestreamModelIDs(got), []domain.LivestreamID{third, second}; !slices.Equal(ids, want) {
+	if ids, want := livestreamIDs(got), []domain.LivestreamID{third, second}; !slices.Equal(ids, want) {
 		t.Errorf("IDs = %v, want %v", ids, want)
 	}
 }

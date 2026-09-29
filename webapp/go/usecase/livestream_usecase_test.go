@@ -11,9 +11,9 @@ import (
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
-// newLivestreamRepositoryWithModels は ID で models を引ける fakeLivestreamRepository を返す。
+// newLivestreamRepositoryWithLivestreams は ID で models を引ける fakeLivestreamRepository を返す。
 // 見つからない ID には ErrNotFound を返し、引いた ID を calls に記録する。
-func newLivestreamRepositoryWithModels(calls *[]domain.LivestreamID, models ...*domain.Livestream) *fakeLivestreamRepository {
+func newLivestreamRepositoryWithLivestreams(calls *[]domain.LivestreamID, models ...*domain.Livestream) *fakeLivestreamRepository {
 	return &fakeLivestreamRepository{
 		findByID: func(_ context.Context, _ repository.Querier, id domain.LivestreamID) (*domain.Livestream, error) {
 			if calls != nil {
@@ -36,13 +36,13 @@ func newLivestreamUsecaseForTest(f *livestreamFixture, userRepo *fakeUserReposit
 
 func TestLivestreamUsecase_FindByID(t *testing.T) {
 	f := testLivestreamFixture()
-	u := newLivestreamUsecaseForTest(f, nil, nil, newLivestreamRepositoryWithModels(nil, testLivestreamModel1), nil)
+	u := newLivestreamUsecaseForTest(f, nil, nil, newLivestreamRepositoryWithLivestreams(nil, testLivestream1), nil)
 
 	got, err := u.FindByID(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := f.livestream(testLivestreamModel1); !reflect.DeepEqual(got, want) {
+	if want := f.livestream(testLivestream1); !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
 }
@@ -60,7 +60,7 @@ func TestLivestreamUsecase_FindByID_Errors(t *testing.T) {
 	}{
 		{
 			name:           "livestream not found",
-			livestreamRepo: newLivestreamRepositoryWithModels(nil),
+			livestreamRepo: newLivestreamRepositoryWithLivestreams(nil),
 			wantErr:        ErrLivestreamNotFound,
 			wantMsg:        ErrLivestreamNotFound.Error(),
 		},
@@ -77,7 +77,7 @@ func TestLivestreamUsecase_FindByID_Errors(t *testing.T) {
 		{
 			// 配信者の欠損はデータ不整合なので 404 (ErrLivestreamNotFound) にしない
 			name:           "owner not found",
-			livestreamRepo: newLivestreamRepositoryWithModels(nil, testLivestreamModel1),
+			livestreamRepo: newLivestreamRepositoryWithLivestreams(nil, testLivestream1),
 			modify:         func(f *livestreamFixture) { delete(f.users, 42) },
 			wantErr:        repository.ErrNotFound,
 			wantMsg:        "failed to get livestream: failed to get owner of livestream 1: not found",
@@ -116,7 +116,7 @@ func newLivestreamRepositoryFindingAllByUserID(t *testing.T, userID domain.UserI
 
 func TestLivestreamUsecase_FindAllByUserID(t *testing.T) {
 	f := testLivestreamFixture()
-	livestreamRepo := newLivestreamRepositoryFindingAllByUserID(t, 42, []*domain.Livestream{testLivestreamModel2, testLivestreamModel1}, nil)
+	livestreamRepo := newLivestreamRepositoryFindingAllByUserID(t, 42, []*domain.Livestream{testLivestream2, testLivestream1}, nil)
 	u := newLivestreamUsecaseForTest(f, nil, nil, livestreamRepo, nil)
 
 	got, err := u.FindAllByUserID(context.Background(), 42)
@@ -124,7 +124,7 @@ func TestLivestreamUsecase_FindAllByUserID(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// repository が返した順序のまま
-	if want := []*domain.LivestreamDetail{f.livestream(testLivestreamModel2), f.livestream(testLivestreamModel1)}; !reflect.DeepEqual(got, want) {
+	if want := []*domain.LivestreamDetail{f.livestream(testLivestream2), f.livestream(testLivestream1)}; !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
 }
@@ -157,14 +157,14 @@ func TestLivestreamUsecase_FindAllByUserID_Error(t *testing.T) {
 func TestLivestreamUsecase_FindAllByUsername(t *testing.T) {
 	f := testLivestreamFixture()
 	// ユーザ名から引いた ID で検索する
-	livestreamRepo := newLivestreamRepositoryFindingAllByUserID(t, 42, []*domain.Livestream{testLivestreamModel1}, nil)
+	livestreamRepo := newLivestreamRepositoryFindingAllByUserID(t, 42, []*domain.Livestream{testLivestream1}, nil)
 	u := newLivestreamUsecaseForTest(f, newUserRepositoryFindingID(t, "alice", 42, nil), nil, livestreamRepo, nil)
 
 	got, err := u.FindAllByUsername(context.Background(), "alice")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := []*domain.LivestreamDetail{f.livestream(testLivestreamModel1)}; !reflect.DeepEqual(got, want) {
+	if want := []*domain.LivestreamDetail{f.livestream(testLivestream1)}; !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
 }
@@ -235,14 +235,14 @@ func TestLivestreamUsecase_FindAllByTagName(t *testing.T) {
 	// ライブ配信 1 にはタグ 7, 8 の両方が付いているので、紐付けごとに 2 回現れる (移行前と同じ)
 	livestreamTagRepo := newLivestreamTagRepositoryFindingByTagIDs(t, &tagCalls, []domain.LivestreamID{2, 1, 1}, nil)
 	var livestreamCalls []domain.LivestreamID
-	livestreamRepo := newLivestreamRepositoryWithModels(&livestreamCalls, testLivestreamModel1, testLivestreamModel2)
+	livestreamRepo := newLivestreamRepositoryWithLivestreams(&livestreamCalls, testLivestream1, testLivestream2)
 	u := newLivestreamUsecaseForTest(f, nil, newTagRepositoryFindingIDs(t, []domain.TagID{7, 8}, nil), livestreamRepo, livestreamTagRepo)
 
 	got, err := u.FindAllByTagName(context.Background(), "ゲーム実況")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	want := []*domain.LivestreamDetail{f.livestream(testLivestreamModel2), f.livestream(testLivestreamModel1), f.livestream(testLivestreamModel1)}
+	want := []*domain.LivestreamDetail{f.livestream(testLivestream2), f.livestream(testLivestream1), f.livestream(testLivestream1)}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
@@ -288,7 +288,7 @@ func TestLivestreamUsecase_FindAllByTagName_Errors(t *testing.T) {
 		{name: "livestream tag repository error", livestreamTagsErr: boom, wantErr: boom, wantMsg: "failed to get livestreams: boom"},
 		{
 			name:           "livestream not found",
-			livestreamRepo: newLivestreamRepositoryWithModels(nil),
+			livestreamRepo: newLivestreamRepositoryWithLivestreams(nil),
 			wantErr:        repository.ErrNotFound,
 			wantMsg:        "failed to get livestreams: failed to get livestream 2: not found",
 		},
@@ -341,14 +341,14 @@ func TestLivestreamUsecase_FindAll(t *testing.T) {
 			f := testLivestreamFixture()
 			var calls []string
 			var gotLimit domain.Limit
-			livestreamRepo := newLivestreamRepositoryForFindAll(&calls, &gotLimit, []*domain.Livestream{testLivestreamModel2, testLivestreamModel1}, nil)
+			livestreamRepo := newLivestreamRepositoryForFindAll(&calls, &gotLimit, []*domain.Livestream{testLivestream2, testLivestream1}, nil)
 			u := newLivestreamUsecaseForTest(f, nil, nil, livestreamRepo, nil)
 
 			got, err := u.FindAll(context.Background(), tt.limit)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if want := []*domain.LivestreamDetail{f.livestream(testLivestreamModel2), f.livestream(testLivestreamModel1)}; !reflect.DeepEqual(got, want) {
+			if want := []*domain.LivestreamDetail{f.livestream(testLivestream2), f.livestream(testLivestream1)}; !reflect.DeepEqual(got, want) {
 				t.Errorf("got %+v, want %+v", got, want)
 			}
 			if !slices.Equal(calls, tt.wantCalls) {

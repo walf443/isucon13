@@ -53,16 +53,16 @@ func (h *reactionHandler) GetReactions(c echo.Context) error {
 		return err
 	}
 
-	reactionModels, err := h.reactionUsecase.FindAllByLivestreamID(ctx, livestreamID, limit)
+	reactions, err := h.reactionUsecase.FindAllByLivestreamID(ctx, livestreamID, limit)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	reactions := make([]reactionResponse, len(reactionModels))
-	for i, r := range reactionModels {
-		reactions[i] = newReaction(r)
+	reactionResponses := make([]reactionResponse, len(reactions))
+	for i, r := range reactions {
+		reactionResponses[i] = newReaction(r)
 	}
-	return c.JSON(http.StatusOK, reactions)
+	return c.JSON(http.StatusOK, reactionResponses)
 }
 
 // POST /api/livestream/:livestream_id/reaction

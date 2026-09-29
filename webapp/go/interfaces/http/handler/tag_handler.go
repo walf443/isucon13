@@ -29,19 +29,19 @@ func newTagHandler(tagUsecase usecase.TagUsecase) *tagHandler {
 func (h *tagHandler) GetTags(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	tagModels, err := h.tagUsecase.FindAll(ctx)
+	tags, err := h.tagUsecase.FindAll(ctx)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	tags := make([]*tagResponse, len(tagModels))
-	for i := range tagModels {
-		tags[i] = &tagResponse{
-			ID:   tagModels[i].ID,
-			Name: tagModels[i].Name,
+	tagResponses := make([]*tagResponse, len(tags))
+	for i := range tags {
+		tagResponses[i] = &tagResponse{
+			ID:   tags[i].ID,
+			Name: tags[i].Name,
 		}
 	}
 	return c.JSON(http.StatusOK, &tagsResponse{
-		Tags: tags,
+		Tags: tagResponses,
 	})
 }

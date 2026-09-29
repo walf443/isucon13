@@ -45,23 +45,23 @@ func NewLivestreamUsecase(txManager repository.TxManager, userRepo repository.Us
 }
 
 // livestreamModelID は orderedBy に渡すための、ライブ配信の ID を取り出す関数。
-func livestreamModelID(livestreamModel *domain.Livestream) domain.LivestreamID {
-	return livestreamModel.ID
+func livestreamIDOf(livestream *domain.Livestream) domain.LivestreamID {
+	return livestream.ID
 }
 
-// fillLivestreams は livestreamModels に配信者・タグを埋めて、同じ順序で返す。
-func (u *livestreamUsecase) fillLivestreams(ctx context.Context, q repository.Querier, livestreamModels []*domain.Livestream) ([]*domain.LivestreamDetail, error) {
-	filled, err := u.livestreamFiller.Fill(ctx, q, livestreamModels)
+// fillLivestreams は livestreams に配信者・タグを埋めて、同じ順序で返す。
+func (u *livestreamUsecase) fillLivestreams(ctx context.Context, q repository.Querier, livestreams []*domain.Livestream) ([]*domain.LivestreamDetail, error) {
+	filled, err := u.livestreamFiller.Fill(ctx, q, livestreams)
 	if err != nil {
 		return nil, err
 	}
-	return orderedBy(livestreamModels, livestreamModelID, filled), nil
+	return orderedBy(livestreams, livestreamIDOf, filled), nil
 }
 
 func (u *livestreamUsecase) FindByID(ctx context.Context, id domain.LivestreamID) (*domain.LivestreamDetail, error) {
-	var livestream *domain.LivestreamDetail
+	var livestreamDetail *domain.LivestreamDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
-		livestreamModel, err := u.livestreamRepo.FindByID(ctx, q, id)
+		livestream, err := u.livestreamRepo.FindByID(ctx, q, id)
 		// ライブ配信不在 (404) にするのはライブ配信自体が無い場合だけ。配信者やタグの欠損は 500 にする
 		if errors.Is(err, repository.ErrNotFound) {
 			return ErrLivestreamNotFound
@@ -70,34 +70,34 @@ func (u *livestreamUsecase) FindByID(ctx context.Context, id domain.LivestreamID
 			return fmt.Errorf("failed to get livestream: %w", err)
 		}
 
-		livestreams, err := u.livestreamFiller.Fill(ctx, q, []*domain.Livestream{livestreamModel})
+		livestreamDetails, err := u.livestreamFiller.Fill(ctx, q, []*domain.Livestream{livestream})
 		if err != nil {
 			return fmt.Errorf("failed to get livestream: %w", err)
 		}
-		livestream = livestreams[id]
+		livestreamDetail = livestreamDetails[id]
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return livestream, nil
+	return livestreamDetail, nil
 }
 
 func (u *livestreamUsecase) FindAllByUserID(ctx context.Context, userID domain.UserID) ([]*domain.LivestreamDetail, error) {
-	var livestreams []*domain.LivestreamDetail
+	var livestreamDetails []*domain.LivestreamDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		var err error
-		livestreams, err = u.findAllByUserID(ctx, q, userID)
+		livestreamDetails, err = u.findAllByUserID(ctx, q, userID)
 		return err
 	})
 	if err != nil {
 		return nil, err
 	}
-	return livestreams, nil
+	return livestreamDetails, nil
 }
 
 func (u *livestreamUsecase) FindAllByUsername(ctx context.Context, username string) ([]*domain.LivestreamDetail, error) {
-	var livestreams []*domain.LivestreamDetail
+	var livestreamDetails []*domain.LivestreamDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		userID, err := u.userRepo.FindIDByName(ctx, q, username)
 		if errors.Is(err, repository.ErrNotFound) {
@@ -107,29 +107,29 @@ func (u *livestreamUsecase) FindAllByUsername(ctx context.Context, username stri
 			return fmt.Errorf("failed to get user: %w", err)
 		}
 
-		livestreams, err = u.findAllByUserID(ctx, q, userID)
+		livestreamDetails, err = u.findAllByUserID(ctx, q, userID)
 		return err
 	})
 	if err != nil {
 		return nil, err
 	}
-	return livestreams, nil
+	return livestreamDetails, nil
 }
 
 func (u *livestreamUsecase) findAllByUserID(ctx context.Context, q repository.Querier, userID domain.UserID) ([]*domain.LivestreamDetail, error) {
-	livestreamModels, err := u.livestreamRepo.FindAllByUserID(ctx, q, userID)
+	livestreams, err := u.livestreamRepo.FindAllByUserID(ctx, q, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get livestreams: %w", err)
 	}
-	livestreams, err := u.fillLivestreams(ctx, q, livestreamModels)
+	livestreamDetails, err := u.fillLivestreams(ctx, q, livestreams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get livestreams: %w", err)
 	}
-	return livestreams, nil
+	return livestreamDetails, nil
 }
 
 func (u *livestreamUsecase) FindAllByTagName(ctx context.Context, tagName string) ([]*domain.LivestreamDetail, error) {
-	var livestreams []*domain.LivestreamDetail
+	var livestreamDetails []*domain.LivestreamDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		tagIDs, err := u.tagRepo.FindIDsByName(ctx, q, tagName)
 		if err != nil {
@@ -137,7 +137,7 @@ func (u *livestreamUsecase) FindAllByTagName(ctx context.Context, tagName string
 		}
 		// 該当するタグが無ければ IN () が作れないので、検索せずに空を返す
 		if len(tagIDs) == 0 {
-			livestreams = []*domain.LivestreamDetail{}
+			livestreamDetails = []*domain.LivestreamDetail{}
 			return nil
 		}
 
@@ -146,21 +146,21 @@ func (u *livestreamUsecase) FindAllByTagName(ctx context.Context, tagName string
 		if err != nil {
 			return fmt.Errorf("failed to get livestreams: %w", err)
 		}
-		livestreamModels := make([]*domain.Livestream, len(livestreamTags))
+		livestreams := make([]*domain.Livestream, len(livestreamTags))
 		fetched := make(map[domain.LivestreamID]*domain.Livestream, len(livestreamTags))
 		for i, livestreamTag := range livestreamTags {
-			livestreamModel, ok := fetched[livestreamTag.LivestreamID]
+			livestream, ok := fetched[livestreamTag.LivestreamID]
 			if !ok {
-				livestreamModel, err = u.livestreamRepo.FindByID(ctx, q, livestreamTag.LivestreamID)
+				livestream, err = u.livestreamRepo.FindByID(ctx, q, livestreamTag.LivestreamID)
 				if err != nil {
 					return fmt.Errorf("failed to get livestreams: failed to get livestream %d: %w", livestreamTag.LivestreamID, err)
 				}
-				fetched[livestreamTag.LivestreamID] = livestreamModel
+				fetched[livestreamTag.LivestreamID] = livestream
 			}
-			livestreamModels[i] = livestreamModel
+			livestreams[i] = livestream
 		}
 
-		livestreams, err = u.fillLivestreams(ctx, q, livestreamModels)
+		livestreamDetails, err = u.fillLivestreams(ctx, q, livestreams)
 		if err != nil {
 			return fmt.Errorf("failed to get livestreams: %w", err)
 		}
@@ -169,24 +169,24 @@ func (u *livestreamUsecase) FindAllByTagName(ctx context.Context, tagName string
 	if err != nil {
 		return nil, err
 	}
-	return livestreams, nil
+	return livestreamDetails, nil
 }
 
 func (u *livestreamUsecase) FindAll(ctx context.Context, limit *domain.Limit) ([]*domain.LivestreamDetail, error) {
-	var livestreams []*domain.LivestreamDetail
+	var livestreamDetails []*domain.LivestreamDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
-		var livestreamModels []*domain.Livestream
+		var livestreams []*domain.Livestream
 		var err error
 		if limit == nil {
-			livestreamModels, err = u.livestreamRepo.FindAllOrderByIDDesc(ctx, q)
+			livestreams, err = u.livestreamRepo.FindAllOrderByIDDesc(ctx, q)
 		} else {
-			livestreamModels, err = u.livestreamRepo.FindAllOrderByIDDescLimited(ctx, q, *limit)
+			livestreams, err = u.livestreamRepo.FindAllOrderByIDDescLimited(ctx, q, *limit)
 		}
 		if err != nil {
 			return fmt.Errorf("failed to get livestreams: %w", err)
 		}
 
-		livestreams, err = u.fillLivestreams(ctx, q, livestreamModels)
+		livestreamDetails, err = u.fillLivestreams(ctx, q, livestreams)
 		if err != nil {
 			return fmt.Errorf("failed to get livestreams: %w", err)
 		}
@@ -195,5 +195,5 @@ func (u *livestreamUsecase) FindAll(ctx context.Context, limit *domain.Limit) ([
 	if err != nil {
 		return nil, err
 	}
-	return livestreams, nil
+	return livestreamDetails, nil
 }

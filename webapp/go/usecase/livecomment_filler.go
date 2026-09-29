@@ -8,7 +8,7 @@ import (
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
-// LivecommentFiller はライブコメントにコメントしたユーザ・ライブ配信を埋めた domain.Livecomment を組み立てる。
+// LivecommentFiller はライブコメントにコメントしたユーザ・ライブ配信を埋めた domain.LivecommentDetail を組み立てる。
 type LivecommentFiller struct {
 	userRepo         repository.UserRepository
 	livestreamRepo   repository.LivestreamRepository
@@ -20,54 +20,54 @@ func NewLivecommentFiller(userRepo repository.UserRepository, livestreamRepo rep
 	return &LivecommentFiller{userRepo: userRepo, livestreamRepo: livestreamRepo, userFiller: userFiller, livestreamFiller: livestreamFiller}
 }
 
-// Fill は livecommentModels にユーザ・ライブ配信を埋めた domain.Livecomment を、ライブコメントの ID ごとに返す。
+// Fill は livecomments にユーザ・ライブ配信を埋めた domain.LivecommentDetail を、ライブコメントの ID ごとに返す。
 // 同じユーザ・ライブ配信が複数含まれていても 1 回だけ取得する。並び順は呼び出し側で決める。
 //
 // ユーザやライブ配信が無いのはデータ不整合なので、呼び出し側はこのエラーをライブコメント不在として扱わないこと。
-func (f *LivecommentFiller) Fill(ctx context.Context, q repository.Querier, livecommentModels []*domain.Livecomment) (map[domain.LivecommentID]*domain.LivecommentDetail, error) {
-	userModels := make([]*domain.User, 0, len(livecommentModels))
-	fetchedUsers := make(map[domain.UserID]bool, len(livecommentModels))
-	livestreamModels := make([]*domain.Livestream, 0, len(livecommentModels))
-	fetchedLivestreams := make(map[domain.LivestreamID]bool, len(livecommentModels))
-	for _, livecommentModel := range livecommentModels {
-		if !fetchedUsers[livecommentModel.UserID] {
-			userModel, err := f.userRepo.FindByID(ctx, q, livecommentModel.UserID)
+func (f *LivecommentFiller) Fill(ctx context.Context, q repository.Querier, livecomments []*domain.Livecomment) (map[domain.LivecommentID]*domain.LivecommentDetail, error) {
+	users := make([]*domain.User, 0, len(livecomments))
+	fetchedUsers := make(map[domain.UserID]bool, len(livecomments))
+	livestreams := make([]*domain.Livestream, 0, len(livecomments))
+	fetchedLivestreams := make(map[domain.LivestreamID]bool, len(livecomments))
+	for _, livecomment := range livecomments {
+		if !fetchedUsers[livecomment.UserID] {
+			user, err := f.userRepo.FindByID(ctx, q, livecomment.UserID)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get user of livecomment %d: %w", livecommentModel.ID, err)
+				return nil, fmt.Errorf("failed to get user of livecomment %d: %w", livecomment.ID, err)
 			}
-			userModels = append(userModels, userModel)
-			fetchedUsers[livecommentModel.UserID] = true
+			users = append(users, user)
+			fetchedUsers[livecomment.UserID] = true
 		}
 
-		if !fetchedLivestreams[livecommentModel.LivestreamID] {
-			livestreamModel, err := f.livestreamRepo.FindByID(ctx, q, livecommentModel.LivestreamID)
+		if !fetchedLivestreams[livecomment.LivestreamID] {
+			livestream, err := f.livestreamRepo.FindByID(ctx, q, livecomment.LivestreamID)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get livestream of livecomment %d: %w", livecommentModel.ID, err)
+				return nil, fmt.Errorf("failed to get livestream of livecomment %d: %w", livecomment.ID, err)
 			}
-			livestreamModels = append(livestreamModels, livestreamModel)
-			fetchedLivestreams[livecommentModel.LivestreamID] = true
+			livestreams = append(livestreams, livestream)
+			fetchedLivestreams[livecomment.LivestreamID] = true
 		}
 	}
 
-	users, err := f.userFiller.Fill(ctx, q, userModels)
+	userDetails, err := f.userFiller.Fill(ctx, q, users)
 	if err != nil {
 		return nil, err
 	}
-	livestreams, err := f.livestreamFiller.Fill(ctx, q, livestreamModels)
+	livestreamDetails, err := f.livestreamFiller.Fill(ctx, q, livestreams)
 	if err != nil {
 		return nil, err
 	}
 
-	livecomments := make(map[domain.LivecommentID]*domain.LivecommentDetail, len(livecommentModels))
-	for _, livecommentModel := range livecommentModels {
-		livecomments[livecommentModel.ID] = &domain.LivecommentDetail{
-			ID:         livecommentModel.ID,
-			User:       *users[livecommentModel.UserID],
-			Livestream: *livestreams[livecommentModel.LivestreamID],
-			Comment:    livecommentModel.Comment,
-			Tip:        livecommentModel.Tip,
-			CreatedAt:  livecommentModel.CreatedAt,
+	livecommentDetails := make(map[domain.LivecommentID]*domain.LivecommentDetail, len(livecomments))
+	for _, livecomment := range livecomments {
+		livecommentDetails[livecomment.ID] = &domain.LivecommentDetail{
+			ID:         livecomment.ID,
+			User:       *userDetails[livecomment.UserID],
+			Livestream: *livestreamDetails[livecomment.LivestreamID],
+			Comment:    livecomment.Comment,
+			Tip:        livecomment.Tip,
+			CreatedAt:  livecomment.CreatedAt,
 		}
 	}
-	return livecomments, nil
+	return livecommentDetails, nil
 }

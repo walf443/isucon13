@@ -17,31 +17,31 @@ func NewLivecommentRepository() repository.LivecommentRepository {
 }
 
 func (r *livecommentRepository) FindAllByLivestreamIDOrderByCreatedAtDesc(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Livecomment, error) {
-	var livecommentModels []*domain.Livecomment
-	if err := q.SelectContext(ctx, &livecommentModels, "SELECT id, user_id, livestream_id, comment, tip, created_at FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC", livestreamID); err != nil {
+	var livecomments []*domain.Livecomment
+	if err := q.SelectContext(ctx, &livecomments, "SELECT id, user_id, livestream_id, comment, tip, created_at FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC", livestreamID); err != nil {
 		return nil, err
 	}
-	return livecommentModels, nil
+	return livecomments, nil
 }
 
 func (r *livecommentRepository) FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Livecomment, error) {
-	var livecommentModels []*domain.Livecomment
-	if err := q.SelectContext(ctx, &livecommentModels, "SELECT id, user_id, livestream_id, comment, tip, created_at FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC LIMIT ?", livestreamID, limit); err != nil {
+	var livecomments []*domain.Livecomment
+	if err := q.SelectContext(ctx, &livecomments, "SELECT id, user_id, livestream_id, comment, tip, created_at FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC LIMIT ?", livestreamID, limit); err != nil {
 		return nil, err
 	}
-	return livecommentModels, nil
+	return livecomments, nil
 }
 
 func (r *livecommentRepository) FindByID(ctx context.Context, q repository.Querier, id domain.LivecommentID) (*domain.Livecomment, error) {
-	var livecommentModel domain.Livecomment
-	err := q.GetContext(ctx, &livecommentModel, "SELECT id, user_id, livestream_id, comment, tip, created_at FROM livecomments WHERE id = ?", id)
+	var livecomment domain.Livecomment
+	err := q.GetContext(ctx, &livecomment, "SELECT id, user_id, livestream_id, comment, tip, created_at FROM livecomments WHERE id = ?", id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, repository.ErrNotFound
 	}
 	if err != nil {
 		return nil, err
 	}
-	return &livecommentModel, nil
+	return &livecomment, nil
 }
 
 func (r *livecommentRepository) Create(ctx context.Context, q repository.Querier, livecomment *domain.Livecomment) (domain.LivecommentID, error) {

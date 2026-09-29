@@ -44,15 +44,15 @@ func (h *ngWordHandler) GetNGWords(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
 	}
 
-	ngWordModels, err := h.ngWordUsecase.FindAllByLivestreamID(ctx, userID, livestreamID)
+	ngWords, err := h.ngWordUsecase.FindAllByLivestreamID(ctx, userID, livestreamID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	// NG ワードが無い場合は [] ではなく null を返す (移行前と同じ)
-	var ngWords []ngWordResponse
-	for _, w := range ngWordModels {
-		ngWords = append(ngWords, ngWordResponse{
+	var ngWordResponses []ngWordResponse
+	for _, w := range ngWords {
+		ngWordResponses = append(ngWordResponses, ngWordResponse{
 			ID:           w.ID,
 			UserID:       w.UserID,
 			LivestreamID: w.LivestreamID,
@@ -60,7 +60,7 @@ func (h *ngWordHandler) GetNGWords(c echo.Context) error {
 			CreatedAt:    w.CreatedAt,
 		})
 	}
-	return c.JSON(http.StatusOK, ngWords)
+	return c.JSON(http.StatusOK, ngWordResponses)
 }
 
 // 配信者によるモデレーション (NGワード登録)

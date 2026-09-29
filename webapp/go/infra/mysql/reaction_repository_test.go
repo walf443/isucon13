@@ -10,7 +10,7 @@ import (
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
-func reactionModelIDs(reactions []*domain.Reaction) []domain.ReactionID {
+func reactionIDs(reactions []*domain.Reaction) []domain.ReactionID {
 	ids := make([]domain.ReactionID, len(reactions))
 	for i, r := range reactions {
 		ids[i] = r.ID
@@ -69,7 +69,7 @@ func TestReactionRepository_FindAllByLivestreamIDOrderByCreatedAtDesc(t *testing
 	if err != nil {
 		t.Fatalf("FindAllByLivestreamIDOrderByCreatedAtDesc returned error: %v", err)
 	}
-	if ids, want := reactionModelIDs(got), []domain.ReactionID{newest, middle, oldest}; !slices.Equal(ids, want) {
+	if ids, want := reactionIDs(got), []domain.ReactionID{newest, middle, oldest}; !slices.Equal(ids, want) {
 		t.Errorf("IDs = %v, want %v", ids, want)
 	}
 
@@ -77,7 +77,7 @@ func TestReactionRepository_FindAllByLivestreamIDOrderByCreatedAtDesc(t *testing
 	if err != nil {
 		t.Fatalf("FindAllByLivestreamIDOrderByCreatedAtDescLimited returned error: %v", err)
 	}
-	if ids, want := reactionModelIDs(got), []domain.ReactionID{newest, middle}; !slices.Equal(ids, want) {
+	if ids, want := reactionIDs(got), []domain.ReactionID{newest, middle}; !slices.Equal(ids, want) {
 		t.Errorf("IDs = %v, want %v", ids, want)
 	}
 }

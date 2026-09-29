@@ -23,9 +23,9 @@ type livestreamResponse struct {
 }
 
 func newLivestream(l *domain.LivestreamDetail) livestreamResponse {
-	tags := make([]tagResponse, len(l.Tags))
+	tagResponses := make([]tagResponse, len(l.Tags))
 	for i, tag := range l.Tags {
-		tags[i] = tagResponse{ID: tag.ID, Name: tag.Name}
+		tagResponses[i] = tagResponse{ID: tag.ID, Name: tag.Name}
 	}
 	return livestreamResponse{
 		ID:           l.ID,
@@ -34,18 +34,18 @@ func newLivestream(l *domain.LivestreamDetail) livestreamResponse {
 		Description:  l.Description,
 		PlaylistUrl:  l.PlaylistUrl,
 		ThumbnailUrl: l.ThumbnailUrl,
-		Tags:         tags,
+		Tags:         tagResponses,
 		StartAt:      l.StartAt,
 		EndAt:        l.EndAt,
 	}
 }
 
 func newLivestreams(ls []*domain.LivestreamDetail) []livestreamResponse {
-	livestreams := make([]livestreamResponse, len(ls))
+	livestreamResponses := make([]livestreamResponse, len(ls))
 	for i, l := range ls {
-		livestreams[i] = newLivestream(l)
+		livestreamResponses[i] = newLivestream(l)
 	}
-	return livestreams
+	return livestreamResponses
 }
 
 type reserveLivestreamRequest struct {

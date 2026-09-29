@@ -53,15 +53,15 @@ func TestReactionUsecase_FindAllByLivestreamID(t *testing.T) {
 			f := testLivestreamFixture()
 			var calls []string
 			var gotLimit domain.Limit
-			reactionRepo := newReactionRepositoryForFindAll(t, &calls, &gotLimit, []*domain.Reaction{testReactionModel1, testReactionModel2}, nil)
-			u := NewReactionUsecase(&fakeTxManager{}, reactionRepo, f.reactionFiller(testLivestreamModel1))
+			reactionRepo := newReactionRepositoryForFindAll(t, &calls, &gotLimit, []*domain.Reaction{testReaction1, testReaction2}, nil)
+			u := NewReactionUsecase(&fakeTxManager{}, reactionRepo, f.reactionFiller(testLivestream1))
 
 			got, err := u.FindAllByLivestreamID(context.Background(), 10, tt.limit)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			// repository が返した順序のまま
-			want := []*domain.ReactionDetail{f.reaction(testReactionModel1, testLivestreamModel1), f.reaction(testReactionModel2, testLivestreamModel1)}
+			want := []*domain.ReactionDetail{f.reaction(testReaction1, testLivestream1), f.reaction(testReaction2, testLivestream1)}
 			if !reflect.DeepEqual(got, want) {
 				t.Errorf("got %+v, want %+v", got, want)
 			}
@@ -89,7 +89,7 @@ func TestReactionUsecase_FindAllByLivestreamID_Errors(t *testing.T) {
 		{
 			// ライブ配信 2 は引けないので組み立てに失敗する
 			name:    "fill fails",
-			models:  []*domain.Reaction{testReactionModel3},
+			models:  []*domain.Reaction{testReaction3},
 			wantErr: repository.ErrNotFound,
 			wantMsg: "failed to get reactions: failed to get livestream of reaction 3: not found",
 		},
@@ -100,7 +100,7 @@ func TestReactionUsecase_FindAllByLivestreamID_Errors(t *testing.T) {
 			var calls []string
 			var gotLimit domain.Limit
 			reactionRepo := newReactionRepositoryForFindAll(t, &calls, &gotLimit, tt.models, tt.err)
-			u := NewReactionUsecase(&fakeTxManager{}, reactionRepo, testLivestreamFixture().reactionFiller(testLivestreamModel1))
+			u := NewReactionUsecase(&fakeTxManager{}, reactionRepo, testLivestreamFixture().reactionFiller(testLivestream1))
 
 			_, err := u.FindAllByLivestreamID(context.Background(), 10, nil)
 			if !errors.Is(err, tt.wantErr) || err.Error() != tt.wantMsg {
@@ -129,22 +129,22 @@ func newReactionRepositoryForCreate(t *testing.T, calls *[]string, created **dom
 	}
 }
 
-// testCreatedReactionModel は登録したリアクション (ID 100) を読み直した結果。
-var testCreatedReactionModel = &domain.Reaction{ID: 100, UserID: 43, LivestreamID: 1, EmojiName: "tada", CreatedAt: 1700000000}
+// testCreatedReaction は登録したリアクション (ID 100) を読み直した結果。
+var testCreatedReaction = &domain.Reaction{ID: 100, UserID: 43, LivestreamID: 1, EmojiName: "tada", CreatedAt: 1700000000}
 
 func TestReactionUsecase_Create(t *testing.T) {
 	f := testLivestreamFixture()
 	var calls []string
 	var created *domain.Reaction
-	reactionRepo := newReactionRepositoryForCreate(t, &calls, &created, testCreatedReactionModel, nil, nil)
-	u := NewReactionUsecase(&fakeTxManager{}, reactionRepo, f.reactionFiller(testLivestreamModel1)).(*reactionUsecase)
+	reactionRepo := newReactionRepositoryForCreate(t, &calls, &created, testCreatedReaction, nil, nil)
+	u := NewReactionUsecase(&fakeTxManager{}, reactionRepo, f.reactionFiller(testLivestream1)).(*reactionUsecase)
 	u.now = func() time.Time { return time.Unix(1700000000, 0) }
 
 	got, err := u.Create(context.Background(), 43, 1, "tada")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := f.reaction(testCreatedReactionModel, testLivestreamModel1); !reflect.DeepEqual(got, want) {
+	if want := f.reaction(testCreatedReaction, testLivestream1); !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
 	// 登録してから、登録した ID で読み直す
@@ -189,8 +189,8 @@ func TestReactionUsecase_Create_Errors(t *testing.T) {
 			}
 			var calls []string
 			var created *domain.Reaction
-			reactionRepo := newReactionRepositoryForCreate(t, &calls, &created, testCreatedReactionModel, tt.createErr, tt.findErr)
-			u := NewReactionUsecase(&fakeTxManager{}, reactionRepo, f.reactionFiller(testLivestreamModel1))
+			reactionRepo := newReactionRepositoryForCreate(t, &calls, &created, testCreatedReaction, tt.createErr, tt.findErr)
+			u := NewReactionUsecase(&fakeTxManager{}, reactionRepo, f.reactionFiller(testLivestream1))
 			_, err := u.Create(context.Background(), 43, 1, "tada")
 			if !errors.Is(err, tt.wantErr) || err.Error() != tt.wantMsg {
 				t.Errorf("err = %v, want %q", err, tt.wantMsg)

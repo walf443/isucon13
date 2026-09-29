@@ -53,15 +53,15 @@ func TestLivecommentUsecase_FindAllByLivestreamID(t *testing.T) {
 			f := testLivestreamFixture()
 			var calls []string
 			var gotLimit domain.Limit
-			repo := newLivecommentRepositoryForFindAll(t, &calls, &gotLimit, []*domain.Livecomment{testLivecommentModel1, testLivecommentModel2}, nil)
-			u := NewLivecommentUsecase(&fakeTxManager{}, &fakeLivestreamRepository{}, repo, &fakeNGWordRepository{}, f.livecommentFiller(testLivestreamModel1), &fakeLogger{})
+			repo := newLivecommentRepositoryForFindAll(t, &calls, &gotLimit, []*domain.Livecomment{testLivecomment1, testLivecomment2}, nil)
+			u := NewLivecommentUsecase(&fakeTxManager{}, &fakeLivestreamRepository{}, repo, &fakeNGWordRepository{}, f.livecommentFiller(testLivestream1), &fakeLogger{})
 
 			got, err := u.FindAllByLivestreamID(context.Background(), 10, tt.limit)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			// repository が返した順序のまま
-			want := []*domain.LivecommentDetail{f.livecomment(testLivecommentModel1, testLivestreamModel1), f.livecomment(testLivecommentModel2, testLivestreamModel1)}
+			want := []*domain.LivecommentDetail{f.livecomment(testLivecomment1, testLivestream1), f.livecomment(testLivecomment2, testLivestream1)}
 			if !reflect.DeepEqual(got, want) {
 				t.Errorf("got %+v, want %+v", got, want)
 			}
@@ -89,7 +89,7 @@ func TestLivecommentUsecase_FindAllByLivestreamID_Errors(t *testing.T) {
 		{
 			// ライブ配信 2 は引けないので組み立てに失敗する
 			name:    "fill fails",
-			models:  []*domain.Livecomment{testLivecommentModel3},
+			models:  []*domain.Livecomment{testLivecomment3},
 			wantErr: repository.ErrNotFound,
 			wantMsg: "failed to get livecomments: failed to get livestream of livecomment 52: not found",
 		},
@@ -100,7 +100,7 @@ func TestLivecommentUsecase_FindAllByLivestreamID_Errors(t *testing.T) {
 			var calls []string
 			var gotLimit domain.Limit
 			repo := newLivecommentRepositoryForFindAll(t, &calls, &gotLimit, tt.models, tt.err)
-			u := NewLivecommentUsecase(&fakeTxManager{}, &fakeLivestreamRepository{}, repo, &fakeNGWordRepository{}, testLivestreamFixture().livecommentFiller(testLivestreamModel1), &fakeLogger{})
+			u := NewLivecommentUsecase(&fakeTxManager{}, &fakeLivestreamRepository{}, repo, &fakeNGWordRepository{}, testLivestreamFixture().livecommentFiller(testLivestream1), &fakeLogger{})
 
 			_, err := u.FindAllByLivestreamID(context.Background(), 10, nil)
 			if !errors.Is(err, tt.wantErr) || err.Error() != tt.wantMsg {
@@ -133,7 +133,7 @@ func newNGWordRepositoryForCreate(t *testing.T, ngWords []*domain.NGWord, findEr
 }
 
 // newLivecommentRepositoryForCreate は Create で呼ばれるメソッドを、呼ばれた順に calls へ記録する fakeLivecommentRepository を返す。
-// 登録したライブコメントは created に取り出し、ID 100 で読み直したライブコメントとして testCreatedLivecommentModel を返す。
+// 登録したライブコメントは created に取り出し、ID 100 で読み直したライブコメントとして testCreatedLivecomment を返す。
 func newLivecommentRepositoryForCreate(t *testing.T, calls *[]string, created **domain.Livecomment, createErr, findErr error) *fakeLivecommentRepository {
 	return &fakeLivecommentRepository{
 		create: func(_ context.Context, _ repository.Querier, l *domain.Livecomment) (domain.LivecommentID, error) {
@@ -146,16 +146,16 @@ func newLivecommentRepositoryForCreate(t *testing.T, calls *[]string, created **
 			if id != 100 {
 				t.Errorf("re-read id = %d, want 100", id)
 			}
-			return testCreatedLivecommentModel, findErr
+			return testCreatedLivecomment, findErr
 		},
 	}
 }
 
 var (
-	// testOwnedLivestreamModel は投稿先のライブ配信 10 (配信者は ID 2 のユーザ)。
-	testOwnedLivestreamModel = &domain.Livestream{ID: 10, UserID: 2, Title: "owned"}
-	// testCreatedLivecommentModel は投稿したライブコメント (ID 100) を読み直した結果。
-	testCreatedLivecommentModel = &domain.Livecomment{ID: 100, UserID: 43, LivestreamID: 10, Comment: "hello", Tip: 500, CreatedAt: 1700000000}
+	// testOwnedLivestream は投稿先のライブ配信 10 (配信者は ID 2 のユーザ)。
+	testOwnedLivestream = &domain.Livestream{ID: 10, UserID: 2, Title: "owned"}
+	// testCreatedLivecomment は投稿したライブコメント (ID 100) を読み直した結果。
+	testCreatedLivecomment = &domain.Livecomment{ID: 100, UserID: 43, LivestreamID: 10, Comment: "hello", Tip: 500, CreatedAt: 1700000000}
 )
 
 // livecommentFixtureForCreate は投稿先のライブ配信 10 の配信者 (ID 2) を加えたテスト用のデータを返す。
@@ -167,21 +167,21 @@ func livecommentFixtureForCreate() *livestreamFixture {
 
 func TestLivecommentUsecase_Create(t *testing.T) {
 	f := livecommentFixtureForCreate()
-	livestreamRepo := newLivestreamRepositoryFindingByID(t, 10, testOwnedLivestreamModel, nil)
+	livestreamRepo := newLivestreamRepositoryFindingByID(t, 10, testOwnedLivestream, nil)
 	var livecommentCalls []string
 	var created *domain.Livecomment
 	livecommentRepo := newLivecommentRepositoryForCreate(t, &livecommentCalls, &created, nil, nil)
 	var matched []string
 	ngWordRepo := newNGWordRepositoryForCreate(t, []*domain.NGWord{{Word: "bad"}, {Word: "evil"}}, nil, nil, nil, &matched)
 	logger := &fakeLogger{}
-	u := NewLivecommentUsecase(&fakeTxManager{}, livestreamRepo, livecommentRepo, ngWordRepo, f.livecommentFiller(testOwnedLivestreamModel), logger).(*livecommentUsecase)
+	u := NewLivecommentUsecase(&fakeTxManager{}, livestreamRepo, livecommentRepo, ngWordRepo, f.livecommentFiller(testOwnedLivestream), logger).(*livecommentUsecase)
 	u.now = func() time.Time { return time.Unix(1700000000, 0) }
 
 	got, err := u.Create(context.Background(), 43, 10, "hello", 500)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := f.livecomment(testCreatedLivecommentModel, testOwnedLivestreamModel); !reflect.DeepEqual(got, want) {
+	if want := f.livecomment(testCreatedLivecomment, testOwnedLivestream); !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
 	if want := []string{"bad", "evil"}; !slices.Equal(matched, want) {
@@ -281,7 +281,7 @@ func TestLivecommentUsecase_Create_Errors(t *testing.T) {
 			if tt.modify != nil {
 				tt.modify(f)
 			}
-			u := NewLivecommentUsecase(&fakeTxManager{}, newLivestreamRepositoryFindingByID(t, 10, tt.livestream, tt.livestreamErr), livecommentRepo, ngWordRepo, f.livecommentFiller(testOwnedLivestreamModel), &fakeLogger{})
+			u := NewLivecommentUsecase(&fakeTxManager{}, newLivestreamRepositoryFindingByID(t, 10, tt.livestream, tt.livestreamErr), livecommentRepo, ngWordRepo, f.livecommentFiller(testOwnedLivestream), &fakeLogger{})
 			_, err := u.Create(context.Background(), 43, 10, "this is bad", 0)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)

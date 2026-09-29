@@ -101,15 +101,15 @@ func newLivestreamRepositoriesForReserve(t *testing.T, calls *[]string, created 
 	return livestreamRepo, livestreamTagRepo
 }
 
-// testReservedLivestreamModel は予約で登録したライブ配信 (ID 100) を読み直した結果。
-var testReservedLivestreamModel = &domain.Livestream{ID: 100, UserID: 42, Title: "stream"}
+// testReservedLivestream は予約で登録したライブ配信 (ID 100) を読み直した結果。
+var testReservedLivestream = &domain.Livestream{ID: 100, UserID: 42, Title: "stream"}
 
 func TestLivestreamReservationUsecase_Reserve(t *testing.T) {
 	f := testLivestreamFixture()
 	var livestreamCalls []string
 	var created *domain.Livestream
 	var addedTagIDs []domain.TagID
-	livestreamRepo, livestreamTagRepo := newLivestreamRepositoriesForReserve(t, &livestreamCalls, &created, &addedTagIDs, livestreamReserveResults{livestream: testReservedLivestreamModel})
+	livestreamRepo, livestreamTagRepo := newLivestreamRepositoriesForReserve(t, &livestreamCalls, &created, &addedTagIDs, livestreamReserveResults{livestream: testReservedLivestream})
 	var slotCalls []string
 	slotRepo := newReservationSlotRepositoryForReserve(t, &slotCalls, reservationSlotResults{
 		slots: []*domain.ReservationSlot{
@@ -125,7 +125,7 @@ func TestLivestreamReservationUsecase_Reserve(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := f.livestream(testReservedLivestreamModel); !reflect.DeepEqual(got, want) {
+	if want := f.livestream(testReservedLivestream); !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
 	if want := []string{"FindAllByRangeForUpdate", "FindSlotByStartAtAndEndAt", "FindSlotByStartAtAndEndAt", "DecrementSlotsByRange"}; !slices.Equal(slotCalls, want) {
@@ -174,7 +174,7 @@ func TestLivestreamReservationUsecase_Reserve_TimeRange(t *testing.T) {
 			var livestreamCalls []string
 			var created *domain.Livestream
 			var addedTagIDs []domain.TagID
-			livestreamRepo, livestreamTagRepo := newLivestreamRepositoriesForReserve(t, &livestreamCalls, &created, &addedTagIDs, livestreamReserveResults{livestream: testReservedLivestreamModel})
+			livestreamRepo, livestreamTagRepo := newLivestreamRepositoriesForReserve(t, &livestreamCalls, &created, &addedTagIDs, livestreamReserveResults{livestream: testReservedLivestream})
 			u := NewLivestreamReservationUsecase(&fakeTxManager{}, livestreamRepo, livestreamTagRepo, slotRepo, testLivestreamFixture().filler(), &fakeLogger{})
 
 			input := testReserveInput
@@ -330,7 +330,7 @@ func TestLivestreamReservationUsecase_Reserve_FillFails(t *testing.T) {
 	var livestreamCalls []string
 	var created *domain.Livestream
 	var addedTagIDs []domain.TagID
-	livestreamRepo, livestreamTagRepo := newLivestreamRepositoriesForReserve(t, &livestreamCalls, &created, &addedTagIDs, livestreamReserveResults{livestream: testReservedLivestreamModel})
+	livestreamRepo, livestreamTagRepo := newLivestreamRepositoriesForReserve(t, &livestreamCalls, &created, &addedTagIDs, livestreamReserveResults{livestream: testReservedLivestream})
 	f := testLivestreamFixture()
 	delete(f.users, 42)
 	u := NewLivestreamReservationUsecase(&fakeTxManager{}, livestreamRepo, livestreamTagRepo, slotRepo, f.filler(), &fakeLogger{})

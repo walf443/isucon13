@@ -14,11 +14,11 @@ import (
 )
 
 type fakeUserUsecase struct {
-	user      *domain.UserDetail
-	userModel *domain.User
-	err       error
-	gotID     domain.UserID
-	gotName   string
+	userDetail *domain.UserDetail
+	user       *domain.User
+	err        error
+	gotID      domain.UserID
+	gotName    string
 
 	gotPassword string
 }
@@ -38,17 +38,17 @@ func (u *fakeUserRegistrationUsecase) Register(ctx context.Context, input usecas
 func (u *fakeUserUsecase) Login(ctx context.Context, username string, password string) (*domain.User, error) {
 	u.gotName = username
 	u.gotPassword = password
-	return u.userModel, u.err
+	return u.user, u.err
 }
 
 func (u *fakeUserUsecase) FindByID(ctx context.Context, id domain.UserID) (*domain.UserDetail, error) {
 	u.gotID = id
-	return u.user, u.err
+	return u.userDetail, u.err
 }
 
 func (u *fakeUserUsecase) FindByName(ctx context.Context, name string) (*domain.UserDetail, error) {
 	u.gotName = name
-	return u.user, u.err
+	return u.userDetail, u.err
 }
 
 func TestUserHandler_GetUser(t *testing.T) {
@@ -62,7 +62,7 @@ func TestUserHandler_GetUser(t *testing.T) {
 		{
 			name:   "returns user",
 			cookie: sessionAs(1),
-			usecase: &fakeUserUsecase{user: &domain.UserDetail{
+			usecase: &fakeUserUsecase{userDetail: &domain.UserDetail{
 				ID:          1,
 				Name:        "alice",
 				DisplayName: "Alice",
@@ -111,7 +111,7 @@ func TestUserHandler_GetMe(t *testing.T) {
 		{
 			name:   "returns logged-in user",
 			cookie: sessionAs(42),
-			usecase: &fakeUserUsecase{user: &domain.UserDetail{
+			usecase: &fakeUserUsecase{userDetail: &domain.UserDetail{
 				ID:          42,
 				Name:        "alice",
 				DisplayName: "Alice",
@@ -229,7 +229,7 @@ func TestUserHandler_Login(t *testing.T) {
 		{
 			name:     "logs in",
 			body:     `{"username":"alice","password":"s3cret"}`,
-			usecase:  &fakeUserUsecase{userModel: user},
+			usecase:  &fakeUserUsecase{user: user},
 			wantCode: http.StatusOK,
 		},
 		{

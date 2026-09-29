@@ -9,7 +9,7 @@ import (
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
-// UserFiller はユーザにテーマ・アイコンを埋めた domain.User を組み立てる。
+// UserFiller はユーザにテーマ・アイコンを埋めた domain.UserDetail を組み立てる。
 // 複数の usecase で使うので、1 つ作って共有する。
 type UserFiller struct {
 	themeRepo repository.ThemeRepository
@@ -22,39 +22,39 @@ func NewUserFiller(themeRepo repository.ThemeRepository, iconRepo repository.Ico
 	return &UserFiller{themeRepo: themeRepo, iconRepo: iconRepo, defaultIconHash: defaultIconHash}
 }
 
-// Fill は userModels にテーマ・アイコンを埋めた domain.User を、ユーザの ID ごとに返す。
+// Fill は users にテーマ・アイコンを埋めた domain.UserDetail を、ユーザの ID ごとに返す。
 // 同じユーザが複数含まれていても 1 回だけ取得する。並び順は呼び出し側で決める。
 // アイコンのハッシュは domain.UserIconHash で決める (未登録の場合は defaultIconHash)。
 //
 // テーマが無いのはデータ不整合なので、呼び出し側はこのエラーをユーザ不在 (404) として扱わないこと。
-func (f *UserFiller) Fill(ctx context.Context, q repository.Querier, userModels []*domain.User) (map[domain.UserID]*domain.UserDetail, error) {
-	users := make(map[domain.UserID]*domain.UserDetail, len(userModels))
-	for _, userModel := range userModels {
-		if _, ok := users[userModel.ID]; ok {
+func (f *UserFiller) Fill(ctx context.Context, q repository.Querier, users []*domain.User) (map[domain.UserID]*domain.UserDetail, error) {
+	userDetails := make(map[domain.UserID]*domain.UserDetail, len(users))
+	for _, user := range users {
+		if _, ok := userDetails[user.ID]; ok {
 			continue
 		}
 
-		theme, err := f.themeRepo.FindByUserID(ctx, q, userModel.ID)
+		theme, err := f.themeRepo.FindByUserID(ctx, q, user.ID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get theme of user %d: %w", userModel.ID, err)
+			return nil, fmt.Errorf("failed to get theme of user %d: %w", user.ID, err)
 		}
 
-		image, err := f.iconRepo.FindImageByUserID(ctx, q, userModel.ID)
+		image, err := f.iconRepo.FindImageByUserID(ctx, q, user.ID)
 		registered := true
 		if errors.Is(err, repository.ErrNotFound) {
 			registered = false
 		} else if err != nil {
-			return nil, fmt.Errorf("failed to get icon of user %d: %w", userModel.ID, err)
+			return nil, fmt.Errorf("failed to get icon of user %d: %w", user.ID, err)
 		}
 
-		users[userModel.ID] = &domain.UserDetail{
-			ID:          userModel.ID,
-			Name:        userModel.Name,
-			DisplayName: userModel.DisplayName,
-			Description: userModel.Description,
+		userDetails[user.ID] = &domain.UserDetail{
+			ID:          user.ID,
+			Name:        user.Name,
+			DisplayName: user.DisplayName,
+			Description: user.Description,
 			Theme:       *theme,
 			IconHash:    domain.UserIconHash(image, registered, f.defaultIconHash),
 		}
 	}
-	return users, nil
+	return userDetails, nil
 }

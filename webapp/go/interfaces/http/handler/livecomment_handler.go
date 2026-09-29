@@ -74,16 +74,16 @@ func (h *livecommentHandler) GetLivecomments(c echo.Context) error {
 		return err
 	}
 
-	livecommentModels, err := h.livecommentUsecase.FindAllByLivestreamID(ctx, livestreamID, limit)
+	livecomments, err := h.livecommentUsecase.FindAllByLivestreamID(ctx, livestreamID, limit)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	livecomments := make([]livecommentResponse, len(livecommentModels))
-	for i, l := range livecommentModels {
-		livecomments[i] = newLivecomment(l)
+	livecommentResponses := make([]livecommentResponse, len(livecomments))
+	for i, l := range livecomments {
+		livecommentResponses[i] = newLivecomment(l)
 	}
-	return c.JSON(http.StatusOK, livecomments)
+	return c.JSON(http.StatusOK, livecommentResponses)
 }
 
 // (配信者向け)ライブコメントの報告一覧取得API
@@ -101,7 +101,7 @@ func (h *livecommentHandler) GetLivecommentReports(c echo.Context) error {
 		return err
 	}
 
-	reportModels, err := h.reportUsecase.FindAllByLivestreamID(ctx, userID, livestreamID)
+	reports, err := h.reportUsecase.FindAllByLivestreamID(ctx, userID, livestreamID)
 	if errors.Is(err, usecase.ErrNotLivestreamOwner) {
 		return echo.NewHTTPError(http.StatusForbidden, "can't get other streamer's livecomment reports")
 	}
@@ -109,11 +109,11 @@ func (h *livecommentHandler) GetLivecommentReports(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	reports := make([]livecommentReportResponse, len(reportModels))
-	for i, r := range reportModels {
-		reports[i] = newLivecommentReport(r)
+	reportResponses := make([]livecommentReportResponse, len(reports))
+	for i, r := range reports {
+		reportResponses[i] = newLivecommentReport(r)
 	}
-	return c.JSON(http.StatusOK, reports)
+	return c.JSON(http.StatusOK, reportResponses)
 }
 
 // ライブコメント投稿

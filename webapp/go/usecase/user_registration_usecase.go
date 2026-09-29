@@ -47,7 +47,7 @@ func (u *userRegistrationUsecase) Register(ctx context.Context, input RegisterUs
 		return nil, fmt.Errorf("failed to generate hashed password: %w", err)
 	}
 
-	var user *domain.UserDetail
+	var userDetail *domain.UserDetail
 	err = u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		userID, err := u.userRepo.Create(ctx, q, &domain.User{
 			Name:           input.Name,
@@ -72,19 +72,19 @@ func (u *userRegistrationUsecase) Register(ctx context.Context, input RegisterUs
 			return err
 		}
 
-		userModel, err := u.userRepo.FindByID(ctx, q, userID)
+		user, err := u.userRepo.FindByID(ctx, q, userID)
 		if err != nil {
 			return fmt.Errorf("failed to fill user: %w", err)
 		}
-		users, err := u.userFiller.Fill(ctx, q, []*domain.User{userModel})
+		userDetails, err := u.userFiller.Fill(ctx, q, []*domain.User{user})
 		if err != nil {
 			return fmt.Errorf("failed to fill user: %w", err)
 		}
-		user = users[userID]
+		userDetail = userDetails[userID]
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return user, nil
+	return userDetail, nil
 }
