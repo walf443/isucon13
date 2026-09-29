@@ -3,6 +3,7 @@ package mysql
 import (
 	"context"
 	"errors"
+	"maps"
 	"testing"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
@@ -103,5 +104,38 @@ func TestTagRepository_FindByID(t *testing.T) {
 
 	if _, err := repo.FindByID(ctx, tx, 999999); !errors.Is(err, repository.ErrNotFound) {
 		t.Errorf("err = %v, want ErrNotFound", err)
+	}
+}
+
+func TestTagRepository_FindAllByIDs(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	var ids []domain.TagID
+	for _, name := range []string{"ゲーム実況", "雑談", "歌枠"} {
+		res, err := tx.ExecContext(ctx, "INSERT INTO tags (name) VALUES (?)", name)
+		if err != nil {
+			t.Fatalf("failed to insert tag: %v", err)
+		}
+		id, _ := res.LastInsertId()
+		ids = append(ids, domain.TagID(id))
+	}
+	repo := NewTagRepository()
+
+	got, err := repo.FindAllByIDs(ctx, tx, []domain.TagID{ids[2], ids[0], 999999})
+	if err != nil {
+		t.Fatalf("FindAllByIDs returned error: %v", err)
+	}
+	names := map[domain.TagID]string{}
+	for _, tag := range got {
+		names[tag.ID] = tag.Name
+	}
+	if want := map[domain.TagID]string{ids[0]: "ゲーム実況", ids[2]: "歌枠"}; !maps.Equal(names, want) {
+		t.Errorf("tags = %v, want %v", names, want)
+	}
+
+	got, err = repo.FindAllByIDs(ctx, tx, nil)
+	if err != nil || got == nil || len(got) != 0 {
+		t.Errorf("FindAllByIDs(nil) = %#v, %v, want empty", got, err)
 	}
 }

@@ -74,3 +74,36 @@ func TestLivestreamTagRepository_FindAllByTagIDs(t *testing.T) {
 		t.Errorf("livestream IDs = %v, want %v", ids, want)
 	}
 }
+
+func TestLivestreamTagRepository_FindAllByLivestreamIDs(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	ownerID := insertTestUser(t, tx, "alice")
+	first := insertTestLivestream(t, tx, ownerID, "first")
+	second := insertTestLivestream(t, tx, ownerID, "second")
+	other := insertTestLivestream(t, tx, ownerID, "other")
+	tagA := insertTestTag(t, tx, second, "A")
+	tagB := insertTestTag(t, tx, first, "B")
+	tagC := insertTestTag(t, tx, second, "C")
+	insertTestTag(t, tx, other, "D")
+	repo := NewLivestreamTagRepository()
+
+	got, err := repo.FindAllByLivestreamIDs(ctx, tx, []domain.LivestreamID{first, second})
+	if err != nil {
+		t.Fatalf("FindAllByLivestreamIDs returned error: %v", err)
+	}
+	// 紐付けの ID の昇順 (登録した順)
+	tagIDs := make([]domain.TagID, len(got))
+	for i, lt := range got {
+		tagIDs[i] = lt.TagID
+	}
+	if want := []domain.TagID{tagA.ID, tagB.ID, tagC.ID}; !slices.Equal(tagIDs, want) {
+		t.Errorf("tag IDs = %v, want %v", tagIDs, want)
+	}
+
+	got, err = repo.FindAllByLivestreamIDs(ctx, tx, nil)
+	if err != nil || got == nil || len(got) != 0 {
+		t.Errorf("FindAllByLivestreamIDs(nil) = %#v, %v, want empty", got, err)
+	}
+}

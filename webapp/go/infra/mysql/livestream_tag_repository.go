@@ -39,3 +39,19 @@ func (r *livestreamTagRepository) FindAllByTagIDs(ctx context.Context, q reposit
 	}
 	return livestreamTags, nil
 }
+
+func (r *livestreamTagRepository) FindAllByLivestreamIDs(ctx context.Context, q repository.Querier, livestreamIDs []domain.LivestreamID) ([]*domain.LivestreamTag, error) {
+	// IN () は作れないので、空の場合はクエリを発行しない
+	if len(livestreamIDs) == 0 {
+		return []*domain.LivestreamTag{}, nil
+	}
+	query, params, err := sqlx.In("SELECT id, livestream_id, tag_id FROM livestream_tags WHERE livestream_id IN (?) ORDER BY id", livestreamIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct IN query: %w", err)
+	}
+	var livestreamTags []*domain.LivestreamTag
+	if err := q.SelectContext(ctx, &livestreamTags, query, params...); err != nil {
+		return nil, err
+	}
+	return livestreamTags, nil
+}

@@ -7,6 +7,9 @@ import (
 )
 
 type LivecommentRepository interface {
+	// FindAllByIDs は ids のライブコメントを返す (順序は不定)。存在しない ID は結果に含まれない。
+	// ids が空の場合はクエリを発行せずに空のスライスを返す。
+	FindAllByIDs(ctx context.Context, q Querier, ids []domain.LivecommentID) ([]*domain.Livecomment, error)
 	// FindAllByLivestreamID は指定したライブ配信へのライブコメントを返す (順序は不定)。
 	FindAllByLivestreamID(ctx context.Context, q Querier, livestreamID domain.LivestreamID) ([]*domain.Livecomment, error)
 	// FindAllByLivestreamIDOrderByCreatedAtDesc は指定したライブ配信へのライブコメントを、作成日時の降順で返す。

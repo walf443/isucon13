@@ -3,6 +3,7 @@ package mysql
 import (
 	"context"
 	"errors"
+	"maps"
 	"slices"
 	"testing"
 
@@ -157,5 +158,34 @@ func TestLivecommentRepository_FindAllByLivestreamIDOrderByCreatedAtDesc(t *test
 	}
 	if ids, want := livecommentIDs(got), []domain.LivecommentID{newest, middle}; !slices.Equal(ids, want) {
 		t.Errorf("IDs = %v, want %v", ids, want)
+	}
+}
+
+func TestLivecommentRepository_FindAllByIDs(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	ownerID := insertTestUser(t, tx, "alice")
+	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
+	first := insertTestLivecomment(t, tx, ownerID, livestreamID, "first", 100)
+	second := insertTestLivecomment(t, tx, ownerID, livestreamID, "second", 200)
+	insertTestLivecomment(t, tx, ownerID, livestreamID, "third", 300)
+	repo := NewLivecommentRepository()
+
+	got, err := repo.FindAllByIDs(ctx, tx, []domain.LivecommentID{second, first, 999999})
+	if err != nil {
+		t.Fatalf("FindAllByIDs returned error: %v", err)
+	}
+	comments := map[domain.LivecommentID]string{}
+	for _, l := range got {
+		comments[l.ID] = l.Comment
+	}
+	if want := map[domain.LivecommentID]string{first: "first", second: "second"}; !maps.Equal(comments, want) {
+		t.Errorf("livecomments = %v, want %v", comments, want)
+	}
+
+	got, err = repo.FindAllByIDs(ctx, tx, nil)
+	if err != nil || got == nil || len(got) != 0 {
+		t.Errorf("FindAllByIDs(nil) = %#v, %v, want empty", got, err)
 	}
 }

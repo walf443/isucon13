@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
+	"github.com/jmoiron/sqlx"
 )
 
 type iconRepository struct{}
@@ -42,4 +44,20 @@ func (r *iconRepository) Create(ctx context.Context, q repository.Querier, userI
 func (r *iconRepository) DeleteByUserID(ctx context.Context, q repository.Querier, userID domain.UserID) error {
 	_, err := q.ExecContext(ctx, "DELETE FROM icons WHERE user_id = ?", userID)
 	return err
+}
+
+func (r *iconRepository) FindAllByUserIDs(ctx context.Context, q repository.Querier, userIDs []domain.UserID) ([]*domain.Icon, error) {
+	// IN () は作れないので、空の場合はクエリを発行しない
+	if len(userIDs) == 0 {
+		return []*domain.Icon{}, nil
+	}
+	query, params, err := sqlx.In("SELECT id, user_id, image FROM icons WHERE user_id IN (?)", userIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct IN query: %w", err)
+	}
+	var icons []*domain.Icon
+	if err := q.SelectContext(ctx, &icons, query, params...); err != nil {
+		return nil, err
+	}
+	return icons, nil
 }

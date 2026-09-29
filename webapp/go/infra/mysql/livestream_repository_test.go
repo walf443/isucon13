@@ -194,3 +194,35 @@ func TestLivestreamRepository_FindAllOrderByIDDesc(t *testing.T) {
 		t.Errorf("IDs = %v, want %v", ids, want)
 	}
 }
+
+func TestLivestreamRepository_FindAllByIDs(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	ownerID := insertTestUser(t, tx, "alice")
+	first := insertTestLivestream(t, tx, ownerID, "first")
+	second := insertTestLivestream(t, tx, ownerID, "second")
+	insertTestLivestream(t, tx, ownerID, "third")
+	repo := NewLivestreamRepository()
+
+	got, err := repo.FindAllByIDs(ctx, tx, []domain.LivestreamID{second, first, 999999})
+	if err != nil {
+		t.Fatalf("FindAllByIDs returned error: %v", err)
+	}
+	ids := livestreamIDs(got)
+	slices.Sort(ids)
+	if want := []domain.LivestreamID{first, second}; !slices.Equal(ids, want) {
+		t.Errorf("IDs = %v, want %v", ids, want)
+	}
+	// 全てのカラムを読むこと
+	for _, l := range got {
+		if l.UserID != ownerID || l.Title == "" || l.PlaylistUrl == "" || l.StartAt == 0 || l.EndAt == 0 {
+			t.Errorf("livestream = %+v", l)
+		}
+	}
+
+	got, err = repo.FindAllByIDs(ctx, tx, nil)
+	if err != nil || got == nil || len(got) != 0 {
+		t.Errorf("FindAllByIDs(nil) = %#v, %v, want empty", got, err)
+	}
+}

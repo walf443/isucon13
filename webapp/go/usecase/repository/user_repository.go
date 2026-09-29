@@ -7,6 +7,9 @@ import (
 )
 
 type UserRepository interface {
+	// FindAllByIDs は ids のユーザを返す (順序は不定)。存在しない ID は結果に含まれない。
+	// ids が空の場合はクエリを発行せずに空のスライスを返す。
+	FindAllByIDs(ctx context.Context, q Querier, ids []domain.UserID) ([]*domain.User, error)
 	// FindIDByName はユーザが存在しない場合 ErrNotFound を返す。
 	FindIDByName(ctx context.Context, q Querier, name string) (domain.UserID, error)
 	// FindByID はユーザが存在しない場合 ErrNotFound を返す。

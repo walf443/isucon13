@@ -3,6 +3,7 @@ package mysql
 import (
 	"context"
 	"errors"
+	"maps"
 	"testing"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
@@ -132,5 +133,34 @@ func TestUserRepository_CreateAndThemeRepository_Create(t *testing.T) {
 	// ユーザ名は UNIQUE なので重複登録はエラー (移行前と同じく 500 になる)
 	if _, err := userRepo.Create(ctx, tx, &domain.User{Name: "alice", HashedPassword: "hashed"}); err == nil {
 		t.Error("expected error on duplicate name")
+	}
+}
+
+func TestUserRepository_FindAllByIDs(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	alice := insertTestUser(t, tx, "alice")
+	bob := insertTestUser(t, tx, "bob")
+	insertTestUser(t, tx, "carol")
+	repo := NewUserRepository()
+
+	// 存在しない ID は結果に含まれない
+	got, err := repo.FindAllByIDs(ctx, tx, []domain.UserID{bob, alice, 999999})
+	if err != nil {
+		t.Fatalf("FindAllByIDs returned error: %v", err)
+	}
+	names := map[domain.UserID]string{}
+	for _, u := range got {
+		names[u.ID] = u.Name
+	}
+	if want := map[domain.UserID]string{alice: "alice", bob: "bob"}; !maps.Equal(names, want) {
+		t.Errorf("users = %v, want %v", names, want)
+	}
+
+	// 空の場合は空のスライス
+	got, err = repo.FindAllByIDs(ctx, tx, nil)
+	if err != nil || got == nil || len(got) != 0 {
+		t.Errorf("FindAllByIDs(nil) = %#v, %v, want empty", got, err)
 	}
 }

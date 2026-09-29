@@ -83,3 +83,29 @@ func TestIconRepository_DeleteByUserID(t *testing.T) {
 		t.Errorf("icon of other user should remain: %v", err)
 	}
 }
+
+func TestIconRepository_FindAllByUserIDs(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	alice := insertTestUser(t, tx, "alice")
+	// bob はアイコンが未登録
+	bob := insertTestUser(t, tx, "bob")
+	repo := NewIconRepository()
+	if _, err := repo.Create(ctx, tx, alice, []byte("alice icon")); err != nil {
+		t.Fatalf("Create returned error: %v", err)
+	}
+
+	got, err := repo.FindAllByUserIDs(ctx, tx, []domain.UserID{alice, bob})
+	if err != nil {
+		t.Fatalf("FindAllByUserIDs returned error: %v", err)
+	}
+	if len(got) != 1 || got[0].UserID != alice || string(got[0].Image) != "alice icon" || got[0].ID == 0 {
+		t.Errorf("icons = %+v, want only alice's icon", got)
+	}
+
+	got, err = repo.FindAllByUserIDs(ctx, tx, nil)
+	if err != nil || got == nil || len(got) != 0 {
+		t.Errorf("FindAllByUserIDs(nil) = %#v, %v, want empty", got, err)
+	}
+}

@@ -7,6 +7,9 @@ import (
 )
 
 type LivestreamRepository interface {
+	// FindAllByIDs は ids のライブ配信を返す (順序は不定)。存在しない ID は結果に含まれない。
+	// ids が空の場合はクエリを発行せずに空のスライスを返す。
+	FindAllByIDs(ctx context.Context, q Querier, ids []domain.LivestreamID) ([]*domain.Livestream, error)
 	// FindByID はライブ配信が存在しない場合 ErrNotFound を返す。
 	FindByID(ctx context.Context, q Querier, id domain.LivestreamID) (*domain.Livestream, error)
 	// FindAllByIDAndUserID は指定した ID かつ指定したユーザが配信者のライブ配信を返す。該当が無ければ空のスライスを返す。
