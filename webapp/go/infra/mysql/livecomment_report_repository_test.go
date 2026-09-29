@@ -17,7 +17,7 @@ func TestLivecommentReportRepository_FindByID(t *testing.T) {
 	ownerID := insertTestUser(t, tx, "alice")
 	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
 	livecommentID := insertTestLivecomment(t, tx, ownerID, livestreamID, "spam", 100)
-	repo := NewLivecommentReportRepository("")
+	repo := NewLivecommentReportRepository()
 	want := domain.LivecommentReportModel{UserID: ownerID, LivestreamID: livestreamID, LivecommentID: livecommentID, CreatedAt: 1700000000}
 	id, err := repo.Create(ctx, tx, &want)
 	if err != nil {
@@ -47,7 +47,7 @@ func TestLivecommentReportRepository_FindAllByLivestreamID(t *testing.T) {
 	otherID := insertTestLivestream(t, tx, ownerID, "other")
 	livecommentID := insertTestLivecomment(t, tx, ownerID, livestreamID, "spam", 100)
 	otherCommentID := insertTestLivecomment(t, tx, ownerID, otherID, "spam", 100)
-	repo := NewLivecommentReportRepository("")
+	repo := NewLivecommentReportRepository()
 	var want []domain.LivecommentReportID
 	for range 2 {
 		id, err := repo.Create(ctx, tx, &domain.LivecommentReportModel{UserID: ownerID, LivestreamID: livestreamID, LivecommentID: livecommentID, CreatedAt: 100})

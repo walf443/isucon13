@@ -25,18 +25,25 @@ type livecommentReportUsecase struct {
 	livestreamRepo  repository.LivestreamRepository
 	livecommentRepo repository.LivecommentRepository
 	reportRepo      repository.LivecommentReportRepository
+	reportFiller    *LivecommentReportFiller
 	// now は現在時刻を返す。テストで差し替えられるようにしている。
 	now func() time.Time
 }
 
-func NewLivecommentReportUsecase(txManager repository.TxManager, livestreamRepo repository.LivestreamRepository, livecommentRepo repository.LivecommentRepository, reportRepo repository.LivecommentReportRepository) LivecommentReportUsecase {
+func NewLivecommentReportUsecase(txManager repository.TxManager, livestreamRepo repository.LivestreamRepository, livecommentRepo repository.LivecommentRepository, reportRepo repository.LivecommentReportRepository, reportFiller *LivecommentReportFiller) LivecommentReportUsecase {
 	return &livecommentReportUsecase{
 		txManager:       txManager,
 		livestreamRepo:  livestreamRepo,
 		livecommentRepo: livecommentRepo,
 		reportRepo:      reportRepo,
+		reportFiller:    reportFiller,
 		now:             time.Now,
 	}
+}
+
+// livecommentReportModelID は orderedBy に渡すための、報告の ID を取り出す関数。
+func livecommentReportModelID(reportModel *domain.LivecommentReportModel) domain.LivecommentReportID {
+	return reportModel.ID
 }
 
 func (u *livecommentReportUsecase) FindAllByLivestreamID(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.LivecommentReport, error) {
@@ -51,10 +58,15 @@ func (u *livecommentReportUsecase) FindAllByLivestreamID(ctx context.Context, us
 			return ErrNotLivestreamOwner
 		}
 
-		reports, err = u.reportRepo.FindAllWithDetailsByLivestreamID(ctx, q, livestreamID)
+		reportModels, err := u.reportRepo.FindAllByLivestreamID(ctx, q, livestreamID)
 		if err != nil {
 			return fmt.Errorf("failed to get livecomment reports: %w", err)
 		}
+		filled, err := u.reportFiller.Fill(ctx, q, reportModels)
+		if err != nil {
+			return fmt.Errorf("failed to get livecomment reports: %w", err)
+		}
+		reports = orderedBy(reportModels, livecommentReportModelID, filled)
 		return nil
 	})
 	if err != nil {
@@ -93,10 +105,15 @@ func (u *livecommentReportUsecase) Create(ctx context.Context, userID domain.Use
 			return fmt.Errorf("failed to insert livecomment report: %w", err)
 		}
 
-		report, err = u.reportRepo.FindWithDetailsByID(ctx, q, reportID)
+		reportModel, err := u.reportRepo.FindByID(ctx, q, reportID)
 		if err != nil {
 			return fmt.Errorf("failed to fill livecomment report: %w", err)
 		}
+		reports, err := u.reportFiller.Fill(ctx, q, []*domain.LivecommentReportModel{reportModel})
+		if err != nil {
+			return fmt.Errorf("failed to fill livecomment report: %w", err)
+		}
+		report = reports[reportID]
 		return nil
 	})
 	if err != nil {

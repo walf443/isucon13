@@ -63,7 +63,7 @@ func TestLivestreamStatisticsQueries(t *testing.T) {
 		}
 	}
 
-	reportRepo := NewLivecommentReportRepository("")
+	reportRepo := NewLivecommentReportRepository()
 	if _, err := reportRepo.Create(ctx, tx, &domain.LivecommentReportModel{UserID: ownerID, LivestreamID: stream, LivecommentID: c1, CreatedAt: 100}); err != nil {
 		t.Fatalf("failed to insert report: %v", err)
 	}

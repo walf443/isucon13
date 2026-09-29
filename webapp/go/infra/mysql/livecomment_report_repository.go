@@ -9,13 +9,10 @@ import (
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
-type livecommentReportRepository struct {
-	// defaultIconHash はアイコン未登録のユーザに使う既定のアイコンのハッシュ。
-	defaultIconHash domain.IconHash
-}
+type livecommentReportRepository struct{}
 
-func NewLivecommentReportRepository(defaultIconHash domain.IconHash) repository.LivecommentReportRepository {
-	return &livecommentReportRepository{defaultIconHash: defaultIconHash}
+func NewLivecommentReportRepository() repository.LivecommentReportRepository {
+	return &livecommentReportRepository{}
 }
 
 func (r *livecommentReportRepository) FindByID(ctx context.Context, q repository.Querier, id domain.LivecommentReportID) (*domain.LivecommentReportModel, error) {
@@ -36,27 +33,6 @@ func (r *livecommentReportRepository) FindAllByLivestreamID(ctx context.Context,
 		return nil, err
 	}
 	return reportModels, nil
-}
-
-func (r *livecommentReportRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentReport, error) {
-	reportModels, err := r.FindAllByLivestreamID(ctx, q, livestreamID)
-	if err != nil {
-		return nil, err
-	}
-	return fillLivecommentReports(ctx, q, reportModels, r.defaultIconHash)
-}
-
-func (r *livecommentReportRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id domain.LivecommentReportID) (*domain.LivecommentReport, error) {
-	reportModel, err := r.FindByID(ctx, q, id)
-	if err != nil {
-		return nil, err
-	}
-
-	reports, err := fillLivecommentReports(ctx, q, []*domain.LivecommentReportModel{reportModel}, r.defaultIconHash)
-	if err != nil {
-		return nil, err
-	}
-	return reports[0], nil
 }
 
 func (r *livecommentReportRepository) Create(ctx context.Context, q repository.Querier, report *domain.LivecommentReportModel) (domain.LivecommentReportID, error) {

@@ -67,69 +67,6 @@ func TestLivecommentRepository_FindAllWithDetailsByLivestreamID(t *testing.T) {
 	}
 }
 
-func TestLivecommentReportRepository_FindAllWithDetailsByLivestreamID(t *testing.T) {
-	ctx := context.Background()
-	tx := beginTestTx(t)
-
-	ownerID := insertTestUser(t, tx, "alice")
-	insertTestTheme(t, tx, ownerID, true)
-	viewerID := insertTestUser(t, tx, "bob")
-	insertTestTheme(t, tx, viewerID, false)
-	reporterID := insertTestUser(t, tx, "carol")
-	insertTestTheme(t, tx, reporterID, false)
-	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
-	otherLivestreamID := insertTestLivestream(t, tx, ownerID, "other")
-	commentID := insertTestLivecomment(t, tx, viewerID, livestreamID, "bad comment", 100)
-	otherCommentID := insertTestLivecomment(t, tx, viewerID, otherLivestreamID, "other", 100)
-
-	insertReport := func(livestreamID domain.LivestreamID, livecommentID domain.LivecommentID) domain.LivecommentReportID {
-		t.Helper()
-		res, err := tx.ExecContext(ctx, "INSERT INTO livecomment_reports (user_id, livestream_id, livecomment_id, created_at) VALUES (?, ?, ?, ?)", reporterID, livestreamID, livecommentID, 200)
-		if err != nil {
-			t.Fatalf("failed to insert livecomment report: %v", err)
-		}
-		id, _ := res.LastInsertId()
-		return domain.LivecommentReportID(id)
-	}
-	reportID := insertReport(livestreamID, commentID)
-	insertReport(otherLivestreamID, otherCommentID)
-
-	reports, err := NewLivecommentReportRepository("").FindAllWithDetailsByLivestreamID(ctx, tx, livestreamID)
-	if err != nil {
-		t.Fatalf("FindAllWithDetailsByLivestreamID returned error: %v", err)
-	}
-	if len(reports) != 1 {
-		t.Fatalf("len(reports) = %d, want 1", len(reports))
-	}
-	got := reports[0]
-	if got.ID != reportID || got.CreatedAt != 200 || got.Reporter.ID != reporterID {
-		t.Errorf("report = %+v", got)
-	}
-	if got.Livecomment.ID != commentID || got.Livecomment.User.ID != viewerID || got.Livecomment.Livestream.ID != livestreamID {
-		t.Errorf("livecomment = %+v", got.Livecomment)
-	}
-}
-
-func TestLivecommentReportRepository_LivecommentNotFound(t *testing.T) {
-	ctx := context.Background()
-	tx := beginTestTx(t)
-
-	reporterID := insertTestUser(t, tx, "carol")
-	insertTestTheme(t, tx, reporterID, false)
-	if _, err := tx.ExecContext(ctx, "INSERT INTO livecomment_reports (user_id, livestream_id, livecomment_id, created_at) VALUES (?, ?, ?, ?)", reporterID, 1, 999999, 200); err != nil {
-		t.Fatalf("failed to insert livecomment report: %v", err)
-	}
-
-	// 報告されたライブコメントの欠損はデータ不整合なので ErrNotFound にはしない
-	_, err := NewLivecommentReportRepository("").FindAllWithDetailsByLivestreamID(ctx, tx, 1)
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	if errors.Is(err, repository.ErrNotFound) {
-		t.Errorf("err = %v, should not be ErrNotFound", err)
-	}
-}
-
 func TestLivecommentRepository_CreateAndFindWithDetailsByID(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)
@@ -209,41 +146,6 @@ func TestLivecommentRepository_FindByID(t *testing.T) {
 	}
 
 	if _, err := repo.FindByID(ctx, tx, 999999); !errors.Is(err, repository.ErrNotFound) {
-		t.Errorf("err = %v, want ErrNotFound", err)
-	}
-}
-
-func TestLivecommentReportRepository_CreateAndFindWithDetailsByID(t *testing.T) {
-	ctx := context.Background()
-	tx := beginTestTx(t)
-
-	ownerID := insertTestUser(t, tx, "alice")
-	insertTestTheme(t, tx, ownerID, true)
-	viewerID := insertTestUser(t, tx, "bob")
-	insertTestTheme(t, tx, viewerID, false)
-	reporterID := insertTestUser(t, tx, "carol")
-	insertTestTheme(t, tx, reporterID, false)
-	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
-	commentID := insertTestLivecomment(t, tx, viewerID, livestreamID, "bad comment", 100)
-	repo := NewLivecommentReportRepository("")
-
-	id, err := repo.Create(ctx, tx, &domain.LivecommentReportModel{UserID: reporterID, LivestreamID: livestreamID, LivecommentID: commentID, CreatedAt: 1700000000})
-	if err != nil {
-		t.Fatalf("Create returned error: %v", err)
-	}
-
-	got, err := repo.FindWithDetailsByID(ctx, tx, id)
-	if err != nil {
-		t.Fatalf("FindWithDetailsByID returned error: %v", err)
-	}
-	if got.ID != id || got.CreatedAt != 1700000000 || got.Reporter.ID != reporterID {
-		t.Errorf("report = %+v", got)
-	}
-	if got.Livecomment.ID != commentID || got.Livecomment.User.ID != viewerID || got.Livecomment.Livestream.ID != livestreamID {
-		t.Errorf("livecomment = %+v", got.Livecomment)
-	}
-
-	if _, err := repo.FindWithDetailsByID(ctx, tx, 999999); !errors.Is(err, repository.ErrNotFound) {
 		t.Errorf("err = %v, want ErrNotFound", err)
 	}
 }
