@@ -3,7 +3,6 @@ package mysql
 import (
 	"context"
 	"errors"
-	"reflect"
 	"slices"
 	"testing"
 
@@ -35,40 +34,6 @@ func insertTestTag(t *testing.T, tx repository.Querier, livestreamID domain.Live
 		t.Fatalf("failed to insert livestream_tag: %v", err)
 	}
 	return domain.TagModel{ID: domain.TagID(tagID), Name: name}
-}
-
-func TestFillLivestreams(t *testing.T) {
-	ctx := context.Background()
-	tx := beginTestTx(t)
-
-	aliceID := insertTestUser(t, tx, "alice")
-	insertTestTheme(t, tx, aliceID, false)
-	bobID := insertTestUser(t, tx, "bob")
-	insertTestTheme(t, tx, bobID, false)
-
-	aliceStreamID := insertTestLivestream(t, tx, aliceID, "alice-stream")
-	aliceTag := insertTestTag(t, tx, aliceStreamID, "alice-tag")
-	bobStreamID := insertTestLivestream(t, tx, bobID, "bob-stream")
-
-	livestreamModels := []*domain.LivestreamModel{
-		// 入力の順序が保たれることを確認するため、ID の降順で渡す
-		{ID: bobStreamID, UserID: bobID, Title: "bob-stream"},
-		{ID: aliceStreamID, UserID: aliceID, Title: "alice-stream"},
-	}
-
-	livestreams, err := fillLivestreams(ctx, tx, livestreamModels, "")
-	if err != nil {
-		t.Fatalf("fillLivestreams returned error: %v", err)
-	}
-	if len(livestreams) != 2 {
-		t.Fatalf("len(livestreams) = %d, want 2", len(livestreams))
-	}
-	if livestreams[0].ID != bobStreamID || livestreams[0].Owner.ID != bobID || len(livestreams[0].Tags) != 0 {
-		t.Errorf("livestreams[0] = %+v", livestreams[0])
-	}
-	if livestreams[1].ID != aliceStreamID || livestreams[1].Owner.ID != aliceID || !reflect.DeepEqual(livestreams[1].Tags, []domain.TagModel{aliceTag}) {
-		t.Errorf("livestreams[1] = %+v", livestreams[1])
-	}
 }
 
 func TestLivestreamRepository_FindByID(t *testing.T) {

@@ -9,6 +9,16 @@ import (
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
+func insertTestUser(t *testing.T, tx repository.Querier, name string) domain.UserID {
+	t.Helper()
+	res, err := tx.ExecContext(context.Background(), "INSERT INTO users (name, display_name, password, description) VALUES (?, ?, ?, ?)", name, "Display "+name, "hashed", "desc "+name)
+	if err != nil {
+		t.Fatalf("failed to insert user: %v", err)
+	}
+	id, _ := res.LastInsertId()
+	return domain.UserID(id)
+}
+
 func TestUserRepository_FindIDByName(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)

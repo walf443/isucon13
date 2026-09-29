@@ -48,7 +48,19 @@ repository だけは数が多く、usecase の型と名前を分けたいので 
 ### repository はテーブル単位
 
 - 1 つのテーブルに対するクエリを 1 つの repository にまとめる。統計のような画面単位の集約 repository は作らない
-- 複数のテーブルを組み合わせた読み取り用のモデル (`domain.Livestream` など) は、`infra/mysql` 内の `fillXxx` 関数で組み立てる
+- repository のメソッドは 1 つの SQL を実行し、テーブルの行に対応する型 (`domain.XxxModel`) を返す
+
+### 詳細の組み立ては usecase の Filler が行う
+
+複数のテーブルを組み合わせた読み取り用のモデル (`domain.User` / `Livestream` / `Livecomment` / `Reaction` / `LivecommentReport`) は、
+usecase の `XxxFiller` (`UserFiller` / `LivestreamFiller` など) が repository の単発のメソッドを組み合わせて組み立てる。
+
+- `Fill(ctx, q, models)` は、行の型の一覧を受け取り、ID ごとの map で返す。並び順は呼び出し側で決める (`orderedBy` で元の順序に並べ直す)
+  - 1 件だけの場合も長さ 1 のスライスで渡す。まとめて取得する作りにしておけば、将来 `IN (...)` で取得するように変えても呼び出し側は変わらない
+- 同じ ID が複数含まれていても 1 回だけ取得する
+- 主となる行 (ユーザ・ライブ配信など) は呼び出し側が引き、見つからない場合の 404 への変換やエラーメッセージも呼び出し側で決める
+  - 付随するデータ (テーマ・配信者・タグなど) が無いのはデータ不整合なので 500 にする。Filler のエラーを 404 に変換しないこと
+- Filler は他の Filler を使う (`LivestreamFiller` は配信者に `UserFiller` を使う、など)。`usecases.go` でそれぞれ 1 つ作って共有する
 
 ### SQL
 
@@ -86,14 +98,18 @@ repository だけは数が多く、usecase の型と名前を分けたいので 
 ### 挙動を変えない
 
 移行の目的は構造の整理なので、ステータスコード・レスポンス本文・ログ・発行する SQL は移行前と同じに保つ。
-明らかな不具合の修正や、層を分けたことで生じる差 (認証を middleware にしたことで `POST /api/livestream/:livestream_id/reaction` の検証順が変わった件) は、合意の上でコミットメッセージに残す。
+明らかな不具合の修正や、層を分けたことで生じる差は、合意の上でコミットメッセージに残す。これまでに合意した差は次のとおり。
+
+- 認証を middleware にしたことで `POST /api/livestream/:livestream_id/reaction` の検証順が変わった (セッション無しで不正な ID の場合 400 → 403)
+- 詳細の組み立てを Filler に移したことで、重複した ID の取得が 1 回になり、SQL の順序・回数が変わる場合がある (結果は同じ)
+- データ不整合 (テーマなどの欠損) の場合の 500 の本文が `sql: no rows in result set` から `not found` になった
 
 ## テスト
 
 | 対象 | 方法 |
 |---|---|
 | `domain` | 通常の単体テスト |
-| `usecase` | repository などを fake に差し替える。fake は interface を埋め込み、テストで設定した関数に処理を委ねる (未設定のメソッドを呼ぶと panic する) |
+| `usecase` | repository などを fake に差し替える。fake は interface を埋め込み、テストで設定した関数に処理を委ねる (未設定のメソッドを呼ぶと panic する)。Filler は fake にせず、テスト用のデータ (`livestreamFixture`) から作った本物を使い、組み立てた結果まで確認する |
 | `interfaces/http/handler` | usecase を fake に差し替え、`serve` / `send` で echo にリクエストを送り、`assertResponse` で確認する。エラーレスポンスでは本文 (`wantBody`) の確認を必須にしている |
 | `infra/mysql` | testcontainers で MySQL を起動し、実際のスキーマに対して 1 メソッドずつ確認する。`-short` ではスキップする |
 | `infra/powerdns`, `infra/script` | 一時ディレクトリに置いた偽のコマンド・スクリプトを実行させて、渡す引数と出力・エラーの扱いを確認する |
