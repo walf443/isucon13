@@ -11,34 +11,6 @@ import (
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
-// newUserFillerForTest は themes / icons をユーザの ID ごとに返す UserFiller を返す。
-// themes に無いユーザはテーマ欠損 (ErrNotFound)、icons に無いユーザはアイコン未登録として扱う。
-// 呼ばれたユーザの ID を themeCalls に記録する。
-func newUserFillerForTest(themes map[domain.UserID]*domain.Theme, icons map[domain.UserID][]byte, themeCalls *[]domain.UserID) *UserFiller {
-	themeRepo := &fakeThemeRepository{
-		findByUserID: func(_ context.Context, _ repository.Querier, userID domain.UserID) (*domain.Theme, error) {
-			if themeCalls != nil {
-				*themeCalls = append(*themeCalls, userID)
-			}
-			theme, ok := themes[userID]
-			if !ok {
-				return nil, repository.ErrNotFound
-			}
-			return theme, nil
-		},
-	}
-	iconRepo := &fakeIconRepository{
-		findImageByUserID: func(_ context.Context, _ repository.Querier, userID domain.UserID) ([]byte, error) {
-			image, ok := icons[userID]
-			if !ok {
-				return nil, repository.ErrNotFound
-			}
-			return image, nil
-		},
-	}
-	return NewUserFiller(themeRepo, iconRepo, "default-hash")
-}
-
 func TestUserFiller_Fill(t *testing.T) {
 	alice := &domain.User{ID: 1, Name: "alice", DisplayName: "Alice", Description: "hi"}
 	bob := &domain.User{ID: 2, Name: "bob"}

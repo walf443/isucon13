@@ -11,31 +11,13 @@ import (
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
-// newLivestreamRepositoryWithLivestreams は ID で models を引ける fakeLivestreamRepository を返す。
-// 見つからない ID には ErrNotFound を返し、引いた ID を calls に記録する。
-func newLivestreamRepositoryWithLivestreams(calls *[]domain.LivestreamID, models ...*domain.Livestream) *fakeLivestreamRepository {
-	return &fakeLivestreamRepository{
-		findByID: func(_ context.Context, _ repository.Querier, id domain.LivestreamID) (*domain.Livestream, error) {
-			if calls != nil {
-				*calls = append(*calls, id)
-			}
-			for _, m := range models {
-				if m.ID == id {
-					return m, nil
-				}
-			}
-			return nil, repository.ErrNotFound
-		},
-	}
-}
-
 // newLivestreamUsecaseForTest は f のデータで組み立てる LivestreamUsecase を返す。
-func newLivestreamUsecaseForTest(f *livestreamFixture, userRepo *fakeUserRepository, tagRepo *fakeTagRepository, livestreamRepo *fakeLivestreamRepository, livestreamTagRepo *fakeLivestreamTagRepository) LivestreamUsecase {
-	return NewLivestreamUsecase(&fakeTxManager{}, userRepo, tagRepo, livestreamRepo, livestreamTagRepo, f.filler())
+func newLivestreamUsecaseForTest(f *detailFixture, userRepo *fakeUserRepository, tagRepo *fakeTagRepository, livestreamRepo *fakeLivestreamRepository, livestreamTagRepo *fakeLivestreamTagRepository) LivestreamUsecase {
+	return NewLivestreamUsecase(&fakeTxManager{}, userRepo, tagRepo, livestreamRepo, livestreamTagRepo, f.livestreamFiller())
 }
 
 func TestLivestreamUsecase_FindByID(t *testing.T) {
-	f := testLivestreamFixture()
+	f := testDetailFixture()
 	u := newLivestreamUsecaseForTest(f, nil, nil, newLivestreamRepositoryWithLivestreams(nil, testLivestream1), nil)
 
 	got, err := u.FindByID(context.Background(), 1)
@@ -54,7 +36,7 @@ func TestLivestreamUsecase_FindByID_Errors(t *testing.T) {
 		name           string
 		livestreamRepo *fakeLivestreamRepository
 		// modify はデータを欠けさせる
-		modify  func(f *livestreamFixture)
+		modify  func(f *detailFixture)
 		wantErr error
 		wantMsg string
 	}{
@@ -78,7 +60,7 @@ func TestLivestreamUsecase_FindByID_Errors(t *testing.T) {
 			// 配信者の欠損はデータ不整合なので 404 (ErrLivestreamNotFound) にしない
 			name:           "owner not found",
 			livestreamRepo: newLivestreamRepositoryWithLivestreams(nil, testLivestream1),
-			modify:         func(f *livestreamFixture) { delete(f.users, 42) },
+			modify:         func(f *detailFixture) { delete(f.users, 42) },
 			wantErr:        errMissingDetail,
 			wantMsg:        "failed to get livestream: failed to get owner of livestream 1: not found",
 		},
@@ -86,7 +68,7 @@ func TestLivestreamUsecase_FindByID_Errors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := testLivestreamFixture()
+			f := testDetailFixture()
 			if tt.modify != nil {
 				tt.modify(f)
 			}
@@ -115,7 +97,7 @@ func newLivestreamRepositoryFindingAllByUserID(t *testing.T, userID domain.UserI
 }
 
 func TestLivestreamUsecase_FindAllByUserID(t *testing.T) {
-	f := testLivestreamFixture()
+	f := testDetailFixture()
 	livestreamRepo := newLivestreamRepositoryFindingAllByUserID(t, 42, []*domain.Livestream{testLivestream2, testLivestream1}, nil)
 	u := newLivestreamUsecaseForTest(f, nil, nil, livestreamRepo, nil)
 
@@ -131,7 +113,7 @@ func TestLivestreamUsecase_FindAllByUserID(t *testing.T) {
 
 func TestLivestreamUsecase_FindAllByUserID_Empty(t *testing.T) {
 	livestreamRepo := newLivestreamRepositoryFindingAllByUserID(t, 42, nil, nil)
-	u := newLivestreamUsecaseForTest(testLivestreamFixture(), nil, nil, livestreamRepo, nil)
+	u := newLivestreamUsecaseForTest(testDetailFixture(), nil, nil, livestreamRepo, nil)
 
 	got, err := u.FindAllByUserID(context.Background(), 42)
 	if err != nil {
@@ -146,7 +128,7 @@ func TestLivestreamUsecase_FindAllByUserID_Empty(t *testing.T) {
 func TestLivestreamUsecase_FindAllByUserID_Error(t *testing.T) {
 	boom := errors.New("boom")
 	livestreamRepo := newLivestreamRepositoryFindingAllByUserID(t, 42, nil, boom)
-	u := newLivestreamUsecaseForTest(testLivestreamFixture(), nil, nil, livestreamRepo, nil)
+	u := newLivestreamUsecaseForTest(testDetailFixture(), nil, nil, livestreamRepo, nil)
 
 	_, err := u.FindAllByUserID(context.Background(), 42)
 	if want := "failed to get livestreams: boom"; !errors.Is(err, boom) || err.Error() != want {
@@ -155,7 +137,7 @@ func TestLivestreamUsecase_FindAllByUserID_Error(t *testing.T) {
 }
 
 func TestLivestreamUsecase_FindAllByUsername(t *testing.T) {
-	f := testLivestreamFixture()
+	f := testDetailFixture()
 	// ユーザ名から引いた ID で検索する
 	livestreamRepo := newLivestreamRepositoryFindingAllByUserID(t, 42, []*domain.Livestream{testLivestream1}, nil)
 	u := newLivestreamUsecaseForTest(f, newUserRepositoryFindingID(t, "alice", 42, nil), nil, livestreamRepo, nil)
@@ -190,7 +172,7 @@ func TestLivestreamUsecase_FindAllByUsername_Errors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			livestreamRepo := newLivestreamRepositoryFindingAllByUserID(t, 42, nil, tt.livestreamsErr)
-			u := newLivestreamUsecaseForTest(testLivestreamFixture(), newUserRepositoryFindingID(t, "alice", tt.userID, tt.userErr), nil, livestreamRepo, nil)
+			u := newLivestreamUsecaseForTest(testDetailFixture(), newUserRepositoryFindingID(t, "alice", tt.userID, tt.userErr), nil, livestreamRepo, nil)
 			_, err := u.FindAllByUsername(context.Background(), "alice")
 			if !errors.Is(err, tt.wantErr) || err.Error() != tt.wantMsg {
 				t.Errorf("err = %v, want %q", err, tt.wantMsg)
@@ -230,7 +212,7 @@ func newLivestreamTagRepositoryFindingByTagIDs(t *testing.T, calls *int, livestr
 }
 
 func TestLivestreamUsecase_FindAllByTagName(t *testing.T) {
-	f := testLivestreamFixture()
+	f := testDetailFixture()
 	var tagCalls int
 	// ライブ配信 1 にはタグ 7, 8 の両方が付いているので、紐付けごとに 2 回現れる (移行前と同じ)
 	livestreamTagRepo := newLivestreamTagRepositoryFindingByTagIDs(t, &tagCalls, []domain.LivestreamID{2, 1, 1}, nil)
@@ -255,7 +237,7 @@ func TestLivestreamUsecase_FindAllByTagName(t *testing.T) {
 func TestLivestreamUsecase_FindAllByTagName_TagNotFound(t *testing.T) {
 	var tagCalls int
 	livestreamTagRepo := newLivestreamTagRepositoryFindingByTagIDs(t, &tagCalls, nil, nil)
-	u := newLivestreamUsecaseForTest(testLivestreamFixture(), nil, newTagRepositoryFindingIDs(t, nil, nil), nil, livestreamTagRepo)
+	u := newLivestreamUsecaseForTest(testDetailFixture(), nil, newTagRepositoryFindingIDs(t, nil, nil), nil, livestreamTagRepo)
 
 	got, err := u.FindAllByTagName(context.Background(), "ゲーム実況")
 	if err != nil {
@@ -298,7 +280,7 @@ func TestLivestreamUsecase_FindAllByTagName_Errors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var tagCalls int
 			livestreamTagRepo := newLivestreamTagRepositoryFindingByTagIDs(t, &tagCalls, []domain.LivestreamID{2}, tt.livestreamTagsErr)
-			u := newLivestreamUsecaseForTest(testLivestreamFixture(), nil, newTagRepositoryFindingIDs(t, []domain.TagID{7, 8}, tt.tagErr), tt.livestreamRepo, livestreamTagRepo)
+			u := newLivestreamUsecaseForTest(testDetailFixture(), nil, newTagRepositoryFindingIDs(t, []domain.TagID{7, 8}, tt.tagErr), tt.livestreamRepo, livestreamTagRepo)
 			_, err := u.FindAllByTagName(context.Background(), "ゲーム実況")
 			if !errors.Is(err, tt.wantErr) || err.Error() != tt.wantMsg {
 				t.Errorf("err = %v, want %q", err, tt.wantMsg)
@@ -338,7 +320,7 @@ func TestLivestreamUsecase_FindAll(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := testLivestreamFixture()
+			f := testDetailFixture()
 			var calls []string
 			var gotLimit domain.Limit
 			livestreamRepo := newLivestreamRepositoryForFindAll(&calls, &gotLimit, []*domain.Livestream{testLivestream2, testLivestream1}, nil)
@@ -366,7 +348,7 @@ func TestLivestreamUsecase_FindAll_Error(t *testing.T) {
 	var calls []string
 	var gotLimit domain.Limit
 	livestreamRepo := newLivestreamRepositoryForFindAll(&calls, &gotLimit, nil, boom)
-	u := newLivestreamUsecaseForTest(testLivestreamFixture(), nil, nil, livestreamRepo, nil)
+	u := newLivestreamUsecaseForTest(testDetailFixture(), nil, nil, livestreamRepo, nil)
 
 	_, err := u.FindAll(context.Background(), nil)
 	if want := "failed to get livestreams: boom"; !errors.Is(err, boom) || err.Error() != want {

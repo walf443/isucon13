@@ -50,7 +50,7 @@ func TestReactionUsecase_FindAllByLivestreamID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := testLivestreamFixture()
+			f := testDetailFixture()
 			var calls []string
 			var gotLimit domain.Limit
 			reactionRepo := newReactionRepositoryForFindAll(t, &calls, &gotLimit, []*domain.Reaction{testReaction1, testReaction2}, nil)
@@ -100,7 +100,7 @@ func TestReactionUsecase_FindAllByLivestreamID_Errors(t *testing.T) {
 			var calls []string
 			var gotLimit domain.Limit
 			reactionRepo := newReactionRepositoryForFindAll(t, &calls, &gotLimit, tt.models, tt.err)
-			u := NewReactionUsecase(&fakeTxManager{}, reactionRepo, testLivestreamFixture().reactionFiller(testLivestream1))
+			u := NewReactionUsecase(&fakeTxManager{}, reactionRepo, testDetailFixture().reactionFiller(testLivestream1))
 
 			_, err := u.FindAllByLivestreamID(context.Background(), 10, nil)
 			if !errors.Is(err, tt.wantErr) || err.Error() != tt.wantMsg {
@@ -133,7 +133,7 @@ func newReactionRepositoryForCreate(t *testing.T, calls *[]string, created **dom
 var testCreatedReaction = &domain.Reaction{ID: 100, UserID: 43, LivestreamID: 1, EmojiName: "tada", CreatedAt: 1700000000}
 
 func TestReactionUsecase_Create(t *testing.T) {
-	f := testLivestreamFixture()
+	f := testDetailFixture()
 	var calls []string
 	var created *domain.Reaction
 	reactionRepo := newReactionRepositoryForCreate(t, &calls, &created, testCreatedReaction, nil, nil)
@@ -165,7 +165,7 @@ func TestReactionUsecase_Create_Errors(t *testing.T) {
 		createErr error
 		findErr   error
 		// modify はデータを欠けさせる
-		modify    func(f *livestreamFixture)
+		modify    func(f *detailFixture)
 		wantErr   error
 		wantMsg   string
 		wantCalls []string
@@ -174,7 +174,7 @@ func TestReactionUsecase_Create_Errors(t *testing.T) {
 		{name: "re-read fails", findErr: boom, wantErr: boom, wantMsg: "failed to fill reaction: boom", wantCalls: []string{"Create", "FindByID"}},
 		{
 			name:      "fill fails",
-			modify:    func(f *livestreamFixture) { delete(f.users, 43) },
+			modify:    func(f *detailFixture) { delete(f.users, 43) },
 			wantErr:   errMissingDetail,
 			wantMsg:   "failed to fill reaction: failed to get user of reaction 100: not found",
 			wantCalls: []string{"Create", "FindByID"},
@@ -183,7 +183,7 @@ func TestReactionUsecase_Create_Errors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := testLivestreamFixture()
+			f := testDetailFixture()
 			if tt.modify != nil {
 				tt.modify(f)
 			}

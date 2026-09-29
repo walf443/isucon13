@@ -50,7 +50,7 @@ func TestLivecommentUsecase_FindAllByLivestreamID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := testLivestreamFixture()
+			f := testDetailFixture()
 			var calls []string
 			var gotLimit domain.Limit
 			repo := newLivecommentRepositoryForFindAll(t, &calls, &gotLimit, []*domain.Livecomment{testLivecomment1, testLivecomment2}, nil)
@@ -100,7 +100,7 @@ func TestLivecommentUsecase_FindAllByLivestreamID_Errors(t *testing.T) {
 			var calls []string
 			var gotLimit domain.Limit
 			repo := newLivecommentRepositoryForFindAll(t, &calls, &gotLimit, tt.models, tt.err)
-			u := NewLivecommentUsecase(&fakeTxManager{}, &fakeLivestreamRepository{}, repo, &fakeNGWordRepository{}, testLivestreamFixture().livecommentFiller(testLivestream1), &fakeLogger{})
+			u := NewLivecommentUsecase(&fakeTxManager{}, &fakeLivestreamRepository{}, repo, &fakeNGWordRepository{}, testDetailFixture().livecommentFiller(testLivestream1), &fakeLogger{})
 
 			_, err := u.FindAllByLivestreamID(context.Background(), 10, nil)
 			if !errors.Is(err, tt.wantErr) || err.Error() != tt.wantMsg {
@@ -159,8 +159,8 @@ var (
 )
 
 // livecommentFixtureForCreate は投稿先のライブ配信 10 の配信者 (ID 2) を加えたテスト用のデータを返す。
-func livecommentFixtureForCreate() *livestreamFixture {
-	f := testLivestreamFixture()
+func livecommentFixtureForCreate() *detailFixture {
+	f := testDetailFixture()
 	f.users[2] = &domain.User{ID: 2, Name: "owner"}
 	return f
 }
@@ -213,7 +213,7 @@ func TestLivecommentUsecase_Create_Errors(t *testing.T) {
 		livecommentCreateErr error
 		livecommentFindErr   error
 		// modify はデータを欠けさせる
-		modify func(f *livestreamFixture)
+		modify func(f *detailFixture)
 		// ngWords, ngWordsErr, hitWords, matchErr はスパム判定の NG ワードの取得・判定の結果
 		ngWords    []*domain.NGWord
 		ngWordsErr error
@@ -264,7 +264,7 @@ func TestLivecommentUsecase_Create_Errors(t *testing.T) {
 		{
 			name:       "fill fails",
 			livestream: owned,
-			modify:     func(f *livestreamFixture) { delete(f.users, 43) },
+			modify:     func(f *detailFixture) { delete(f.users, 43) },
 			wantErr:    errMissingDetail,
 			wantCalls:  []string{"Create", "FindByID"},
 		},

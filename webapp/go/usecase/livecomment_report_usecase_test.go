@@ -27,7 +27,7 @@ func newReportRepositoryFindingAll(t *testing.T, calls *int, models []*domain.Li
 }
 
 func TestLivecommentReportUsecase_FindAllByLivestreamID(t *testing.T) {
-	f := testLivestreamFixture()
+	f := testDetailFixture()
 	var reportCalls int
 	reportRepo := newReportRepositoryFindingAll(t, &reportCalls, []*domain.LivecommentReport{testReport2, testReport1}, nil)
 	u := NewLivecommentReportUsecase(&fakeTxManager{}, newLivestreamRepositoryFindingByID(t, 1, testLivestream1, nil), nil, reportRepo, f.reportFiller(testLivecomment1, testLivecomment2))
@@ -105,7 +105,7 @@ func TestLivecommentReportUsecase_FindAllByLivestreamID_Errors(t *testing.T) {
 			var reportCalls int
 			reportRepo := newReportRepositoryFindingAll(t, &reportCalls, tt.reports, tt.reportsErr)
 			livestreamRepo := newLivestreamRepositoryFindingByID(t, 1, tt.livestream, tt.livestreamErr)
-			u := NewLivecommentReportUsecase(&fakeTxManager{}, livestreamRepo, nil, reportRepo, testLivestreamFixture().reportFiller(testLivecomment1))
+			u := NewLivecommentReportUsecase(&fakeTxManager{}, livestreamRepo, nil, reportRepo, testDetailFixture().reportFiller(testLivecomment1))
 			_, err := u.FindAllByLivestreamID(context.Background(), tt.userID, 1)
 			if !errors.Is(err, tt.wantErr) || err.Error() != tt.wantMsg {
 				t.Errorf("err = %v, want %q", err, tt.wantMsg)
@@ -157,7 +157,7 @@ func newLivecommentRepositoryForReport(t *testing.T, calls *int, livecomment *do
 var testCreatedReport = &domain.LivecommentReport{ID: 7, UserID: 43, LivestreamID: 1, LivecommentID: 50, CreatedAt: 1700000000}
 
 func TestLivecommentReportUsecase_Create(t *testing.T) {
-	f := testLivestreamFixture()
+	f := testDetailFixture()
 	var livecommentFinds int
 	livecommentRepo := newLivecommentRepositoryForReport(t, &livecommentFinds, testLivecomment1, nil)
 	var reportCalls []string
@@ -201,7 +201,7 @@ func TestLivecommentReportUsecase_Create_Errors(t *testing.T) {
 		reportCreateErr error
 		reportFindErr   error
 		// modify はデータを欠けさせる
-		modify          func(f *livestreamFixture)
+		modify          func(f *detailFixture)
 		wantErr         error
 		wantMsg         string
 		wantReportCalls []string
@@ -232,7 +232,7 @@ func TestLivecommentReportUsecase_Create_Errors(t *testing.T) {
 			name:            "fill fails",
 			livestream:      testLivestream1,
 			livecomment:     testLivecomment1,
-			modify:          func(f *livestreamFixture) { delete(f.users, 43) },
+			modify:          func(f *detailFixture) { delete(f.users, 43) },
 			wantErr:         errMissingDetail,
 			wantMsg:         "failed to fill livecomment report: failed to get reporter of livecomment report 7: not found",
 			wantReportCalls: []string{"Create", "FindByID"},
@@ -241,7 +241,7 @@ func TestLivecommentReportUsecase_Create_Errors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := testLivestreamFixture()
+			f := testDetailFixture()
 			if tt.modify != nil {
 				tt.modify(f)
 			}

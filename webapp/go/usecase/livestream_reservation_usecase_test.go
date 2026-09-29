@@ -105,7 +105,7 @@ func newLivestreamRepositoriesForReserve(t *testing.T, calls *[]string, created 
 var testReservedLivestream = &domain.Livestream{ID: 100, UserID: 42, Title: "stream"}
 
 func TestLivestreamReservationUsecase_Reserve(t *testing.T) {
-	f := testLivestreamFixture()
+	f := testDetailFixture()
 	var livestreamCalls []string
 	var created *domain.Livestream
 	var addedTagIDs []domain.TagID
@@ -119,7 +119,7 @@ func TestLivestreamReservationUsecase_Reserve(t *testing.T) {
 		counts: map[int64]int64{1700874000: 5, 1700877600: 3},
 	}, testReservePeriod)
 	logger := &fakeLogger{}
-	u := NewLivestreamReservationUsecase(&fakeTxManager{}, livestreamRepo, livestreamTagRepo, slotRepo, f.filler(), logger)
+	u := NewLivestreamReservationUsecase(&fakeTxManager{}, livestreamRepo, livestreamTagRepo, slotRepo, f.livestreamFiller(), logger)
 
 	got, err := u.Reserve(context.Background(), 1, testReserveInput)
 	if err != nil {
@@ -175,7 +175,7 @@ func TestLivestreamReservationUsecase_Reserve_TimeRange(t *testing.T) {
 			var created *domain.Livestream
 			var addedTagIDs []domain.TagID
 			livestreamRepo, livestreamTagRepo := newLivestreamRepositoriesForReserve(t, &livestreamCalls, &created, &addedTagIDs, livestreamReserveResults{livestream: testReservedLivestream})
-			u := NewLivestreamReservationUsecase(&fakeTxManager{}, livestreamRepo, livestreamTagRepo, slotRepo, testLivestreamFixture().filler(), &fakeLogger{})
+			u := NewLivestreamReservationUsecase(&fakeTxManager{}, livestreamRepo, livestreamTagRepo, slotRepo, testDetailFixture().livestreamFiller(), &fakeLogger{})
 
 			input := testReserveInput
 			input.StartAt = tt.period.StartAt
@@ -269,7 +269,7 @@ func TestLivestreamReservationUsecase_Reserve_Errors(t *testing.T) {
 			var created *domain.Livestream
 			var addedTagIDs []domain.TagID
 			livestreamRepo, livestreamTagRepo := newLivestreamRepositoriesForReserve(t, &livestreamCalls, &created, &addedTagIDs, tt.livestreamResults)
-			u := NewLivestreamReservationUsecase(&fakeTxManager{}, livestreamRepo, livestreamTagRepo, slotRepo, testLivestreamFixture().filler(), logger)
+			u := NewLivestreamReservationUsecase(&fakeTxManager{}, livestreamRepo, livestreamTagRepo, slotRepo, testDetailFixture().livestreamFiller(), logger)
 			_, err := u.Reserve(context.Background(), 1, testReserveInput)
 			if tt.wantUnavailable {
 				unavailable, ok := errors.AsType[*ReservationSlotUnavailableError](err)
@@ -331,9 +331,9 @@ func TestLivestreamReservationUsecase_Reserve_FillFails(t *testing.T) {
 	var created *domain.Livestream
 	var addedTagIDs []domain.TagID
 	livestreamRepo, livestreamTagRepo := newLivestreamRepositoriesForReserve(t, &livestreamCalls, &created, &addedTagIDs, livestreamReserveResults{livestream: testReservedLivestream})
-	f := testLivestreamFixture()
+	f := testDetailFixture()
 	delete(f.users, 42)
-	u := NewLivestreamReservationUsecase(&fakeTxManager{}, livestreamRepo, livestreamTagRepo, slotRepo, f.filler(), &fakeLogger{})
+	u := NewLivestreamReservationUsecase(&fakeTxManager{}, livestreamRepo, livestreamTagRepo, slotRepo, f.livestreamFiller(), &fakeLogger{})
 
 	_, err := u.Reserve(context.Background(), 1, testReserveInput)
 	if want := "failed to fill livestream: failed to get owner of livestream 100: not found"; !errors.Is(err, errMissingDetail) || err.Error() != want {

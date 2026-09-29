@@ -1,0 +1,258 @@
+// Filler と、Filler を使う usecase のテストで共有するテスト用のデータ。
+//
+// detailFixture が持つユーザ・タグから fake の repository と本物の Filler を作り、
+// 同じデータから期待する XxxDetail を作る (user / livestream / reaction / livecomment / report)。
+// testXxx の変数は、Filler に渡す行 (domain のエンティティ) のテスト用のデータ。
+package usecase
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/isucon/isucon13/webapp/go/domain"
+	"github.com/isucon/isucon13/webapp/go/usecase/repository"
+)
+
+// detailFixture は Filler が引くデータ (ユーザ・タグ) を持つ。
+// ユーザのテーマは ID がユーザの ID の 10 倍のものとし、アイコンは未登録とする。
+type detailFixture struct {
+	users map[domain.UserID]*domain.User
+	tags  map[domain.TagID]*domain.Tag
+	// livestreamTags はライブ配信ごとに付いているタグの ID。
+	livestreamTags map[domain.LivestreamID][]domain.TagID
+	// calls は呼ばれた repository のメソッドと引数を記録する。
+	calls []string
+}
+
+// testDetailFixture は配信者 alice (ID 42)・視聴者 bob (ID 43) とタグ 7, 8 を持ち、
+// ライブ配信 1 にタグ 7, 8、ライブ配信 2 にタグ 7 が付いている。
+func testDetailFixture() *detailFixture {
+	return &detailFixture{
+		users: map[domain.UserID]*domain.User{
+			42: {ID: 42, Name: "alice"},
+			43: {ID: 43, Name: "bob", DisplayName: "Bob"},
+		},
+		tags: map[domain.TagID]*domain.Tag{
+			7: {ID: 7, Name: "ゲーム実況"},
+			8: {ID: 8, Name: "雑談"},
+		},
+		livestreamTags: map[domain.LivestreamID][]domain.TagID{1: {7, 8}, 2: {7}},
+	}
+}
+
+func (f *detailFixture) record(call string) {
+	f.calls = append(f.calls, call)
+}
+
+// userRepo は f のユーザを ID で引ける fakeUserRepository を返す。
+func (f *detailFixture) userRepo() *fakeUserRepository {
+	return &fakeUserRepository{
+		findByID: func(_ context.Context, _ repository.Querier, id domain.UserID) (*domain.User, error) {
+			f.record(fmt.Sprintf("user %d", id))
+			user, ok := f.users[id]
+			if !ok {
+				return nil, repository.ErrNotFound
+			}
+			return user, nil
+		},
+	}
+}
+
+// userFiller は f のユーザのテーマを返す UserFiller を返す。
+func (f *detailFixture) userFiller() *UserFiller {
+	themes := map[domain.UserID]*domain.Theme{}
+	for id := range f.users {
+		themes[id] = &domain.Theme{ID: domain.ThemeID(id * 10), UserID: id}
+	}
+	return newUserFillerForTest(themes, nil, nil)
+}
+
+// user は、このデータでユーザ id を埋めた結果として期待する domain.UserDetail を返す。
+func (f *detailFixture) user(id domain.UserID) domain.UserDetail {
+	user := f.users[id]
+	return domain.UserDetail{
+		ID:          user.ID,
+		Name:        user.Name,
+		DisplayName: user.DisplayName,
+		Description: user.Description,
+		Theme:       domain.Theme{ID: domain.ThemeID(user.ID * 10), UserID: user.ID},
+		IconHash:    "default-hash",
+	}
+}
+
+func (f *detailFixture) livestreamFiller() *LivestreamFiller {
+	livestreamTagRepo := &fakeLivestreamTagRepository{
+		findAllByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivestreamTag, error) {
+			f.record(fmt.Sprintf("livestream tags %d", livestreamID))
+			var livestreamTags []*domain.LivestreamTag
+			for _, tagID := range f.livestreamTags[livestreamID] {
+				livestreamTags = append(livestreamTags, &domain.LivestreamTag{LivestreamID: livestreamID, TagID: tagID})
+			}
+			return livestreamTags, nil
+		},
+	}
+	tagRepo := &fakeTagRepository{
+		findByID: func(_ context.Context, _ repository.Querier, id domain.TagID) (*domain.Tag, error) {
+			f.record(fmt.Sprintf("tag %d", id))
+			tag, ok := f.tags[id]
+			if !ok {
+				return nil, repository.ErrNotFound
+			}
+			return tag, nil
+		},
+	}
+	return NewLivestreamFiller(f.userRepo(), livestreamTagRepo, tagRepo, f.userFiller())
+}
+
+// livestream は、このデータで livestream を埋めた結果として期待する domain.LivestreamDetail を返す。
+func (f *detailFixture) livestream(livestream *domain.Livestream) *domain.LivestreamDetail {
+	tags := make([]domain.Tag, len(f.livestreamTags[livestream.ID]))
+	for i, tagID := range f.livestreamTags[livestream.ID] {
+		tags[i] = *f.tags[tagID]
+	}
+	return &domain.LivestreamDetail{
+		ID:           livestream.ID,
+		Owner:        f.user(livestream.UserID),
+		Title:        livestream.Title,
+		Description:  livestream.Description,
+		PlaylistUrl:  livestream.PlaylistUrl,
+		ThumbnailUrl: livestream.ThumbnailUrl,
+		Tags:         tags,
+		StartAt:      livestream.StartAt,
+		EndAt:        livestream.EndAt,
+	}
+}
+
+var (
+	testLivestream1 = &domain.Livestream{ID: 1, UserID: 42, Title: "first", Description: "desc", PlaylistUrl: "p", ThumbnailUrl: "t", StartAt: 100, EndAt: 200}
+	testLivestream2 = &domain.Livestream{ID: 2, UserID: 42, Title: "second"}
+)
+
+// newUserFillerForTest は themes / icons をユーザの ID ごとに返す UserFiller を返す。
+// themes に無いユーザはテーマ欠損 (ErrNotFound)、icons に無いユーザはアイコン未登録として扱う。
+// 呼ばれたユーザの ID を themeCalls に記録する。
+func newUserFillerForTest(themes map[domain.UserID]*domain.Theme, icons map[domain.UserID][]byte, themeCalls *[]domain.UserID) *UserFiller {
+	themeRepo := &fakeThemeRepository{
+		findByUserID: func(_ context.Context, _ repository.Querier, userID domain.UserID) (*domain.Theme, error) {
+			if themeCalls != nil {
+				*themeCalls = append(*themeCalls, userID)
+			}
+			theme, ok := themes[userID]
+			if !ok {
+				return nil, repository.ErrNotFound
+			}
+			return theme, nil
+		},
+	}
+	iconRepo := &fakeIconRepository{
+		findImageByUserID: func(_ context.Context, _ repository.Querier, userID domain.UserID) ([]byte, error) {
+			image, ok := icons[userID]
+			if !ok {
+				return nil, repository.ErrNotFound
+			}
+			return image, nil
+		},
+	}
+	return NewUserFiller(themeRepo, iconRepo, "default-hash")
+}
+
+// newLivestreamRepositoryWithLivestreams は ID で models を引ける fakeLivestreamRepository を返す。
+// 見つからない ID には ErrNotFound を返し、引いた ID を calls に記録する。
+func newLivestreamRepositoryWithLivestreams(calls *[]domain.LivestreamID, models ...*domain.Livestream) *fakeLivestreamRepository {
+	return &fakeLivestreamRepository{
+		findByID: func(_ context.Context, _ repository.Querier, id domain.LivestreamID) (*domain.Livestream, error) {
+			if calls != nil {
+				*calls = append(*calls, id)
+			}
+			for _, m := range models {
+				if m.ID == id {
+					return m, nil
+				}
+			}
+			return nil, repository.ErrNotFound
+		},
+	}
+}
+
+// reactionFiller は f のユーザと livestreams のライブ配信を引く ReactionFiller を返す。
+func (f *detailFixture) reactionFiller(livestreams ...*domain.Livestream) *ReactionFiller {
+	return NewReactionFiller(f.userRepo(), newLivestreamRepositoryWithLivestreams(nil, livestreams...), f.userFiller(), f.livestreamFiller())
+}
+
+// reaction は、このデータで reaction を埋めた結果として期待する domain.ReactionDetail を返す。
+// livestream は reaction のライブ配信。
+func (f *detailFixture) reaction(reaction *domain.Reaction, livestream *domain.Livestream) *domain.ReactionDetail {
+	return &domain.ReactionDetail{
+		ID:         reaction.ID,
+		EmojiName:  reaction.EmojiName,
+		User:       f.user(reaction.UserID),
+		Livestream: *f.livestream(livestream),
+		CreatedAt:  reaction.CreatedAt,
+	}
+}
+
+var (
+	testReaction1 = &domain.Reaction{ID: 1, UserID: 43, LivestreamID: 1, EmojiName: "tada", CreatedAt: 300}
+	testReaction2 = &domain.Reaction{ID: 2, UserID: 42, LivestreamID: 1, EmojiName: "heart", CreatedAt: 200}
+	testReaction3 = &domain.Reaction{ID: 3, UserID: 43, LivestreamID: 2, EmojiName: "tada", CreatedAt: 100}
+)
+
+// newLivecommentRepositoryWithLivecomments は ID で models を引ける fakeLivecommentRepository を返す。
+// 見つからない ID には ErrNotFound を返す。
+func newLivecommentRepositoryWithLivecomments(models ...*domain.Livecomment) *fakeLivecommentRepository {
+	return &fakeLivecommentRepository{
+		findByID: func(_ context.Context, _ repository.Querier, id domain.LivecommentID) (*domain.Livecomment, error) {
+			for _, m := range models {
+				if m.ID == id {
+					return m, nil
+				}
+			}
+			return nil, repository.ErrNotFound
+		},
+	}
+}
+
+// livecommentFiller は f のユーザと livestreams のライブ配信を引く LivecommentFiller を返す。
+func (f *detailFixture) livecommentFiller(livestreams ...*domain.Livestream) *LivecommentFiller {
+	return NewLivecommentFiller(f.userRepo(), newLivestreamRepositoryWithLivestreams(nil, livestreams...), f.userFiller(), f.livestreamFiller())
+}
+
+// livecomment は、このデータで livecomment を埋めた結果として期待する domain.LivecommentDetail を返す。
+// livestream は livecomment のライブ配信。
+func (f *detailFixture) livecomment(livecomment *domain.Livecomment, livestream *domain.Livestream) *domain.LivecommentDetail {
+	return &domain.LivecommentDetail{
+		ID:         livecomment.ID,
+		User:       f.user(livecomment.UserID),
+		Livestream: *f.livestream(livestream),
+		Comment:    livecomment.Comment,
+		Tip:        livecomment.Tip,
+		CreatedAt:  livecomment.CreatedAt,
+	}
+}
+
+var (
+	testLivecomment1 = &domain.Livecomment{ID: 50, UserID: 43, LivestreamID: 1, Comment: "hello", Tip: 10, CreatedAt: 300}
+	testLivecomment2 = &domain.Livecomment{ID: 51, UserID: 42, LivestreamID: 1, Comment: "thanks", CreatedAt: 200}
+	testLivecomment3 = &domain.Livecomment{ID: 52, UserID: 43, LivestreamID: 2, Comment: "hi", CreatedAt: 100}
+)
+
+// reportFiller は f のユーザ、livecomments のライブコメント、testLivestream1・2 のライブ配信を引く LivecommentReportFiller を返す。
+func (f *detailFixture) reportFiller(livecomments ...*domain.Livecomment) *LivecommentReportFiller {
+	return NewLivecommentReportFiller(f.userRepo(), newLivecommentRepositoryWithLivecomments(livecomments...), f.userFiller(), f.livecommentFiller(testLivestream1, testLivestream2))
+}
+
+// report は、このデータで report を埋めた結果として期待する domain.LivecommentReportDetail を返す。
+// livecomment, livestream は報告されたライブコメントとそのライブ配信。
+func (f *detailFixture) report(report *domain.LivecommentReport, livecomment *domain.Livecomment, livestream *domain.Livestream) *domain.LivecommentReportDetail {
+	return &domain.LivecommentReportDetail{
+		ID:          report.ID,
+		Reporter:    f.user(report.UserID),
+		Livecomment: *f.livecomment(livecomment, livestream),
+		CreatedAt:   report.CreatedAt,
+	}
+}
+
+var (
+	testReport1 = &domain.LivecommentReport{ID: 7, UserID: 42, LivestreamID: 1, LivecommentID: 50, CreatedAt: 400}
+	testReport2 = &domain.LivecommentReport{ID: 8, UserID: 42, LivestreamID: 1, LivecommentID: 51, CreatedAt: 500}
+)

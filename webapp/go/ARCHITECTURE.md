@@ -115,7 +115,7 @@ usecase の `XxxFiller` (`UserFiller` / `LivestreamFiller` など) が repositor
 | 対象 | 方法 |
 |---|---|
 | `domain` | 通常の単体テスト |
-| `usecase` | repository などを fake に差し替える。fake は interface を埋め込み、テストで設定した関数に処理を委ねる (未設定のメソッドを呼ぶと panic する)。Filler は fake にせず、テスト用のデータ (`livestreamFixture`) から作った本物を使い、組み立てた結果まで確認する |
+| `usecase` | repository などを fake に差し替える。fake は interface を埋め込み、テストで設定した関数に処理を委ねる (未設定のメソッドを呼ぶと panic する)。Filler は fake にせず、テスト用のデータ (`fixture_test.go` の `detailFixture`) から作った本物を使い、組み立てた結果まで確認する |
 | `interfaces/http/handler` | usecase を fake に差し替え、`serve` / `send` で echo にリクエストを送り、`assertResponse` で確認する。エラーレスポンスでは本文 (`wantBody`) の確認を必須にしている |
 | `infra/mysql` | testcontainers で MySQL を起動し、実際のスキーマに対して 1 メソッドずつ確認する。`-short` ではスキップする |
 | `infra/powerdns`, `infra/script` | 一時ディレクトリに置いた偽のコマンド・スクリプトを実行させて、渡す引数と出力・エラーの扱いを確認する |

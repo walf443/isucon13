@@ -10,31 +10,8 @@ import (
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
-// reactionFiller は f のユーザと livestreams のライブ配信を引く ReactionFiller を返す。
-func (f *livestreamFixture) reactionFiller(livestreams ...*domain.Livestream) *ReactionFiller {
-	return NewReactionFiller(f.userRepo(), newLivestreamRepositoryWithLivestreams(nil, livestreams...), f.userFiller(), f.filler())
-}
-
-// reaction は、このデータで reaction を埋めた結果として期待する domain.ReactionDetail を返す。
-// livestream は reaction のライブ配信。
-func (f *livestreamFixture) reaction(reaction *domain.Reaction, livestream *domain.Livestream) *domain.ReactionDetail {
-	return &domain.ReactionDetail{
-		ID:         reaction.ID,
-		EmojiName:  reaction.EmojiName,
-		User:       f.user(reaction.UserID),
-		Livestream: *f.livestream(livestream),
-		CreatedAt:  reaction.CreatedAt,
-	}
-}
-
-var (
-	testReaction1 = &domain.Reaction{ID: 1, UserID: 43, LivestreamID: 1, EmojiName: "tada", CreatedAt: 300}
-	testReaction2 = &domain.Reaction{ID: 2, UserID: 42, LivestreamID: 1, EmojiName: "heart", CreatedAt: 200}
-	testReaction3 = &domain.Reaction{ID: 3, UserID: 43, LivestreamID: 2, EmojiName: "tada", CreatedAt: 100}
-)
-
 func TestReactionFiller_Fill(t *testing.T) {
-	f := testLivestreamFixture()
+	f := testDetailFixture()
 
 	got, err := f.reactionFiller(testLivestream1, testLivestream2).Fill(context.Background(), nil, []*domain.Reaction{testReaction1, testReaction2, testReaction3})
 	if err != nil {
@@ -58,26 +35,26 @@ func TestReactionFiller_Fill(t *testing.T) {
 func TestReactionFiller_Fill_Errors(t *testing.T) {
 	tests := []struct {
 		name        string
-		modify      func(f *livestreamFixture)
+		modify      func(f *detailFixture)
 		livestreams []*domain.Livestream
 		wantMsg     string
 	}{
 		{
 			name:        "user not found",
-			modify:      func(f *livestreamFixture) { delete(f.users, 43) },
+			modify:      func(f *detailFixture) { delete(f.users, 43) },
 			livestreams: []*domain.Livestream{testLivestream1},
 			wantMsg:     "failed to get user of reaction 1: not found",
 		},
 		{
 			name:    "livestream not found",
-			modify:  func(*livestreamFixture) {},
+			modify:  func(*detailFixture) {},
 			wantMsg: "failed to get livestream of reaction 1: not found",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := testLivestreamFixture()
+			f := testDetailFixture()
 			tt.modify(f)
 			_, err := f.reactionFiller(tt.livestreams...).Fill(context.Background(), nil, []*domain.Reaction{testReaction1})
 			if !errors.Is(err, errMissingDetail) || errors.Is(err, repository.ErrNotFound) || err.Error() != tt.wantMsg {
