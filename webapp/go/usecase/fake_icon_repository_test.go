@@ -13,6 +13,7 @@ type fakeIconRepository struct {
 	repository.IconRepository
 
 	findImageByUserID func(ctx context.Context, q repository.Querier, userID domain.UserID) ([]byte, error)
+	findAllByUserIDs  func(ctx context.Context, q repository.Querier, userIDs []domain.UserID) ([]*domain.Icon, error)
 	create            func(ctx context.Context, q repository.Querier, userID domain.UserID, image []byte) (domain.IconID, error)
 	deleteByUserID    func(ctx context.Context, q repository.Querier, userID domain.UserID) error
 }
@@ -27,4 +28,8 @@ func (r *fakeIconRepository) Create(ctx context.Context, q repository.Querier, u
 
 func (r *fakeIconRepository) DeleteByUserID(ctx context.Context, q repository.Querier, userID domain.UserID) error {
 	return r.deleteByUserID(ctx, q, userID)
+}
+
+func (r *fakeIconRepository) FindAllByUserIDs(ctx context.Context, q repository.Querier, userIDs []domain.UserID) ([]*domain.Icon, error) {
+	return r.findAllByUserIDs(ctx, q, userIDs)
 }

@@ -129,28 +129,32 @@ var (
 )
 
 // newUserFillerForTest は themes / icons をユーザの ID ごとに返す UserFiller を返す。
-// themes に無いユーザはテーマ欠損 (ErrNotFound)、icons に無いユーザはアイコン未登録として扱う。
-// 呼ばれたユーザの ID を themeCalls に記録する。
-func newUserFillerForTest(themes map[domain.UserID]*domain.Theme, icons map[domain.UserID][]byte, themeCalls *[]domain.UserID) *UserFiller {
+// themes に無いユーザはテーマ欠損、icons に無いユーザはアイコン未登録として扱う。
+// テーマをまとめて引いたときのユーザの ID の一覧を themeCalls に記録する。
+func newUserFillerForTest(themes map[domain.UserID]*domain.Theme, icons map[domain.UserID][]byte, themeCalls *[][]domain.UserID) *UserFiller {
 	themeRepo := &fakeThemeRepository{
-		findByUserID: func(_ context.Context, _ repository.Querier, userID domain.UserID) (*domain.Theme, error) {
+		findAllByUserIDs: func(_ context.Context, _ repository.Querier, userIDs []domain.UserID) ([]*domain.Theme, error) {
 			if themeCalls != nil {
-				*themeCalls = append(*themeCalls, userID)
+				*themeCalls = append(*themeCalls, userIDs)
 			}
-			theme, ok := themes[userID]
-			if !ok {
-				return nil, repository.ErrNotFound
+			var found []*domain.Theme
+			for _, userID := range userIDs {
+				if theme, ok := themes[userID]; ok {
+					found = append(found, theme)
+				}
 			}
-			return theme, nil
+			return found, nil
 		},
 	}
 	iconRepo := &fakeIconRepository{
-		findImageByUserID: func(_ context.Context, _ repository.Querier, userID domain.UserID) ([]byte, error) {
-			image, ok := icons[userID]
-			if !ok {
-				return nil, repository.ErrNotFound
+		findAllByUserIDs: func(_ context.Context, _ repository.Querier, userIDs []domain.UserID) ([]*domain.Icon, error) {
+			var found []*domain.Icon
+			for _, userID := range userIDs {
+				if image, ok := icons[userID]; ok {
+					found = append(found, &domain.Icon{UserID: userID, Image: image})
+				}
 			}
-			return image, nil
+			return found, nil
 		},
 	}
 	return NewUserFiller(themeRepo, iconRepo, "default-hash")

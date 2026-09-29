@@ -12,8 +12,9 @@ import (
 type fakeThemeRepository struct {
 	repository.ThemeRepository
 
-	findByUserID func(ctx context.Context, q repository.Querier, userID domain.UserID) (*domain.Theme, error)
-	create       func(ctx context.Context, q repository.Querier, theme *domain.Theme) error
+	findByUserID     func(ctx context.Context, q repository.Querier, userID domain.UserID) (*domain.Theme, error)
+	findAllByUserIDs func(ctx context.Context, q repository.Querier, userIDs []domain.UserID) ([]*domain.Theme, error)
+	create           func(ctx context.Context, q repository.Querier, theme *domain.Theme) error
 }
 
 func (r *fakeThemeRepository) FindByUserID(ctx context.Context, q repository.Querier, userID domain.UserID) (*domain.Theme, error) {
@@ -22,4 +23,8 @@ func (r *fakeThemeRepository) FindByUserID(ctx context.Context, q repository.Que
 
 func (r *fakeThemeRepository) Create(ctx context.Context, q repository.Querier, theme *domain.Theme) error {
 	return r.create(ctx, q, theme)
+}
+
+func (r *fakeThemeRepository) FindAllByUserIDs(ctx context.Context, q repository.Querier, userIDs []domain.UserID) ([]*domain.Theme, error) {
+	return r.findAllByUserIDs(ctx, q, userIDs)
 }

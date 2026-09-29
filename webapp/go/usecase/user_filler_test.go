@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"maps"
+	"reflect"
 	"slices"
 	"testing"
 
@@ -19,10 +20,10 @@ func TestUserFiller_Fill(t *testing.T) {
 		2: {ID: 20, UserID: 2},
 	}
 	icons := map[domain.UserID][]byte{1: []byte("icon")}
-	var themeCalls []domain.UserID
+	var themeCalls [][]domain.UserID
 	f := newUserFillerForTest(themes, icons, &themeCalls)
 
-	// 同じユーザが重複していても 1 回だけ取得する
+	// 同じユーザが重複していても、重複を除いた ID の一覧で 1 回だけ取得する
 	got, err := f.Fill(context.Background(), nil, []*domain.User{alice, bob, alice})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -41,7 +42,7 @@ func TestUserFiller_Fill(t *testing.T) {
 			t.Errorf("users[%d] = %+v, want %+v", id, u, w)
 		}
 	}
-	if want := []domain.UserID{1, 2}; !slices.Equal(themeCalls, want) {
+	if want := [][]domain.UserID{{1, 2}}; !reflect.DeepEqual(themeCalls, want) {
 		t.Errorf("theme calls = %v, want %v", themeCalls, want)
 	}
 }
@@ -58,6 +59,10 @@ func TestUserFiller_Fill_Empty(t *testing.T) {
 
 func TestUserFiller_Fill_Errors(t *testing.T) {
 	boom := errors.New("boom")
+	themeOf1 := func(context.Context, repository.Querier, []domain.UserID) ([]*domain.Theme, error) {
+		return []*domain.Theme{{ID: 10, UserID: 1}}, nil
+	}
+	noIcons := func(context.Context, repository.Querier, []domain.UserID) ([]*domain.Icon, error) { return nil, nil }
 
 	tests := []struct {
 		name      string
@@ -67,34 +72,36 @@ func TestUserFiller_Fill_Errors(t *testing.T) {
 		wantMsg   string
 	}{
 		{
-			name: "theme not found",
-			themeRepo: &fakeThemeRepository{
-				findByUserID: func(context.Context, repository.Querier, domain.UserID) (*domain.Theme, error) {
-					return nil, repository.ErrNotFound
-				},
-			},
-			wantErr: errMissingDetail,
-			wantMsg: "failed to get theme of user 1: not found",
+			// ユーザ 2 のテーマが無い
+			name:      "theme not found",
+			themeRepo: &fakeThemeRepository{findAllByUserIDs: themeOf1},
+			iconRepo:  &fakeIconRepository{findAllByUserIDs: noIcons},
+			wantErr:   errMissingDetail,
+			wantMsg:   "failed to get theme of user 2: not found",
 		},
 		{
-			name: "get icon fails",
+			name: "get themes fails",
 			themeRepo: &fakeThemeRepository{
-				findByUserID: func(context.Context, repository.Querier, domain.UserID) (*domain.Theme, error) {
-					return &domain.Theme{ID: 10, UserID: 1}, nil
-				},
-			},
-			iconRepo: &fakeIconRepository{
-				findImageByUserID: func(context.Context, repository.Querier, domain.UserID) ([]byte, error) { return nil, boom },
+				findAllByUserIDs: func(context.Context, repository.Querier, []domain.UserID) ([]*domain.Theme, error) { return nil, boom },
 			},
 			wantErr: boom,
-			wantMsg: "failed to get icon of user 1: boom",
+			wantMsg: "failed to get themes: boom",
+		},
+		{
+			name:      "get icons fails",
+			themeRepo: &fakeThemeRepository{findAllByUserIDs: themeOf1},
+			iconRepo: &fakeIconRepository{
+				findAllByUserIDs: func(context.Context, repository.Querier, []domain.UserID) ([]*domain.Icon, error) { return nil, boom },
+			},
+			wantErr: boom,
+			wantMsg: "failed to get icons: boom",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			f := NewUserFiller(tt.themeRepo, tt.iconRepo, "")
-			_, err := f.Fill(context.Background(), nil, []*domain.User{{ID: 1}})
+			_, err := f.Fill(context.Background(), nil, []*domain.User{{ID: 1}, {ID: 2}})
 			if !errors.Is(err, tt.wantErr) || (tt.wantErr == errMissingDetail && errors.Is(err, repository.ErrNotFound)) || err.Error() != tt.wantMsg {
 				t.Errorf("err = %v, want %q", err, tt.wantMsg)
 			}

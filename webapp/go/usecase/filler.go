@@ -43,3 +43,34 @@ func asMissingDetail(err error) error {
 	}
 	return err
 }
+
+// uniqueKeys は models それぞれから key で取り出した値を、重複を除いて最初に現れた順に返す。
+// 一括で取得する repository のメソッドに渡す ID の一覧を作るのに使う。
+func uniqueKeys[M any, K comparable](models []M, key func(M) K) []K {
+	keys := make([]K, 0, len(models))
+	seen := make(map[K]bool, len(models))
+	for _, model := range models {
+		k := key(model)
+		if seen[k] {
+			continue
+		}
+		seen[k] = true
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+// indexBy は models を、key で取り出した値ごとの map にする。同じ値のものが複数あれば後のもので上書きする。
+func indexBy[M any, K comparable](models []M, key func(M) K) map[K]M {
+	indexed := make(map[K]M, len(models))
+	for _, model := range models {
+		indexed[key(model)] = model
+	}
+	return indexed
+}
+
+// missingDetail は付随するデータが見つからなかったことを表すエラー (errMissingDetail) を返す。
+// メッセージは repository.ErrNotFound のもの (移行前と同じ本文) にする。
+func missingDetail() error {
+	return asMissingDetail(repository.ErrNotFound)
+}

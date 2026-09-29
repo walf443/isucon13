@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
@@ -23,28 +22,40 @@ func NewUserFiller(themeRepo repository.ThemeRepository, iconRepo repository.Ico
 }
 
 // Fill は users にテーマ・アイコンを埋めた domain.UserDetail を、ユーザの ID ごとに返す。
-// 同じユーザが複数含まれていても 1 回だけ取得する。並び順は呼び出し側で決める。
+// テーマ・アイコンはそれぞれ 1 回のクエリでまとめて取得する。並び順は呼び出し側で決める。
 // アイコンのハッシュは domain.UserIconHash で決める (未登録の場合は defaultIconHash)。
 //
-// テーマが無いのはデータ不整合なので、呼び出し側はこのエラーをユーザ不在 (404) として扱わないこと。
+// テーマが無いのはデータ不整合なので errMissingDetail を返す (呼び出し側はユーザ不在 (404) として扱わないこと)。
 func (f *UserFiller) Fill(ctx context.Context, q repository.Querier, users []*domain.User) (map[domain.UserID]*domain.UserDetail, error) {
-	userDetails := make(map[domain.UserID]*domain.UserDetail, len(users))
+	userIDs := uniqueKeys(users, func(user *domain.User) domain.UserID { return user.ID })
+
+	themes, err := f.themeRepo.FindAllByUserIDs(ctx, q, userIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get themes: %w", err)
+	}
+	themesByUserID := indexBy(themes, func(theme *domain.Theme) domain.UserID { return theme.UserID })
+
+	icons, err := f.iconRepo.FindAllByUserIDs(ctx, q, userIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get icons: %w", err)
+	}
+	iconsByUserID := indexBy(icons, func(icon *domain.Icon) domain.UserID { return icon.UserID })
+
+	userDetails := make(map[domain.UserID]*domain.UserDetail, len(userIDs))
 	for _, user := range users {
 		if _, ok := userDetails[user.ID]; ok {
 			continue
 		}
 
-		theme, err := f.themeRepo.FindByUserID(ctx, q, user.ID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get theme of user %d: %w", user.ID, asMissingDetail(err))
+		theme, ok := themesByUserID[user.ID]
+		if !ok {
+			return nil, fmt.Errorf("failed to get theme of user %d: %w", user.ID, missingDetail())
 		}
 
-		image, err := f.iconRepo.FindImageByUserID(ctx, q, user.ID)
-		registered := true
-		if errors.Is(err, repository.ErrNotFound) {
-			registered = false
-		} else if err != nil {
-			return nil, fmt.Errorf("failed to get icon of user %d: %w", user.ID, err)
+		var image []byte
+		icon, registered := iconsByUserID[user.ID]
+		if registered {
+			image = icon.Image
 		}
 
 		userDetails[user.ID] = &domain.UserDetail{
