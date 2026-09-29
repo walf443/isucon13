@@ -20,82 +20,28 @@ func insertTestLivecomment(t *testing.T, tx repository.Querier, userID domain.Us
 	return domain.LivecommentID(id)
 }
 
-func livecommentIDs(livecomments []*domain.Livecomment) []domain.LivecommentID {
-	ids := make([]domain.LivecommentID, len(livecomments))
-	for i, l := range livecomments {
-		ids[i] = l.ID
-	}
-	return ids
-}
-
-func TestLivecommentRepository_FindAllWithDetailsByLivestreamID(t *testing.T) {
+func TestLivecommentRepository_Create(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)
 
 	ownerID := insertTestUser(t, tx, "alice")
-	insertTestTheme(t, tx, ownerID, true)
 	viewerID := insertTestUser(t, tx, "bob")
-	insertTestTheme(t, tx, viewerID, false)
 	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
-	otherLivestreamID := insertTestLivestream(t, tx, ownerID, "other")
+	repo := NewLivecommentRepository()
 
-	// 作成日時の降順になることを確認するため、ID の順序とはずらす
-	c1 := insertTestLivecomment(t, tx, viewerID, livestreamID, "c1", 300)
-	c2 := insertTestLivecomment(t, tx, viewerID, livestreamID, "c2", 100)
-	c3 := insertTestLivecomment(t, tx, viewerID, livestreamID, "c3", 200)
-	insertTestLivecomment(t, tx, viewerID, otherLivestreamID, "other", 400)
-	repo := NewLivecommentRepository("")
-
-	all, err := repo.FindAllWithDetailsByLivestreamID(ctx, tx, livestreamID)
-	if err != nil {
-		t.Fatalf("FindAllWithDetailsByLivestreamID returned error: %v", err)
-	}
-	if want := []domain.LivecommentID{c1, c3, c2}; !slices.Equal(livecommentIDs(all), want) {
-		t.Errorf("ids = %v, want %v", livecommentIDs(all), want)
-	}
-	got := all[0]
-	if got.Comment != "c1" || got.Tip != 10 || got.CreatedAt != 300 || got.User.ID != viewerID || got.Livestream.ID != livestreamID || got.Livestream.Owner.ID != ownerID {
-		t.Errorf("livecomment = %+v", got)
-	}
-
-	limited, err := repo.FindAllWithDetailsByLivestreamIDLimited(ctx, tx, livestreamID, 2)
-	if err != nil {
-		t.Fatalf("FindAllWithDetailsByLivestreamIDLimited returned error: %v", err)
-	}
-	if want := []domain.LivecommentID{c1, c3}; !slices.Equal(livecommentIDs(limited), want) {
-		t.Errorf("ids = %v, want %v", livecommentIDs(limited), want)
-	}
-}
-
-func TestLivecommentRepository_CreateAndFindWithDetailsByID(t *testing.T) {
-	ctx := context.Background()
-	tx := beginTestTx(t)
-
-	ownerID := insertTestUser(t, tx, "alice")
-	insertTestTheme(t, tx, ownerID, true)
-	viewerID := insertTestUser(t, tx, "bob")
-	insertTestTheme(t, tx, viewerID, false)
-	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
-	repo := NewLivecommentRepository("")
-
-	id, err := repo.Create(ctx, tx, &domain.LivecommentModel{UserID: viewerID, LivestreamID: livestreamID, Comment: "hello", Tip: 500, CreatedAt: 1700000000})
+	want := domain.LivecommentModel{UserID: viewerID, LivestreamID: livestreamID, Comment: "hello", Tip: 500, CreatedAt: 1700000000}
+	id, err := repo.Create(ctx, tx, &want)
 	if err != nil {
 		t.Fatalf("Create returned error: %v", err)
 	}
+	want.ID = id
 
-	got, err := repo.FindWithDetailsByID(ctx, tx, id)
+	got, err := repo.FindByID(ctx, tx, id)
 	if err != nil {
-		t.Fatalf("FindWithDetailsByID returned error: %v", err)
+		t.Fatalf("FindByID returned error: %v", err)
 	}
-	if got.ID != id || got.Comment != "hello" || got.Tip != 500 || got.CreatedAt != 1700000000 {
-		t.Errorf("livecomment = %+v", got)
-	}
-	if got.User.ID != viewerID || got.Livestream.ID != livestreamID || got.Livestream.Owner.ID != ownerID {
-		t.Errorf("user = %+v, livestream = %+v", got.User, got.Livestream)
-	}
-
-	if _, err := repo.FindWithDetailsByID(ctx, tx, 999999); !errors.Is(err, repository.ErrNotFound) {
-		t.Errorf("err = %v, want ErrNotFound", err)
+	if *got != want {
+		t.Errorf("livecomment = %+v, want %+v", *got, want)
 	}
 }
 
@@ -115,7 +61,7 @@ func TestLivecommentRepository_DeleteAllByLivestreamIDMatchingNGWord(t *testing.
 	// 他のライブ配信のライブコメントは消さない
 	otherLivestream := insertTestLivecomment(t, tx, viewerID, otherLivestreamID, "bad", 100)
 
-	if err := NewLivecommentRepository("").DeleteAllByLivestreamIDMatchingNGWord(ctx, tx, livestreamID, "bad"); err != nil {
+	if err := NewLivecommentRepository().DeleteAllByLivestreamIDMatchingNGWord(ctx, tx, livestreamID, "bad"); err != nil {
 		t.Fatalf("DeleteAllByLivestreamIDMatchingNGWord returned error: %v", err)
 	}
 
@@ -135,7 +81,7 @@ func TestLivecommentRepository_FindByID(t *testing.T) {
 	ownerID := insertTestUser(t, tx, "alice")
 	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
 	id := insertTestLivecomment(t, tx, ownerID, livestreamID, "hello", 100)
-	repo := NewLivecommentRepository("")
+	repo := NewLivecommentRepository()
 
 	got, err := repo.FindByID(ctx, tx, id)
 	if err != nil {
@@ -153,7 +99,7 @@ func TestLivecommentRepository_FindByID(t *testing.T) {
 func TestLivecommentRepository_SumTip(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)
-	repo := NewLivecommentRepository("")
+	repo := NewLivecommentRepository()
 
 	before, err := repo.SumTip(ctx, tx)
 	if err != nil {
@@ -195,7 +141,7 @@ func TestLivecommentRepository_FindAllByLivestreamIDOrderByCreatedAtDesc(t *test
 	newest := insertTestLivecomment(t, tx, ownerID, livestreamID, "newest", 300)
 	middle := insertTestLivecomment(t, tx, ownerID, livestreamID, "middle", 200)
 	insertTestLivecomment(t, tx, ownerID, otherID, "other", 400)
-	repo := NewLivecommentRepository("")
+	repo := NewLivecommentRepository()
 
 	got, err := repo.FindAllByLivestreamIDOrderByCreatedAtDesc(ctx, tx, livestreamID)
 	if err != nil {

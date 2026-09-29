@@ -21,7 +21,7 @@ func insertTestReaction(t *testing.T, tx repository.Querier, userID domain.UserI
 
 func insertTestLivecommentWithTip(t *testing.T, tx repository.Querier, userID domain.UserID, livestreamID domain.LivestreamID, tip int64) domain.LivecommentID {
 	t.Helper()
-	id, err := NewLivecommentRepository("").Create(context.Background(), tx, &domain.LivecommentModel{UserID: userID, LivestreamID: livestreamID, Comment: "c", Tip: tip, CreatedAt: 100})
+	id, err := NewLivecommentRepository().Create(context.Background(), tx, &domain.LivecommentModel{UserID: userID, LivestreamID: livestreamID, Comment: "c", Tip: tip, CreatedAt: 100})
 	if err != nil {
 		t.Fatalf("failed to insert livecomment: %v", err)
 	}
@@ -124,7 +124,7 @@ func TestReactionRepository_FindFavoriteEmojiByLivestreamOwnerName(t *testing.T)
 func TestLivecommentRepository_SumTipByLivestreamOwnerID(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)
-	repo := NewLivecommentRepository("")
+	repo := NewLivecommentRepository()
 
 	ownerID := insertTestUser(t, tx, "alice")
 	otherOwnerID := insertTestUser(t, tx, "bob")
@@ -163,7 +163,7 @@ func TestLivecommentRepository_FindAllByLivestreamID(t *testing.T) {
 	c2 := insertTestLivecommentWithTip(t, tx, ownerID, stream, 50)
 	insertTestLivecommentWithTip(t, tx, ownerID, otherStream, 10)
 
-	livecomments, err := NewLivecommentRepository("").FindAllByLivestreamID(ctx, tx, stream)
+	livecomments, err := NewLivecommentRepository().FindAllByLivestreamID(ctx, tx, stream)
 	if err != nil {
 		t.Fatalf("FindAllByLivestreamID returned error: %v", err)
 	}

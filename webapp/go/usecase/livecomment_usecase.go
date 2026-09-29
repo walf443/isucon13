@@ -20,38 +20,52 @@ type LivecommentUsecase interface {
 }
 
 type livecommentUsecase struct {
-	txManager       repository.TxManager
-	livestreamRepo  repository.LivestreamRepository
-	livecommentRepo repository.LivecommentRepository
-	ngWordRepo      repository.NGWordRepository
-	logger          Logger
+	txManager         repository.TxManager
+	livestreamRepo    repository.LivestreamRepository
+	livecommentRepo   repository.LivecommentRepository
+	ngWordRepo        repository.NGWordRepository
+	livecommentFiller *LivecommentFiller
+	logger            Logger
 	// now は現在時刻を返す。テストで差し替えられるようにしている。
 	now func() time.Time
 }
 
-func NewLivecommentUsecase(txManager repository.TxManager, livestreamRepo repository.LivestreamRepository, livecommentRepo repository.LivecommentRepository, ngWordRepo repository.NGWordRepository, logger Logger) LivecommentUsecase {
+func NewLivecommentUsecase(txManager repository.TxManager, livestreamRepo repository.LivestreamRepository, livecommentRepo repository.LivecommentRepository, ngWordRepo repository.NGWordRepository, livecommentFiller *LivecommentFiller, logger Logger) LivecommentUsecase {
 	return &livecommentUsecase{
-		txManager:       txManager,
-		livestreamRepo:  livestreamRepo,
-		livecommentRepo: livecommentRepo,
-		ngWordRepo:      ngWordRepo,
-		logger:          logger,
-		now:             time.Now,
+		txManager:         txManager,
+		livestreamRepo:    livestreamRepo,
+		livecommentRepo:   livecommentRepo,
+		ngWordRepo:        ngWordRepo,
+		livecommentFiller: livecommentFiller,
+		logger:            logger,
+		now:               time.Now,
 	}
+}
+
+// livecommentModelID は orderedBy に渡すための、ライブコメントの ID を取り出す関数。
+func livecommentModelID(livecommentModel *domain.LivecommentModel) domain.LivecommentID {
+	return livecommentModel.ID
 }
 
 func (u *livecommentUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.Livecomment, error) {
 	var livecomments []*domain.Livecomment
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
+		var livecommentModels []*domain.LivecommentModel
 		var err error
 		if limit == nil {
-			livecomments, err = u.livecommentRepo.FindAllWithDetailsByLivestreamID(ctx, q, livestreamID)
+			livecommentModels, err = u.livecommentRepo.FindAllByLivestreamIDOrderByCreatedAtDesc(ctx, q, livestreamID)
 		} else {
-			livecomments, err = u.livecommentRepo.FindAllWithDetailsByLivestreamIDLimited(ctx, q, livestreamID, *limit)
+			livecommentModels, err = u.livecommentRepo.FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx, q, livestreamID, *limit)
 		}
 		if err != nil {
 			return fmt.Errorf("failed to get livecomments: %w", err)
 		}
+
+		filled, err := u.livecommentFiller.Fill(ctx, q, livecommentModels)
+		if err != nil {
+			return fmt.Errorf("failed to get livecomments: %w", err)
+		}
+		livecomments = orderedBy(livecommentModels, livecommentModelID, filled)
 		return nil
 	})
 	if err != nil {
@@ -103,10 +117,15 @@ func (u *livecommentUsecase) Create(ctx context.Context, userID domain.UserID, l
 			return fmt.Errorf("failed to insert livecomment: %w", err)
 		}
 
-		livecomment, err = u.livecommentRepo.FindWithDetailsByID(ctx, q, livecommentID)
+		livecommentModel, err := u.livecommentRepo.FindByID(ctx, q, livecommentID)
 		if err != nil {
 			return fmt.Errorf("failed to fill livecomment: %w", err)
 		}
+		livecomments, err := u.livecommentFiller.Fill(ctx, q, []*domain.LivecommentModel{livecommentModel})
+		if err != nil {
+			return fmt.Errorf("failed to fill livecomment: %w", err)
+		}
+		livecomment = livecomments[livecommentID]
 		return nil
 	})
 	if err != nil {

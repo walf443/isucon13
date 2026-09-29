@@ -12,37 +12,32 @@ import (
 type fakeLivecommentRepository struct {
 	repository.LivecommentRepository
 
-	findByID                                func(ctx context.Context, q repository.Querier, id domain.LivecommentID) (*domain.LivecommentModel, error)
-	findWithDetailsByID                     func(ctx context.Context, q repository.Querier, id domain.LivecommentID) (*domain.Livecomment, error)
-	findAllWithDetailsByLivestreamID        func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Livecomment, error)
-	findAllWithDetailsByLivestreamIDLimited func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Livecomment, error)
-	findAllByLivestreamID                   func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentModel, error)
-	create                                  func(ctx context.Context, q repository.Querier, livecomment *domain.LivecommentModel) (domain.LivecommentID, error)
-	deleteAllByLivestreamIDMatchingNGWord   func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, word string) error
-	sumTip                                  func(ctx context.Context, q repository.Querier) (int64, error)
-	sumTipByLivestreamID                    func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error)
-	sumTipByLivestreamOwnerID               func(ctx context.Context, q repository.Querier, userID domain.UserID) (int64, error)
-	maxTipByLivestreamID                    func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error)
+	findByID                                         func(ctx context.Context, q repository.Querier, id domain.LivecommentID) (*domain.LivecommentModel, error)
+	findAllByLivestreamID                            func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentModel, error)
+	findAllByLivestreamIDOrderByCreatedAtDesc        func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentModel, error)
+	findAllByLivestreamIDOrderByCreatedAtDescLimited func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.LivecommentModel, error)
+	create                                           func(ctx context.Context, q repository.Querier, livecomment *domain.LivecommentModel) (domain.LivecommentID, error)
+	deleteAllByLivestreamIDMatchingNGWord            func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, word string) error
+	sumTip                                           func(ctx context.Context, q repository.Querier) (int64, error)
+	sumTipByLivestreamID                             func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error)
+	sumTipByLivestreamOwnerID                        func(ctx context.Context, q repository.Querier, userID domain.UserID) (int64, error)
+	maxTipByLivestreamID                             func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error)
 }
 
 func (r *fakeLivecommentRepository) FindByID(ctx context.Context, q repository.Querier, id domain.LivecommentID) (*domain.LivecommentModel, error) {
 	return r.findByID(ctx, q, id)
 }
 
-func (r *fakeLivecommentRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id domain.LivecommentID) (*domain.Livecomment, error) {
-	return r.findWithDetailsByID(ctx, q, id)
-}
-
-func (r *fakeLivecommentRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Livecomment, error) {
-	return r.findAllWithDetailsByLivestreamID(ctx, q, livestreamID)
-}
-
-func (r *fakeLivecommentRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Livecomment, error) {
-	return r.findAllWithDetailsByLivestreamIDLimited(ctx, q, livestreamID, limit)
-}
-
 func (r *fakeLivecommentRepository) FindAllByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentModel, error) {
 	return r.findAllByLivestreamID(ctx, q, livestreamID)
+}
+
+func (r *fakeLivecommentRepository) FindAllByLivestreamIDOrderByCreatedAtDesc(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentModel, error) {
+	return r.findAllByLivestreamIDOrderByCreatedAtDesc(ctx, q, livestreamID)
+}
+
+func (r *fakeLivecommentRepository) FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.LivecommentModel, error) {
+	return r.findAllByLivestreamIDOrderByCreatedAtDescLimited(ctx, q, livestreamID, limit)
 }
 
 func (r *fakeLivecommentRepository) Create(ctx context.Context, q repository.Querier, livecomment *domain.LivecommentModel) (domain.LivecommentID, error) {

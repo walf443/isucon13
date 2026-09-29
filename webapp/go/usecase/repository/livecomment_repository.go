@@ -7,13 +7,6 @@ import (
 )
 
 type LivecommentRepository interface {
-	// FindWithDetailsByID はユーザ・ライブ配信を含めたライブコメントを返す。
-	// ライブコメントが存在しない場合 ErrNotFound を返す。
-	FindWithDetailsByID(ctx context.Context, q Querier, id domain.LivecommentID) (*domain.Livecomment, error)
-	// FindAllWithDetailsByLivestreamID は指定したライブ配信へのライブコメントを、作成日時の降順で返す。
-	FindAllWithDetailsByLivestreamID(ctx context.Context, q Querier, livestreamID domain.LivestreamID) ([]*domain.Livecomment, error)
-	// FindAllWithDetailsByLivestreamIDLimited は指定したライブ配信へのライブコメントを、作成日時の降順で最大 limit 件返す。
-	FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Livecomment, error)
 	// FindAllByLivestreamID は指定したライブ配信へのライブコメントを返す (順序は不定)。
 	FindAllByLivestreamID(ctx context.Context, q Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentModel, error)
 	// FindAllByLivestreamIDOrderByCreatedAtDesc は指定したライブ配信へのライブコメントを、作成日時の降順で返す。

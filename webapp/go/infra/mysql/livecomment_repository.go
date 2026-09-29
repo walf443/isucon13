@@ -10,13 +10,10 @@ import (
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
-type livecommentRepository struct {
-	// defaultIconHash はアイコン未登録のユーザに使う既定のアイコンのハッシュ。
-	defaultIconHash domain.IconHash
-}
+type livecommentRepository struct{}
 
-func NewLivecommentRepository(defaultIconHash domain.IconHash) repository.LivecommentRepository {
-	return &livecommentRepository{defaultIconHash: defaultIconHash}
+func NewLivecommentRepository() repository.LivecommentRepository {
+	return &livecommentRepository{}
 }
 
 func (r *livecommentRepository) FindAllByLivestreamIDOrderByCreatedAtDesc(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentModel, error) {
@@ -35,22 +32,6 @@ func (r *livecommentRepository) FindAllByLivestreamIDOrderByCreatedAtDescLimited
 	return livecommentModels, nil
 }
 
-func (r *livecommentRepository) FindAllWithDetailsByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Livecomment, error) {
-	livecommentModels, err := r.FindAllByLivestreamIDOrderByCreatedAtDesc(ctx, q, livestreamID)
-	if err != nil {
-		return nil, err
-	}
-	return fillLivecomments(ctx, q, livecommentModels, r.defaultIconHash)
-}
-
-func (r *livecommentRepository) FindAllWithDetailsByLivestreamIDLimited(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Livecomment, error) {
-	livecommentModels, err := r.FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx, q, livestreamID, limit)
-	if err != nil {
-		return nil, err
-	}
-	return fillLivecomments(ctx, q, livecommentModels, r.defaultIconHash)
-}
-
 func (r *livecommentRepository) FindByID(ctx context.Context, q repository.Querier, id domain.LivecommentID) (*domain.LivecommentModel, error) {
 	var livecommentModel domain.LivecommentModel
 	err := q.GetContext(ctx, &livecommentModel, "SELECT id, user_id, livestream_id, comment, tip, created_at FROM livecomments WHERE id = ?", id)
@@ -61,19 +42,6 @@ func (r *livecommentRepository) FindByID(ctx context.Context, q repository.Queri
 		return nil, err
 	}
 	return &livecommentModel, nil
-}
-
-func (r *livecommentRepository) FindWithDetailsByID(ctx context.Context, q repository.Querier, id domain.LivecommentID) (*domain.Livecomment, error) {
-	livecommentModel, err := r.FindByID(ctx, q, id)
-	if err != nil {
-		return nil, err
-	}
-
-	livecomments, err := fillLivecomments(ctx, q, []*domain.LivecommentModel{livecommentModel}, r.defaultIconHash)
-	if err != nil {
-		return nil, err
-	}
-	return livecomments[0], nil
 }
 
 func (r *livecommentRepository) Create(ctx context.Context, q repository.Querier, livecomment *domain.LivecommentModel) (domain.LivecommentID, error) {

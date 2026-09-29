@@ -69,7 +69,7 @@ func TestLivestreamStatisticsQueries(t *testing.T) {
 	}
 
 	reactionRepo := NewReactionRepository()
-	livecommentRepo := NewLivecommentRepository("")
+	livecommentRepo := NewLivecommentRepository()
 
 	tests := []struct {
 		name  string
