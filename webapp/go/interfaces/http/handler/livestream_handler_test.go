@@ -74,7 +74,7 @@ func TestLivestreamHandler_GetLivestream(t *testing.T) {
 		Name:        "alice",
 		DisplayName: "Alice",
 		Description: "hello",
-		Theme:       domain.ThemeModel{ID: 20, UserID: 2, DarkMode: true},
+		Theme:       domain.Theme{ID: 20, UserID: 2, DarkMode: true},
 		IconHash:    "abc",
 	}
 
@@ -97,7 +97,7 @@ func TestLivestreamHandler_GetLivestream(t *testing.T) {
 				Description:  "desc",
 				PlaylistUrl:  "https://example.com/p.m3u8",
 				ThumbnailUrl: "https://example.com/t.jpg",
-				Tags:         []domain.TagModel{{ID: 1, Name: "ゲーム実況"}},
+				Tags:         []domain.Tag{{ID: 1, Name: "ゲーム実況"}},
 				StartAt:      1700000000,
 				EndAt:        1700003600,
 			}},
@@ -151,7 +151,7 @@ func TestLivestreamHandler_GetLivestream(t *testing.T) {
 }
 
 func TestLivestreamHandler_GetMyLivestreams(t *testing.T) {
-	owner := domain.UserDetail{ID: 42, Name: "alice", Theme: domain.ThemeModel{ID: 20, UserID: 42}, IconHash: "abc"}
+	owner := domain.UserDetail{ID: 42, Name: "alice", Theme: domain.Theme{ID: 20, UserID: 42}, IconHash: "abc"}
 	ownerJSON := `{"id":42,"name":"alice","theme":{"id":20,"dark_mode":false},"icon_hash":"abc"}`
 
 	tests := []struct {
@@ -165,7 +165,7 @@ func TestLivestreamHandler_GetMyLivestreams(t *testing.T) {
 			name:   "returns livestreams of logged-in user",
 			cookie: sessionAs(42),
 			usecase: &fakeLivestreamUsecase{livestreams: []*domain.LivestreamDetail{
-				{ID: 1, Owner: owner, Title: "s1", Tags: []domain.TagModel{{ID: 1, Name: "t1"}}},
+				{ID: 1, Owner: owner, Title: "s1", Tags: []domain.Tag{{ID: 1, Name: "t1"}}},
 				{ID: 2, Owner: owner, Title: "s2"},
 			}},
 			wantCode: http.StatusOK,
@@ -203,7 +203,7 @@ func TestLivestreamHandler_GetMyLivestreams(t *testing.T) {
 }
 
 func TestLivestreamHandler_GetUserLivestreams(t *testing.T) {
-	owner := domain.UserDetail{ID: 42, Name: "alice", Theme: domain.ThemeModel{ID: 20, UserID: 42}, IconHash: "abc"}
+	owner := domain.UserDetail{ID: 42, Name: "alice", Theme: domain.Theme{ID: 20, UserID: 42}, IconHash: "abc"}
 
 	tests := []struct {
 		name     string
@@ -255,7 +255,7 @@ func TestLivestreamHandler_GetUserLivestreams(t *testing.T) {
 }
 
 func TestLivestreamHandler_SearchLivestreams(t *testing.T) {
-	owner := domain.UserDetail{ID: 42, Name: "alice", Theme: domain.ThemeModel{ID: 20, UserID: 42}, IconHash: "abc"}
+	owner := domain.UserDetail{ID: 42, Name: "alice", Theme: domain.Theme{ID: 20, UserID: 42}, IconHash: "abc"}
 	found := []*domain.LivestreamDetail{{ID: 1, Owner: owner, Title: "s1"}}
 	foundJSON := `[{"id":1,"owner":{"id":42,"name":"alice","theme":{"id":20,"dark_mode":false},"icon_hash":"abc"},"title":"s1","description":"","playlist_url":"","thumbnail_url":"","tags":[],"start_at":0,"end_at":0}]` + "\n"
 	five := domain.Limit(5)
@@ -350,7 +350,7 @@ func TestLivestreamHandler_SearchLivestreams_Limit(t *testing.T) {
 }
 
 func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
-	owner := domain.UserDetail{ID: 2, Name: "alice", Theme: domain.ThemeModel{ID: 20, UserID: 2, DarkMode: true}, IconHash: "abc"}
+	owner := domain.UserDetail{ID: 2, Name: "alice", Theme: domain.Theme{ID: 20, UserID: 2, DarkMode: true}, IconHash: "abc"}
 	reqBody := `{"tags":[1,3],"title":"stream","description":"desc","playlist_url":"https://example.com/p.m3u8","thumbnail_url":"https://example.com/t.jpg","start_at":1700874000,"end_at":1700877600}`
 
 	tests := []struct {
@@ -372,7 +372,7 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 				Description:  "desc",
 				PlaylistUrl:  "https://example.com/p.m3u8",
 				ThumbnailUrl: "https://example.com/t.jpg",
-				Tags:         []domain.TagModel{{ID: 1, Name: "ゲーム実況"}, {ID: 3, Name: "雑談"}},
+				Tags:         []domain.Tag{{ID: 1, Name: "ゲーム実況"}, {ID: 3, Name: "雑談"}},
 				StartAt:      1700874000,
 				EndAt:        1700877600,
 			}},

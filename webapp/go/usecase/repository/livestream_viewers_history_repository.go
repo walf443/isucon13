@@ -8,7 +8,7 @@ import (
 
 type LivestreamViewersHistoryRepository interface {
 	// Create はライブ配信の視聴履歴を登録する。
-	Create(ctx context.Context, q Querier, viewer *domain.LivestreamViewersHistoryModel) error
+	Create(ctx context.Context, q Querier, viewer *domain.LivestreamViewersHistory) error
 	// DeleteByUserIDAndLivestreamID は指定したユーザのライブ配信の視聴履歴を全て削除する。
 	DeleteByUserIDAndLivestreamID(ctx context.Context, q Querier, userID domain.UserID, livestreamID domain.LivestreamID) error
 	// CountByLivestreamID はライブ配信の視聴履歴の件数を返す。

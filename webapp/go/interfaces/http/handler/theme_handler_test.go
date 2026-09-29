@@ -11,12 +11,12 @@ import (
 )
 
 type fakeThemeUsecase struct {
-	theme       *domain.ThemeModel
+	theme       *domain.Theme
 	err         error
 	gotUsername string
 }
 
-func (u *fakeThemeUsecase) FindByUsername(ctx context.Context, username string) (*domain.ThemeModel, error) {
+func (u *fakeThemeUsecase) FindByUsername(ctx context.Context, username string) (*domain.Theme, error) {
 	u.gotUsername = username
 	return u.theme, u.err
 }
@@ -32,7 +32,7 @@ func TestThemeHandler_GetStreamerTheme(t *testing.T) {
 		{
 			name:     "returns theme",
 			cookie:   sessionAs(1),
-			usecase:  &fakeThemeUsecase{theme: &domain.ThemeModel{ID: 10, UserID: 1, DarkMode: true}},
+			usecase:  &fakeThemeUsecase{theme: &domain.Theme{ID: 10, UserID: 1, DarkMode: true}},
 			wantCode: http.StatusOK,
 			wantBody: `{"id":10,"dark_mode":true}` + "\n",
 		},

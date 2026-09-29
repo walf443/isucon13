@@ -11,9 +11,9 @@ import (
 )
 
 func TestLivestreamViewerUsecase_Enter(t *testing.T) {
-	var created *domain.LivestreamViewersHistoryModel
+	var created *domain.LivestreamViewersHistory
 	repo := &fakeLivestreamViewersHistoryRepository{
-		create: func(_ context.Context, _ repository.Querier, viewer *domain.LivestreamViewersHistoryModel) error {
+		create: func(_ context.Context, _ repository.Querier, viewer *domain.LivestreamViewersHistory) error {
 			created = viewer
 			return nil
 		},
@@ -24,7 +24,7 @@ func TestLivestreamViewerUsecase_Enter(t *testing.T) {
 	if err := u.Enter(context.Background(), 1, 10); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	want := domain.LivestreamViewersHistoryModel{UserID: 1, LivestreamID: 10, CreatedAt: 1700000000}
+	want := domain.LivestreamViewersHistory{UserID: 1, LivestreamID: 10, CreatedAt: 1700000000}
 	if created == nil || *created != want {
 		t.Errorf("created = %+v, want %+v", created, want)
 	}
@@ -33,7 +33,7 @@ func TestLivestreamViewerUsecase_Enter(t *testing.T) {
 func TestLivestreamViewerUsecase_Enter_Error(t *testing.T) {
 	boom := errors.New("boom")
 	repo := &fakeLivestreamViewersHistoryRepository{
-		create: func(context.Context, repository.Querier, *domain.LivestreamViewersHistoryModel) error { return boom },
+		create: func(context.Context, repository.Querier, *domain.LivestreamViewersHistory) error { return boom },
 	}
 	u := NewLivestreamViewerUsecase(&fakeTxManager{}, repo)
 

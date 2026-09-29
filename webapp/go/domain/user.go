@@ -2,7 +2,7 @@ package domain
 
 import "slices"
 
-type UserID = ID[UserModel]
+type UserID = ID[User]
 
 // reservedUsernames はユーザ名として登録できない予約済みの名前。
 var reservedUsernames = []string{
@@ -20,7 +20,7 @@ func FindReservedUsername(name string) (string, bool) {
 	return reservedUsernames[i], true
 }
 
-type UserModel struct {
+type User struct {
 	ID             UserID         `db:"id"`
 	Name           string         `db:"name"`
 	DisplayName    string         `db:"display_name"`
@@ -34,6 +34,6 @@ type UserDetail struct {
 	Name        string
 	DisplayName string
 	Description string
-	Theme       ThemeModel
+	Theme       Theme
 	IconHash    IconHash
 }

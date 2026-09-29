@@ -11,11 +11,11 @@ import (
 
 func TestThemeUsecase_FindByUsername(t *testing.T) {
 	themeRepo := &fakeThemeRepository{
-		findByUserID: func(_ context.Context, _ repository.Querier, userID domain.UserID) (*domain.ThemeModel, error) {
+		findByUserID: func(_ context.Context, _ repository.Querier, userID domain.UserID) (*domain.Theme, error) {
 			if userID != 1 {
 				t.Errorf("userID = %d, want 1", userID)
 			}
-			return &domain.ThemeModel{ID: 10, UserID: 1, DarkMode: true}, nil
+			return &domain.Theme{ID: 10, UserID: 1, DarkMode: true}, nil
 		},
 	}
 	u := NewThemeUsecase(&fakeTxManager{}, newUserRepositoryFindingID(t, "alice", 1, nil), themeRepo)
@@ -41,7 +41,7 @@ func TestThemeUsecase_FindByUsername_UserNotFound(t *testing.T) {
 func TestThemeUsecase_FindByUsername_ThemeNotFound(t *testing.T) {
 	// テーマが無いのはデータ不整合なので、ユーザ不在 (404) とは区別する
 	themeRepo := &fakeThemeRepository{
-		findByUserID: func(context.Context, repository.Querier, domain.UserID) (*domain.ThemeModel, error) {
+		findByUserID: func(context.Context, repository.Querier, domain.UserID) (*domain.Theme, error) {
 			return nil, repository.ErrNotFound
 		},
 	}

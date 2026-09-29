@@ -97,7 +97,7 @@ func TestTagRepository_FindByID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindByID returned error: %v", err)
 	}
-	if want := (domain.TagModel{ID: domain.TagID(lastID), Name: "ゲーム実況"}); *got != want {
+	if want := (domain.Tag{ID: domain.TagID(lastID), Name: "ゲーム実況"}); *got != want {
 		t.Errorf("tag = %+v, want %+v", *got, want)
 	}
 

@@ -1,8 +1,8 @@
 package domain
 
-type ReservationSlotID = ID[ReservationSlotModel]
+type ReservationSlotID = ID[ReservationSlot]
 
-type ReservationSlotModel struct {
+type ReservationSlot struct {
 	ID      ReservationSlotID `db:"id"`
 	Slot    int64             `db:"slot"`
 	StartAt int64             `db:"start_at"`

@@ -53,7 +53,7 @@ func TestLivestreamStatisticsQueries(t *testing.T) {
 	insertTestLivecommentWithTip(t, tx, viewerID, otherStream, 1000)
 
 	viewerRepo := NewLivestreamViewersHistoryRepository()
-	for _, v := range []domain.LivestreamViewersHistoryModel{
+	for _, v := range []domain.LivestreamViewersHistory{
 		{UserID: viewerID, LivestreamID: stream, CreatedAt: 100},
 		{UserID: ownerID, LivestreamID: stream, CreatedAt: 100},
 		{UserID: viewerID, LivestreamID: otherStream, CreatedAt: 100},
@@ -64,7 +64,7 @@ func TestLivestreamStatisticsQueries(t *testing.T) {
 	}
 
 	reportRepo := NewLivecommentReportRepository()
-	if _, err := reportRepo.Create(ctx, tx, &domain.LivecommentReportModel{UserID: ownerID, LivestreamID: stream, LivecommentID: c1, CreatedAt: 100}); err != nil {
+	if _, err := reportRepo.Create(ctx, tx, &domain.LivecommentReport{UserID: ownerID, LivestreamID: stream, LivecommentID: c1, CreatedAt: 100}); err != nil {
 		t.Fatalf("failed to insert report: %v", err)
 	}
 

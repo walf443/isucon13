@@ -12,13 +12,13 @@ import (
 type fakeLivestreamViewersHistoryRepository struct {
 	repository.LivestreamViewersHistoryRepository
 
-	create                        func(ctx context.Context, q repository.Querier, viewer *domain.LivestreamViewersHistoryModel) error
+	create                        func(ctx context.Context, q repository.Querier, viewer *domain.LivestreamViewersHistory) error
 	deleteByUserIDAndLivestreamID func(ctx context.Context, q repository.Querier, userID domain.UserID, livestreamID domain.LivestreamID) error
 	countByLivestreamID           func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error)
 	countViewersByLivestreamID    func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error)
 }
 
-func (r *fakeLivestreamViewersHistoryRepository) Create(ctx context.Context, q repository.Querier, viewer *domain.LivestreamViewersHistoryModel) error {
+func (r *fakeLivestreamViewersHistoryRepository) Create(ctx context.Context, q repository.Querier, viewer *domain.LivestreamViewersHistory) error {
 	return r.create(ctx, q, viewer)
 }
 

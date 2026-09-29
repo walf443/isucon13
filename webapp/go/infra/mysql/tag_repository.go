@@ -15,16 +15,16 @@ func NewTagRepository() repository.TagRepository {
 	return &tagRepository{}
 }
 
-func (r *tagRepository) FindAll(ctx context.Context, q repository.Querier) ([]*domain.TagModel, error) {
-	var tags []*domain.TagModel
+func (r *tagRepository) FindAll(ctx context.Context, q repository.Querier) ([]*domain.Tag, error) {
+	var tags []*domain.Tag
 	if err := q.SelectContext(ctx, &tags, "SELECT id, name FROM tags"); err != nil {
 		return nil, err
 	}
 	return tags, nil
 }
 
-func (r *tagRepository) FindByID(ctx context.Context, q repository.Querier, id domain.TagID) (*domain.TagModel, error) {
-	var tag domain.TagModel
+func (r *tagRepository) FindByID(ctx context.Context, q repository.Querier, id domain.TagID) (*domain.Tag, error) {
+	var tag domain.Tag
 	err := q.GetContext(ctx, &tag, "SELECT id, name FROM tags WHERE id = ?", id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, repository.ErrNotFound

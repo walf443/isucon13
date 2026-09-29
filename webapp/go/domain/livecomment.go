@@ -1,13 +1,13 @@
 package domain
 
-type LivecommentID = ID[LivecommentModel]
+type LivecommentID = ID[Livecomment]
 
 // ParseLivecommentID は 10 進数の文字列をライブコメントの ID として読み取る。
 func ParseLivecommentID(s string) (LivecommentID, error) {
-	return ParseID[LivecommentModel](s)
+	return ParseID[Livecomment](s)
 }
 
-type LivecommentModel struct {
+type Livecomment struct {
 	ID           LivecommentID `db:"id"`
 	UserID       UserID        `db:"user_id"`
 	LivestreamID LivestreamID  `db:"livestream_id"`
@@ -26,9 +26,9 @@ type LivecommentDetail struct {
 	CreatedAt  int64
 }
 
-type LivecommentReportID = ID[LivecommentReportModel]
+type LivecommentReportID = ID[LivecommentReport]
 
-type LivecommentReportModel struct {
+type LivecommentReport struct {
 	ID            LivecommentReportID `db:"id"`
 	UserID        UserID              `db:"user_id"`
 	LivestreamID  LivestreamID        `db:"livestream_id"`

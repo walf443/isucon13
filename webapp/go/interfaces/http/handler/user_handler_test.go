@@ -15,7 +15,7 @@ import (
 
 type fakeUserUsecase struct {
 	user      *domain.UserDetail
-	userModel *domain.UserModel
+	userModel *domain.User
 	err       error
 	gotID     domain.UserID
 	gotName   string
@@ -35,7 +35,7 @@ func (u *fakeUserRegistrationUsecase) Register(ctx context.Context, input usecas
 	return u.user, u.err
 }
 
-func (u *fakeUserUsecase) Login(ctx context.Context, username string, password string) (*domain.UserModel, error) {
+func (u *fakeUserUsecase) Login(ctx context.Context, username string, password string) (*domain.User, error) {
 	u.gotName = username
 	u.gotPassword = password
 	return u.userModel, u.err
@@ -67,7 +67,7 @@ func TestUserHandler_GetUser(t *testing.T) {
 				Name:        "alice",
 				DisplayName: "Alice",
 				Description: "hello",
-				Theme:       domain.ThemeModel{ID: 10, UserID: 1, DarkMode: true},
+				Theme:       domain.Theme{ID: 10, UserID: 1, DarkMode: true},
 				IconHash:    "abc",
 			}},
 			wantCode: http.StatusOK,
@@ -116,7 +116,7 @@ func TestUserHandler_GetMe(t *testing.T) {
 				Name:        "alice",
 				DisplayName: "Alice",
 				Description: "hello",
-				Theme:       domain.ThemeModel{ID: 10, UserID: 42, DarkMode: false},
+				Theme:       domain.Theme{ID: 10, UserID: 42, DarkMode: false},
 				IconHash:    "abc",
 			}},
 			wantCode: http.StatusOK,
@@ -150,7 +150,7 @@ func TestUserHandler_GetMe(t *testing.T) {
 }
 
 func TestUserHandler_Register(t *testing.T) {
-	user := &domain.UserDetail{ID: 5, Name: "alice", DisplayName: "Alice", Description: "hello", Theme: domain.ThemeModel{ID: 9, UserID: 5, DarkMode: true}, IconHash: "abc"}
+	user := &domain.UserDetail{ID: 5, Name: "alice", DisplayName: "Alice", Description: "hello", Theme: domain.Theme{ID: 9, UserID: 5, DarkMode: true}, IconHash: "abc"}
 	reqBody := `{"name":"alice","display_name":"Alice","description":"hello","password":"s3cret","theme":{"dark_mode":true}}`
 
 	tests := []struct {
@@ -215,7 +215,7 @@ func TestUserHandler_Register(t *testing.T) {
 }
 
 func TestUserHandler_Login(t *testing.T) {
-	user := &domain.UserModel{ID: 5, Name: "alice"}
+	user := &domain.User{ID: 5, Name: "alice"}
 	// 発行したセッションで認証が通ることも確認するので、実時刻に固定する
 	now := time.Unix(time.Now().Unix(), 0)
 

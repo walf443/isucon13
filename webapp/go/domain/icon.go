@@ -5,9 +5,9 @@ import (
 	"fmt"
 )
 
-type IconID = ID[IconModel]
+type IconID = ID[Icon]
 
-type IconModel struct {
+type Icon struct {
 	ID     IconID `db:"id"`
 	UserID UserID `db:"user_id"`
 	Image  []byte `db:"image"`

@@ -13,7 +13,7 @@ func NewLivestreamViewersHistoryRepository() repository.LivestreamViewersHistory
 	return &livestreamViewersHistoryRepository{}
 }
 
-func (r *livestreamViewersHistoryRepository) Create(ctx context.Context, q repository.Querier, viewer *domain.LivestreamViewersHistoryModel) error {
+func (r *livestreamViewersHistoryRepository) Create(ctx context.Context, q repository.Querier, viewer *domain.LivestreamViewersHistory) error {
 	_, err := q.ExecContext(ctx, "INSERT INTO livestream_viewers_history (user_id, livestream_id, created_at) VALUES(?, ?, ?)", viewer.UserID, viewer.LivestreamID, viewer.CreatedAt)
 	return err
 }

@@ -8,7 +8,7 @@ import (
 
 type ThemeRepository interface {
 	// FindByUserID はテーマが存在しない場合 ErrNotFound を返す。
-	FindByUserID(ctx context.Context, q Querier, userID domain.UserID) (*domain.ThemeModel, error)
+	FindByUserID(ctx context.Context, q Querier, userID domain.UserID) (*domain.Theme, error)
 	// Create はユーザのテーマを登録する。
-	Create(ctx context.Context, q Querier, theme *domain.ThemeModel) error
+	Create(ctx context.Context, q Querier, theme *domain.Theme) error
 }

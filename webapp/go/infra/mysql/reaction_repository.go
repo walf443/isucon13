@@ -15,8 +15,8 @@ func NewReactionRepository() repository.ReactionRepository {
 	return &reactionRepository{}
 }
 
-func (r *reactionRepository) FindByID(ctx context.Context, q repository.Querier, id domain.ReactionID) (*domain.ReactionModel, error) {
-	var reactionModel domain.ReactionModel
+func (r *reactionRepository) FindByID(ctx context.Context, q repository.Querier, id domain.ReactionID) (*domain.Reaction, error) {
+	var reactionModel domain.Reaction
 	err := q.GetContext(ctx, &reactionModel, "SELECT id, emoji_name, user_id, livestream_id, created_at FROM reactions WHERE id = ?", id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, repository.ErrNotFound
@@ -27,23 +27,23 @@ func (r *reactionRepository) FindByID(ctx context.Context, q repository.Querier,
 	return &reactionModel, nil
 }
 
-func (r *reactionRepository) FindAllByLivestreamIDOrderByCreatedAtDesc(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.ReactionModel, error) {
-	var reactionModels []*domain.ReactionModel
+func (r *reactionRepository) FindAllByLivestreamIDOrderByCreatedAtDesc(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Reaction, error) {
+	var reactionModels []*domain.Reaction
 	if err := q.SelectContext(ctx, &reactionModels, "SELECT id, emoji_name, user_id, livestream_id, created_at FROM reactions WHERE livestream_id = ? ORDER BY created_at DESC", livestreamID); err != nil {
 		return nil, err
 	}
 	return reactionModels, nil
 }
 
-func (r *reactionRepository) FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.ReactionModel, error) {
-	var reactionModels []*domain.ReactionModel
+func (r *reactionRepository) FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Reaction, error) {
+	var reactionModels []*domain.Reaction
 	if err := q.SelectContext(ctx, &reactionModels, "SELECT id, emoji_name, user_id, livestream_id, created_at FROM reactions WHERE livestream_id = ? ORDER BY created_at DESC LIMIT ?", livestreamID, limit); err != nil {
 		return nil, err
 	}
 	return reactionModels, nil
 }
 
-func (r *reactionRepository) Create(ctx context.Context, q repository.Querier, reaction *domain.ReactionModel) (domain.ReactionID, error) {
+func (r *reactionRepository) Create(ctx context.Context, q repository.Querier, reaction *domain.Reaction) (domain.ReactionID, error) {
 	rs, err := q.ExecContext(ctx, "INSERT INTO reactions (user_id, livestream_id, emoji_name, created_at) VALUES (?, ?, ?, ?)", reaction.UserID, reaction.LivestreamID, reaction.EmojiName, reaction.CreatedAt)
 	if err != nil {
 		return 0, err

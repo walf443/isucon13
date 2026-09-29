@@ -29,7 +29,7 @@ func NewLivestreamViewerUsecase(txManager repository.TxManager, viewerRepo repos
 
 func (u *livestreamViewerUsecase) Enter(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) error {
 	return u.txManager.RunInTx(ctx, func(q repository.Querier) error {
-		if err := u.viewerRepo.Create(ctx, q, &domain.LivestreamViewersHistoryModel{
+		if err := u.viewerRepo.Create(ctx, q, &domain.LivestreamViewersHistory{
 			UserID:       userID,
 			LivestreamID: livestreamID,
 			CreatedAt:    u.now().Unix(),

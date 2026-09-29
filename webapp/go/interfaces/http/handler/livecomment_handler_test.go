@@ -63,10 +63,10 @@ func (u *fakeLivecommentReportUsecase) Create(ctx context.Context, userID domain
 var (
 	testLivecomment = &domain.LivecommentDetail{
 		ID:   50,
-		User: domain.UserDetail{ID: 1, Name: "bob", Theme: domain.ThemeModel{ID: 11, UserID: 1}, IconHash: "bbb"},
+		User: domain.UserDetail{ID: 1, Name: "bob", Theme: domain.Theme{ID: 11, UserID: 1}, IconHash: "bbb"},
 		Livestream: domain.LivestreamDetail{
 			ID:    10,
-			Owner: domain.UserDetail{ID: 2, Name: "alice", Theme: domain.ThemeModel{ID: 12, UserID: 2, DarkMode: true}, IconHash: "aaa"},
+			Owner: domain.UserDetail{ID: 2, Name: "alice", Theme: domain.Theme{ID: 12, UserID: 2, DarkMode: true}, IconHash: "aaa"},
 			Title: "stream",
 		},
 		Comment:   "hello",
@@ -151,7 +151,7 @@ func TestLivecommentHandler_GetLivecomments_Limit(t *testing.T) {
 func TestLivecommentHandler_GetLivecommentReports(t *testing.T) {
 	report := &domain.LivecommentReportDetail{
 		ID:          7,
-		Reporter:    domain.UserDetail{ID: 3, Name: "carol", Theme: domain.ThemeModel{ID: 13, UserID: 3}, IconHash: "ccc"},
+		Reporter:    domain.UserDetail{ID: 3, Name: "carol", Theme: domain.Theme{ID: 13, UserID: 3}, IconHash: "ccc"},
 		Livecomment: *testLivecomment,
 		CreatedAt:   1700000100,
 	}
@@ -299,7 +299,7 @@ func TestLivecommentHandler_PostLivecomment(t *testing.T) {
 func TestLivecommentHandler_PostLivecommentReport(t *testing.T) {
 	report := &domain.LivecommentReportDetail{
 		ID:          7,
-		Reporter:    domain.UserDetail{ID: 3, Name: "carol", Theme: domain.ThemeModel{ID: 13, UserID: 3}, IconHash: "ccc"},
+		Reporter:    domain.UserDetail{ID: 3, Name: "carol", Theme: domain.Theme{ID: 13, UserID: 3}, IconHash: "ccc"},
 		Livecomment: *testLivecomment,
 		CreatedAt:   1700000100,
 	}

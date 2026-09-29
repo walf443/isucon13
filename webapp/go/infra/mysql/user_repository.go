@@ -27,8 +27,8 @@ func (r *userRepository) FindIDByName(ctx context.Context, q repository.Querier,
 	return id, nil
 }
 
-func (r *userRepository) FindByName(ctx context.Context, q repository.Querier, name string) (*domain.UserModel, error) {
-	var user domain.UserModel
+func (r *userRepository) FindByName(ctx context.Context, q repository.Querier, name string) (*domain.User, error) {
+	var user domain.User
 	err := q.GetContext(ctx, &user, "SELECT id, name, display_name, description, password FROM users WHERE name = ?", name)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, repository.ErrNotFound
@@ -39,8 +39,8 @@ func (r *userRepository) FindByName(ctx context.Context, q repository.Querier, n
 	return &user, nil
 }
 
-func (r *userRepository) FindByID(ctx context.Context, q repository.Querier, id domain.UserID) (*domain.UserModel, error) {
-	var user domain.UserModel
+func (r *userRepository) FindByID(ctx context.Context, q repository.Querier, id domain.UserID) (*domain.User, error) {
+	var user domain.User
 	err := q.GetContext(ctx, &user, "SELECT id, name, display_name, description, password FROM users WHERE id = ?", id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, repository.ErrNotFound
@@ -51,15 +51,15 @@ func (r *userRepository) FindByID(ctx context.Context, q repository.Querier, id 
 	return &user, nil
 }
 
-func (r *userRepository) FindAll(ctx context.Context, q repository.Querier) ([]*domain.UserModel, error) {
-	var users []*domain.UserModel
+func (r *userRepository) FindAll(ctx context.Context, q repository.Querier) ([]*domain.User, error) {
+	var users []*domain.User
 	if err := q.SelectContext(ctx, &users, "SELECT id, name, display_name, description, password FROM users"); err != nil {
 		return nil, err
 	}
 	return users, nil
 }
 
-func (r *userRepository) Create(ctx context.Context, q repository.Querier, user *domain.UserModel) (domain.UserID, error) {
+func (r *userRepository) Create(ctx context.Context, q repository.Querier, user *domain.User) (domain.UserID, error) {
 	result, err := q.ExecContext(ctx, "INSERT INTO users (name, display_name, description, password) VALUES(?, ?, ?, ?)", user.Name, user.DisplayName, user.Description, user.HashedPassword)
 	if err != nil {
 		return 0, err

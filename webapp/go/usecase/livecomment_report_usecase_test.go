@@ -14,9 +14,9 @@ import (
 
 // newReportRepositoryFindingAll はライブ配信 1 への報告として models (失敗させる場合は err) を返す fakeLivecommentReportRepository を返す。
 // 呼ばれた回数を calls に数える。
-func newReportRepositoryFindingAll(t *testing.T, calls *int, models []*domain.LivecommentReportModel, err error) *fakeLivecommentReportRepository {
+func newReportRepositoryFindingAll(t *testing.T, calls *int, models []*domain.LivecommentReport, err error) *fakeLivecommentReportRepository {
 	return &fakeLivecommentReportRepository{
-		findAllByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentReportModel, error) {
+		findAllByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentReport, error) {
 			*calls++
 			if livestreamID != 1 {
 				t.Errorf("report livestream id = %d, want 1", livestreamID)
@@ -29,7 +29,7 @@ func newReportRepositoryFindingAll(t *testing.T, calls *int, models []*domain.Li
 func TestLivecommentReportUsecase_FindAllByLivestreamID(t *testing.T) {
 	f := testLivestreamFixture()
 	var reportCalls int
-	reportRepo := newReportRepositoryFindingAll(t, &reportCalls, []*domain.LivecommentReportModel{testReportModel2, testReportModel1}, nil)
+	reportRepo := newReportRepositoryFindingAll(t, &reportCalls, []*domain.LivecommentReport{testReportModel2, testReportModel1}, nil)
 	u := NewLivecommentReportUsecase(&fakeTxManager{}, newLivestreamRepositoryFindingByID(t, 1, testLivestreamModel1, nil), nil, reportRepo, f.reportFiller(testLivecommentModel1, testLivecommentModel2))
 
 	// ライブ配信 1 の配信者 (42) として取得する
@@ -55,10 +55,10 @@ func TestLivecommentReportUsecase_FindAllByLivestreamID_Errors(t *testing.T) {
 		// userID は取得するユーザ
 		userID domain.UserID
 		// livestream, livestreamErr はライブ配信 1 を引いた結果
-		livestream    *domain.LivestreamModel
+		livestream    *domain.Livestream
 		livestreamErr error
 		// reports, reportsErr は報告の取得の結果
-		reports         []*domain.LivecommentReportModel
+		reports         []*domain.LivecommentReport
 		reportsErr      error
 		wantErr         error
 		wantMsg         string
@@ -93,7 +93,7 @@ func TestLivecommentReportUsecase_FindAllByLivestreamID_Errors(t *testing.T) {
 			name:            "fill fails",
 			userID:          42,
 			livestream:      testLivestreamModel1,
-			reports:         []*domain.LivecommentReportModel{{ID: 9, UserID: 42, LivestreamID: 1, LivecommentID: 52}},
+			reports:         []*domain.LivecommentReport{{ID: 9, UserID: 42, LivestreamID: 1, LivecommentID: 52}},
 			wantErr:         repository.ErrNotFound,
 			wantMsg:         "failed to get livecomment reports: failed to get livecomment of livecomment report 9: not found",
 			wantReportCalls: 1,
@@ -122,14 +122,14 @@ func TestLivecommentReportUsecase_FindAllByLivestreamID_Errors(t *testing.T) {
 
 // newReportRepositoryForCreate は Create で呼ばれるメソッドを、呼ばれた順に calls へ記録する fakeLivecommentReportRepository を返す。
 // 登録した報告は created に取り出し、ID 7 で読み直した報告として report を返す。
-func newReportRepositoryForCreate(t *testing.T, calls *[]string, created **domain.LivecommentReportModel, report *domain.LivecommentReportModel, createErr, findErr error) *fakeLivecommentReportRepository {
+func newReportRepositoryForCreate(t *testing.T, calls *[]string, created **domain.LivecommentReport, report *domain.LivecommentReport, createErr, findErr error) *fakeLivecommentReportRepository {
 	return &fakeLivecommentReportRepository{
-		create: func(_ context.Context, _ repository.Querier, r *domain.LivecommentReportModel) (domain.LivecommentReportID, error) {
+		create: func(_ context.Context, _ repository.Querier, r *domain.LivecommentReport) (domain.LivecommentReportID, error) {
 			*calls = append(*calls, "Create")
 			*created = r
 			return 7, createErr
 		},
-		findByID: func(_ context.Context, _ repository.Querier, id domain.LivecommentReportID) (*domain.LivecommentReportModel, error) {
+		findByID: func(_ context.Context, _ repository.Querier, id domain.LivecommentReportID) (*domain.LivecommentReport, error) {
 			*calls = append(*calls, "FindByID")
 			if id != 7 {
 				t.Errorf("re-read id = %d, want 7", id)
@@ -141,9 +141,9 @@ func newReportRepositoryForCreate(t *testing.T, calls *[]string, created **domai
 
 // newLivecommentRepositoryForReport はライブコメント 50 の存在確認の結果として livecomment (失敗させる場合は err) を返す fakeLivecommentRepository を返す。
 // 呼ばれた回数を calls に数える。
-func newLivecommentRepositoryForReport(t *testing.T, calls *int, livecomment *domain.LivecommentModel, err error) *fakeLivecommentRepository {
+func newLivecommentRepositoryForReport(t *testing.T, calls *int, livecomment *domain.Livecomment, err error) *fakeLivecommentRepository {
 	return &fakeLivecommentRepository{
-		findByID: func(_ context.Context, _ repository.Querier, id domain.LivecommentID) (*domain.LivecommentModel, error) {
+		findByID: func(_ context.Context, _ repository.Querier, id domain.LivecommentID) (*domain.Livecomment, error) {
 			*calls++
 			if id != 50 {
 				t.Errorf("livecomment id = %d, want 50", id)
@@ -154,14 +154,14 @@ func newLivecommentRepositoryForReport(t *testing.T, calls *int, livecomment *do
 }
 
 // testCreatedReportModel は登録した報告 (ID 7) を読み直した結果。
-var testCreatedReportModel = &domain.LivecommentReportModel{ID: 7, UserID: 43, LivestreamID: 1, LivecommentID: 50, CreatedAt: 1700000000}
+var testCreatedReportModel = &domain.LivecommentReport{ID: 7, UserID: 43, LivestreamID: 1, LivecommentID: 50, CreatedAt: 1700000000}
 
 func TestLivecommentReportUsecase_Create(t *testing.T) {
 	f := testLivestreamFixture()
 	var livecommentFinds int
 	livecommentRepo := newLivecommentRepositoryForReport(t, &livecommentFinds, testLivecommentModel1, nil)
 	var reportCalls []string
-	var created *domain.LivecommentReportModel
+	var created *domain.LivecommentReport
 	reportRepo := newReportRepositoryForCreate(t, &reportCalls, &created, testCreatedReportModel, nil, nil)
 	livestreamRepo := newLivestreamRepositoryFindingByID(t, 1, testLivestreamModel1, nil)
 	u := NewLivecommentReportUsecase(&fakeTxManager{}, livestreamRepo, livecommentRepo, reportRepo, f.reportFiller(testLivecommentModel1)).(*livecommentReportUsecase)
@@ -177,7 +177,7 @@ func TestLivecommentReportUsecase_Create(t *testing.T) {
 	if livecommentFinds != 1 {
 		t.Errorf("livecomment finds = %d, want 1", livecommentFinds)
 	}
-	wantCreated := domain.LivecommentReportModel{UserID: 43, LivestreamID: 1, LivecommentID: 50, CreatedAt: 1700000000}
+	wantCreated := domain.LivecommentReport{UserID: 43, LivestreamID: 1, LivecommentID: 50, CreatedAt: 1700000000}
 	if created == nil || *created != wantCreated {
 		t.Errorf("created = %+v, want %+v", created, wantCreated)
 	}
@@ -192,10 +192,10 @@ func TestLivecommentReportUsecase_Create_Errors(t *testing.T) {
 	tests := []struct {
 		name string
 		// livestream, livestreamErr はライブ配信 1 を引いた結果
-		livestream    *domain.LivestreamModel
+		livestream    *domain.Livestream
 		livestreamErr error
 		// livecomment, livecommentErr はライブコメントの存在確認の結果
-		livecomment    *domain.LivecommentModel
+		livecomment    *domain.Livecomment
 		livecommentErr error
 		// reportCreateErr, reportFindErr は報告の登録・取り直しが返すエラー
 		reportCreateErr error
@@ -246,7 +246,7 @@ func TestLivecommentReportUsecase_Create_Errors(t *testing.T) {
 				tt.modify(f)
 			}
 			var reportCalls []string
-			var created *domain.LivecommentReportModel
+			var created *domain.LivecommentReport
 			reportRepo := newReportRepositoryForCreate(t, &reportCalls, &created, testCreatedReportModel, tt.reportCreateErr, tt.reportFindErr)
 			var livecommentFinds int
 			livecommentRepo := newLivecommentRepositoryForReport(t, &livecommentFinds, tt.livecomment, tt.livecommentErr)

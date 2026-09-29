@@ -39,17 +39,17 @@ func TestReservationSlotRepository_FindAllByRangeForUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindAllByRangeForUpdate returned error: %v", err)
 	}
-	got := map[domain.ReservationSlotID]domain.ReservationSlotModel{}
+	got := map[domain.ReservationSlotID]domain.ReservationSlot{}
 	for _, s := range slots {
 		got[s.ID] = *s
 	}
 	if len(got) != 2 {
 		t.Fatalf("slots = %+v, want 2 slots (excluding %d, %d)", got, before, after)
 	}
-	if want := (domain.ReservationSlotModel{ID: first, Slot: 5, StartAt: testSlotBase, EndAt: testSlotBase + testSlotHour}); got[first] != want {
+	if want := (domain.ReservationSlot{ID: first, Slot: 5, StartAt: testSlotBase, EndAt: testSlotBase + testSlotHour}); got[first] != want {
 		t.Errorf("slot = %+v, want %+v", got[first], want)
 	}
-	if want := (domain.ReservationSlotModel{ID: second, Slot: 3, StartAt: testSlotBase + testSlotHour, EndAt: testSlotBase + 2*testSlotHour}); got[second] != want {
+	if want := (domain.ReservationSlot{ID: second, Slot: 3, StartAt: testSlotBase + testSlotHour, EndAt: testSlotBase + 2*testSlotHour}); got[second] != want {
 		t.Errorf("slot = %+v, want %+v", got[second], want)
 	}
 }

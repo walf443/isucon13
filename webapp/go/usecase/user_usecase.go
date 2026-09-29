@@ -16,7 +16,7 @@ type UserUsecase interface {
 	FindByName(ctx context.Context, name string) (*domain.UserDetail, error)
 	// Login はユーザ名とパスワードを検証し、ユーザを返す。
 	// ユーザが存在しないかパスワードが違う場合 ErrInvalidCredentials を返す。
-	Login(ctx context.Context, username string, password string) (*domain.UserModel, error)
+	Login(ctx context.Context, username string, password string) (*domain.User, error)
 }
 
 type userUsecase struct {
@@ -30,18 +30,18 @@ func NewUserUsecase(txManager repository.TxManager, userRepo repository.UserRepo
 }
 
 func (u *userUsecase) FindByID(ctx context.Context, id domain.UserID) (*domain.UserDetail, error) {
-	return u.findUser(ctx, func(q repository.Querier) (*domain.UserModel, error) {
+	return u.findUser(ctx, func(q repository.Querier) (*domain.User, error) {
 		return u.userRepo.FindByID(ctx, q, id)
 	})
 }
 
 func (u *userUsecase) FindByName(ctx context.Context, name string) (*domain.UserDetail, error) {
-	return u.findUser(ctx, func(q repository.Querier) (*domain.UserModel, error) {
+	return u.findUser(ctx, func(q repository.Querier) (*domain.User, error) {
 		return u.userRepo.FindByName(ctx, q, name)
 	})
 }
 
-func (u *userUsecase) findUser(ctx context.Context, find func(q repository.Querier) (*domain.UserModel, error)) (*domain.UserDetail, error) {
+func (u *userUsecase) findUser(ctx context.Context, find func(q repository.Querier) (*domain.User, error)) (*domain.UserDetail, error) {
 	var user *domain.UserDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		userModel, err := find(q)
@@ -53,7 +53,7 @@ func (u *userUsecase) findUser(ctx context.Context, find func(q repository.Queri
 			return fmt.Errorf("failed to get user: %w", err)
 		}
 
-		users, err := u.userFiller.Fill(ctx, q, []*domain.UserModel{userModel})
+		users, err := u.userFiller.Fill(ctx, q, []*domain.User{userModel})
 		if err != nil {
 			return fmt.Errorf("failed to get user: %w", err)
 		}
@@ -66,8 +66,8 @@ func (u *userUsecase) findUser(ctx context.Context, find func(q repository.Queri
 	return user, nil
 }
 
-func (u *userUsecase) Login(ctx context.Context, username string, password string) (*domain.UserModel, error) {
-	var user *domain.UserModel
+func (u *userUsecase) Login(ctx context.Context, username string, password string) (*domain.User, error) {
+	var user *domain.User
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		var err error
 		// usernameはUNIQUEなので、whereで一意に特定できる

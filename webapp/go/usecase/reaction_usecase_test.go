@@ -14,19 +14,19 @@ import (
 
 // newReactionRepositoryForFindAll は一覧取得で呼ばれたメソッドを calls に記録し、models (取得に失敗させる場合は err) を返す fakeReactionRepository を返す。
 // ライブ配信 10 のリアクションを取得すること、limit 付きの場合はその値を gotLimit に取り出す。
-func newReactionRepositoryForFindAll(t *testing.T, calls *[]string, gotLimit *domain.Limit, models []*domain.ReactionModel, err error) *fakeReactionRepository {
+func newReactionRepositoryForFindAll(t *testing.T, calls *[]string, gotLimit *domain.Limit, models []*domain.Reaction, err error) *fakeReactionRepository {
 	checkLivestreamID := func(livestreamID domain.LivestreamID) {
 		if livestreamID != 10 {
 			t.Errorf("livestreamID = %d, want 10", livestreamID)
 		}
 	}
 	return &fakeReactionRepository{
-		findAllByLivestreamIDOrderByCreatedAtDesc: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID) ([]*domain.ReactionModel, error) {
+		findAllByLivestreamIDOrderByCreatedAtDesc: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Reaction, error) {
 			*calls = append(*calls, "FindAllByLivestreamIDOrderByCreatedAtDesc")
 			checkLivestreamID(livestreamID)
 			return models, err
 		},
-		findAllByLivestreamIDOrderByCreatedAtDescLimited: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.ReactionModel, error) {
+		findAllByLivestreamIDOrderByCreatedAtDescLimited: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Reaction, error) {
 			*calls = append(*calls, "FindAllByLivestreamIDOrderByCreatedAtDescLimited")
 			checkLivestreamID(livestreamID)
 			*gotLimit = limit
@@ -53,7 +53,7 @@ func TestReactionUsecase_FindAllByLivestreamID(t *testing.T) {
 			f := testLivestreamFixture()
 			var calls []string
 			var gotLimit domain.Limit
-			reactionRepo := newReactionRepositoryForFindAll(t, &calls, &gotLimit, []*domain.ReactionModel{testReactionModel1, testReactionModel2}, nil)
+			reactionRepo := newReactionRepositoryForFindAll(t, &calls, &gotLimit, []*domain.Reaction{testReactionModel1, testReactionModel2}, nil)
 			u := NewReactionUsecase(&fakeTxManager{}, reactionRepo, f.reactionFiller(testLivestreamModel1))
 
 			got, err := u.FindAllByLivestreamID(context.Background(), 10, tt.limit)
@@ -80,7 +80,7 @@ func TestReactionUsecase_FindAllByLivestreamID_Errors(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		models  []*domain.ReactionModel
+		models  []*domain.Reaction
 		err     error
 		wantErr error
 		wantMsg string
@@ -89,7 +89,7 @@ func TestReactionUsecase_FindAllByLivestreamID_Errors(t *testing.T) {
 		{
 			// ライブ配信 2 は引けないので組み立てに失敗する
 			name:    "fill fails",
-			models:  []*domain.ReactionModel{testReactionModel3},
+			models:  []*domain.Reaction{testReactionModel3},
 			wantErr: repository.ErrNotFound,
 			wantMsg: "failed to get reactions: failed to get livestream of reaction 3: not found",
 		},
@@ -112,14 +112,14 @@ func TestReactionUsecase_FindAllByLivestreamID_Errors(t *testing.T) {
 
 // newReactionRepositoryForCreate は Create で呼ばれるメソッドを、呼ばれた順に calls へ記録する fakeReactionRepository を返す。
 // 登録したリアクションは created に取り出し、ID 100 で読み直したリアクションとして reaction を返す。
-func newReactionRepositoryForCreate(t *testing.T, calls *[]string, created **domain.ReactionModel, reaction *domain.ReactionModel, createErr, findErr error) *fakeReactionRepository {
+func newReactionRepositoryForCreate(t *testing.T, calls *[]string, created **domain.Reaction, reaction *domain.Reaction, createErr, findErr error) *fakeReactionRepository {
 	return &fakeReactionRepository{
-		create: func(_ context.Context, _ repository.Querier, r *domain.ReactionModel) (domain.ReactionID, error) {
+		create: func(_ context.Context, _ repository.Querier, r *domain.Reaction) (domain.ReactionID, error) {
 			*calls = append(*calls, "Create")
 			*created = r
 			return 100, createErr
 		},
-		findByID: func(_ context.Context, _ repository.Querier, id domain.ReactionID) (*domain.ReactionModel, error) {
+		findByID: func(_ context.Context, _ repository.Querier, id domain.ReactionID) (*domain.Reaction, error) {
 			*calls = append(*calls, "FindByID")
 			if id != 100 {
 				t.Errorf("id = %d, want 100", id)
@@ -130,12 +130,12 @@ func newReactionRepositoryForCreate(t *testing.T, calls *[]string, created **dom
 }
 
 // testCreatedReactionModel は登録したリアクション (ID 100) を読み直した結果。
-var testCreatedReactionModel = &domain.ReactionModel{ID: 100, UserID: 43, LivestreamID: 1, EmojiName: "tada", CreatedAt: 1700000000}
+var testCreatedReactionModel = &domain.Reaction{ID: 100, UserID: 43, LivestreamID: 1, EmojiName: "tada", CreatedAt: 1700000000}
 
 func TestReactionUsecase_Create(t *testing.T) {
 	f := testLivestreamFixture()
 	var calls []string
-	var created *domain.ReactionModel
+	var created *domain.Reaction
 	reactionRepo := newReactionRepositoryForCreate(t, &calls, &created, testCreatedReactionModel, nil, nil)
 	u := NewReactionUsecase(&fakeTxManager{}, reactionRepo, f.reactionFiller(testLivestreamModel1)).(*reactionUsecase)
 	u.now = func() time.Time { return time.Unix(1700000000, 0) }
@@ -151,7 +151,7 @@ func TestReactionUsecase_Create(t *testing.T) {
 	if wantCalls := []string{"Create", "FindByID"}; !slices.Equal(calls, wantCalls) {
 		t.Errorf("calls = %v, want %v", calls, wantCalls)
 	}
-	wantCreated := domain.ReactionModel{UserID: 43, LivestreamID: 1, EmojiName: "tada", CreatedAt: 1700000000}
+	wantCreated := domain.Reaction{UserID: 43, LivestreamID: 1, EmojiName: "tada", CreatedAt: 1700000000}
 	if created == nil || *created != wantCreated {
 		t.Errorf("created = %+v, want %+v", created, wantCreated)
 	}
@@ -188,7 +188,7 @@ func TestReactionUsecase_Create_Errors(t *testing.T) {
 				tt.modify(f)
 			}
 			var calls []string
-			var created *domain.ReactionModel
+			var created *domain.Reaction
 			reactionRepo := newReactionRepositoryForCreate(t, &calls, &created, testCreatedReactionModel, tt.createErr, tt.findErr)
 			u := NewReactionUsecase(&fakeTxManager{}, reactionRepo, f.reactionFiller(testLivestreamModel1))
 			_, err := u.Create(context.Background(), 43, 1, "tada")

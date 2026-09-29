@@ -40,7 +40,7 @@ func TestNGWordRepository_FindAllByUserIDAndLivestreamID(t *testing.T) {
 	if want := []domain.NGWordID{w1, w3, w2}; !slices.Equal(gotIDs, want) {
 		t.Errorf("ids = %v, want %v", gotIDs, want)
 	}
-	if want := (domain.NGWordModel{ID: w1, UserID: 1, LivestreamID: 10, Word: "w1", CreatedAt: 300}); *got[0] != want {
+	if want := (domain.NGWord{ID: w1, UserID: 1, LivestreamID: 10, Word: "w1", CreatedAt: 300}); *got[0] != want {
 		t.Errorf("got[0] = %+v, want %+v", *got[0], want)
 	}
 
@@ -93,7 +93,7 @@ func TestNGWordRepository_CreateAndFindAllByLivestreamID(t *testing.T) {
 
 	create := func(userID domain.UserID, livestreamID domain.LivestreamID, word string) domain.NGWordID {
 		t.Helper()
-		id, err := repo.Create(ctx, tx, &domain.NGWordModel{UserID: userID, LivestreamID: livestreamID, Word: word, CreatedAt: 100})
+		id, err := repo.Create(ctx, tx, &domain.NGWord{UserID: userID, LivestreamID: livestreamID, Word: word, CreatedAt: 100})
 		if err != nil {
 			t.Fatalf("Create returned error: %v", err)
 		}
@@ -119,7 +119,7 @@ func TestNGWordRepository_CreateAndFindAllByLivestreamID(t *testing.T) {
 	}
 	for _, w := range got {
 		if w.ID == w1 {
-			if want := (domain.NGWordModel{ID: w1, UserID: 1, LivestreamID: 10, Word: "w1", CreatedAt: 100}); *w != want {
+			if want := (domain.NGWord{ID: w1, UserID: 1, LivestreamID: 10, Word: "w1", CreatedAt: 100}); *w != want {
 				t.Errorf("got %+v, want %+v", *w, want)
 			}
 		}

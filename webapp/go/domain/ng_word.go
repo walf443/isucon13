@@ -1,8 +1,8 @@
 package domain
 
-type NGWordID = ID[NGWordModel]
+type NGWordID = ID[NGWord]
 
-type NGWordModel struct {
+type NGWord struct {
 	ID           NGWordID     `db:"id"`
 	UserID       UserID       `db:"user_id"`
 	LivestreamID LivestreamID `db:"livestream_id"`

@@ -38,10 +38,10 @@ var (
 	testReaction = &domain.ReactionDetail{
 		ID:        100,
 		EmojiName: "tada",
-		User:      domain.UserDetail{ID: 1, Name: "bob", Theme: domain.ThemeModel{ID: 11, UserID: 1}, IconHash: "bbb"},
+		User:      domain.UserDetail{ID: 1, Name: "bob", Theme: domain.Theme{ID: 11, UserID: 1}, IconHash: "bbb"},
 		Livestream: domain.LivestreamDetail{
 			ID:    10,
-			Owner: domain.UserDetail{ID: 2, Name: "alice", Theme: domain.ThemeModel{ID: 12, UserID: 2, DarkMode: true}, IconHash: "aaa"},
+			Owner: domain.UserDetail{ID: 2, Name: "alice", Theme: domain.Theme{ID: 12, UserID: 2, DarkMode: true}, IconHash: "aaa"},
 			Title: "stream",
 		},
 		CreatedAt: 1700000000,

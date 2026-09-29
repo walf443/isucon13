@@ -15,8 +15,8 @@ func NewLivecommentReportRepository() repository.LivecommentReportRepository {
 	return &livecommentReportRepository{}
 }
 
-func (r *livecommentReportRepository) FindByID(ctx context.Context, q repository.Querier, id domain.LivecommentReportID) (*domain.LivecommentReportModel, error) {
-	var reportModel domain.LivecommentReportModel
+func (r *livecommentReportRepository) FindByID(ctx context.Context, q repository.Querier, id domain.LivecommentReportID) (*domain.LivecommentReport, error) {
+	var reportModel domain.LivecommentReport
 	err := q.GetContext(ctx, &reportModel, "SELECT id, user_id, livestream_id, livecomment_id, created_at FROM livecomment_reports WHERE id = ?", id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, repository.ErrNotFound
@@ -27,15 +27,15 @@ func (r *livecommentReportRepository) FindByID(ctx context.Context, q repository
 	return &reportModel, nil
 }
 
-func (r *livecommentReportRepository) FindAllByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentReportModel, error) {
-	var reportModels []*domain.LivecommentReportModel
+func (r *livecommentReportRepository) FindAllByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentReport, error) {
+	var reportModels []*domain.LivecommentReport
 	if err := q.SelectContext(ctx, &reportModels, "SELECT id, user_id, livestream_id, livecomment_id, created_at FROM livecomment_reports WHERE livestream_id = ?", livestreamID); err != nil {
 		return nil, err
 	}
 	return reportModels, nil
 }
 
-func (r *livecommentReportRepository) Create(ctx context.Context, q repository.Querier, report *domain.LivecommentReportModel) (domain.LivecommentReportID, error) {
+func (r *livecommentReportRepository) Create(ctx context.Context, q repository.Querier, report *domain.LivecommentReport) (domain.LivecommentReportID, error) {
 	rs, err := q.ExecContext(ctx, "INSERT INTO livecomment_reports(user_id, livestream_id, livecomment_id, created_at) VALUES (?, ?, ?, ?)", report.UserID, report.LivestreamID, report.LivecommentID, report.CreatedAt)
 	if err != nil {
 		return 0, err

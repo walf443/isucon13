@@ -10,7 +10,7 @@ import (
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
-func reactionModelIDs(reactions []*domain.ReactionModel) []domain.ReactionID {
+func reactionModelIDs(reactions []*domain.Reaction) []domain.ReactionID {
 	ids := make([]domain.ReactionID, len(reactions))
 	for i, r := range reactions {
 		ids[i] = r.ID
@@ -25,7 +25,7 @@ func TestReactionRepository_FindByID(t *testing.T) {
 	ownerID := insertTestUser(t, tx, "alice")
 	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
 	repo := NewReactionRepository()
-	want := domain.ReactionModel{UserID: ownerID, LivestreamID: livestreamID, EmojiName: "tada", CreatedAt: 1700000000}
+	want := domain.Reaction{UserID: ownerID, LivestreamID: livestreamID, EmojiName: "tada", CreatedAt: 1700000000}
 	id, err := repo.Create(ctx, tx, &want)
 	if err != nil {
 		t.Fatalf("Create returned error: %v", err)
@@ -54,7 +54,7 @@ func TestReactionRepository_FindAllByLivestreamIDOrderByCreatedAtDesc(t *testing
 	otherID := insertTestLivestream(t, tx, ownerID, "other")
 	repo := NewReactionRepository()
 	create := func(livestreamID domain.LivestreamID, createdAt int64) domain.ReactionID {
-		id, err := repo.Create(ctx, tx, &domain.ReactionModel{UserID: ownerID, LivestreamID: livestreamID, EmojiName: "tada", CreatedAt: createdAt})
+		id, err := repo.Create(ctx, tx, &domain.Reaction{UserID: ownerID, LivestreamID: livestreamID, EmojiName: "tada", CreatedAt: createdAt})
 		if err != nil {
 			t.Fatalf("Create returned error: %v", err)
 		}

@@ -12,21 +12,21 @@ import (
 
 // aliceModel と aliceUser は、テーマ・アイコンを埋める前後のユーザ alice。
 var (
-	aliceModel = &domain.UserModel{ID: 1, Name: "alice", DisplayName: "Alice", Description: "hi"}
-	aliceTheme = &domain.ThemeModel{ID: 10, UserID: 1, DarkMode: true}
+	aliceModel = &domain.User{ID: 1, Name: "alice", DisplayName: "Alice", Description: "hi"}
+	aliceTheme = &domain.Theme{ID: 10, UserID: 1, DarkMode: true}
 	aliceUser  = domain.UserDetail{ID: 1, Name: "alice", DisplayName: "Alice", Description: "hi", Theme: *aliceTheme, IconHash: "default-hash"}
 )
 
 func TestUserUsecase_FindByName(t *testing.T) {
 	userRepo := &fakeUserRepository{
-		findByName: func(_ context.Context, _ repository.Querier, name string) (*domain.UserModel, error) {
+		findByName: func(_ context.Context, _ repository.Querier, name string) (*domain.User, error) {
 			if name != "alice" {
 				t.Errorf("name = %q, want %q", name, "alice")
 			}
 			return aliceModel, nil
 		},
 	}
-	userFiller := newUserFillerForTest(map[domain.UserID]*domain.ThemeModel{1: aliceTheme}, nil, nil)
+	userFiller := newUserFillerForTest(map[domain.UserID]*domain.Theme{1: aliceTheme}, nil, nil)
 	u := NewUserUsecase(&fakeTxManager{}, userRepo, userFiller)
 
 	user, err := u.FindByName(context.Background(), "alice")
@@ -40,14 +40,14 @@ func TestUserUsecase_FindByName(t *testing.T) {
 
 func TestUserUsecase_FindByID(t *testing.T) {
 	userRepo := &fakeUserRepository{
-		findByID: func(_ context.Context, _ repository.Querier, id domain.UserID) (*domain.UserModel, error) {
+		findByID: func(_ context.Context, _ repository.Querier, id domain.UserID) (*domain.User, error) {
 			if id != 1 {
 				t.Errorf("id = %d, want 1", id)
 			}
 			return aliceModel, nil
 		},
 	}
-	userFiller := newUserFillerForTest(map[domain.UserID]*domain.ThemeModel{1: aliceTheme}, nil, nil)
+	userFiller := newUserFillerForTest(map[domain.UserID]*domain.Theme{1: aliceTheme}, nil, nil)
 	u := NewUserUsecase(&fakeTxManager{}, userRepo, userFiller)
 
 	user, err := u.FindByID(context.Background(), 1)
@@ -65,10 +65,10 @@ func TestUserUsecase_Errors(t *testing.T) {
 	tests := []struct {
 		name string
 		// user, userErr はユーザを引いた結果
-		user    *domain.UserModel
+		user    *domain.User
 		userErr error
 		// themes はユーザの ID ごとのテーマ (無ければテーマ欠損)
-		themes  map[domain.UserID]*domain.ThemeModel
+		themes  map[domain.UserID]*domain.Theme
 		wantErr error
 		wantMsg string
 	}{
@@ -86,10 +86,10 @@ func TestUserUsecase_Errors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			userRepo := &fakeUserRepository{
-				findByName: func(context.Context, repository.Querier, string) (*domain.UserModel, error) {
+				findByName: func(context.Context, repository.Querier, string) (*domain.User, error) {
 					return tt.user, tt.userErr
 				},
-				findByID: func(context.Context, repository.Querier, domain.UserID) (*domain.UserModel, error) {
+				findByID: func(context.Context, repository.Querier, domain.UserID) (*domain.User, error) {
 					return tt.user, tt.userErr
 				},
 			}
@@ -117,16 +117,16 @@ func TestUserUsecase_Login(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to hash password: %v", err)
 	}
-	user := &domain.UserModel{ID: 5, Name: "alice", HashedPassword: hashed}
+	user := &domain.User{ID: 5, Name: "alice", HashedPassword: hashed}
 	boom := errors.New("boom")
 
 	tests := []struct {
 		name string
 		// user, userErr はユーザ名でユーザを引いた結果
-		user     *domain.UserModel
+		user     *domain.User
 		userErr  error
 		password string
-		want     *domain.UserModel
+		want     *domain.User
 		wantErr  error
 		wantMsg  string
 	}{
@@ -137,7 +137,7 @@ func TestUserUsecase_Login(t *testing.T) {
 		{
 			// ハッシュとして不正な値の場合は 401 ではなくエラーにする (移行前と同じ)
 			name:     "broken hash",
-			user:     &domain.UserModel{ID: 5, Name: "alice", HashedPassword: "broken"},
+			user:     &domain.User{ID: 5, Name: "alice", HashedPassword: "broken"},
 			password: "s3cret",
 			wantErr:  bcrypt.ErrHashTooShort,
 			wantMsg:  "failed to compare hash and password: " + bcrypt.ErrHashTooShort.Error(),
@@ -148,7 +148,7 @@ func TestUserUsecase_Login(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			txManager := &fakeTxManager{}
 			userRepo := &fakeUserRepository{
-				findByName: func(_ context.Context, _ repository.Querier, name string) (*domain.UserModel, error) {
+				findByName: func(_ context.Context, _ repository.Querier, name string) (*domain.User, error) {
 					if name != "alice" {
 						t.Errorf("name = %q, want %q", name, "alice")
 					}

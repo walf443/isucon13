@@ -14,14 +14,14 @@ import (
 
 func insertTestReaction(t *testing.T, tx repository.Querier, userID domain.UserID, livestreamID domain.LivestreamID, emojiName string) {
 	t.Helper()
-	if _, err := NewReactionRepository().Create(context.Background(), tx, &domain.ReactionModel{UserID: userID, LivestreamID: livestreamID, EmojiName: emojiName, CreatedAt: 100}); err != nil {
+	if _, err := NewReactionRepository().Create(context.Background(), tx, &domain.Reaction{UserID: userID, LivestreamID: livestreamID, EmojiName: emojiName, CreatedAt: 100}); err != nil {
 		t.Fatalf("failed to insert reaction: %v", err)
 	}
 }
 
 func insertTestLivecommentWithTip(t *testing.T, tx repository.Querier, userID domain.UserID, livestreamID domain.LivestreamID, tip int64) domain.LivecommentID {
 	t.Helper()
-	id, err := NewLivecommentRepository().Create(context.Background(), tx, &domain.LivecommentModel{UserID: userID, LivestreamID: livestreamID, Comment: "c", Tip: tip, CreatedAt: 100})
+	id, err := NewLivecommentRepository().Create(context.Background(), tx, &domain.Livecomment{UserID: userID, LivestreamID: livestreamID, Comment: "c", Tip: tip, CreatedAt: 100})
 	if err != nil {
 		t.Fatalf("failed to insert livecomment: %v", err)
 	}
@@ -39,11 +39,11 @@ func TestUserRepository_FindAll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindAll returned error: %v", err)
 	}
-	got := map[domain.UserID]domain.UserModel{}
+	got := map[domain.UserID]domain.User{}
 	for _, u := range users {
 		got[u.ID] = *u
 	}
-	if want := (domain.UserModel{ID: aliceID, Name: "alice", DisplayName: "Display alice", Description: "desc alice", HashedPassword: "hashed"}); got[aliceID] != want {
+	if want := (domain.User{ID: aliceID, Name: "alice", DisplayName: "Display alice", Description: "desc alice", HashedPassword: "hashed"}); got[aliceID] != want {
 		t.Errorf("alice = %+v, want %+v", got[aliceID], want)
 	}
 	if got[bobID].Name != "bob" {
@@ -172,7 +172,7 @@ func TestLivecommentRepository_FindAllByLivestreamID(t *testing.T) {
 	for _, l := range livecomments {
 		ids = append(ids, l.ID)
 		if l.ID == c1 {
-			if want := (domain.LivecommentModel{ID: c1, UserID: ownerID, LivestreamID: stream, Comment: "c", Tip: 100, CreatedAt: 100}); *l != want {
+			if want := (domain.Livecomment{ID: c1, UserID: ownerID, LivestreamID: stream, Comment: "c", Tip: 100, CreatedAt: 100}); *l != want {
 				t.Errorf("livecomment = %+v, want %+v", *l, want)
 			}
 		}
@@ -216,7 +216,7 @@ func TestLivestreamViewersHistoryRepository_CountByLivestreamID(t *testing.T) {
 	tx := beginTestTx(t)
 	repo := NewLivestreamViewersHistoryRepository()
 
-	for _, v := range []domain.LivestreamViewersHistoryModel{
+	for _, v := range []domain.LivestreamViewersHistory{
 		{UserID: 1, LivestreamID: 10, CreatedAt: 100},
 		{UserID: 1, LivestreamID: 10, CreatedAt: 200},
 		{UserID: 2, LivestreamID: 10, CreatedAt: 100},

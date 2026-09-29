@@ -42,7 +42,7 @@ func NewLivecommentReportUsecase(txManager repository.TxManager, livestreamRepo 
 }
 
 // livecommentReportModelID は orderedBy に渡すための、報告の ID を取り出す関数。
-func livecommentReportModelID(reportModel *domain.LivecommentReportModel) domain.LivecommentReportID {
+func livecommentReportModelID(reportModel *domain.LivecommentReport) domain.LivecommentReportID {
 	return reportModel.ID
 }
 
@@ -95,7 +95,7 @@ func (u *livecommentReportUsecase) Create(ctx context.Context, userID domain.Use
 			return fmt.Errorf("failed to get livecomment: %w", err)
 		}
 
-		reportID, err := u.reportRepo.Create(ctx, q, &domain.LivecommentReportModel{
+		reportID, err := u.reportRepo.Create(ctx, q, &domain.LivecommentReport{
 			UserID:        userID,
 			LivestreamID:  livestreamID,
 			LivecommentID: livecommentID,
@@ -109,7 +109,7 @@ func (u *livecommentReportUsecase) Create(ctx context.Context, userID domain.Use
 		if err != nil {
 			return fmt.Errorf("failed to fill livecomment report: %w", err)
 		}
-		reports, err := u.reportFiller.Fill(ctx, q, []*domain.LivecommentReportModel{reportModel})
+		reports, err := u.reportFiller.Fill(ctx, q, []*domain.LivecommentReport{reportModel})
 		if err != nil {
 			return fmt.Errorf("failed to fill livecomment report: %w", err)
 		}

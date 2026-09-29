@@ -14,9 +14,9 @@ import (
 // newUserFillerForTest は themes / icons をユーザの ID ごとに返す UserFiller を返す。
 // themes に無いユーザはテーマ欠損 (ErrNotFound)、icons に無いユーザはアイコン未登録として扱う。
 // 呼ばれたユーザの ID を themeCalls に記録する。
-func newUserFillerForTest(themes map[domain.UserID]*domain.ThemeModel, icons map[domain.UserID][]byte, themeCalls *[]domain.UserID) *UserFiller {
+func newUserFillerForTest(themes map[domain.UserID]*domain.Theme, icons map[domain.UserID][]byte, themeCalls *[]domain.UserID) *UserFiller {
 	themeRepo := &fakeThemeRepository{
-		findByUserID: func(_ context.Context, _ repository.Querier, userID domain.UserID) (*domain.ThemeModel, error) {
+		findByUserID: func(_ context.Context, _ repository.Querier, userID domain.UserID) (*domain.Theme, error) {
 			if themeCalls != nil {
 				*themeCalls = append(*themeCalls, userID)
 			}
@@ -40,9 +40,9 @@ func newUserFillerForTest(themes map[domain.UserID]*domain.ThemeModel, icons map
 }
 
 func TestUserFiller_Fill(t *testing.T) {
-	alice := &domain.UserModel{ID: 1, Name: "alice", DisplayName: "Alice", Description: "hi"}
-	bob := &domain.UserModel{ID: 2, Name: "bob"}
-	themes := map[domain.UserID]*domain.ThemeModel{
+	alice := &domain.User{ID: 1, Name: "alice", DisplayName: "Alice", Description: "hi"}
+	bob := &domain.User{ID: 2, Name: "bob"}
+	themes := map[domain.UserID]*domain.Theme{
 		1: {ID: 10, UserID: 1, DarkMode: true},
 		2: {ID: 20, UserID: 2},
 	}
@@ -51,7 +51,7 @@ func TestUserFiller_Fill(t *testing.T) {
 	f := newUserFillerForTest(themes, icons, &themeCalls)
 
 	// 同じユーザが重複していても 1 回だけ取得する
-	got, err := f.Fill(context.Background(), nil, []*domain.UserModel{alice, bob, alice})
+	got, err := f.Fill(context.Background(), nil, []*domain.User{alice, bob, alice})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -97,7 +97,7 @@ func TestUserFiller_Fill_Errors(t *testing.T) {
 		{
 			name: "theme not found",
 			themeRepo: &fakeThemeRepository{
-				findByUserID: func(context.Context, repository.Querier, domain.UserID) (*domain.ThemeModel, error) {
+				findByUserID: func(context.Context, repository.Querier, domain.UserID) (*domain.Theme, error) {
 					return nil, repository.ErrNotFound
 				},
 			},
@@ -107,8 +107,8 @@ func TestUserFiller_Fill_Errors(t *testing.T) {
 		{
 			name: "get icon fails",
 			themeRepo: &fakeThemeRepository{
-				findByUserID: func(context.Context, repository.Querier, domain.UserID) (*domain.ThemeModel, error) {
-					return &domain.ThemeModel{ID: 10, UserID: 1}, nil
+				findByUserID: func(context.Context, repository.Querier, domain.UserID) (*domain.Theme, error) {
+					return &domain.Theme{ID: 10, UserID: 1}, nil
 				},
 			},
 			iconRepo: &fakeIconRepository{
@@ -122,7 +122,7 @@ func TestUserFiller_Fill_Errors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			f := NewUserFiller(tt.themeRepo, tt.iconRepo, "")
-			_, err := f.Fill(context.Background(), nil, []*domain.UserModel{{ID: 1}})
+			_, err := f.Fill(context.Background(), nil, []*domain.User{{ID: 1}})
 			if !errors.Is(err, tt.wantErr) || err.Error() != tt.wantMsg {
 				t.Errorf("err = %v, want %q", err, tt.wantMsg)
 			}

@@ -24,10 +24,10 @@ func NewReactionFiller(userRepo repository.UserRepository, livestreamRepo reposi
 // 同じユーザ・ライブ配信が複数含まれていても 1 回だけ取得する。並び順は呼び出し側で決める。
 //
 // ユーザやライブ配信が無いのはデータ不整合なので、呼び出し側はこのエラーをリアクション不在として扱わないこと。
-func (f *ReactionFiller) Fill(ctx context.Context, q repository.Querier, reactionModels []*domain.ReactionModel) (map[domain.ReactionID]*domain.ReactionDetail, error) {
-	userModels := make([]*domain.UserModel, 0, len(reactionModels))
+func (f *ReactionFiller) Fill(ctx context.Context, q repository.Querier, reactionModels []*domain.Reaction) (map[domain.ReactionID]*domain.ReactionDetail, error) {
+	userModels := make([]*domain.User, 0, len(reactionModels))
 	fetchedUsers := make(map[domain.UserID]bool, len(reactionModels))
-	livestreamModels := make([]*domain.LivestreamModel, 0, len(reactionModels))
+	livestreamModels := make([]*domain.Livestream, 0, len(reactionModels))
 	fetchedLivestreams := make(map[domain.LivestreamID]bool, len(reactionModels))
 	for _, reactionModel := range reactionModels {
 		if !fetchedUsers[reactionModel.UserID] {

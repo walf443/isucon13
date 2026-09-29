@@ -12,12 +12,12 @@ import (
 type fakeReservationSlotRepository struct {
 	repository.ReservationSlotRepository
 
-	findAllByRangeForUpdate   func(ctx context.Context, q repository.Querier, period domain.ReservationPeriod) ([]*domain.ReservationSlotModel, error)
+	findAllByRangeForUpdate   func(ctx context.Context, q repository.Querier, period domain.ReservationPeriod) ([]*domain.ReservationSlot, error)
 	findSlotByStartAtAndEndAt func(ctx context.Context, q repository.Querier, startAt int64, endAt int64) (int64, error)
 	decrementSlotsByRange     func(ctx context.Context, q repository.Querier, period domain.ReservationPeriod) error
 }
 
-func (r *fakeReservationSlotRepository) FindAllByRangeForUpdate(ctx context.Context, q repository.Querier, period domain.ReservationPeriod) ([]*domain.ReservationSlotModel, error) {
+func (r *fakeReservationSlotRepository) FindAllByRangeForUpdate(ctx context.Context, q repository.Querier, period domain.ReservationPeriod) ([]*domain.ReservationSlot, error) {
 	return r.findAllByRangeForUpdate(ctx, q, period)
 }
 

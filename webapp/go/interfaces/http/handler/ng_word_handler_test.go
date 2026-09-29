@@ -11,7 +11,7 @@ import (
 )
 
 type fakeNGWordUsecase struct {
-	ngWords []*domain.NGWordModel
+	ngWords []*domain.NGWord
 	wordID  domain.NGWordID
 	err     error
 	gotWord string
@@ -27,7 +27,7 @@ func (u *fakeNGWordUsecase) Moderate(ctx context.Context, userID domain.UserID, 
 	return u.wordID, u.err
 }
 
-func (u *fakeNGWordUsecase) FindAllByLivestreamID(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.NGWordModel, error) {
+func (u *fakeNGWordUsecase) FindAllByLivestreamID(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.NGWord, error) {
 	u.gotUserID = userID
 	u.gotLivestreamID = livestreamID
 	return u.ngWords, u.err
@@ -46,7 +46,7 @@ func TestNGWordHandler_GetNGWords(t *testing.T) {
 			name:   "returns NG words",
 			path:   "/api/livestream/10/ngwords",
 			cookie: sessionAs(2),
-			usecase: &fakeNGWordUsecase{ngWords: []*domain.NGWordModel{
+			usecase: &fakeNGWordUsecase{ngWords: []*domain.NGWord{
 				{ID: 2, UserID: 2, LivestreamID: 10, Word: "bad2", CreatedAt: 200},
 				{ID: 1, UserID: 2, LivestreamID: 10, Word: "bad1", CreatedAt: 100},
 			}},

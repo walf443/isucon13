@@ -15,8 +15,8 @@ func NewLivestreamTagRepository() repository.LivestreamTagRepository {
 	return &livestreamTagRepository{}
 }
 
-func (r *livestreamTagRepository) FindAllByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivestreamTagModel, error) {
-	var livestreamTags []*domain.LivestreamTagModel
+func (r *livestreamTagRepository) FindAllByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivestreamTag, error) {
+	var livestreamTags []*domain.LivestreamTag
 	if err := q.SelectContext(ctx, &livestreamTags, "SELECT id, livestream_id, tag_id FROM livestream_tags WHERE livestream_id = ?", livestreamID); err != nil {
 		return nil, err
 	}
@@ -28,12 +28,12 @@ func (r *livestreamTagRepository) Create(ctx context.Context, q repository.Queri
 	return err
 }
 
-func (r *livestreamTagRepository) FindAllByTagIDs(ctx context.Context, q repository.Querier, tagIDs []domain.TagID) ([]*domain.LivestreamTagModel, error) {
+func (r *livestreamTagRepository) FindAllByTagIDs(ctx context.Context, q repository.Querier, tagIDs []domain.TagID) ([]*domain.LivestreamTag, error) {
 	query, params, err := sqlx.In("SELECT id, livestream_id, tag_id FROM livestream_tags WHERE tag_id IN (?) ORDER BY livestream_id DESC", tagIDs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct IN query: %w", err)
 	}
-	var livestreamTags []*domain.LivestreamTagModel
+	var livestreamTags []*domain.LivestreamTag
 	if err := q.SelectContext(ctx, &livestreamTags, query, params...); err != nil {
 		return nil, err
 	}

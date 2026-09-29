@@ -12,21 +12,21 @@ import (
 type fakeLivecommentReportRepository struct {
 	repository.LivecommentReportRepository
 
-	findByID              func(ctx context.Context, q repository.Querier, id domain.LivecommentReportID) (*domain.LivecommentReportModel, error)
-	findAllByLivestreamID func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentReportModel, error)
-	create                func(ctx context.Context, q repository.Querier, report *domain.LivecommentReportModel) (domain.LivecommentReportID, error)
+	findByID              func(ctx context.Context, q repository.Querier, id domain.LivecommentReportID) (*domain.LivecommentReport, error)
+	findAllByLivestreamID func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentReport, error)
+	create                func(ctx context.Context, q repository.Querier, report *domain.LivecommentReport) (domain.LivecommentReportID, error)
 	countByLivestreamID   func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error)
 }
 
-func (r *fakeLivecommentReportRepository) FindByID(ctx context.Context, q repository.Querier, id domain.LivecommentReportID) (*domain.LivecommentReportModel, error) {
+func (r *fakeLivecommentReportRepository) FindByID(ctx context.Context, q repository.Querier, id domain.LivecommentReportID) (*domain.LivecommentReport, error) {
 	return r.findByID(ctx, q, id)
 }
 
-func (r *fakeLivecommentReportRepository) FindAllByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentReportModel, error) {
+func (r *fakeLivecommentReportRepository) FindAllByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentReport, error) {
 	return r.findAllByLivestreamID(ctx, q, livestreamID)
 }
 
-func (r *fakeLivecommentReportRepository) Create(ctx context.Context, q repository.Querier, report *domain.LivecommentReportModel) (domain.LivecommentReportID, error) {
+func (r *fakeLivecommentReportRepository) Create(ctx context.Context, q repository.Querier, report *domain.LivecommentReport) (domain.LivecommentReportID, error) {
 	return r.create(ctx, q, report)
 }
 

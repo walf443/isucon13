@@ -12,11 +12,11 @@ import (
 type fakeLivecommentRepository struct {
 	repository.LivecommentRepository
 
-	findByID                                         func(ctx context.Context, q repository.Querier, id domain.LivecommentID) (*domain.LivecommentModel, error)
-	findAllByLivestreamID                            func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentModel, error)
-	findAllByLivestreamIDOrderByCreatedAtDesc        func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentModel, error)
-	findAllByLivestreamIDOrderByCreatedAtDescLimited func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.LivecommentModel, error)
-	create                                           func(ctx context.Context, q repository.Querier, livecomment *domain.LivecommentModel) (domain.LivecommentID, error)
+	findByID                                         func(ctx context.Context, q repository.Querier, id domain.LivecommentID) (*domain.Livecomment, error)
+	findAllByLivestreamID                            func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Livecomment, error)
+	findAllByLivestreamIDOrderByCreatedAtDesc        func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Livecomment, error)
+	findAllByLivestreamIDOrderByCreatedAtDescLimited func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Livecomment, error)
+	create                                           func(ctx context.Context, q repository.Querier, livecomment *domain.Livecomment) (domain.LivecommentID, error)
 	deleteAllByLivestreamIDMatchingNGWord            func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, word string) error
 	sumTip                                           func(ctx context.Context, q repository.Querier) (int64, error)
 	sumTipByLivestreamID                             func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error)
@@ -24,23 +24,23 @@ type fakeLivecommentRepository struct {
 	maxTipByLivestreamID                             func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error)
 }
 
-func (r *fakeLivecommentRepository) FindByID(ctx context.Context, q repository.Querier, id domain.LivecommentID) (*domain.LivecommentModel, error) {
+func (r *fakeLivecommentRepository) FindByID(ctx context.Context, q repository.Querier, id domain.LivecommentID) (*domain.Livecomment, error) {
 	return r.findByID(ctx, q, id)
 }
 
-func (r *fakeLivecommentRepository) FindAllByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentModel, error) {
+func (r *fakeLivecommentRepository) FindAllByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Livecomment, error) {
 	return r.findAllByLivestreamID(ctx, q, livestreamID)
 }
 
-func (r *fakeLivecommentRepository) FindAllByLivestreamIDOrderByCreatedAtDesc(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentModel, error) {
+func (r *fakeLivecommentRepository) FindAllByLivestreamIDOrderByCreatedAtDesc(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Livecomment, error) {
 	return r.findAllByLivestreamIDOrderByCreatedAtDesc(ctx, q, livestreamID)
 }
 
-func (r *fakeLivecommentRepository) FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.LivecommentModel, error) {
+func (r *fakeLivecommentRepository) FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Livecomment, error) {
 	return r.findAllByLivestreamIDOrderByCreatedAtDescLimited(ctx, q, livestreamID, limit)
 }
 
-func (r *fakeLivecommentRepository) Create(ctx context.Context, q repository.Querier, livecomment *domain.LivecommentModel) (domain.LivecommentID, error) {
+func (r *fakeLivecommentRepository) Create(ctx context.Context, q repository.Querier, livecomment *domain.Livecomment) (domain.LivecommentID, error) {
 	return r.create(ctx, q, livecomment)
 }
 

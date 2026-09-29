@@ -1,8 +1,8 @@
 package domain
 
-type ReactionID = ID[ReactionModel]
+type ReactionID = ID[Reaction]
 
-type ReactionModel struct {
+type Reaction struct {
 	ID           ReactionID   `db:"id"`
 	EmojiName    string       `db:"emoji_name"`
 	UserID       UserID       `db:"user_id"`

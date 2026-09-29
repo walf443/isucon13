@@ -29,7 +29,7 @@ func TestLivecommentRepository_Create(t *testing.T) {
 	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
 	repo := NewLivecommentRepository()
 
-	want := domain.LivecommentModel{UserID: viewerID, LivestreamID: livestreamID, Comment: "hello", Tip: 500, CreatedAt: 1700000000}
+	want := domain.Livecomment{UserID: viewerID, LivestreamID: livestreamID, Comment: "hello", Tip: 500, CreatedAt: 1700000000}
 	id, err := repo.Create(ctx, tx, &want)
 	if err != nil {
 		t.Fatalf("Create returned error: %v", err)
@@ -87,7 +87,7 @@ func TestLivecommentRepository_FindByID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindByID returned error: %v", err)
 	}
-	if want := (domain.LivecommentModel{ID: id, UserID: ownerID, LivestreamID: livestreamID, Comment: "hello", Tip: 10, CreatedAt: 100}); *got != want {
+	if want := (domain.Livecomment{ID: id, UserID: ownerID, LivestreamID: livestreamID, Comment: "hello", Tip: 10, CreatedAt: 100}); *got != want {
 		t.Errorf("got %+v, want %+v", *got, want)
 	}
 
@@ -122,7 +122,7 @@ func TestLivecommentRepository_SumTip(t *testing.T) {
 	}
 }
 
-func livecommentModelIDs(livecomments []*domain.LivecommentModel) []domain.LivecommentID {
+func livecommentModelIDs(livecomments []*domain.Livecomment) []domain.LivecommentID {
 	ids := make([]domain.LivecommentID, len(livecomments))
 	for i, l := range livecomments {
 		ids[i] = l.ID

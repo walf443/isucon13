@@ -22,7 +22,7 @@ func insertTestLivestream(t *testing.T, tx repository.Querier, userID domain.Use
 	return domain.LivestreamID(id)
 }
 
-func insertTestTag(t *testing.T, tx repository.Querier, livestreamID domain.LivestreamID, name string) domain.TagModel {
+func insertTestTag(t *testing.T, tx repository.Querier, livestreamID domain.LivestreamID, name string) domain.Tag {
 	t.Helper()
 	ctx := context.Background()
 	res, err := tx.ExecContext(ctx, "INSERT INTO tags (name) VALUES (?)", name)
@@ -33,7 +33,7 @@ func insertTestTag(t *testing.T, tx repository.Querier, livestreamID domain.Live
 	if _, err := tx.ExecContext(ctx, "INSERT INTO livestream_tags (livestream_id, tag_id) VALUES (?, ?)", livestreamID, tagID); err != nil {
 		t.Fatalf("failed to insert livestream_tag: %v", err)
 	}
-	return domain.TagModel{ID: domain.TagID(tagID), Name: name}
+	return domain.Tag{ID: domain.TagID(tagID), Name: name}
 }
 
 func TestLivestreamRepository_FindByID(t *testing.T) {
@@ -48,7 +48,7 @@ func TestLivestreamRepository_FindByID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindByID returned error: %v", err)
 	}
-	want := domain.LivestreamModel{
+	want := domain.Livestream{
 		ID:           livestreamID,
 		UserID:       ownerID,
 		Title:        "stream",
@@ -119,7 +119,7 @@ func TestLivestreamRepository_CreateAndLivestreamTagRepository_Create(t *testing
 		tagIDs = append(tagIDs, domain.TagID(id))
 	}
 
-	want := domain.LivestreamModel{
+	want := domain.Livestream{
 		UserID:       ownerID,
 		Title:        "stream",
 		Description:  "desc",
@@ -160,7 +160,7 @@ func TestLivestreamRepository_CreateAndLivestreamTagRepository_Create(t *testing
 	}
 }
 
-func livestreamModelIDs(livestreams []*domain.LivestreamModel) []domain.LivestreamID {
+func livestreamModelIDs(livestreams []*domain.Livestream) []domain.LivestreamID {
 	ids := make([]domain.LivestreamID, len(livestreams))
 	for i, l := range livestreams {
 		ids[i] = l.ID

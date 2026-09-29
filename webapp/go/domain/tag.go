@@ -1,8 +1,8 @@
 package domain
 
-type TagID = ID[TagModel]
+type TagID = ID[Tag]
 
-type TagModel struct {
+type Tag struct {
 	ID   TagID  `db:"id"`
 	Name string `db:"name"`
 }

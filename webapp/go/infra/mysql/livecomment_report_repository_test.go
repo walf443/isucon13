@@ -18,7 +18,7 @@ func TestLivecommentReportRepository_FindByID(t *testing.T) {
 	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
 	livecommentID := insertTestLivecomment(t, tx, ownerID, livestreamID, "spam", 100)
 	repo := NewLivecommentReportRepository()
-	want := domain.LivecommentReportModel{UserID: ownerID, LivestreamID: livestreamID, LivecommentID: livecommentID, CreatedAt: 1700000000}
+	want := domain.LivecommentReport{UserID: ownerID, LivestreamID: livestreamID, LivecommentID: livecommentID, CreatedAt: 1700000000}
 	id, err := repo.Create(ctx, tx, &want)
 	if err != nil {
 		t.Fatalf("Create returned error: %v", err)
@@ -50,13 +50,13 @@ func TestLivecommentReportRepository_FindAllByLivestreamID(t *testing.T) {
 	repo := NewLivecommentReportRepository()
 	var want []domain.LivecommentReportID
 	for range 2 {
-		id, err := repo.Create(ctx, tx, &domain.LivecommentReportModel{UserID: ownerID, LivestreamID: livestreamID, LivecommentID: livecommentID, CreatedAt: 100})
+		id, err := repo.Create(ctx, tx, &domain.LivecommentReport{UserID: ownerID, LivestreamID: livestreamID, LivecommentID: livecommentID, CreatedAt: 100})
 		if err != nil {
 			t.Fatalf("Create returned error: %v", err)
 		}
 		want = append(want, id)
 	}
-	if _, err := repo.Create(ctx, tx, &domain.LivecommentReportModel{UserID: ownerID, LivestreamID: otherID, LivecommentID: otherCommentID, CreatedAt: 100}); err != nil {
+	if _, err := repo.Create(ctx, tx, &domain.LivecommentReport{UserID: ownerID, LivestreamID: otherID, LivecommentID: otherCommentID, CreatedAt: 100}); err != nil {
 		t.Fatalf("Create returned error: %v", err)
 	}
 

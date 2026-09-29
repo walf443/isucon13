@@ -13,8 +13,8 @@ func NewReservationSlotRepository() repository.ReservationSlotRepository {
 	return &reservationSlotRepository{}
 }
 
-func (r *reservationSlotRepository) FindAllByRangeForUpdate(ctx context.Context, q repository.Querier, period domain.ReservationPeriod) ([]*domain.ReservationSlotModel, error) {
-	var slots []*domain.ReservationSlotModel
+func (r *reservationSlotRepository) FindAllByRangeForUpdate(ctx context.Context, q repository.Querier, period domain.ReservationPeriod) ([]*domain.ReservationSlot, error) {
+	var slots []*domain.ReservationSlot
 	if err := q.SelectContext(ctx, &slots, "SELECT id, slot, start_at, end_at FROM reservation_slots WHERE start_at >= ? AND end_at <= ? FOR UPDATE", period.StartAt, period.EndAt); err != nil {
 		return nil, err
 	}

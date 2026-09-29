@@ -10,9 +10,9 @@ import (
 )
 
 func TestTagUsecase_FindAll(t *testing.T) {
-	want := []*domain.TagModel{{ID: 1, Name: "ライブ配信"}}
+	want := []*domain.Tag{{ID: 1, Name: "ライブ配信"}}
 	tagRepo := &fakeTagRepository{
-		findAll: func(context.Context, repository.Querier) ([]*domain.TagModel, error) { return want, nil },
+		findAll: func(context.Context, repository.Querier) ([]*domain.Tag, error) { return want, nil },
 	}
 	u := NewTagUsecase(&fakeTxManager{}, tagRepo)
 
@@ -28,7 +28,7 @@ func TestTagUsecase_FindAll(t *testing.T) {
 func TestTagUsecase_FindAll_Error(t *testing.T) {
 	wantErr := errors.New("boom")
 	tagRepo := &fakeTagRepository{
-		findAll: func(context.Context, repository.Querier) ([]*domain.TagModel, error) { return nil, wantErr },
+		findAll: func(context.Context, repository.Querier) ([]*domain.Tag, error) { return nil, wantErr },
 	}
 	u := NewTagUsecase(&fakeTxManager{}, tagRepo)
 

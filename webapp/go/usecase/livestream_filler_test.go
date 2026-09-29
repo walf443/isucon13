@@ -14,8 +14,8 @@ import (
 // livestreamFixture は LivestreamFiller などが引くデータ (ユーザ・タグ) を持つ。
 // ユーザのテーマは ID がユーザの ID の 10 倍のものとし、アイコンは未登録とする。
 type livestreamFixture struct {
-	users map[domain.UserID]*domain.UserModel
-	tags  map[domain.TagID]*domain.TagModel
+	users map[domain.UserID]*domain.User
+	tags  map[domain.TagID]*domain.Tag
 	// livestreamTags はライブ配信ごとに付いているタグの ID。
 	livestreamTags map[domain.LivestreamID][]domain.TagID
 	// calls は呼ばれた repository のメソッドと引数を記録する。
@@ -26,11 +26,11 @@ type livestreamFixture struct {
 // ライブ配信 1 にタグ 7, 8、ライブ配信 2 にタグ 7 が付いている。
 func testLivestreamFixture() *livestreamFixture {
 	return &livestreamFixture{
-		users: map[domain.UserID]*domain.UserModel{
+		users: map[domain.UserID]*domain.User{
 			42: {ID: 42, Name: "alice"},
 			43: {ID: 43, Name: "bob", DisplayName: "Bob"},
 		},
-		tags: map[domain.TagID]*domain.TagModel{
+		tags: map[domain.TagID]*domain.Tag{
 			7: {ID: 7, Name: "ゲーム実況"},
 			8: {ID: 8, Name: "雑談"},
 		},
@@ -45,7 +45,7 @@ func (f *livestreamFixture) record(call string) {
 // userRepo は f のユーザを ID で引ける fakeUserRepository を返す。
 func (f *livestreamFixture) userRepo() *fakeUserRepository {
 	return &fakeUserRepository{
-		findByID: func(_ context.Context, _ repository.Querier, id domain.UserID) (*domain.UserModel, error) {
+		findByID: func(_ context.Context, _ repository.Querier, id domain.UserID) (*domain.User, error) {
 			f.record(fmt.Sprintf("user %d", id))
 			user, ok := f.users[id]
 			if !ok {
@@ -58,9 +58,9 @@ func (f *livestreamFixture) userRepo() *fakeUserRepository {
 
 // userFiller は f のユーザのテーマを返す UserFiller を返す。
 func (f *livestreamFixture) userFiller() *UserFiller {
-	themes := map[domain.UserID]*domain.ThemeModel{}
+	themes := map[domain.UserID]*domain.Theme{}
 	for id := range f.users {
-		themes[id] = &domain.ThemeModel{ID: domain.ThemeID(id * 10), UserID: id}
+		themes[id] = &domain.Theme{ID: domain.ThemeID(id * 10), UserID: id}
 	}
 	return newUserFillerForTest(themes, nil, nil)
 }
@@ -73,24 +73,24 @@ func (f *livestreamFixture) user(id domain.UserID) domain.UserDetail {
 		Name:        user.Name,
 		DisplayName: user.DisplayName,
 		Description: user.Description,
-		Theme:       domain.ThemeModel{ID: domain.ThemeID(user.ID * 10), UserID: user.ID},
+		Theme:       domain.Theme{ID: domain.ThemeID(user.ID * 10), UserID: user.ID},
 		IconHash:    "default-hash",
 	}
 }
 
 func (f *livestreamFixture) filler() *LivestreamFiller {
 	livestreamTagRepo := &fakeLivestreamTagRepository{
-		findAllByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivestreamTagModel, error) {
+		findAllByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivestreamTag, error) {
 			f.record(fmt.Sprintf("livestream tags %d", livestreamID))
-			var livestreamTags []*domain.LivestreamTagModel
+			var livestreamTags []*domain.LivestreamTag
 			for _, tagID := range f.livestreamTags[livestreamID] {
-				livestreamTags = append(livestreamTags, &domain.LivestreamTagModel{LivestreamID: livestreamID, TagID: tagID})
+				livestreamTags = append(livestreamTags, &domain.LivestreamTag{LivestreamID: livestreamID, TagID: tagID})
 			}
 			return livestreamTags, nil
 		},
 	}
 	tagRepo := &fakeTagRepository{
-		findByID: func(_ context.Context, _ repository.Querier, id domain.TagID) (*domain.TagModel, error) {
+		findByID: func(_ context.Context, _ repository.Querier, id domain.TagID) (*domain.Tag, error) {
 			f.record(fmt.Sprintf("tag %d", id))
 			tag, ok := f.tags[id]
 			if !ok {
@@ -103,8 +103,8 @@ func (f *livestreamFixture) filler() *LivestreamFiller {
 }
 
 // livestream は、このデータで livestreamModel を埋めた結果として期待する domain.Livestream を返す。
-func (f *livestreamFixture) livestream(livestreamModel *domain.LivestreamModel) *domain.LivestreamDetail {
-	tags := make([]domain.TagModel, len(f.livestreamTags[livestreamModel.ID]))
+func (f *livestreamFixture) livestream(livestreamModel *domain.Livestream) *domain.LivestreamDetail {
+	tags := make([]domain.Tag, len(f.livestreamTags[livestreamModel.ID]))
 	for i, tagID := range f.livestreamTags[livestreamModel.ID] {
 		tags[i] = *f.tags[tagID]
 	}
@@ -122,15 +122,15 @@ func (f *livestreamFixture) livestream(livestreamModel *domain.LivestreamModel) 
 }
 
 var (
-	testLivestreamModel1 = &domain.LivestreamModel{ID: 1, UserID: 42, Title: "first", Description: "desc", PlaylistUrl: "p", ThumbnailUrl: "t", StartAt: 100, EndAt: 200}
-	testLivestreamModel2 = &domain.LivestreamModel{ID: 2, UserID: 42, Title: "second"}
+	testLivestreamModel1 = &domain.Livestream{ID: 1, UserID: 42, Title: "first", Description: "desc", PlaylistUrl: "p", ThumbnailUrl: "t", StartAt: 100, EndAt: 200}
+	testLivestreamModel2 = &domain.Livestream{ID: 2, UserID: 42, Title: "second"}
 )
 
 func TestLivestreamFiller_Fill(t *testing.T) {
 	f := testLivestreamFixture()
 
 	// 同じライブ配信・配信者・タグが重複していても 1 回だけ取得する
-	got, err := f.filler().Fill(context.Background(), nil, []*domain.LivestreamModel{testLivestreamModel1, testLivestreamModel2, testLivestreamModel1})
+	got, err := f.filler().Fill(context.Background(), nil, []*domain.Livestream{testLivestreamModel1, testLivestreamModel2, testLivestreamModel1})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -173,7 +173,7 @@ func TestLivestreamFiller_Fill_Errors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := testLivestreamFixture()
 			tt.modify(f)
-			_, err := f.filler().Fill(context.Background(), nil, []*domain.LivestreamModel{testLivestreamModel1})
+			_, err := f.filler().Fill(context.Background(), nil, []*domain.Livestream{testLivestreamModel1})
 			if !errors.Is(err, tt.wantErr) || err.Error() != tt.wantMsg {
 				t.Errorf("err = %v, want %q", err, tt.wantMsg)
 			}
@@ -186,12 +186,12 @@ func TestLivestreamFiller_Fill_RepositoryErrors(t *testing.T) {
 	f := testLivestreamFixture()
 	filler := f.filler()
 	filler.livestreamTagRepo = &fakeLivestreamTagRepository{
-		findAllByLivestreamID: func(context.Context, repository.Querier, domain.LivestreamID) ([]*domain.LivestreamTagModel, error) {
+		findAllByLivestreamID: func(context.Context, repository.Querier, domain.LivestreamID) ([]*domain.LivestreamTag, error) {
 			return nil, boom
 		},
 	}
 
-	_, err := filler.Fill(context.Background(), nil, []*domain.LivestreamModel{testLivestreamModel1})
+	_, err := filler.Fill(context.Background(), nil, []*domain.Livestream{testLivestreamModel1})
 	if want := "failed to get tags of livestream 1: boom"; !errors.Is(err, boom) || err.Error() != want {
 		t.Errorf("err = %v, want %q", err, want)
 	}

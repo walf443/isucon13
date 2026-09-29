@@ -27,7 +27,7 @@ func NewUserFiller(themeRepo repository.ThemeRepository, iconRepo repository.Ico
 // アイコンのハッシュは domain.UserIconHash で決める (未登録の場合は defaultIconHash)。
 //
 // テーマが無いのはデータ不整合なので、呼び出し側はこのエラーをユーザ不在 (404) として扱わないこと。
-func (f *UserFiller) Fill(ctx context.Context, q repository.Querier, userModels []*domain.UserModel) (map[domain.UserID]*domain.UserDetail, error) {
+func (f *UserFiller) Fill(ctx context.Context, q repository.Querier, userModels []*domain.User) (map[domain.UserID]*domain.UserDetail, error) {
 	users := make(map[domain.UserID]*domain.UserDetail, len(userModels))
 	for _, userModel := range userModels {
 		if _, ok := users[userModel.ID]; ok {

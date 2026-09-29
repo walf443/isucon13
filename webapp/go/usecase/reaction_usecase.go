@@ -30,14 +30,14 @@ func NewReactionUsecase(txManager repository.TxManager, reactionRepo repository.
 }
 
 // reactionModelID は orderedBy に渡すための、リアクションの ID を取り出す関数。
-func reactionModelID(reactionModel *domain.ReactionModel) domain.ReactionID {
+func reactionModelID(reactionModel *domain.Reaction) domain.ReactionID {
 	return reactionModel.ID
 }
 
 func (u *reactionUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.ReactionDetail, error) {
 	var reactions []*domain.ReactionDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
-		var reactionModels []*domain.ReactionModel
+		var reactionModels []*domain.Reaction
 		var err error
 		if limit == nil {
 			reactionModels, err = u.reactionRepo.FindAllByLivestreamIDOrderByCreatedAtDesc(ctx, q, livestreamID)
@@ -64,7 +64,7 @@ func (u *reactionUsecase) FindAllByLivestreamID(ctx context.Context, livestreamI
 func (u *reactionUsecase) Create(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID, emojiName string) (*domain.ReactionDetail, error) {
 	var reaction *domain.ReactionDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
-		reactionID, err := u.reactionRepo.Create(ctx, q, &domain.ReactionModel{
+		reactionID, err := u.reactionRepo.Create(ctx, q, &domain.Reaction{
 			UserID:       userID,
 			LivestreamID: livestreamID,
 			EmojiName:    emojiName,
@@ -78,7 +78,7 @@ func (u *reactionUsecase) Create(ctx context.Context, userID domain.UserID, live
 		if err != nil {
 			return fmt.Errorf("failed to fill reaction: %w", err)
 		}
-		reactions, err := u.reactionFiller.Fill(ctx, q, []*domain.ReactionModel{reactionModel})
+		reactions, err := u.reactionFiller.Fill(ctx, q, []*domain.Reaction{reactionModel})
 		if err != nil {
 			return fmt.Errorf("failed to fill reaction: %w", err)
 		}

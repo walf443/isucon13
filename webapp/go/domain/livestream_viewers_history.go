@@ -1,9 +1,9 @@
 package domain
 
-type LivestreamViewersHistoryID = ID[LivestreamViewersHistoryModel]
+type LivestreamViewersHistoryID = ID[LivestreamViewersHistory]
 
-// LivestreamViewersHistoryModel はライブ配信の視聴履歴 (livestream_viewers_history) の1行。
-type LivestreamViewersHistoryModel struct {
+// LivestreamViewersHistory はライブ配信の視聴履歴 (livestream_viewers_history) の1行。
+type LivestreamViewersHistory struct {
 	ID           LivestreamViewersHistoryID `db:"id"`
 	UserID       UserID                     `db:"user_id"`
 	LivestreamID LivestreamID               `db:"livestream_id"`

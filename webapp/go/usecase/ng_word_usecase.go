@@ -11,7 +11,7 @@ import (
 
 type NGWordUsecase interface {
 	// FindAllByLivestreamID は userID のユーザがライブ配信に登録した NG ワードを、作成日時の降順で返す。
-	FindAllByLivestreamID(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.NGWordModel, error)
+	FindAllByLivestreamID(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.NGWord, error)
 	// Moderate は配信者がライブ配信に NG ワードを登録し、NG ワードに当たる過去のライブコメントを削除する。
 	// 登録した NG ワードの ID を返す。
 	// userID のユーザが配信者でない場合 (ライブ配信が存在しない場合を含む) ErrNotLivestreamOwner を返す。
@@ -37,8 +37,8 @@ func NewNGWordUsecase(txManager repository.TxManager, livestreamRepo repository.
 	}
 }
 
-func (u *ngWordUsecase) FindAllByLivestreamID(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.NGWordModel, error) {
-	var ngWords []*domain.NGWordModel
+func (u *ngWordUsecase) FindAllByLivestreamID(ctx context.Context, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.NGWord, error) {
+	var ngWords []*domain.NGWord
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		var err error
 		ngWords, err = u.ngWordRepo.FindAllByUserIDAndLivestreamID(ctx, q, userID, livestreamID)
@@ -65,7 +65,7 @@ func (u *ngWordUsecase) Moderate(ctx context.Context, userID domain.UserID, live
 			return ErrNotLivestreamOwner
 		}
 
-		wordID, err = u.ngWordRepo.Create(ctx, q, &domain.NGWordModel{
+		wordID, err = u.ngWordRepo.Create(ctx, q, &domain.NGWord{
 			UserID:       userID,
 			LivestreamID: livestreamID,
 			Word:         word,

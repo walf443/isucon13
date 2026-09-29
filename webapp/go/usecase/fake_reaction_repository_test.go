@@ -12,10 +12,10 @@ import (
 type fakeReactionRepository struct {
 	repository.ReactionRepository
 
-	findByID                                         func(ctx context.Context, q repository.Querier, id domain.ReactionID) (*domain.ReactionModel, error)
-	findAllByLivestreamIDOrderByCreatedAtDesc        func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.ReactionModel, error)
-	findAllByLivestreamIDOrderByCreatedAtDescLimited func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.ReactionModel, error)
-	create                                           func(ctx context.Context, q repository.Querier, reaction *domain.ReactionModel) (domain.ReactionID, error)
+	findByID                                         func(ctx context.Context, q repository.Querier, id domain.ReactionID) (*domain.Reaction, error)
+	findAllByLivestreamIDOrderByCreatedAtDesc        func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Reaction, error)
+	findAllByLivestreamIDOrderByCreatedAtDescLimited func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Reaction, error)
+	create                                           func(ctx context.Context, q repository.Querier, reaction *domain.Reaction) (domain.ReactionID, error)
 	countByLivestreamID                              func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error)
 	countTotalByLivestreamID                         func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error)
 	countByLivestreamOwnerID                         func(ctx context.Context, q repository.Querier, userID domain.UserID) (int64, error)
@@ -23,19 +23,19 @@ type fakeReactionRepository struct {
 	findFavoriteEmojiByLivestreamOwnerName           func(ctx context.Context, q repository.Querier, name string) (string, error)
 }
 
-func (r *fakeReactionRepository) FindByID(ctx context.Context, q repository.Querier, id domain.ReactionID) (*domain.ReactionModel, error) {
+func (r *fakeReactionRepository) FindByID(ctx context.Context, q repository.Querier, id domain.ReactionID) (*domain.Reaction, error) {
 	return r.findByID(ctx, q, id)
 }
 
-func (r *fakeReactionRepository) FindAllByLivestreamIDOrderByCreatedAtDesc(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.ReactionModel, error) {
+func (r *fakeReactionRepository) FindAllByLivestreamIDOrderByCreatedAtDesc(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Reaction, error) {
 	return r.findAllByLivestreamIDOrderByCreatedAtDesc(ctx, q, livestreamID)
 }
 
-func (r *fakeReactionRepository) FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.ReactionModel, error) {
+func (r *fakeReactionRepository) FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Reaction, error) {
 	return r.findAllByLivestreamIDOrderByCreatedAtDescLimited(ctx, q, livestreamID, limit)
 }
 
-func (r *fakeReactionRepository) Create(ctx context.Context, q repository.Querier, reaction *domain.ReactionModel) (domain.ReactionID, error) {
+func (r *fakeReactionRepository) Create(ctx context.Context, q repository.Querier, reaction *domain.Reaction) (domain.ReactionID, error) {
 	return r.create(ctx, q, reaction)
 }
 

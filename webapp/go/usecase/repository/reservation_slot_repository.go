@@ -8,7 +8,7 @@ import (
 
 type ReservationSlotRepository interface {
 	// FindAllByRangeForUpdate は予約区間 period に収まる予約枠を FOR UPDATE でロックして返す。
-	FindAllByRangeForUpdate(ctx context.Context, q Querier, period domain.ReservationPeriod) ([]*domain.ReservationSlotModel, error)
+	FindAllByRangeForUpdate(ctx context.Context, q Querier, period domain.ReservationPeriod) ([]*domain.ReservationSlot, error)
 	// FindSlotByStartAtAndEndAt は開始・終了時刻が一致する予約枠の残数を返す。
 	// 該当が無い場合は ErrNotFound に変換せず、sql.ErrNoRows のまま返す。
 	FindSlotByStartAtAndEndAt(ctx context.Context, q Querier, startAt int64, endAt int64) (int64, error)

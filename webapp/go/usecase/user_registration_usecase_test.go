@@ -12,14 +12,14 @@ import (
 
 // newUserRepositoryForRegister は Register で呼ばれるメソッドを、呼ばれた順に calls へ記録する fakeUserRepository を返す。
 // 登録したユーザは created に取り出し、ID 5 で読み直したユーザとして user を返す。
-func newUserRepositoryForRegister(t *testing.T, calls *[]string, created **domain.UserModel, user *domain.UserModel, createErr, findErr error) *fakeUserRepository {
+func newUserRepositoryForRegister(t *testing.T, calls *[]string, created **domain.User, user *domain.User, createErr, findErr error) *fakeUserRepository {
 	return &fakeUserRepository{
-		create: func(_ context.Context, _ repository.Querier, u *domain.UserModel) (domain.UserID, error) {
+		create: func(_ context.Context, _ repository.Querier, u *domain.User) (domain.UserID, error) {
 			*calls = append(*calls, "Create")
 			*created = u
 			return 5, createErr
 		},
-		findByID: func(_ context.Context, _ repository.Querier, id domain.UserID) (*domain.UserModel, error) {
+		findByID: func(_ context.Context, _ repository.Querier, id domain.UserID) (*domain.User, error) {
 			*calls = append(*calls, "FindByID")
 			if id != 5 {
 				t.Errorf("re-read id = %d, want 5", id)
@@ -31,18 +31,18 @@ func newUserRepositoryForRegister(t *testing.T, calls *[]string, created **domai
 
 // registeredUserFiller は登録したユーザ (ID 5) のテーマを返す UserFiller を返す。
 func registeredUserFiller() *UserFiller {
-	return newUserFillerForTest(map[domain.UserID]*domain.ThemeModel{5: {ID: 50, UserID: 5, DarkMode: true}}, nil, nil)
+	return newUserFillerForTest(map[domain.UserID]*domain.Theme{5: {ID: 50, UserID: 5, DarkMode: true}}, nil, nil)
 }
 
 func TestUserRegistrationUsecase_Register(t *testing.T) {
-	want := domain.UserDetail{ID: 5, Name: "alice", DisplayName: "Alice", Description: "hello", Theme: domain.ThemeModel{ID: 50, UserID: 5, DarkMode: true}, IconHash: "default-hash"}
+	want := domain.UserDetail{ID: 5, Name: "alice", DisplayName: "Alice", Description: "hello", Theme: domain.Theme{ID: 50, UserID: 5, DarkMode: true}, IconHash: "default-hash"}
 	txManager := &fakeTxManager{}
 	var userCalls []string
-	var created *domain.UserModel
-	userRepo := newUserRepositoryForRegister(t, &userCalls, &created, &domain.UserModel{ID: 5, Name: "alice", DisplayName: "Alice", Description: "hello"}, nil, nil)
-	var createdTheme *domain.ThemeModel
+	var created *domain.User
+	userRepo := newUserRepositoryForRegister(t, &userCalls, &created, &domain.User{ID: 5, Name: "alice", DisplayName: "Alice", Description: "hello"}, nil, nil)
+	var createdTheme *domain.Theme
 	themeRepo := &fakeThemeRepository{
-		create: func(_ context.Context, _ repository.Querier, theme *domain.ThemeModel) error {
+		create: func(_ context.Context, _ repository.Querier, theme *domain.Theme) error {
 			createdTheme = theme
 			return nil
 		},
@@ -80,7 +80,7 @@ func TestUserRegistrationUsecase_Register(t *testing.T) {
 	if matched, err := created.HashedPassword.Matches("s3cret"); err != nil || !matched {
 		t.Errorf("hashed password does not match: %v, %v", matched, err)
 	}
-	if want := (domain.ThemeModel{UserID: 5, DarkMode: true}); createdTheme == nil || *createdTheme != want {
+	if want := (domain.Theme{UserID: 5, DarkMode: true}); createdTheme == nil || *createdTheme != want {
 		t.Errorf("theme = %+v, want %+v", createdTheme, want)
 	}
 	if want := []string{"alice"}; !slices.Equal(dnsNames, want) {
@@ -97,7 +97,7 @@ func TestUserRegistrationUsecase_Register(t *testing.T) {
 func TestUserRegistrationUsecase_Register_ReservedUsername(t *testing.T) {
 	txManager := &fakeTxManager{}
 	var userCalls []string
-	var created *domain.UserModel
+	var created *domain.User
 	userRepo := newUserRepositoryForRegister(t, &userCalls, &created, nil, nil, nil)
 	dns := &fakeDNSRecordRegistrar{
 		addRecord: func(name string) error {
@@ -189,7 +189,7 @@ func TestUserRegistrationUsecase_Register_Errors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			themeRepo := &fakeThemeRepository{
-				create: func(context.Context, repository.Querier, *domain.ThemeModel) error { return tt.themeCreateErr },
+				create: func(context.Context, repository.Querier, *domain.Theme) error { return tt.themeCreateErr },
 			}
 			var dnsNames []string
 			dns := &fakeDNSRecordRegistrar{
@@ -199,8 +199,8 @@ func TestUserRegistrationUsecase_Register_Errors(t *testing.T) {
 				},
 			}
 			var userCalls []string
-			var created *domain.UserModel
-			userRepo := newUserRepositoryForRegister(t, &userCalls, &created, &domain.UserModel{ID: 5, Name: "alice"}, tt.userCreateErr, tt.userFindErr)
+			var created *domain.User
+			userRepo := newUserRepositoryForRegister(t, &userCalls, &created, &domain.User{ID: 5, Name: "alice"}, tt.userCreateErr, tt.userFindErr)
 			userFiller := registeredUserFiller()
 			if tt.themeMissing {
 				userFiller = newUserFillerForTest(nil, nil, nil)

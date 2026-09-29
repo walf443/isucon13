@@ -11,13 +11,13 @@ import (
 )
 
 // reactionFiller は f のユーザと livestreamModels のライブ配信を引く ReactionFiller を返す。
-func (f *livestreamFixture) reactionFiller(livestreamModels ...*domain.LivestreamModel) *ReactionFiller {
+func (f *livestreamFixture) reactionFiller(livestreamModels ...*domain.Livestream) *ReactionFiller {
 	return NewReactionFiller(f.userRepo(), newLivestreamRepositoryWithModels(nil, livestreamModels...), f.userFiller(), f.filler())
 }
 
 // reaction は、このデータで reactionModel を埋めた結果として期待する domain.Reaction を返す。
 // livestreamModel は reactionModel のライブ配信。
-func (f *livestreamFixture) reaction(reactionModel *domain.ReactionModel, livestreamModel *domain.LivestreamModel) *domain.ReactionDetail {
+func (f *livestreamFixture) reaction(reactionModel *domain.Reaction, livestreamModel *domain.Livestream) *domain.ReactionDetail {
 	return &domain.ReactionDetail{
 		ID:         reactionModel.ID,
 		EmojiName:  reactionModel.EmojiName,
@@ -28,15 +28,15 @@ func (f *livestreamFixture) reaction(reactionModel *domain.ReactionModel, livest
 }
 
 var (
-	testReactionModel1 = &domain.ReactionModel{ID: 1, UserID: 43, LivestreamID: 1, EmojiName: "tada", CreatedAt: 300}
-	testReactionModel2 = &domain.ReactionModel{ID: 2, UserID: 42, LivestreamID: 1, EmojiName: "heart", CreatedAt: 200}
-	testReactionModel3 = &domain.ReactionModel{ID: 3, UserID: 43, LivestreamID: 2, EmojiName: "tada", CreatedAt: 100}
+	testReactionModel1 = &domain.Reaction{ID: 1, UserID: 43, LivestreamID: 1, EmojiName: "tada", CreatedAt: 300}
+	testReactionModel2 = &domain.Reaction{ID: 2, UserID: 42, LivestreamID: 1, EmojiName: "heart", CreatedAt: 200}
+	testReactionModel3 = &domain.Reaction{ID: 3, UserID: 43, LivestreamID: 2, EmojiName: "tada", CreatedAt: 100}
 )
 
 func TestReactionFiller_Fill(t *testing.T) {
 	f := testLivestreamFixture()
 
-	got, err := f.reactionFiller(testLivestreamModel1, testLivestreamModel2).Fill(context.Background(), nil, []*domain.ReactionModel{testReactionModel1, testReactionModel2, testReactionModel3})
+	got, err := f.reactionFiller(testLivestreamModel1, testLivestreamModel2).Fill(context.Background(), nil, []*domain.Reaction{testReactionModel1, testReactionModel2, testReactionModel3})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -59,13 +59,13 @@ func TestReactionFiller_Fill_Errors(t *testing.T) {
 	tests := []struct {
 		name             string
 		modify           func(f *livestreamFixture)
-		livestreamModels []*domain.LivestreamModel
+		livestreamModels []*domain.Livestream
 		wantMsg          string
 	}{
 		{
 			name:             "user not found",
 			modify:           func(f *livestreamFixture) { delete(f.users, 43) },
-			livestreamModels: []*domain.LivestreamModel{testLivestreamModel1},
+			livestreamModels: []*domain.Livestream{testLivestreamModel1},
 			wantMsg:          "failed to get user of reaction 1: not found",
 		},
 		{
@@ -79,7 +79,7 @@ func TestReactionFiller_Fill_Errors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := testLivestreamFixture()
 			tt.modify(f)
-			_, err := f.reactionFiller(tt.livestreamModels...).Fill(context.Background(), nil, []*domain.ReactionModel{testReactionModel1})
+			_, err := f.reactionFiller(tt.livestreamModels...).Fill(context.Background(), nil, []*domain.Reaction{testReactionModel1})
 			if !errors.Is(err, repository.ErrNotFound) || err.Error() != tt.wantMsg {
 				t.Errorf("err = %v, want %q", err, tt.wantMsg)
 			}

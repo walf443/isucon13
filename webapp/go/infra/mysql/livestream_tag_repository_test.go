@@ -8,7 +8,7 @@ import (
 	"github.com/isucon/isucon13/webapp/go/domain"
 )
 
-func livestreamTagLivestreamIDs(livestreamTags []*domain.LivestreamTagModel) []domain.LivestreamID {
+func livestreamTagLivestreamIDs(livestreamTags []*domain.LivestreamTag) []domain.LivestreamID {
 	ids := make([]domain.LivestreamID, len(livestreamTags))
 	for i, lt := range livestreamTags {
 		ids[i] = lt.LivestreamID

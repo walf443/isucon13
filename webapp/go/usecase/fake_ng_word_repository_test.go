@@ -12,17 +12,17 @@ import (
 type fakeNGWordRepository struct {
 	repository.NGWordRepository
 
-	findAllByLivestreamID          func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.NGWordModel, error)
-	findAllByUserIDAndLivestreamID func(ctx context.Context, q repository.Querier, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.NGWordModel, error)
+	findAllByLivestreamID          func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.NGWord, error)
+	findAllByUserIDAndLivestreamID func(ctx context.Context, q repository.Querier, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.NGWord, error)
 	matches                        func(ctx context.Context, q repository.Querier, comment string, word string) (bool, error)
-	create                         func(ctx context.Context, q repository.Querier, ngWord *domain.NGWordModel) (domain.NGWordID, error)
+	create                         func(ctx context.Context, q repository.Querier, ngWord *domain.NGWord) (domain.NGWordID, error)
 }
 
-func (r *fakeNGWordRepository) FindAllByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.NGWordModel, error) {
+func (r *fakeNGWordRepository) FindAllByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.NGWord, error) {
 	return r.findAllByLivestreamID(ctx, q, livestreamID)
 }
 
-func (r *fakeNGWordRepository) FindAllByUserIDAndLivestreamID(ctx context.Context, q repository.Querier, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.NGWordModel, error) {
+func (r *fakeNGWordRepository) FindAllByUserIDAndLivestreamID(ctx context.Context, q repository.Querier, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.NGWord, error) {
 	return r.findAllByUserIDAndLivestreamID(ctx, q, userID, livestreamID)
 }
 
@@ -30,6 +30,6 @@ func (r *fakeNGWordRepository) Matches(ctx context.Context, q repository.Querier
 	return r.matches(ctx, q, comment, word)
 }
 
-func (r *fakeNGWordRepository) Create(ctx context.Context, q repository.Querier, ngWord *domain.NGWordModel) (domain.NGWordID, error) {
+func (r *fakeNGWordRepository) Create(ctx context.Context, q repository.Querier, ngWord *domain.NGWord) (domain.NGWordID, error) {
 	return r.create(ctx, q, ngWord)
 }

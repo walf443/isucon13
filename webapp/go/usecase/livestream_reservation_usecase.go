@@ -79,7 +79,7 @@ func (u *livestreamReservationUsecase) Reserve(ctx context.Context, userID domai
 			return fmt.Errorf("failed to update reservation_slot: %w", err)
 		}
 
-		livestreamID, err := u.livestreamRepo.Create(ctx, q, &domain.LivestreamModel{
+		livestreamID, err := u.livestreamRepo.Create(ctx, q, &domain.Livestream{
 			UserID:       userID,
 			Title:        input.Title,
 			Description:  input.Description,
@@ -103,7 +103,7 @@ func (u *livestreamReservationUsecase) Reserve(ctx context.Context, userID domai
 		if err != nil {
 			return fmt.Errorf("failed to fill livestream: %w", err)
 		}
-		livestreams, err := u.livestreamFiller.Fill(ctx, q, []*domain.LivestreamModel{livestreamModel})
+		livestreams, err := u.livestreamFiller.Fill(ctx, q, []*domain.Livestream{livestreamModel})
 		if err != nil {
 			return fmt.Errorf("failed to fill livestream: %w", err)
 		}

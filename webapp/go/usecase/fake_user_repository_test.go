@@ -14,29 +14,29 @@ type fakeUserRepository struct {
 	repository.UserRepository
 
 	findIDByName func(ctx context.Context, q repository.Querier, name string) (domain.UserID, error)
-	findByID     func(ctx context.Context, q repository.Querier, id domain.UserID) (*domain.UserModel, error)
-	findByName   func(ctx context.Context, q repository.Querier, name string) (*domain.UserModel, error)
-	findAll      func(ctx context.Context, q repository.Querier) ([]*domain.UserModel, error)
-	create       func(ctx context.Context, q repository.Querier, user *domain.UserModel) (domain.UserID, error)
+	findByID     func(ctx context.Context, q repository.Querier, id domain.UserID) (*domain.User, error)
+	findByName   func(ctx context.Context, q repository.Querier, name string) (*domain.User, error)
+	findAll      func(ctx context.Context, q repository.Querier) ([]*domain.User, error)
+	create       func(ctx context.Context, q repository.Querier, user *domain.User) (domain.UserID, error)
 }
 
 func (r *fakeUserRepository) FindIDByName(ctx context.Context, q repository.Querier, name string) (domain.UserID, error) {
 	return r.findIDByName(ctx, q, name)
 }
 
-func (r *fakeUserRepository) FindByID(ctx context.Context, q repository.Querier, id domain.UserID) (*domain.UserModel, error) {
+func (r *fakeUserRepository) FindByID(ctx context.Context, q repository.Querier, id domain.UserID) (*domain.User, error) {
 	return r.findByID(ctx, q, id)
 }
 
-func (r *fakeUserRepository) FindByName(ctx context.Context, q repository.Querier, name string) (*domain.UserModel, error) {
+func (r *fakeUserRepository) FindByName(ctx context.Context, q repository.Querier, name string) (*domain.User, error) {
 	return r.findByName(ctx, q, name)
 }
 
-func (r *fakeUserRepository) FindAll(ctx context.Context, q repository.Querier) ([]*domain.UserModel, error) {
+func (r *fakeUserRepository) FindAll(ctx context.Context, q repository.Querier) ([]*domain.User, error) {
 	return r.findAll(ctx, q)
 }
 
-func (r *fakeUserRepository) Create(ctx context.Context, q repository.Querier, user *domain.UserModel) (domain.UserID, error) {
+func (r *fakeUserRepository) Create(ctx context.Context, q repository.Querier, user *domain.User) (domain.UserID, error) {
 	return r.create(ctx, q, user)
 }
 

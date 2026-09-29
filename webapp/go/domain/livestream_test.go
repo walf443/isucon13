@@ -3,7 +3,7 @@ package domain
 import "testing"
 
 func TestLivestreamModel_IsOwnedBy(t *testing.T) {
-	l := &LivestreamModel{ID: 10, UserID: 1}
+	l := &Livestream{ID: 10, UserID: 1}
 
 	tests := []struct {
 		name   string

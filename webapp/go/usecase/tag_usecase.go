@@ -9,7 +9,7 @@ import (
 )
 
 type TagUsecase interface {
-	FindAll(ctx context.Context) ([]*domain.TagModel, error)
+	FindAll(ctx context.Context) ([]*domain.Tag, error)
 }
 
 type tagUsecase struct {
@@ -21,8 +21,8 @@ func NewTagUsecase(txManager repository.TxManager, tagRepo repository.TagReposit
 	return &tagUsecase{txManager: txManager, tagRepo: tagRepo}
 }
 
-func (u *tagUsecase) FindAll(ctx context.Context) ([]*domain.TagModel, error) {
-	var tags []*domain.TagModel
+func (u *tagUsecase) FindAll(ctx context.Context) ([]*domain.Tag, error) {
+	var tags []*domain.Tag
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		var err error
 		tags, err = u.tagRepo.FindAll(ctx, q)

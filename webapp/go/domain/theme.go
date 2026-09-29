@@ -1,8 +1,8 @@
 package domain
 
-type ThemeID = ID[ThemeModel]
+type ThemeID = ID[Theme]
 
-type ThemeModel struct {
+type Theme struct {
 	ID       ThemeID `db:"id"`
 	UserID   UserID  `db:"user_id"`
 	DarkMode bool    `db:"dark_mode"`

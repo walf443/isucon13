@@ -10,11 +10,11 @@ import (
 )
 
 type fakeTagUsecase struct {
-	tags []*domain.TagModel
+	tags []*domain.Tag
 	err  error
 }
 
-func (s *fakeTagUsecase) FindAll(ctx context.Context) ([]*domain.TagModel, error) {
+func (s *fakeTagUsecase) FindAll(ctx context.Context) ([]*domain.Tag, error) {
 	return s.tags, s.err
 }
 
@@ -27,7 +27,7 @@ func TestTagHandler_GetTags(t *testing.T) {
 	}{
 		{
 			name: "returns tags",
-			usecase: &fakeTagUsecase{tags: []*domain.TagModel{
+			usecase: &fakeTagUsecase{tags: []*domain.Tag{
 				{ID: 1, Name: "ライブ配信"},
 				{ID: 2, Name: "ゲーム実況"},
 			}},

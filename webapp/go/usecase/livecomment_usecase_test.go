@@ -14,19 +14,19 @@ import (
 
 // newLivecommentRepositoryForFindAll は一覧取得で呼ばれたメソッドを calls に記録し、models (取得に失敗させる場合は err) を返す fakeLivecommentRepository を返す。
 // ライブ配信 10 のライブコメントを取得すること、limit 付きの場合はその値を gotLimit に取り出す。
-func newLivecommentRepositoryForFindAll(t *testing.T, calls *[]string, gotLimit *domain.Limit, models []*domain.LivecommentModel, err error) *fakeLivecommentRepository {
+func newLivecommentRepositoryForFindAll(t *testing.T, calls *[]string, gotLimit *domain.Limit, models []*domain.Livecomment, err error) *fakeLivecommentRepository {
 	checkLivestreamID := func(livestreamID domain.LivestreamID) {
 		if livestreamID != 10 {
 			t.Errorf("livestreamID = %d, want 10", livestreamID)
 		}
 	}
 	return &fakeLivecommentRepository{
-		findAllByLivestreamIDOrderByCreatedAtDesc: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivecommentModel, error) {
+		findAllByLivestreamIDOrderByCreatedAtDesc: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Livecomment, error) {
 			*calls = append(*calls, "FindAllByLivestreamIDOrderByCreatedAtDesc")
 			checkLivestreamID(livestreamID)
 			return models, err
 		},
-		findAllByLivestreamIDOrderByCreatedAtDescLimited: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.LivecommentModel, error) {
+		findAllByLivestreamIDOrderByCreatedAtDescLimited: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Livecomment, error) {
 			*calls = append(*calls, "FindAllByLivestreamIDOrderByCreatedAtDescLimited")
 			checkLivestreamID(livestreamID)
 			*gotLimit = limit
@@ -53,7 +53,7 @@ func TestLivecommentUsecase_FindAllByLivestreamID(t *testing.T) {
 			f := testLivestreamFixture()
 			var calls []string
 			var gotLimit domain.Limit
-			repo := newLivecommentRepositoryForFindAll(t, &calls, &gotLimit, []*domain.LivecommentModel{testLivecommentModel1, testLivecommentModel2}, nil)
+			repo := newLivecommentRepositoryForFindAll(t, &calls, &gotLimit, []*domain.Livecomment{testLivecommentModel1, testLivecommentModel2}, nil)
 			u := NewLivecommentUsecase(&fakeTxManager{}, &fakeLivestreamRepository{}, repo, &fakeNGWordRepository{}, f.livecommentFiller(testLivestreamModel1), &fakeLogger{})
 
 			got, err := u.FindAllByLivestreamID(context.Background(), 10, tt.limit)
@@ -80,7 +80,7 @@ func TestLivecommentUsecase_FindAllByLivestreamID_Errors(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		models  []*domain.LivecommentModel
+		models  []*domain.Livecomment
 		err     error
 		wantErr error
 		wantMsg string
@@ -89,7 +89,7 @@ func TestLivecommentUsecase_FindAllByLivestreamID_Errors(t *testing.T) {
 		{
 			// ライブ配信 2 は引けないので組み立てに失敗する
 			name:    "fill fails",
-			models:  []*domain.LivecommentModel{testLivecommentModel3},
+			models:  []*domain.Livecomment{testLivecommentModel3},
 			wantErr: repository.ErrNotFound,
 			wantMsg: "failed to get livecomments: failed to get livestream of livecomment 52: not found",
 		},
@@ -113,9 +113,9 @@ func TestLivecommentUsecase_FindAllByLivestreamID_Errors(t *testing.T) {
 // newNGWordRepositoryForCreate はスパム判定用の fakeNGWordRepository を返す。
 // 配信者 (userID 2) のライブ配信 10 の NG ワードとして ngWords (取得に失敗させる場合は findErr) を返し、
 // Matches では hitWords に含まれる NG ワードを当たりとする (matchErr を設定した場合はエラー)。判定した NG ワードは matched に記録する。
-func newNGWordRepositoryForCreate(t *testing.T, ngWords []*domain.NGWordModel, findErr error, hitWords []string, matchErr error, matched *[]string) *fakeNGWordRepository {
+func newNGWordRepositoryForCreate(t *testing.T, ngWords []*domain.NGWord, findErr error, hitWords []string, matchErr error, matched *[]string) *fakeNGWordRepository {
 	return &fakeNGWordRepository{
-		findAllByUserIDAndLivestreamID: func(_ context.Context, _ repository.Querier, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.NGWordModel, error) {
+		findAllByUserIDAndLivestreamID: func(_ context.Context, _ repository.Querier, userID domain.UserID, livestreamID domain.LivestreamID) ([]*domain.NGWord, error) {
 			// NG ワードは投稿者ではなく配信者のものを使う
 			if userID != 2 || livestreamID != 10 {
 				t.Errorf("NG words of userID = %d, livestreamID = %d, want 2, 10", userID, livestreamID)
@@ -134,14 +134,14 @@ func newNGWordRepositoryForCreate(t *testing.T, ngWords []*domain.NGWordModel, f
 
 // newLivecommentRepositoryForCreate は Create で呼ばれるメソッドを、呼ばれた順に calls へ記録する fakeLivecommentRepository を返す。
 // 登録したライブコメントは created に取り出し、ID 100 で読み直したライブコメントとして testCreatedLivecommentModel を返す。
-func newLivecommentRepositoryForCreate(t *testing.T, calls *[]string, created **domain.LivecommentModel, createErr, findErr error) *fakeLivecommentRepository {
+func newLivecommentRepositoryForCreate(t *testing.T, calls *[]string, created **domain.Livecomment, createErr, findErr error) *fakeLivecommentRepository {
 	return &fakeLivecommentRepository{
-		create: func(_ context.Context, _ repository.Querier, l *domain.LivecommentModel) (domain.LivecommentID, error) {
+		create: func(_ context.Context, _ repository.Querier, l *domain.Livecomment) (domain.LivecommentID, error) {
 			*calls = append(*calls, "Create")
 			*created = l
 			return 100, createErr
 		},
-		findByID: func(_ context.Context, _ repository.Querier, id domain.LivecommentID) (*domain.LivecommentModel, error) {
+		findByID: func(_ context.Context, _ repository.Querier, id domain.LivecommentID) (*domain.Livecomment, error) {
 			*calls = append(*calls, "FindByID")
 			if id != 100 {
 				t.Errorf("re-read id = %d, want 100", id)
@@ -153,15 +153,15 @@ func newLivecommentRepositoryForCreate(t *testing.T, calls *[]string, created **
 
 var (
 	// testOwnedLivestreamModel は投稿先のライブ配信 10 (配信者は ID 2 のユーザ)。
-	testOwnedLivestreamModel = &domain.LivestreamModel{ID: 10, UserID: 2, Title: "owned"}
+	testOwnedLivestreamModel = &domain.Livestream{ID: 10, UserID: 2, Title: "owned"}
 	// testCreatedLivecommentModel は投稿したライブコメント (ID 100) を読み直した結果。
-	testCreatedLivecommentModel = &domain.LivecommentModel{ID: 100, UserID: 43, LivestreamID: 10, Comment: "hello", Tip: 500, CreatedAt: 1700000000}
+	testCreatedLivecommentModel = &domain.Livecomment{ID: 100, UserID: 43, LivestreamID: 10, Comment: "hello", Tip: 500, CreatedAt: 1700000000}
 )
 
 // livecommentFixtureForCreate は投稿先のライブ配信 10 の配信者 (ID 2) を加えたテスト用のデータを返す。
 func livecommentFixtureForCreate() *livestreamFixture {
 	f := testLivestreamFixture()
-	f.users[2] = &domain.UserModel{ID: 2, Name: "owner"}
+	f.users[2] = &domain.User{ID: 2, Name: "owner"}
 	return f
 }
 
@@ -169,10 +169,10 @@ func TestLivecommentUsecase_Create(t *testing.T) {
 	f := livecommentFixtureForCreate()
 	livestreamRepo := newLivestreamRepositoryFindingByID(t, 10, testOwnedLivestreamModel, nil)
 	var livecommentCalls []string
-	var created *domain.LivecommentModel
+	var created *domain.Livecomment
 	livecommentRepo := newLivecommentRepositoryForCreate(t, &livecommentCalls, &created, nil, nil)
 	var matched []string
-	ngWordRepo := newNGWordRepositoryForCreate(t, []*domain.NGWordModel{{Word: "bad"}, {Word: "evil"}}, nil, nil, nil, &matched)
+	ngWordRepo := newNGWordRepositoryForCreate(t, []*domain.NGWord{{Word: "bad"}, {Word: "evil"}}, nil, nil, nil, &matched)
 	logger := &fakeLogger{}
 	u := NewLivecommentUsecase(&fakeTxManager{}, livestreamRepo, livecommentRepo, ngWordRepo, f.livecommentFiller(testOwnedLivestreamModel), logger).(*livecommentUsecase)
 	u.now = func() time.Time { return time.Unix(1700000000, 0) }
@@ -194,7 +194,7 @@ func TestLivecommentUsecase_Create(t *testing.T) {
 	if want := []string{"Create", "FindByID"}; !slices.Equal(livecommentCalls, want) {
 		t.Errorf("calls = %v, want %v", livecommentCalls, want)
 	}
-	wantCreated := domain.LivecommentModel{UserID: 43, LivestreamID: 10, Comment: "hello", Tip: 500, CreatedAt: 1700000000}
+	wantCreated := domain.Livecomment{UserID: 43, LivestreamID: 10, Comment: "hello", Tip: 500, CreatedAt: 1700000000}
 	if created == nil || *created != wantCreated {
 		t.Errorf("created = %+v, want %+v", created, wantCreated)
 	}
@@ -202,12 +202,12 @@ func TestLivecommentUsecase_Create(t *testing.T) {
 
 func TestLivecommentUsecase_Create_Errors(t *testing.T) {
 	boom := errors.New("boom")
-	owned := &domain.LivestreamModel{ID: 10, UserID: 2}
+	owned := &domain.Livestream{ID: 10, UserID: 2}
 
 	tests := []struct {
 		name string
 		// livestream, livestreamErr はライブ配信 10 を引いた結果
-		livestream    *domain.LivestreamModel
+		livestream    *domain.Livestream
 		livestreamErr error
 		// livecommentCreateErr, livecommentFindErr はライブコメントの登録・取り直しが返すエラー
 		livecommentCreateErr error
@@ -215,7 +215,7 @@ func TestLivecommentUsecase_Create_Errors(t *testing.T) {
 		// modify はデータを欠けさせる
 		modify func(f *livestreamFixture)
 		// ngWords, ngWordsErr, hitWords, matchErr はスパム判定の NG ワードの取得・判定の結果
-		ngWords    []*domain.NGWordModel
+		ngWords    []*domain.NGWord
 		ngWordsErr error
 		hitWords   []string
 		matchErr   error
@@ -230,7 +230,7 @@ func TestLivecommentUsecase_Create_Errors(t *testing.T) {
 		{
 			name:       "spam",
 			livestream: owned,
-			ngWords:    []*domain.NGWordModel{{Word: "ok"}, {Word: "bad"}},
+			ngWords:    []*domain.NGWord{{Word: "ok"}, {Word: "bad"}},
 			hitWords:   []string{"bad"},
 			wantErr:    ErrSpamLivecomment,
 		},
@@ -243,7 +243,7 @@ func TestLivecommentUsecase_Create_Errors(t *testing.T) {
 		{
 			name:       "match error",
 			livestream: owned,
-			ngWords:    []*domain.NGWordModel{{Word: "bad"}},
+			ngWords:    []*domain.NGWord{{Word: "bad"}},
 			matchErr:   boom,
 			wantErr:    boom,
 		},
@@ -275,7 +275,7 @@ func TestLivecommentUsecase_Create_Errors(t *testing.T) {
 			var matched []string
 			ngWordRepo := newNGWordRepositoryForCreate(t, tt.ngWords, tt.ngWordsErr, tt.hitWords, tt.matchErr, &matched)
 			var livecommentCalls []string
-			var created *domain.LivecommentModel
+			var created *domain.Livecomment
 			livecommentRepo := newLivecommentRepositoryForCreate(t, &livecommentCalls, &created, tt.livecommentCreateErr, tt.livecommentFindErr)
 			f := livecommentFixtureForCreate()
 			if tt.modify != nil {
@@ -295,9 +295,9 @@ func TestLivecommentUsecase_Create_Errors(t *testing.T) {
 }
 
 func TestLivecommentUsecase_Create_LogsHitSpam(t *testing.T) {
-	livestreamRepo := newLivestreamRepositoryFindingByID(t, 10, &domain.LivestreamModel{ID: 10, UserID: 2}, nil)
+	livestreamRepo := newLivestreamRepositoryFindingByID(t, 10, &domain.Livestream{ID: 10, UserID: 2}, nil)
 	var matched []string
-	ngWordRepo := newNGWordRepositoryForCreate(t, []*domain.NGWordModel{{Word: "ok"}, {Word: "bad"}, {Word: "never checked"}}, nil, []string{"bad"}, nil, &matched)
+	ngWordRepo := newNGWordRepositoryForCreate(t, []*domain.NGWord{{Word: "ok"}, {Word: "bad"}, {Word: "never checked"}}, nil, []string{"bad"}, nil, &matched)
 	logger := &fakeLogger{}
 	u := NewLivecommentUsecase(&fakeTxManager{}, livestreamRepo, &fakeLivecommentRepository{}, ngWordRepo, nil, logger)
 

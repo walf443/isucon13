@@ -13,9 +13,9 @@ import (
 
 // newLivestreamRepositoryWithModels は ID で models を引ける fakeLivestreamRepository を返す。
 // 見つからない ID には ErrNotFound を返し、引いた ID を calls に記録する。
-func newLivestreamRepositoryWithModels(calls *[]domain.LivestreamID, models ...*domain.LivestreamModel) *fakeLivestreamRepository {
+func newLivestreamRepositoryWithModels(calls *[]domain.LivestreamID, models ...*domain.Livestream) *fakeLivestreamRepository {
 	return &fakeLivestreamRepository{
-		findByID: func(_ context.Context, _ repository.Querier, id domain.LivestreamID) (*domain.LivestreamModel, error) {
+		findByID: func(_ context.Context, _ repository.Querier, id domain.LivestreamID) (*domain.Livestream, error) {
 			if calls != nil {
 				*calls = append(*calls, id)
 			}
@@ -67,7 +67,7 @@ func TestLivestreamUsecase_FindByID_Errors(t *testing.T) {
 		{
 			name: "get livestream fails",
 			livestreamRepo: &fakeLivestreamRepository{
-				findByID: func(context.Context, repository.Querier, domain.LivestreamID) (*domain.LivestreamModel, error) {
+				findByID: func(context.Context, repository.Querier, domain.LivestreamID) (*domain.Livestream, error) {
 					return nil, boom
 				},
 			},
@@ -103,9 +103,9 @@ func TestLivestreamUsecase_FindByID_Errors(t *testing.T) {
 }
 
 // newLivestreamRepositoryFindingAllByUserID は配信者 userID のライブ配信として models (失敗させる場合は err) を返す fakeLivestreamRepository を返す。
-func newLivestreamRepositoryFindingAllByUserID(t *testing.T, userID domain.UserID, models []*domain.LivestreamModel, err error) *fakeLivestreamRepository {
+func newLivestreamRepositoryFindingAllByUserID(t *testing.T, userID domain.UserID, models []*domain.Livestream, err error) *fakeLivestreamRepository {
 	return &fakeLivestreamRepository{
-		findAllByUserID: func(_ context.Context, _ repository.Querier, gotUserID domain.UserID) ([]*domain.LivestreamModel, error) {
+		findAllByUserID: func(_ context.Context, _ repository.Querier, gotUserID domain.UserID) ([]*domain.Livestream, error) {
 			if gotUserID != userID {
 				t.Errorf("userID = %d, want %d", gotUserID, userID)
 			}
@@ -116,7 +116,7 @@ func newLivestreamRepositoryFindingAllByUserID(t *testing.T, userID domain.UserI
 
 func TestLivestreamUsecase_FindAllByUserID(t *testing.T) {
 	f := testLivestreamFixture()
-	livestreamRepo := newLivestreamRepositoryFindingAllByUserID(t, 42, []*domain.LivestreamModel{testLivestreamModel2, testLivestreamModel1}, nil)
+	livestreamRepo := newLivestreamRepositoryFindingAllByUserID(t, 42, []*domain.Livestream{testLivestreamModel2, testLivestreamModel1}, nil)
 	u := newLivestreamUsecaseForTest(f, nil, nil, livestreamRepo, nil)
 
 	got, err := u.FindAllByUserID(context.Background(), 42)
@@ -157,7 +157,7 @@ func TestLivestreamUsecase_FindAllByUserID_Error(t *testing.T) {
 func TestLivestreamUsecase_FindAllByUsername(t *testing.T) {
 	f := testLivestreamFixture()
 	// ユーザ名から引いた ID で検索する
-	livestreamRepo := newLivestreamRepositoryFindingAllByUserID(t, 42, []*domain.LivestreamModel{testLivestreamModel1}, nil)
+	livestreamRepo := newLivestreamRepositoryFindingAllByUserID(t, 42, []*domain.Livestream{testLivestreamModel1}, nil)
 	u := newLivestreamUsecaseForTest(f, newUserRepositoryFindingID(t, "alice", 42, nil), nil, livestreamRepo, nil)
 
 	got, err := u.FindAllByUsername(context.Background(), "alice")
@@ -215,14 +215,14 @@ func newTagRepositoryFindingIDs(t *testing.T, tagIDs []domain.TagID, err error) 
 // 呼ばれた回数を calls に数える。
 func newLivestreamTagRepositoryFindingByTagIDs(t *testing.T, calls *int, livestreamIDs []domain.LivestreamID, err error) *fakeLivestreamTagRepository {
 	return &fakeLivestreamTagRepository{
-		findAllByTagIDs: func(_ context.Context, _ repository.Querier, tagIDs []domain.TagID) ([]*domain.LivestreamTagModel, error) {
+		findAllByTagIDs: func(_ context.Context, _ repository.Querier, tagIDs []domain.TagID) ([]*domain.LivestreamTag, error) {
 			*calls++
 			if !slices.Equal(tagIDs, []domain.TagID{7, 8}) {
 				t.Errorf("tagIDs = %v, want [7 8]", tagIDs)
 			}
-			livestreamTags := make([]*domain.LivestreamTagModel, len(livestreamIDs))
+			livestreamTags := make([]*domain.LivestreamTag, len(livestreamIDs))
 			for i, id := range livestreamIDs {
-				livestreamTags[i] = &domain.LivestreamTagModel{LivestreamID: id}
+				livestreamTags[i] = &domain.LivestreamTag{LivestreamID: id}
 			}
 			return livestreamTags, err
 		},
@@ -309,13 +309,13 @@ func TestLivestreamUsecase_FindAllByTagName_Errors(t *testing.T) {
 
 // newLivestreamRepositoryForFindAll は一覧取得で呼ばれたメソッドを calls に記録し、models (失敗させる場合は err) を返す fakeLivestreamRepository を返す。
 // limit 付きの場合はその値を gotLimit に取り出す。
-func newLivestreamRepositoryForFindAll(calls *[]string, gotLimit *domain.Limit, models []*domain.LivestreamModel, err error) *fakeLivestreamRepository {
+func newLivestreamRepositoryForFindAll(calls *[]string, gotLimit *domain.Limit, models []*domain.Livestream, err error) *fakeLivestreamRepository {
 	return &fakeLivestreamRepository{
-		findAllOrderByIDDesc: func(context.Context, repository.Querier) ([]*domain.LivestreamModel, error) {
+		findAllOrderByIDDesc: func(context.Context, repository.Querier) ([]*domain.Livestream, error) {
 			*calls = append(*calls, "FindAllOrderByIDDesc")
 			return models, err
 		},
-		findAllOrderByIDDescLimited: func(_ context.Context, _ repository.Querier, limit domain.Limit) ([]*domain.LivestreamModel, error) {
+		findAllOrderByIDDescLimited: func(_ context.Context, _ repository.Querier, limit domain.Limit) ([]*domain.Livestream, error) {
 			*calls = append(*calls, "FindAllOrderByIDDescLimited")
 			*gotLimit = limit
 			return models, err
@@ -341,7 +341,7 @@ func TestLivestreamUsecase_FindAll(t *testing.T) {
 			f := testLivestreamFixture()
 			var calls []string
 			var gotLimit domain.Limit
-			livestreamRepo := newLivestreamRepositoryForFindAll(&calls, &gotLimit, []*domain.LivestreamModel{testLivestreamModel2, testLivestreamModel1}, nil)
+			livestreamRepo := newLivestreamRepositoryForFindAll(&calls, &gotLimit, []*domain.Livestream{testLivestreamModel2, testLivestreamModel1}, nil)
 			u := newLivestreamUsecaseForTest(f, nil, nil, livestreamRepo, nil)
 
 			got, err := u.FindAll(context.Background(), tt.limit)

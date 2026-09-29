@@ -1,13 +1,13 @@
 package domain
 
-type LivestreamID = ID[LivestreamModel]
+type LivestreamID = ID[Livestream]
 
 // ParseLivestreamID は 10 進数の文字列をライブ配信の ID として読み取る。
 func ParseLivestreamID(s string) (LivestreamID, error) {
-	return ParseID[LivestreamModel](s)
+	return ParseID[Livestream](s)
 }
 
-type LivestreamModel struct {
+type Livestream struct {
 	ID           LivestreamID `db:"id"`
 	UserID       UserID       `db:"user_id"`
 	Title        string       `db:"title"`
@@ -19,7 +19,7 @@ type LivestreamModel struct {
 }
 
 // IsOwnedBy は userID のユーザがこのライブ配信の配信者かどうかを返す。
-func (l *LivestreamModel) IsOwnedBy(userID UserID) bool {
+func (l *Livestream) IsOwnedBy(userID UserID) bool {
 	return l.UserID == userID
 }
 
@@ -31,7 +31,7 @@ type LivestreamDetail struct {
 	Description  string
 	PlaylistUrl  string
 	ThumbnailUrl string
-	Tags         []TagModel
+	Tags         []Tag
 	StartAt      int64
 	EndAt        int64
 }

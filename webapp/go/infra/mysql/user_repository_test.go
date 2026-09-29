@@ -63,7 +63,7 @@ func TestUserRepository_FindByName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindByName returned error: %v", err)
 	}
-	want := domain.UserModel{ID: wantID, Name: "alice", DisplayName: "Alice", Description: "hello", HashedPassword: "hashed"}
+	want := domain.User{ID: wantID, Name: "alice", DisplayName: "Alice", Description: "hello", HashedPassword: "hashed"}
 	if *user != want {
 		t.Errorf("user = %+v, want %+v", *user, want)
 	}
@@ -93,7 +93,7 @@ func TestUserRepository_FindByID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindByID returned error: %v", err)
 	}
-	want := domain.UserModel{ID: id, Name: "alice", DisplayName: "Alice", Description: "hello", HashedPassword: "hashed"}
+	want := domain.User{ID: id, Name: "alice", DisplayName: "Alice", Description: "hello", HashedPassword: "hashed"}
 	if *user != want {
 		t.Errorf("user = %+v, want %+v", *user, want)
 	}
@@ -113,15 +113,15 @@ func TestUserRepository_CreateAndThemeRepository_Create(t *testing.T) {
 	tx := beginTestTx(t)
 	userRepo := NewUserRepository()
 
-	id, err := userRepo.Create(ctx, tx, &domain.UserModel{Name: "alice", DisplayName: "Alice", Description: "hello", HashedPassword: "hashed"})
+	id, err := userRepo.Create(ctx, tx, &domain.User{Name: "alice", DisplayName: "Alice", Description: "hello", HashedPassword: "hashed"})
 	if err != nil {
 		t.Fatalf("Create returned error: %v", err)
 	}
-	if err := NewThemeRepository().Create(ctx, tx, &domain.ThemeModel{UserID: id, DarkMode: true}); err != nil {
+	if err := NewThemeRepository().Create(ctx, tx, &domain.Theme{UserID: id, DarkMode: true}); err != nil {
 		t.Fatalf("theme Create returned error: %v", err)
 	}
 
-	want := domain.UserModel{ID: id, Name: "alice", DisplayName: "Alice", Description: "hello", HashedPassword: "hashed"}
+	want := domain.User{ID: id, Name: "alice", DisplayName: "Alice", Description: "hello", HashedPassword: "hashed"}
 	if got, err := userRepo.FindByID(ctx, tx, id); err != nil || *got != want {
 		t.Errorf("FindByID = %+v, %v, want %+v", got, err, want)
 	}
@@ -130,7 +130,7 @@ func TestUserRepository_CreateAndThemeRepository_Create(t *testing.T) {
 	}
 
 	// ユーザ名は UNIQUE なので重複登録はエラー (移行前と同じく 500 になる)
-	if _, err := userRepo.Create(ctx, tx, &domain.UserModel{Name: "alice", HashedPassword: "hashed"}); err == nil {
+	if _, err := userRepo.Create(ctx, tx, &domain.User{Name: "alice", HashedPassword: "hashed"}); err == nil {
 		t.Error("expected error on duplicate name")
 	}
 }

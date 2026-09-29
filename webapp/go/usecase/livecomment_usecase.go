@@ -43,14 +43,14 @@ func NewLivecommentUsecase(txManager repository.TxManager, livestreamRepo reposi
 }
 
 // livecommentModelID は orderedBy に渡すための、ライブコメントの ID を取り出す関数。
-func livecommentModelID(livecommentModel *domain.LivecommentModel) domain.LivecommentID {
+func livecommentModelID(livecommentModel *domain.Livecomment) domain.LivecommentID {
 	return livecommentModel.ID
 }
 
 func (u *livecommentUsecase) FindAllByLivestreamID(ctx context.Context, livestreamID domain.LivestreamID, limit *domain.Limit) ([]*domain.LivecommentDetail, error) {
 	var livecomments []*domain.LivecommentDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
-		var livecommentModels []*domain.LivecommentModel
+		var livecommentModels []*domain.Livecomment
 		var err error
 		if limit == nil {
 			livecommentModels, err = u.livecommentRepo.FindAllByLivestreamIDOrderByCreatedAtDesc(ctx, q, livestreamID)
@@ -106,7 +106,7 @@ func (u *livecommentUsecase) Create(ctx context.Context, userID domain.UserID, l
 			}
 		}
 
-		livecommentID, err := u.livecommentRepo.Create(ctx, q, &domain.LivecommentModel{
+		livecommentID, err := u.livecommentRepo.Create(ctx, q, &domain.Livecomment{
 			UserID:       userID,
 			LivestreamID: livestreamID,
 			Comment:      comment,
@@ -121,7 +121,7 @@ func (u *livecommentUsecase) Create(ctx context.Context, userID domain.UserID, l
 		if err != nil {
 			return fmt.Errorf("failed to fill livecomment: %w", err)
 		}
-		livecomments, err := u.livecommentFiller.Fill(ctx, q, []*domain.LivecommentModel{livecommentModel})
+		livecomments, err := u.livecommentFiller.Fill(ctx, q, []*domain.Livecomment{livecommentModel})
 		if err != nil {
 			return fmt.Errorf("failed to fill livecomment: %w", err)
 		}

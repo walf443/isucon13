@@ -49,7 +49,7 @@ func (u *userRegistrationUsecase) Register(ctx context.Context, input RegisterUs
 
 	var user *domain.UserDetail
 	err = u.txManager.RunInTx(ctx, func(q repository.Querier) error {
-		userID, err := u.userRepo.Create(ctx, q, &domain.UserModel{
+		userID, err := u.userRepo.Create(ctx, q, &domain.User{
 			Name:           input.Name,
 			DisplayName:    input.DisplayName,
 			Description:    input.Description,
@@ -59,7 +59,7 @@ func (u *userRegistrationUsecase) Register(ctx context.Context, input RegisterUs
 			return fmt.Errorf("failed to insert user: %w", err)
 		}
 
-		if err := u.themeRepo.Create(ctx, q, &domain.ThemeModel{
+		if err := u.themeRepo.Create(ctx, q, &domain.Theme{
 			UserID:   userID,
 			DarkMode: input.DarkMode,
 		}); err != nil {
@@ -76,7 +76,7 @@ func (u *userRegistrationUsecase) Register(ctx context.Context, input RegisterUs
 		if err != nil {
 			return fmt.Errorf("failed to fill user: %w", err)
 		}
-		users, err := u.userFiller.Fill(ctx, q, []*domain.UserModel{userModel})
+		users, err := u.userFiller.Fill(ctx, q, []*domain.User{userModel})
 		if err != nil {
 			return fmt.Errorf("failed to fill user: %w", err)
 		}

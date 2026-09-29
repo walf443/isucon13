@@ -7,9 +7,9 @@ import (
 )
 
 type TagRepository interface {
-	FindAll(ctx context.Context, q Querier) ([]*domain.TagModel, error)
+	FindAll(ctx context.Context, q Querier) ([]*domain.Tag, error)
 	// FindIDsByName は指定した名前のタグの ID を返す。該当が無い場合は空のスライスを返す。
 	FindIDsByName(ctx context.Context, q Querier, name string) ([]domain.TagID, error)
 	// FindByID はタグが存在しない場合 ErrNotFound を返す。
-	FindByID(ctx context.Context, q Querier, id domain.TagID) (*domain.TagModel, error)
+	FindByID(ctx context.Context, q Querier, id domain.TagID) (*domain.Tag, error)
 }

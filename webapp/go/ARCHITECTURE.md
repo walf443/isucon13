@@ -48,7 +48,7 @@ repository だけは数が多く、usecase の型と名前を分けたいので 
 ### repository はテーブル単位
 
 - 1 つのテーブルに対するクエリを 1 つの repository にまとめる。統計のような画面単位の集約 repository は作らない
-- repository のメソッドは 1 つの SQL を実行し、テーブルの行に対応する型 (`domain.XxxModel`) を返す
+- repository のメソッドは 1 つの SQL を実行し、テーブルの行に対応する domain のエンティティ (`domain.User` など) を返す
 
 ### 詳細の組み立ては usecase の Filler が行う
 
@@ -69,6 +69,10 @@ usecase の `XxxFiller` (`UserFiller` / `LivestreamFiller` など) が repositor
 
 ### domain
 
+- 型の名前は層での役割で分ける
+  - domain のエンティティ (テーブルの行に対応する型) と値オブジェクトは接尾辞を付けない (`domain.User`、`domain.Livestream`、`domain.Limit`)
+  - 関連するデータを埋めて組み立てたものは `Detail` を付ける (`domain.UserDetail`、`domain.LivestreamDetail`)。組み立てた状態を使うドメインのロジックを、そのメソッドとして書けるように domain に置いている
+  - handler のレスポンス・リクエストの型は `Response` / `Request` を付けて非公開にする (`userResponse`、`postUserRequest`)
 - 型付き ID (`domain.ID[T]`、`domain.UserID` など) を使い、文字列からの変換は `domain.ParseXxxID` で行う
 - 値オブジェクト: `Limit` (`ParseLimit` で範囲を検証して作る)、`ReservationPeriod`、`HashedPassword`、`IconHash` など
 - `json` タグは付けない。domain の構造をそのまま HTTP に出してしまわないため
