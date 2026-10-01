@@ -26,8 +26,8 @@ func TestReactionFiller_Fill(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("reactions = %+v, want %+v", got, want)
 	}
-	// リアクションしたユーザは重複を除いて 1 回ずつ引く (配信者は LivestreamFiller が別に引く)
-	if want := []string{"user 43", "user 42", "users [42]", "livestream tags [1 2]", "tags [7 8]"}; !reflect.DeepEqual(f.calls, want) {
+	// リアクションしたユーザは重複を除いた一覧で 1 回だけ引く (配信者は LivestreamFiller が別に引く)
+	if want := []string{"users [43 42]", "users [42]", "livestream tags [1 2]", "tags [7 8]"}; !reflect.DeepEqual(f.calls, want) {
 		t.Errorf("calls = %v, want %v", f.calls, want)
 	}
 }
@@ -58,6 +58,48 @@ func TestReactionFiller_Fill_Errors(t *testing.T) {
 			tt.modify(f)
 			_, err := f.reactionFiller(tt.livestreams...).Fill(context.Background(), nil, []*domain.Reaction{testReaction1})
 			if !errors.Is(err, errMissingDetail) || errors.Is(err, repository.ErrNotFound) || err.Error() != tt.wantMsg {
+				t.Errorf("err = %v, want %q", err, tt.wantMsg)
+			}
+		})
+	}
+}
+
+func TestReactionFiller_Fill_RepositoryErrors(t *testing.T) {
+	boom := errors.New("boom")
+
+	tests := []struct {
+		name    string
+		modify  func(filler *ReactionFiller)
+		wantMsg string
+	}{
+		{
+			name: "get users fails",
+			modify: func(filler *ReactionFiller) {
+				filler.userRepo = &fakeUserRepository{
+					findAllByIDs: func(context.Context, repository.Querier, []domain.UserID) ([]*domain.User, error) { return nil, boom },
+				}
+			},
+			wantMsg: "failed to get users: boom",
+		},
+		{
+			name: "get livestreams fails",
+			modify: func(filler *ReactionFiller) {
+				filler.livestreamRepo = &fakeLivestreamRepository{
+					findAllByIDs: func(context.Context, repository.Querier, []domain.LivestreamID) ([]*domain.Livestream, error) {
+						return nil, boom
+					},
+				}
+			},
+			wantMsg: "failed to get livestreams: boom",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			filler := testDetailFixture().reactionFiller(testLivestream1)
+			tt.modify(filler)
+			_, err := filler.Fill(context.Background(), nil, []*domain.Reaction{testReaction1})
+			if !errors.Is(err, boom) || err.Error() != tt.wantMsg {
 				t.Errorf("err = %v, want %q", err, tt.wantMsg)
 			}
 		})

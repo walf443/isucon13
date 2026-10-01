@@ -226,16 +226,25 @@ var (
 )
 
 // newLivecommentRepositoryWithLivecomments は ID で models を引ける fakeLivecommentRepository を返す。
-// 見つからない ID には ErrNotFound を返す。
+// FindByID は見つからない ID に ErrNotFound を返し、FindAllByIDs は見つからない ID を結果に含めない。
 func newLivecommentRepositoryWithLivecomments(models ...*domain.Livecomment) *fakeLivecommentRepository {
+	byID := indexBy(models, func(m *domain.Livecomment) domain.LivecommentID { return m.ID })
 	return &fakeLivecommentRepository{
 		findByID: func(_ context.Context, _ repository.Querier, id domain.LivecommentID) (*domain.Livecomment, error) {
-			for _, m := range models {
-				if m.ID == id {
-					return m, nil
+			m, ok := byID[id]
+			if !ok {
+				return nil, repository.ErrNotFound
+			}
+			return m, nil
+		},
+		findAllByIDs: func(_ context.Context, _ repository.Querier, ids []domain.LivecommentID) ([]*domain.Livecomment, error) {
+			var found []*domain.Livecomment
+			for _, id := range ids {
+				if m, ok := byID[id]; ok {
+					found = append(found, m)
 				}
 			}
-			return nil, repository.ErrNotFound
+			return found, nil
 		},
 	}
 }

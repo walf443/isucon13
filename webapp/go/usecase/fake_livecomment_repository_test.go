@@ -13,6 +13,7 @@ type fakeLivecommentRepository struct {
 	repository.LivecommentRepository
 
 	findByID                                         func(ctx context.Context, q repository.Querier, id domain.LivecommentID) (*domain.Livecomment, error)
+	findAllByIDs                                     func(ctx context.Context, q repository.Querier, ids []domain.LivecommentID) ([]*domain.Livecomment, error)
 	findAllByLivestreamID                            func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Livecomment, error)
 	findAllByLivestreamIDOrderByCreatedAtDesc        func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Livecomment, error)
 	findAllByLivestreamIDOrderByCreatedAtDescLimited func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Livecomment, error)
@@ -62,4 +63,8 @@ func (r *fakeLivecommentRepository) SumTipByLivestreamOwnerID(ctx context.Contex
 
 func (r *fakeLivecommentRepository) MaxTipByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error) {
 	return r.maxTipByLivestreamID(ctx, q, livestreamID)
+}
+
+func (r *fakeLivecommentRepository) FindAllByIDs(ctx context.Context, q repository.Querier, ids []domain.LivecommentID) ([]*domain.Livecomment, error) {
+	return r.findAllByIDs(ctx, q, ids)
 }

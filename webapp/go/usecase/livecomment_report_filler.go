@@ -22,39 +22,36 @@ func NewLivecommentReportFiller(userRepo repository.UserRepository, livecommentR
 }
 
 // Fill は reports に報告したユーザ・報告されたライブコメントを埋めた domain.LivecommentReportDetail を、報告の ID ごとに返す。
-// 同じユーザ・ライブコメントが複数含まれていても 1 回だけ取得する。並び順は呼び出し側で決める。
+// ユーザ・ライブコメントはそれぞれ 1 回のクエリでまとめて取得する。並び順は呼び出し側で決める。
 //
 // ユーザやライブコメントが無いのはデータ不整合なので、呼び出し側はこのエラーを報告不在として扱わないこと。
 func (f *LivecommentReportFiller) Fill(ctx context.Context, q repository.Querier, reports []*domain.LivecommentReport) (map[domain.LivecommentReportID]*domain.LivecommentReportDetail, error) {
-	reporters := make([]*domain.User, 0, len(reports))
-	fetchedReporters := make(map[domain.UserID]bool, len(reports))
-	livecomments := make([]*domain.Livecomment, 0, len(reports))
-	fetchedLivecomments := make(map[domain.LivecommentID]bool, len(reports))
-	for _, report := range reports {
-		if !fetchedReporters[report.UserID] {
-			reporter, err := f.userRepo.FindByID(ctx, q, report.UserID)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get reporter of livecomment report %d: %w", report.ID, asMissingDetail(err))
-			}
-			reporters = append(reporters, reporter)
-			fetchedReporters[report.UserID] = true
-		}
+	foundReporters, err := f.userRepo.FindAllByIDs(ctx, q, uniqueKeys(reports, func(report *domain.LivecommentReport) domain.UserID { return report.UserID }))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get reporters: %w", err)
+	}
+	reportersByID := indexBy(foundReporters, func(user *domain.User) domain.UserID { return user.ID })
 
-		if !fetchedLivecomments[report.LivecommentID] {
-			livecomment, err := f.livecommentRepo.FindByID(ctx, q, report.LivecommentID)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get livecomment of livecomment report %d: %w", report.ID, asMissingDetail(err))
-			}
-			livecomments = append(livecomments, livecomment)
-			fetchedLivecomments[report.LivecommentID] = true
+	foundLivecomments, err := f.livecommentRepo.FindAllByIDs(ctx, q, uniqueKeys(reports, func(report *domain.LivecommentReport) domain.LivecommentID { return report.LivecommentID }))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get livecomments: %w", err)
+	}
+	livecommentsByID := indexBy(foundLivecomments, func(livecomment *domain.Livecomment) domain.LivecommentID { return livecomment.ID })
+
+	for _, report := range reports {
+		if _, ok := reportersByID[report.UserID]; !ok {
+			return nil, fmt.Errorf("failed to get reporter of livecomment report %d: %w", report.ID, missingDetail())
+		}
+		if _, ok := livecommentsByID[report.LivecommentID]; !ok {
+			return nil, fmt.Errorf("failed to get livecomment of livecomment report %d: %w", report.ID, missingDetail())
 		}
 	}
 
-	reporterDetails, err := f.userFiller.Fill(ctx, q, reporters)
+	reporterDetails, err := f.userFiller.Fill(ctx, q, foundReporters)
 	if err != nil {
 		return nil, err
 	}
-	livecommentDetails, err := f.livecommentFiller.Fill(ctx, q, livecomments)
+	livecommentDetails, err := f.livecommentFiller.Fill(ctx, q, foundLivecomments)
 	if err != nil {
 		return nil, err
 	}

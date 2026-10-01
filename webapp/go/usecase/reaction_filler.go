@@ -21,39 +21,36 @@ func NewReactionFiller(userRepo repository.UserRepository, livestreamRepo reposi
 }
 
 // Fill は reactions にユーザ・ライブ配信を埋めた domain.ReactionDetail を、リアクションの ID ごとに返す。
-// 同じユーザ・ライブ配信が複数含まれていても 1 回だけ取得する。並び順は呼び出し側で決める。
+// ユーザ・ライブ配信はそれぞれ 1 回のクエリでまとめて取得する。並び順は呼び出し側で決める。
 //
 // ユーザやライブ配信が無いのはデータ不整合なので、呼び出し側はこのエラーをリアクション不在として扱わないこと。
 func (f *ReactionFiller) Fill(ctx context.Context, q repository.Querier, reactions []*domain.Reaction) (map[domain.ReactionID]*domain.ReactionDetail, error) {
-	users := make([]*domain.User, 0, len(reactions))
-	fetchedUsers := make(map[domain.UserID]bool, len(reactions))
-	livestreams := make([]*domain.Livestream, 0, len(reactions))
-	fetchedLivestreams := make(map[domain.LivestreamID]bool, len(reactions))
-	for _, reaction := range reactions {
-		if !fetchedUsers[reaction.UserID] {
-			user, err := f.userRepo.FindByID(ctx, q, reaction.UserID)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get user of reaction %d: %w", reaction.ID, asMissingDetail(err))
-			}
-			users = append(users, user)
-			fetchedUsers[reaction.UserID] = true
-		}
+	foundUsers, err := f.userRepo.FindAllByIDs(ctx, q, uniqueKeys(reactions, func(reaction *domain.Reaction) domain.UserID { return reaction.UserID }))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get users: %w", err)
+	}
+	usersByID := indexBy(foundUsers, func(user *domain.User) domain.UserID { return user.ID })
 
-		if !fetchedLivestreams[reaction.LivestreamID] {
-			livestream, err := f.livestreamRepo.FindByID(ctx, q, reaction.LivestreamID)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get livestream of reaction %d: %w", reaction.ID, asMissingDetail(err))
-			}
-			livestreams = append(livestreams, livestream)
-			fetchedLivestreams[reaction.LivestreamID] = true
+	foundLivestreams, err := f.livestreamRepo.FindAllByIDs(ctx, q, uniqueKeys(reactions, func(reaction *domain.Reaction) domain.LivestreamID { return reaction.LivestreamID }))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get livestreams: %w", err)
+	}
+	livestreamsByID := indexBy(foundLivestreams, func(livestream *domain.Livestream) domain.LivestreamID { return livestream.ID })
+
+	for _, reaction := range reactions {
+		if _, ok := usersByID[reaction.UserID]; !ok {
+			return nil, fmt.Errorf("failed to get user of reaction %d: %w", reaction.ID, missingDetail())
+		}
+		if _, ok := livestreamsByID[reaction.LivestreamID]; !ok {
+			return nil, fmt.Errorf("failed to get livestream of reaction %d: %w", reaction.ID, missingDetail())
 		}
 	}
 
-	userDetails, err := f.userFiller.Fill(ctx, q, users)
+	userDetails, err := f.userFiller.Fill(ctx, q, foundUsers)
 	if err != nil {
 		return nil, err
 	}
-	livestreamDetails, err := f.livestreamFiller.Fill(ctx, q, livestreams)
+	livestreamDetails, err := f.livestreamFiller.Fill(ctx, q, foundLivestreams)
 	if err != nil {
 		return nil, err
 	}
