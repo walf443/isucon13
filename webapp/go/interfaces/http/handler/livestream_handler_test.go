@@ -445,3 +445,16 @@ func TestLivestreamHandler_GetUserLivestreams_InvalidUsername(t *testing.T) {
 		t.Errorf("usecase was called with %q, want it not to be called", u.gotUsername)
 	}
 }
+
+func TestParseTagIDs(t *testing.T) {
+	got, err := parseTagIDs([]int64{3, 1, 3})
+	if err != nil || !slices.Equal(got, []domain.TagID{3, 1, 3}) {
+		t.Errorf("parseTagIDs = %v, %v, want [3 1 3] (order and duplicates are kept)", got, err)
+	}
+	// tags が無い場合も nil にしない
+	for _, in := range [][]int64{nil, {}} {
+		if got, err := parseTagIDs(in); err != nil || got == nil || len(got) != 0 {
+			t.Errorf("parseTagIDs(%#v) = %#v, %v, want an empty non-nil slice", in, got, err)
+		}
+	}
+}

@@ -58,6 +58,17 @@ type reserveLivestreamRequest struct {
 	EndAt        int64   `json:"end_at"`
 }
 
+// parseTagIDs はリクエストの JSON の数値の配列を、タグの ID の一覧にする。
+// 外部からの入力なので、読み取れない場合はエラーを返せる形にしているが、今は移行前と同じく何も検証しない
+// (存在するタグかどうかも確かめない)。tags が無い場合は、nil ではなく空のスライスを返す。
+func parseTagIDs(tags []int64) ([]domain.TagID, error) {
+	tagIDs := make([]domain.TagID, len(tags))
+	for i, tag := range tags {
+		tagIDs[i] = domain.TagID(tag)
+	}
+	return tagIDs, nil
+}
+
 type livestreamHandler struct {
 	livestreamUsecase  usecase.LivestreamUsecase
 	reservationUsecase usecase.LivestreamReservationUsecase
@@ -163,9 +174,9 @@ func (h *livestreamHandler) ReserveLivestream(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
 	}
 
-	tagIDs := make([]domain.TagID, len(req.Tags))
-	for i, tagID := range req.Tags {
-		tagIDs[i] = domain.TagID(tagID)
+	tagIDs, err := parseTagIDs(req.Tags)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid tags in the request body")
 	}
 
 	livestream, err := h.reservationUsecase.Reserve(ctx, userID, usecase.ReserveLivestreamInput{
