@@ -185,6 +185,24 @@ func TestMigratedRepositories_BulkMethodsAcceptMoreIDsThanMySQLPlaceholderLimit(
 			},
 		},
 		{
+			name: "LivecommentRepository.FindAllByIDs",
+			run: func(t *testing.T, tx repository.Querier) ([]int64, []int64) {
+				ownerID := insertTestUser(t, tx, "alice")
+				livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
+				first := insertTestLivecomment(t, tx, ownerID, livestreamID, "first", 100)
+				second := insertTestLivecomment(t, tx, ownerID, livestreamID, "second", 200)
+				livecomments, err := NewLivecommentRepository().FindAllByIDs(ctx, tx, withManyIDs(first, second))
+				if err != nil {
+					t.Fatalf("FindAllByIDs returned error: %v", err)
+				}
+				got := make([]int64, len(livecomments))
+				for i, l := range livecomments {
+					got[i] = int64(l.ID)
+				}
+				return int64s([]domain.LivecommentID{first, second}), got
+			},
+		},
+		{
 			name: "TagRepository.FindAllByIDs",
 			run: func(t *testing.T, tx repository.Querier) ([]int64, []int64) {
 				ownerID := insertTestUser(t, tx, "alice")
@@ -234,6 +252,7 @@ func TestMigratedRepositories_IssueExplicitColumnSQL(t *testing.T) {
 	reports := NewLivecommentReportRepository()
 	reactions := NewReactionRepository()
 	ngWords := NewNGWordRepository()
+	livecomments := NewLivecommentRepository()
 	period := domain.ReservationPeriod{StartAt: 1, EndAt: 2}
 	// 記録するのは、ここから後に発行された SQL
 	*sqls = nil
@@ -365,6 +384,32 @@ func TestMigratedRepositories_IssueExplicitColumnSQL(t *testing.T) {
 			_, err := ngWords.Create(ctx, tx, &domain.NGWord{UserID: userID, LivestreamID: 1, Word: "w", CreatedAt: 100})
 			return err
 		}, "INSERT INTO `ng_words` (`user_id`,`livestream_id`,`word`,`created_at`) VALUES (?,?,?,?)"},
+		{"livecomment FindAllByLivestreamIDOrderByCreatedAtDesc", func() error {
+			_, err := livecomments.FindAllByLivestreamIDOrderByCreatedAtDesc(ctx, tx, 1)
+			return err
+		}, "SELECT id, user_id, livestream_id, comment, tip, created_at FROM `livecomments` WHERE livestream_id = ? ORDER BY created_at DESC"},
+		{"livecomment FindAllByLivestreamIDOrderByCreatedAtDescLimited", func() error {
+			_, err := livecomments.FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx, tx, 1, 5)
+			return err
+		}, "SELECT id, user_id, livestream_id, comment, tip, created_at FROM `livecomments` WHERE livestream_id = ? ORDER BY created_at DESC LIMIT ?"},
+		{"livecomment FindByID", func() error { _, err := livecomments.FindByID(ctx, tx, 999999); return err },
+			"SELECT id, user_id, livestream_id, comment, tip, created_at FROM `livecomments` WHERE id = ? LIMIT ?"},
+		{"livecomment Create", func() error {
+			_, err := livecomments.Create(ctx, tx, &domain.Livecomment{UserID: userID, LivestreamID: 1, Comment: "c", Tip: 10, CreatedAt: 100})
+			return err
+		}, "INSERT INTO `livecomments` (`user_id`,`livestream_id`,`comment`,`tip`,`created_at`) VALUES (?,?,?,?,?)"},
+		{"livecomment FindAllByLivestreamID", func() error { _, err := livecomments.FindAllByLivestreamID(ctx, tx, 1); return err },
+			"SELECT id, user_id, livestream_id, comment, tip, created_at FROM `livecomments` WHERE livestream_id = ?"},
+		{"livecomment FindAllByIDs", func() error { _, err := livecomments.FindAllByIDs(ctx, tx, []domain.LivecommentID{1, 2}); return err },
+			"SELECT id, user_id, livestream_id, comment, tip, created_at FROM `livecomments` WHERE id IN (?,?)"},
+		{"livecomment SumTipByLivestreamOwnerID", func() error { _, err := livecomments.SumTipByLivestreamOwnerID(ctx, tx, userID); return err },
+			"SELECT IFNULL(SUM(l2.tip), 0) FROM users u INNER JOIN livestreams l ON l.user_id = u.id INNER JOIN livecomments l2 ON l2.livestream_id = l.id WHERE u.id = ?"},
+		{"livecomment SumTip", func() error { _, err := livecomments.SumTip(ctx, tx); return err },
+			"SELECT IFNULL(SUM(tip), 0) FROM `livecomments`"},
+		{"livecomment SumTipByLivestreamID", func() error { _, err := livecomments.SumTipByLivestreamID(ctx, tx, 1); return err },
+			"SELECT IFNULL(SUM(l2.tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l.id = l2.livestream_id WHERE l.id = ?"},
+		{"livecomment MaxTipByLivestreamID", func() error { _, err := livecomments.MaxTipByLivestreamID(ctx, tx, 1); return err },
+			"SELECT IFNULL(MAX(tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l2.livestream_id = l.id WHERE l.id = ?"},
 		{"user Create", func() error {
 			_, err := users.Create(ctx, tx, &domain.User{Name: "carol-sql", DisplayName: "Carol", Description: "d", HashedPassword: "hashed"})
 			return err
@@ -418,5 +463,32 @@ func TestLivestreamTagRepository_FindAllByTagIDs_EmptyIsError(t *testing.T) {
 	_, err := NewLivestreamTagRepository().FindAllByTagIDs(context.Background(), tx, nil)
 	if err == nil || err.Error() != "failed to construct IN query: empty slice passed to 'in' query" {
 		t.Errorf("err = %v, want the empty IN error", err)
+	}
+}
+
+// NG ワードに当たるライブコメントの削除は、移行前と同じ流れ (全ライブコメントの取得のあと、1 件ずつ条件付きの DELETE) の SQL を発行すること。
+func TestLivecommentRepository_DeleteAllByLivestreamIDMatchingNGWord_IssuesSelectThenPerRowDelete(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	ownerID := insertTestUser(t, tx, "alice")
+	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
+	insertTestLivecomment(t, tx, ownerID, livestreamID, "this is bad", 100)
+	insertTestLivecomment(t, tx, ownerID, livestreamID, "good", 200)
+	sqls := recordSQL(t, tx)
+
+	if err := NewLivecommentRepository().DeleteAllByLivestreamIDMatchingNGWord(ctx, tx, livestreamID, "bad"); err != nil {
+		t.Fatalf("DeleteAllByLivestreamIDMatchingNGWord returned error: %v", err)
+	}
+
+	normalized := make([]string, len(*sqls))
+	for i, s := range *sqls {
+		normalized[i] = strings.Join(strings.Fields(s), " ")
+	}
+	// 全ライブコメントを取得し、ライブコメントごと (2 件) に DELETE を発行する
+	deleteSQL := "DELETE FROM livecomments WHERE id = ? AND livestream_id = ? AND (SELECT COUNT(*) FROM (SELECT ? AS text) AS texts INNER JOIN (SELECT CONCAT('%', ?, '%') AS pattern) AS patterns ON texts.text LIKE patterns.pattern) >= 1;"
+	want := []string{"SELECT id, user_id, livestream_id, comment, tip, created_at FROM `livecomments`", deleteSQL, deleteSQL}
+	if !slices.Equal(normalized, want) {
+		t.Errorf("SQL = %q\nwant   %q", normalized, want)
 	}
 }

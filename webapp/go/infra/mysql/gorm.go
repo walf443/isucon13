@@ -10,6 +10,10 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+// maxInArgs は 1 回の IN クエリに渡す ID の最大数。
+// MySQL のプレースホルダーは 1 つのクエリで 65535 個までなので、それに余裕を持たせた値にしている。
+const maxInArgs = 1000
+
 // gormConfig は GORM の設定を返す。
 func gormConfig() *gorm.Config {
 	return &gorm.Config{

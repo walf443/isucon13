@@ -189,3 +189,25 @@ func TestLivecommentRepository_FindAllByIDs(t *testing.T) {
 		t.Errorf("FindAllByIDs(nil) = %#v, %v, want empty", got, err)
 	}
 }
+
+// ライブコメントの登録時刻は、GORM が自動で設定せずに、渡した値をそのまま保存すること (0 でも現在時刻にならない)。
+func TestLivecommentRepository_Create_KeepsGivenCreatedAt(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	ownerID := insertTestUser(t, tx, "alice")
+	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
+	repo := NewLivecommentRepository()
+
+	id, err := repo.Create(ctx, tx, &domain.Livecomment{UserID: ownerID, LivestreamID: livestreamID, Comment: "hello", Tip: 0, CreatedAt: 0})
+	if err != nil {
+		t.Fatalf("Create returned error: %v", err)
+	}
+	got, err := repo.FindByID(ctx, tx, id)
+	if err != nil {
+		t.Fatalf("FindByID returned error: %v", err)
+	}
+	if got.CreatedAt != 0 || got.Tip != 0 {
+		t.Errorf("livecomment = %+v, want CreatedAt 0 and Tip 0", got)
+	}
+}
