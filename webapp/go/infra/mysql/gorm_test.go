@@ -231,6 +231,7 @@ func TestMigratedRepositories_IssueExplicitColumnSQL(t *testing.T) {
 	slots := NewReservationSlotRepository()
 	viewers := NewLivestreamViewersHistoryRepository()
 	reports := NewLivecommentReportRepository()
+	reactions := NewReactionRepository()
 	period := domain.ReservationPeriod{StartAt: 1, EndAt: 2}
 	// 記録するのは、ここから後に発行された SQL
 	*sqls = nil
@@ -324,6 +325,32 @@ func TestMigratedRepositories_IssueExplicitColumnSQL(t *testing.T) {
 		}, "INSERT INTO `livecomment_reports` (`user_id`,`livestream_id`,`livecomment_id`,`created_at`) VALUES (?,?,?,?)"},
 		{"report CountByLivestreamID", func() error { _, err := reports.CountByLivestreamID(ctx, tx, 1); return err },
 			"SELECT count(*) FROM livestreams l INNER JOIN livecomment_reports r ON r.livestream_id = l.id WHERE l.id = ?"},
+		{"reaction FindByID", func() error { _, err := reactions.FindByID(ctx, tx, 999999); return err },
+			"SELECT id, emoji_name, user_id, livestream_id, created_at FROM `reactions` WHERE id = ? LIMIT ?"},
+		{"reaction FindAllByLivestreamIDOrderByCreatedAtDesc", func() error {
+			_, err := reactions.FindAllByLivestreamIDOrderByCreatedAtDesc(ctx, tx, 1)
+			return err
+		}, "SELECT id, emoji_name, user_id, livestream_id, created_at FROM `reactions` WHERE livestream_id = ? ORDER BY created_at DESC"},
+		{"reaction FindAllByLivestreamIDOrderByCreatedAtDescLimited", func() error {
+			_, err := reactions.FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx, tx, 1, 5)
+			return err
+		}, "SELECT id, emoji_name, user_id, livestream_id, created_at FROM `reactions` WHERE livestream_id = ? ORDER BY created_at DESC LIMIT ?"},
+		{"reaction Create", func() error {
+			_, err := reactions.Create(ctx, tx, &domain.Reaction{UserID: userID, LivestreamID: 1, EmojiName: "tada", CreatedAt: 100})
+			return err
+		}, "INSERT INTO `reactions` (`user_id`,`livestream_id`,`emoji_name`,`created_at`) VALUES (?,?,?,?)"},
+		{"reaction CountByLivestreamOwnerID", func() error { _, err := reactions.CountByLivestreamOwnerID(ctx, tx, userID); return err },
+			"SELECT count(*) FROM users u INNER JOIN livestreams l ON l.user_id = u.id INNER JOIN reactions r ON r.livestream_id = l.id WHERE u.id = ?"},
+		{"reaction CountByLivestreamOwnerName", func() error { _, err := reactions.CountByLivestreamOwnerName(ctx, tx, "alice"); return err },
+			"SELECT count(*) FROM users u INNER JOIN livestreams l ON l.user_id = u.id INNER JOIN reactions r ON r.livestream_id = l.id WHERE u.name = ?"},
+		{"reaction FindFavoriteEmojiByLivestreamOwnerName", func() error {
+			_, err := reactions.FindFavoriteEmojiByLivestreamOwnerName(ctx, tx, "nobody")
+			return err
+		}, "SELECT r.emoji_name FROM users u INNER JOIN livestreams l ON l.user_id = u.id INNER JOIN reactions r ON r.livestream_id = l.id WHERE u.name = ? GROUP BY `emoji_name` ORDER BY COUNT(*) DESC, emoji_name DESC LIMIT ?"},
+		{"reaction CountByLivestreamID", func() error { _, err := reactions.CountByLivestreamID(ctx, tx, 1); return err },
+			"SELECT count(*) FROM livestreams l INNER JOIN reactions r ON l.id = r.livestream_id WHERE l.id = ?"},
+		{"reaction CountTotalByLivestreamID", func() error { _, err := reactions.CountTotalByLivestreamID(ctx, tx, 1); return err },
+			"SELECT count(*) FROM livestreams l INNER JOIN reactions r ON r.livestream_id = l.id WHERE l.id = ?"},
 		{"user Create", func() error {
 			_, err := users.Create(ctx, tx, &domain.User{Name: "carol-sql", DisplayName: "Carol", Description: "d", HashedPassword: "hashed"})
 			return err

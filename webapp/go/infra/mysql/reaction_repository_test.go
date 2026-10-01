@@ -81,3 +81,25 @@ func TestReactionRepository_FindAllByLivestreamIDOrderByCreatedAtDesc(t *testing
 		t.Errorf("IDs = %v, want %v", ids, want)
 	}
 }
+
+// リアクションの登録時刻は、GORM が自動で設定せずに、渡した値をそのまま保存すること (0 でも現在時刻にならない)。
+func TestReactionRepository_Create_KeepsGivenCreatedAt(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	ownerID := insertTestUser(t, tx, "alice")
+	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
+	repo := NewReactionRepository()
+
+	id, err := repo.Create(ctx, tx, &domain.Reaction{UserID: ownerID, LivestreamID: livestreamID, EmojiName: "tada", CreatedAt: 0})
+	if err != nil {
+		t.Fatalf("Create returned error: %v", err)
+	}
+	got, err := repo.FindByID(ctx, tx, id)
+	if err != nil {
+		t.Fatalf("FindByID returned error: %v", err)
+	}
+	if got.CreatedAt != 0 {
+		t.Errorf("CreatedAt = %d, want 0", got.CreatedAt)
+	}
+}
