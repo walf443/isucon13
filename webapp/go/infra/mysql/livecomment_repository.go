@@ -8,7 +8,6 @@ import (
 
 	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
-	"github.com/jmoiron/sqlx"
 )
 
 type livecommentRepository struct{}
@@ -131,17 +130,5 @@ func (r *livecommentRepository) MaxTipByLivestreamID(ctx context.Context, q repo
 }
 
 func (r *livecommentRepository) FindAllByIDs(ctx context.Context, q repository.Querier, ids []domain.LivecommentID) ([]*domain.Livecomment, error) {
-	// IN () は作れないので、空の場合はクエリを発行しない
-	if len(ids) == 0 {
-		return []*domain.Livecomment{}, nil
-	}
-	query, params, err := sqlx.In("SELECT id, user_id, livestream_id, comment, tip, created_at FROM livecomments WHERE id IN (?)", ids)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct IN query: %w", err)
-	}
-	var livecomments []*domain.Livecomment
-	if err := q.SelectContext(ctx, &livecomments, query, params...); err != nil {
-		return nil, err
-	}
-	return livecomments, nil
+	return selectIn[domain.Livecomment](ctx, q, "SELECT id, user_id, livestream_id, comment, tip, created_at FROM livecomments WHERE id IN (?)", ids)
 }

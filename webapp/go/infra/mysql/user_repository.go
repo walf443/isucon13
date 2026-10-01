@@ -4,11 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
-	"github.com/jmoiron/sqlx"
 )
 
 type userRepository struct{}
@@ -74,17 +72,5 @@ func (r *userRepository) Create(ctx context.Context, q repository.Querier, user 
 }
 
 func (r *userRepository) FindAllByIDs(ctx context.Context, q repository.Querier, ids []domain.UserID) ([]*domain.User, error) {
-	// IN () は作れないので、空の場合はクエリを発行しない
-	if len(ids) == 0 {
-		return []*domain.User{}, nil
-	}
-	query, params, err := sqlx.In("SELECT id, name, display_name, description, password FROM users WHERE id IN (?)", ids)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct IN query: %w", err)
-	}
-	var users []*domain.User
-	if err := q.SelectContext(ctx, &users, query, params...); err != nil {
-		return nil, err
-	}
-	return users, nil
+	return selectIn[domain.User](ctx, q, "SELECT id, name, display_name, description, password FROM users WHERE id IN (?)", ids)
 }

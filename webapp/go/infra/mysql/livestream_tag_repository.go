@@ -1,8 +1,10 @@
 package mysql
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
@@ -33,17 +35,11 @@ func (r *livestreamTagRepository) FindAllByTagIDs(ctx context.Context, q reposit
 }
 
 func (r *livestreamTagRepository) FindAllByLivestreamIDs(ctx context.Context, q repository.Querier, livestreamIDs []domain.LivestreamID) ([]*domain.LivestreamTag, error) {
-	// IN () は作れないので、空の場合はクエリを発行しない
-	if len(livestreamIDs) == 0 {
-		return []*domain.LivestreamTag{}, nil
-	}
-	query, params, err := sqlx.In("SELECT id, livestream_id, tag_id FROM livestream_tags WHERE livestream_id IN (?) ORDER BY id", livestreamIDs)
+	livestreamTags, err := selectIn[domain.LivestreamTag](ctx, q, "SELECT id, livestream_id, tag_id FROM livestream_tags WHERE livestream_id IN (?) ORDER BY id", livestreamIDs)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct IN query: %w", err)
-	}
-	var livestreamTags []*domain.LivestreamTag
-	if err := q.SelectContext(ctx, &livestreamTags, query, params...); err != nil {
 		return nil, err
 	}
+	// ID を分割して引いた場合に、結果全体で ID の昇順になるようにする
+	slices.SortFunc(livestreamTags, func(a, b *domain.LivestreamTag) int { return cmp.Compare(a.ID, b.ID) })
 	return livestreamTags, nil
 }

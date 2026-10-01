@@ -4,11 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
-	"github.com/jmoiron/sqlx"
 )
 
 type themeRepository struct{}
@@ -35,17 +33,5 @@ func (r *themeRepository) Create(ctx context.Context, q repository.Querier, them
 }
 
 func (r *themeRepository) FindAllByUserIDs(ctx context.Context, q repository.Querier, userIDs []domain.UserID) ([]*domain.Theme, error) {
-	// IN () は作れないので、空の場合はクエリを発行しない
-	if len(userIDs) == 0 {
-		return []*domain.Theme{}, nil
-	}
-	query, params, err := sqlx.In("SELECT id, user_id, dark_mode FROM themes WHERE user_id IN (?)", userIDs)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct IN query: %w", err)
-	}
-	var themes []*domain.Theme
-	if err := q.SelectContext(ctx, &themes, query, params...); err != nil {
-		return nil, err
-	}
-	return themes, nil
+	return selectIn[domain.Theme](ctx, q, "SELECT id, user_id, dark_mode FROM themes WHERE user_id IN (?)", userIDs)
 }
