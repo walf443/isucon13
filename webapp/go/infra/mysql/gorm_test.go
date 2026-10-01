@@ -230,6 +230,7 @@ func TestMigratedRepositories_IssueExplicitColumnSQL(t *testing.T) {
 	livestreamTags := NewLivestreamTagRepository()
 	slots := NewReservationSlotRepository()
 	viewers := NewLivestreamViewersHistoryRepository()
+	reports := NewLivecommentReportRepository()
 	period := domain.ReservationPeriod{StartAt: 1, EndAt: 2}
 	// 記録するのは、ここから後に発行された SQL
 	*sqls = nil
@@ -313,6 +314,16 @@ func TestMigratedRepositories_IssueExplicitColumnSQL(t *testing.T) {
 			"SELECT count(*) FROM `livestream_viewers_history` WHERE livestream_id = ?"},
 		{"viewers history CountViewersByLivestreamID", func() error { _, err := viewers.CountViewersByLivestreamID(ctx, tx, 1); return err },
 			"SELECT count(*) FROM livestreams l INNER JOIN livestream_viewers_history h ON h.livestream_id = l.id WHERE l.id = ?"},
+		{"report FindByID", func() error { _, err := reports.FindByID(ctx, tx, 999999); return err },
+			"SELECT id, user_id, livestream_id, livecomment_id, created_at FROM `livecomment_reports` WHERE id = ? LIMIT ?"},
+		{"report FindAllByLivestreamID", func() error { _, err := reports.FindAllByLivestreamID(ctx, tx, 1); return err },
+			"SELECT id, user_id, livestream_id, livecomment_id, created_at FROM `livecomment_reports` WHERE livestream_id = ?"},
+		{"report Create", func() error {
+			_, err := reports.Create(ctx, tx, &domain.LivecommentReport{UserID: userID, LivestreamID: 1, LivecommentID: 2, CreatedAt: 100})
+			return err
+		}, "INSERT INTO `livecomment_reports` (`user_id`,`livestream_id`,`livecomment_id`,`created_at`) VALUES (?,?,?,?)"},
+		{"report CountByLivestreamID", func() error { _, err := reports.CountByLivestreamID(ctx, tx, 1); return err },
+			"SELECT count(*) FROM livestreams l INNER JOIN livecomment_reports r ON r.livestream_id = l.id WHERE l.id = ?"},
 		{"user Create", func() error {
 			_, err := users.Create(ctx, tx, &domain.User{Name: "carol-sql", DisplayName: "Carol", Description: "d", HashedPassword: "hashed"})
 			return err
