@@ -12,9 +12,10 @@ import (
 type fakeLivestreamTagRepository struct {
 	repository.LivestreamTagRepository
 
-	findAllByLivestreamID func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivestreamTag, error)
-	findAllByTagIDs       func(ctx context.Context, q repository.Querier, tagIDs []domain.TagID) ([]*domain.LivestreamTag, error)
-	create                func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, tagID domain.TagID) error
+	findAllByLivestreamID  func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivestreamTag, error)
+	findAllByLivestreamIDs func(ctx context.Context, q repository.Querier, livestreamIDs []domain.LivestreamID) ([]*domain.LivestreamTag, error)
+	findAllByTagIDs        func(ctx context.Context, q repository.Querier, tagIDs []domain.TagID) ([]*domain.LivestreamTag, error)
+	create                 func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, tagID domain.TagID) error
 }
 
 func (r *fakeLivestreamTagRepository) FindAllByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivestreamTag, error) {
@@ -27,4 +28,8 @@ func (r *fakeLivestreamTagRepository) FindAllByTagIDs(ctx context.Context, q rep
 
 func (r *fakeLivestreamTagRepository) Create(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, tagID domain.TagID) error {
 	return r.create(ctx, q, livestreamID, tagID)
+}
+
+func (r *fakeLivestreamTagRepository) FindAllByLivestreamIDs(ctx context.Context, q repository.Querier, livestreamIDs []domain.LivestreamID) ([]*domain.LivestreamTag, error) {
+	return r.findAllByLivestreamIDs(ctx, q, livestreamIDs)
 }

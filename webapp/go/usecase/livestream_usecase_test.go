@@ -216,7 +216,7 @@ func TestLivestreamUsecase_FindAllByTagName(t *testing.T) {
 	var tagCalls int
 	// ライブ配信 1 にはタグ 7, 8 の両方が付いているので、紐付けごとに 2 回現れる (移行前と同じ)
 	livestreamTagRepo := newLivestreamTagRepositoryFindingByTagIDs(t, &tagCalls, []domain.LivestreamID{2, 1, 1}, nil)
-	var livestreamCalls []domain.LivestreamID
+	var livestreamCalls [][]domain.LivestreamID
 	livestreamRepo := newLivestreamRepositoryWithLivestreams(&livestreamCalls, testLivestream1, testLivestream2)
 	u := newLivestreamUsecaseForTest(f, nil, newTagRepositoryFindingIDs(t, []domain.TagID{7, 8}, nil), livestreamRepo, livestreamTagRepo)
 
@@ -228,8 +228,8 @@ func TestLivestreamUsecase_FindAllByTagName(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
-	// 同じライブ配信は 1 回だけ引く
-	if want := []domain.LivestreamID{2, 1}; !slices.Equal(livestreamCalls, want) {
+	// 重複を除いた ID の一覧で 1 回だけ引く
+	if want := [][]domain.LivestreamID{{2, 1}}; !reflect.DeepEqual(livestreamCalls, want) {
 		t.Errorf("livestream calls = %v, want %v", livestreamCalls, want)
 	}
 }
@@ -268,6 +268,16 @@ func TestLivestreamUsecase_FindAllByTagName_Errors(t *testing.T) {
 	}{
 		{name: "tag repository error", tagErr: boom, wantErr: boom, wantMsg: "failed to get tags: boom"},
 		{name: "livestream tag repository error", livestreamTagsErr: boom, wantErr: boom, wantMsg: "failed to get livestreams: boom"},
+		{
+			name: "get livestreams fails",
+			livestreamRepo: &fakeLivestreamRepository{
+				findAllByIDs: func(context.Context, repository.Querier, []domain.LivestreamID) ([]*domain.Livestream, error) {
+					return nil, boom
+				},
+			},
+			wantErr: boom,
+			wantMsg: "failed to get livestreams: boom",
+		},
 		{
 			name:           "livestream not found",
 			livestreamRepo: newLivestreamRepositoryWithLivestreams(nil),

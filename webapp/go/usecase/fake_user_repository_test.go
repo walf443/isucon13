@@ -15,6 +15,7 @@ type fakeUserRepository struct {
 
 	findIDByName func(ctx context.Context, q repository.Querier, name string) (domain.UserID, error)
 	findByID     func(ctx context.Context, q repository.Querier, id domain.UserID) (*domain.User, error)
+	findAllByIDs func(ctx context.Context, q repository.Querier, ids []domain.UserID) ([]*domain.User, error)
 	findByName   func(ctx context.Context, q repository.Querier, name string) (*domain.User, error)
 	findAll      func(ctx context.Context, q repository.Querier) ([]*domain.User, error)
 	create       func(ctx context.Context, q repository.Querier, user *domain.User) (domain.UserID, error)
@@ -51,4 +52,8 @@ func newUserRepositoryFindingID(t *testing.T, name string, id domain.UserID, err
 			return id, err
 		},
 	}
+}
+
+func (r *fakeUserRepository) FindAllByIDs(ctx context.Context, q repository.Querier, ids []domain.UserID) ([]*domain.User, error) {
+	return r.findAllByIDs(ctx, q, ids)
 }

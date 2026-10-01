@@ -141,16 +141,16 @@ func (u *livestreamUsecase) FindAllByTagName(ctx context.Context, tagName string
 		if err != nil {
 			return fmt.Errorf("failed to get livestreams: %w", err)
 		}
+		found, err := u.livestreamRepo.FindAllByIDs(ctx, q, uniqueKeys(livestreamTags, func(livestreamTag *domain.LivestreamTag) domain.LivestreamID { return livestreamTag.LivestreamID }))
+		if err != nil {
+			return fmt.Errorf("failed to get livestreams: %w", err)
+		}
+		livestreamsByID := indexBy(found, func(livestream *domain.Livestream) domain.LivestreamID { return livestream.ID })
 		livestreams := make([]*domain.Livestream, len(livestreamTags))
-		fetched := make(map[domain.LivestreamID]*domain.Livestream, len(livestreamTags))
 		for i, livestreamTag := range livestreamTags {
-			livestream, ok := fetched[livestreamTag.LivestreamID]
+			livestream, ok := livestreamsByID[livestreamTag.LivestreamID]
 			if !ok {
-				livestream, err = u.livestreamRepo.FindByID(ctx, q, livestreamTag.LivestreamID)
-				if err != nil {
-					return fmt.Errorf("failed to get livestreams: failed to get livestream %d: %w", livestreamTag.LivestreamID, asMissingDetail(err))
-				}
-				fetched[livestreamTag.LivestreamID] = livestream
+				return fmt.Errorf("failed to get livestreams: failed to get livestream %d: %w", livestreamTag.LivestreamID, missingDetail())
 			}
 			livestreams[i] = livestream
 		}

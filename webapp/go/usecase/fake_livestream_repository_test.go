@@ -14,6 +14,7 @@ type fakeLivestreamRepository struct {
 	repository.LivestreamRepository
 
 	findByID                    func(ctx context.Context, q repository.Querier, id domain.LivestreamID) (*domain.Livestream, error)
+	findAllByIDs                func(ctx context.Context, q repository.Querier, ids []domain.LivestreamID) ([]*domain.Livestream, error)
 	findAll                     func(ctx context.Context, q repository.Querier) ([]*domain.Livestream, error)
 	findAllByUserID             func(ctx context.Context, q repository.Querier, userID domain.UserID) ([]*domain.Livestream, error)
 	findAllByIDAndUserID        func(ctx context.Context, q repository.Querier, id domain.LivestreamID, userID domain.UserID) ([]*domain.Livestream, error)
@@ -61,4 +62,8 @@ func newLivestreamRepositoryFindingByID(t *testing.T, id domain.LivestreamID, li
 			return livestream, err
 		},
 	}
+}
+
+func (r *fakeLivestreamRepository) FindAllByIDs(ctx context.Context, q repository.Querier, ids []domain.LivestreamID) ([]*domain.Livestream, error) {
+	return r.findAllByIDs(ctx, q, ids)
 }

@@ -55,6 +55,16 @@ func (f *detailFixture) userRepo() *fakeUserRepository {
 			}
 			return user, nil
 		},
+		findAllByIDs: func(_ context.Context, _ repository.Querier, ids []domain.UserID) ([]*domain.User, error) {
+			f.record(fmt.Sprintf("users %v", ids))
+			var found []*domain.User
+			for _, id := range ids {
+				if user, ok := f.users[id]; ok {
+					found = append(found, user)
+				}
+			}
+			return found, nil
+		},
 	}
 }
 
@@ -82,23 +92,27 @@ func (f *detailFixture) user(id domain.UserID) domain.UserDetail {
 
 func (f *detailFixture) livestreamFiller() *LivestreamFiller {
 	livestreamTagRepo := &fakeLivestreamTagRepository{
-		findAllByLivestreamID: func(_ context.Context, _ repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivestreamTag, error) {
-			f.record(fmt.Sprintf("livestream tags %d", livestreamID))
+		findAllByLivestreamIDs: func(_ context.Context, _ repository.Querier, livestreamIDs []domain.LivestreamID) ([]*domain.LivestreamTag, error) {
+			f.record(fmt.Sprintf("livestream tags %v", livestreamIDs))
 			var livestreamTags []*domain.LivestreamTag
-			for _, tagID := range f.livestreamTags[livestreamID] {
-				livestreamTags = append(livestreamTags, &domain.LivestreamTag{LivestreamID: livestreamID, TagID: tagID})
+			for _, livestreamID := range livestreamIDs {
+				for _, tagID := range f.livestreamTags[livestreamID] {
+					livestreamTags = append(livestreamTags, &domain.LivestreamTag{LivestreamID: livestreamID, TagID: tagID})
+				}
 			}
 			return livestreamTags, nil
 		},
 	}
 	tagRepo := &fakeTagRepository{
-		findByID: func(_ context.Context, _ repository.Querier, id domain.TagID) (*domain.Tag, error) {
-			f.record(fmt.Sprintf("tag %d", id))
-			tag, ok := f.tags[id]
-			if !ok {
-				return nil, repository.ErrNotFound
+		findAllByIDs: func(_ context.Context, _ repository.Querier, ids []domain.TagID) ([]*domain.Tag, error) {
+			f.record(fmt.Sprintf("tags %v", ids))
+			var found []*domain.Tag
+			for _, id := range ids {
+				if tag, ok := f.tags[id]; ok {
+					found = append(found, tag)
+				}
 			}
-			return tag, nil
+			return found, nil
 		},
 	}
 	return NewLivestreamFiller(f.userRepo(), livestreamTagRepo, tagRepo, f.userFiller())
@@ -161,19 +175,29 @@ func newUserFillerForTest(themes map[domain.UserID]*domain.Theme, icons map[doma
 }
 
 // newLivestreamRepositoryWithLivestreams は ID で models を引ける fakeLivestreamRepository を返す。
-// 見つからない ID には ErrNotFound を返し、引いた ID を calls に記録する。
-func newLivestreamRepositoryWithLivestreams(calls *[]domain.LivestreamID, models ...*domain.Livestream) *fakeLivestreamRepository {
+// FindByID は見つからない ID に ErrNotFound を返し、FindAllByIDs は見つからない ID を結果に含めない。
+// FindAllByIDs で引いた ID の一覧を calls に記録する。
+func newLivestreamRepositoryWithLivestreams(calls *[][]domain.LivestreamID, models ...*domain.Livestream) *fakeLivestreamRepository {
+	byID := indexBy(models, func(m *domain.Livestream) domain.LivestreamID { return m.ID })
 	return &fakeLivestreamRepository{
 		findByID: func(_ context.Context, _ repository.Querier, id domain.LivestreamID) (*domain.Livestream, error) {
-			if calls != nil {
-				*calls = append(*calls, id)
+			m, ok := byID[id]
+			if !ok {
+				return nil, repository.ErrNotFound
 			}
-			for _, m := range models {
-				if m.ID == id {
-					return m, nil
+			return m, nil
+		},
+		findAllByIDs: func(_ context.Context, _ repository.Querier, ids []domain.LivestreamID) ([]*domain.Livestream, error) {
+			if calls != nil {
+				*calls = append(*calls, ids)
+			}
+			var found []*domain.Livestream
+			for _, id := range ids {
+				if m, ok := byID[id]; ok {
+					found = append(found, m)
 				}
 			}
-			return nil, repository.ErrNotFound
+			return found, nil
 		},
 	}
 }

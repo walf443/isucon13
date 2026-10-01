@@ -26,7 +26,7 @@ func TestLivecommentReportFiller_Fill(t *testing.T) {
 		t.Errorf("reports = %+v, want %+v", got, want)
 	}
 	// 報告したユーザは重複を除いて 1 回だけ引く (コメントしたユーザ・配信者は LivecommentFiller などが別に引く)
-	if want := []string{"user 42", "user 43", "user 42", "user 42", "livestream tags 1", "tag 7", "tag 8"}; !reflect.DeepEqual(f.calls, want) {
+	if want := []string{"user 42", "user 43", "user 42", "users [42]", "livestream tags [1]", "tags [7 8]"}; !reflect.DeepEqual(f.calls, want) {
 		t.Errorf("calls = %v, want %v", f.calls, want)
 	}
 }

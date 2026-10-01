@@ -15,6 +15,7 @@ type fakeTagRepository struct {
 	findAll       func(ctx context.Context, q repository.Querier) ([]*domain.Tag, error)
 	findIDsByName func(ctx context.Context, q repository.Querier, name string) ([]domain.TagID, error)
 	findByID      func(ctx context.Context, q repository.Querier, id domain.TagID) (*domain.Tag, error)
+	findAllByIDs  func(ctx context.Context, q repository.Querier, ids []domain.TagID) ([]*domain.Tag, error)
 }
 
 func (r *fakeTagRepository) FindAll(ctx context.Context, q repository.Querier) ([]*domain.Tag, error) {
@@ -27,4 +28,8 @@ func (r *fakeTagRepository) FindIDsByName(ctx context.Context, q repository.Quer
 
 func (r *fakeTagRepository) FindByID(ctx context.Context, q repository.Querier, id domain.TagID) (*domain.Tag, error) {
 	return r.findByID(ctx, q, id)
+}
+
+func (r *fakeTagRepository) FindAllByIDs(ctx context.Context, q repository.Querier, ids []domain.TagID) ([]*domain.Tag, error) {
+	return r.findAllByIDs(ctx, q, ids)
 }
