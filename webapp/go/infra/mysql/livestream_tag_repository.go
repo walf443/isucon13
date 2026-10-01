@@ -3,13 +3,29 @@ package mysql
 import (
 	"cmp"
 	"context"
-	"fmt"
+	"errors"
 	"slices"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
-	"github.com/jmoiron/sqlx"
 )
+
+// livestreamTagRow は livestream_tags テーブルの行。
+type livestreamTagRow struct {
+	ID           int64 `gorm:"column:id;primaryKey"`
+	LivestreamID int64 `gorm:"column:livestream_id"`
+	TagID        int64 `gorm:"column:tag_id"`
+}
+
+func (livestreamTagRow) TableName() string { return "livestream_tags" }
+
+func (r *livestreamTagRow) toDomain() *domain.LivestreamTag {
+	return &domain.LivestreamTag{
+		ID:           domain.LivestreamTagID(r.ID),
+		LivestreamID: domain.LivestreamID(r.LivestreamID),
+		TagID:        domain.TagID(r.TagID),
+	}
+}
 
 type livestreamTagRepository struct{}
 
@@ -18,28 +34,33 @@ func NewLivestreamTagRepository() repository.LivestreamTagRepository {
 }
 
 func (r *livestreamTagRepository) Create(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, tagID domain.TagID) error {
-	_, err := q.ExecContext(ctx, "INSERT INTO livestream_tags (livestream_id, tag_id) VALUES (?, ?)", livestreamID, tagID)
-	return err
+	row := livestreamTagRow{LivestreamID: int64(livestreamID), TagID: int64(tagID)}
+	return dbOf(ctx, q).Create(&row).Error
 }
 
 func (r *livestreamTagRepository) FindAllByTagIDs(ctx context.Context, q repository.Querier, tagIDs []domain.TagID) ([]*domain.LivestreamTag, error) {
-	query, params, err := sqlx.In("SELECT id, livestream_id, tag_id FROM livestream_tags WHERE tag_id IN (?) ORDER BY livestream_id DESC", tagIDs)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct IN query: %w", err)
+	// 移行前と同じく、空の場合はエラーにする (GORM の IN ? は、空だとエラーにならずに何も返さない)
+	if len(tagIDs) == 0 {
+		return nil, errors.New("failed to construct IN query: empty slice passed to 'in' query")
 	}
-	var livestreamTags []*domain.LivestreamTag
-	if err := q.SelectContext(ctx, &livestreamTags, query, params...); err != nil {
+	// タグの ID はタグ名で引いたものなので少なく、分割すると結果全体の並び順 (ライブ配信の ID の降順) が崩れるので、分割しない
+	var rows []*livestreamTagRow
+	if err := dbOf(ctx, q).Select("id, livestream_id, tag_id").Where("tag_id IN ?", tagIDs).Order("livestream_id DESC").Find(&rows).Error; err != nil {
 		return nil, err
 	}
-	return livestreamTags, nil
+	return mapRows(rows, (*livestreamTagRow).toDomain), nil
 }
 
 func (r *livestreamTagRepository) FindAllByLivestreamIDs(ctx context.Context, q repository.Querier, livestreamIDs []domain.LivestreamID) ([]*domain.LivestreamTag, error) {
-	livestreamTags, err := selectIn[domain.LivestreamTag](ctx, q, "SELECT id, livestream_id, tag_id FROM livestream_tags WHERE livestream_id IN (?) ORDER BY id", livestreamIDs)
+	rows, err := findIn(livestreamIDs, func(chunk []domain.LivestreamID) ([]*livestreamTagRow, error) {
+		var rows []*livestreamTagRow
+		err := dbOf(ctx, q).Select("id, livestream_id, tag_id").Where("livestream_id IN ?", chunk).Order("id").Find(&rows).Error
+		return rows, err
+	})
 	if err != nil {
 		return nil, err
 	}
 	// ID を分割して引いた場合に、結果全体で ID の昇順になるようにする
-	slices.SortFunc(livestreamTags, func(a, b *domain.LivestreamTag) int { return cmp.Compare(a.ID, b.ID) })
-	return livestreamTags, nil
+	slices.SortFunc(rows, func(a, b *livestreamTagRow) int { return cmp.Compare(a.ID, b.ID) })
+	return mapRows(rows, (*livestreamTagRow).toDomain), nil
 }

@@ -3,6 +3,7 @@ package mysql
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"slices"
 	"testing"
@@ -148,6 +149,40 @@ func TestMigratedRepositories_BulkMethodsAcceptMoreIDsThanMySQLPlaceholderLimit(
 			},
 		},
 		{
+			name: "LivestreamRepository.FindAllByIDs",
+			run: func(t *testing.T, tx repository.Querier) ([]int64, []int64) {
+				ownerID := insertTestUser(t, tx, "alice")
+				first, second := insertTestLivestream(t, tx, ownerID, "first"), insertTestLivestream(t, tx, ownerID, "second")
+				livestreams, err := NewLivestreamRepository().FindAllByIDs(ctx, tx, withManyIDs(first, second))
+				if err != nil {
+					t.Fatalf("FindAllByIDs returned error: %v", err)
+				}
+				got := make([]int64, len(livestreams))
+				for i, l := range livestreams {
+					got[i] = int64(l.ID)
+				}
+				return int64s([]domain.LivestreamID{first, second}), got
+			},
+		},
+		{
+			name: "LivestreamTagRepository.FindAllByLivestreamIDs",
+			run: func(t *testing.T, tx repository.Querier) ([]int64, []int64) {
+				ownerID := insertTestUser(t, tx, "alice")
+				first, second := insertTestLivestream(t, tx, ownerID, "first"), insertTestLivestream(t, tx, ownerID, "second")
+				insertTestTag(t, tx, first, "A")
+				insertTestTag(t, tx, second, "B")
+				livestreamTags, err := NewLivestreamTagRepository().FindAllByLivestreamIDs(ctx, tx, withManyIDs(first, second))
+				if err != nil {
+					t.Fatalf("FindAllByLivestreamIDs returned error: %v", err)
+				}
+				got := make([]int64, len(livestreamTags))
+				for i, lt := range livestreamTags {
+					got[i] = int64(lt.LivestreamID)
+				}
+				return int64s([]domain.LivestreamID{first, second}), got
+			},
+		},
+		{
 			name: "TagRepository.FindAllByIDs",
 			run: func(t *testing.T, tx repository.Querier) ([]int64, []int64) {
 				ownerID := insertTestUser(t, tx, "alice")
@@ -190,6 +225,8 @@ func TestMigratedRepositories_IssueExplicitColumnSQL(t *testing.T) {
 	themes := NewThemeRepository()
 	icons := NewIconRepository()
 	users := NewUserRepository()
+	livestreams := NewLivestreamRepository()
+	livestreamTags := NewLivestreamTagRepository()
 	// 記録するのは、ここから後に発行された SQL
 	*sqls = nil
 
@@ -231,6 +268,32 @@ func TestMigratedRepositories_IssueExplicitColumnSQL(t *testing.T) {
 			"SELECT id, name, display_name, description, password FROM `users`"},
 		{"user FindAllByIDs", func() error { _, err := users.FindAllByIDs(ctx, tx, []domain.UserID{userID, userID + 1}); return err },
 			"SELECT id, name, display_name, description, password FROM `users` WHERE id IN (?,?)"},
+		{"livestream FindByID", func() error { _, err := livestreams.FindByID(ctx, tx, 999999); return err },
+			"SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM `livestreams` WHERE id = ? LIMIT ?"},
+		{"livestream FindAllByIDAndUserID", func() error { _, err := livestreams.FindAllByIDAndUserID(ctx, tx, 1, userID); return err },
+			"SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM `livestreams` WHERE id = ? AND user_id = ?"},
+		{"livestream FindAll", func() error { _, err := livestreams.FindAll(ctx, tx); return err },
+			"SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM `livestreams`"},
+		{"livestream FindAllByUserID", func() error { _, err := livestreams.FindAllByUserID(ctx, tx, userID); return err },
+			"SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM `livestreams` WHERE user_id = ?"},
+		{"livestream FindAllOrderByIDDesc", func() error { _, err := livestreams.FindAllOrderByIDDesc(ctx, tx); return err },
+			"SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM `livestreams` ORDER BY id DESC"},
+		{"livestream FindAllOrderByIDDescLimited", func() error { _, err := livestreams.FindAllOrderByIDDescLimited(ctx, tx, 5); return err },
+			"SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM `livestreams` ORDER BY id DESC LIMIT ?"},
+		{"livestream FindAllByIDs", func() error { _, err := livestreams.FindAllByIDs(ctx, tx, []domain.LivestreamID{1, 2}); return err },
+			"SELECT id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at FROM `livestreams` WHERE id IN (?,?)"},
+		{"livestream Create", func() error {
+			_, err := livestreams.Create(ctx, tx, &domain.Livestream{UserID: userID, Title: "t", Description: "d", PlaylistUrl: "p", ThumbnailUrl: "u", StartAt: 1, EndAt: 2})
+			return err
+		}, "INSERT INTO `livestreams` (`user_id`,`title`,`description`,`playlist_url`,`thumbnail_url`,`start_at`,`end_at`) VALUES (?,?,?,?,?,?,?)"},
+		{"livestream tag Create", func() error { return livestreamTags.Create(ctx, tx, 1, 2) },
+			"INSERT INTO `livestream_tags` (`livestream_id`,`tag_id`) VALUES (?,?)"},
+		{"livestream tag FindAllByTagIDs", func() error { _, err := livestreamTags.FindAllByTagIDs(ctx, tx, []domain.TagID{1, 2}); return err },
+			"SELECT id, livestream_id, tag_id FROM `livestream_tags` WHERE tag_id IN (?,?) ORDER BY livestream_id DESC"},
+		{"livestream tag FindAllByLivestreamIDs", func() error {
+			_, err := livestreamTags.FindAllByLivestreamIDs(ctx, tx, []domain.LivestreamID{1, 2})
+			return err
+		}, "SELECT id, livestream_id, tag_id FROM `livestream_tags` WHERE livestream_id IN (?,?) ORDER BY id"},
 		{"user Create", func() error {
 			_, err := users.Create(ctx, tx, &domain.User{Name: "carol-sql", DisplayName: "Carol", Description: "d", HashedPassword: "hashed"})
 			return err
@@ -239,12 +302,49 @@ func TestMigratedRepositories_IssueExplicitColumnSQL(t *testing.T) {
 	for _, c := range calls {
 		*sqls = nil
 		err := c.call()
-		// theme / icon / user の FindXxx は、無いものを引くので ErrNotFound になるが、SQL は発行されている
+		// theme / icon / user / livestream の FindXxx は、無いものを引くので ErrNotFound になるが、SQL は発行されている
 		if err != nil && !errors.Is(err, repository.ErrNotFound) {
 			t.Fatalf("%s returned error: %v", c.name, err)
 		}
 		if len(*sqls) != 1 || (*sqls)[0] != c.want {
 			t.Errorf("%s: SQL = %q, want [%q]", c.name, *sqls, c.want)
 		}
+	}
+}
+
+// 分割して引いても、紐付けは結果全体で ID の昇順になること。
+func TestLivestreamTagRepository_FindAllByLivestreamIDs_KeepsOrderAcrossChunks(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	ownerID := insertTestUser(t, tx, "alice")
+	var livestreamIDs []domain.LivestreamID
+	// 分割する大きさ (maxInArgs) を超えるライブ配信にタグを付ける。ID が大きいライブ配信ほど先に紐付ける
+	for i := 0; i < maxInArgs+5; i++ {
+		livestreamIDs = append(livestreamIDs, insertTestLivestream(t, tx, ownerID, "stream"))
+	}
+	for i := len(livestreamIDs) - 1; i >= 0; i-- {
+		insertTestTag(t, tx, livestreamIDs[i], fmt.Sprintf("tag-%d", i))
+	}
+
+	got, err := NewLivestreamTagRepository().FindAllByLivestreamIDs(ctx, tx, livestreamIDs)
+	if err != nil {
+		t.Fatalf("FindAllByLivestreamIDs returned error: %v", err)
+	}
+	if len(got) != len(livestreamIDs) {
+		t.Fatalf("len(livestream tags) = %d, want %d", len(got), len(livestreamIDs))
+	}
+	if !slices.IsSortedFunc(got, func(a, b *domain.LivestreamTag) int { return int(a.ID) - int(b.ID) }) {
+		t.Errorf("livestream tags are not sorted by ID")
+	}
+}
+
+// 空の tagIDs は、移行前と同じくエラーになること (GORM の IN ? は、空だとエラーにならずに何も返さないため、明示的に弾いている)。
+func TestLivestreamTagRepository_FindAllByTagIDs_EmptyIsError(t *testing.T) {
+	tx := beginTestTx(t)
+
+	_, err := NewLivestreamTagRepository().FindAllByTagIDs(context.Background(), tx, nil)
+	if err == nil || err.Error() != "failed to construct IN query: empty slice passed to 'in' query" {
+		t.Errorf("err = %v, want the empty IN error", err)
 	}
 }

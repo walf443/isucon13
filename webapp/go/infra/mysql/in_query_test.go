@@ -2,7 +2,6 @@ package mysql
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"slices"
 	"testing"
@@ -41,57 +40,6 @@ func TestSelectInChunked_ConcatenatesChunks(t *testing.T) {
 	slices.Sort(gotIDs)
 	if !slices.Equal(gotIDs, ids) {
 		t.Errorf("IDs = %v, want %v", gotIDs, ids)
-	}
-}
-
-// MySQL のプレースホルダーの上限 (65535) を超える数の ID でも、selectIn を使う repository が分割して引けること。
-// まだ GORM に移行していない repository (selectIn を使うもの) の分で、移行したら gorm_test.go の表 (withManyIDs) に移す。
-func TestLivestreamRepository_FindAllByIDs_MoreIDsThanMySQLPlaceholderLimit(t *testing.T) {
-	ctx := context.Background()
-	tx := beginTestTx(t)
-
-	ownerID := insertTestUser(t, tx, "alice")
-	first := insertTestLivestream(t, tx, ownerID, "first")
-	second := insertTestLivestream(t, tx, ownerID, "second")
-
-	got, err := NewLivestreamRepository().FindAllByIDs(ctx, tx, withManyIDs(first, second))
-	if err != nil {
-		t.Fatalf("FindAllByIDs returned error: %v", err)
-	}
-	gotIDs := make([]domain.LivestreamID, len(got))
-	for i, l := range got {
-		gotIDs[i] = l.ID
-	}
-	slices.Sort(gotIDs)
-	if want := []domain.LivestreamID{first, second}; !slices.Equal(gotIDs, want) {
-		t.Errorf("IDs = %v, want %v", gotIDs, want)
-	}
-}
-
-// 分割して引いても、紐付けは結果全体で ID の昇順になること。
-func TestLivestreamTagRepository_FindAllByLivestreamIDs_KeepsOrderAcrossChunks(t *testing.T) {
-	ctx := context.Background()
-	tx := beginTestTx(t)
-
-	ownerID := insertTestUser(t, tx, "alice")
-	var livestreamIDs []domain.LivestreamID
-	// 分割する大きさ (maxInArgs) を超えるライブ配信にタグを付ける。ID が大きいライブ配信ほど先に紐付ける
-	for i := 0; i < maxInArgs+5; i++ {
-		livestreamIDs = append(livestreamIDs, insertTestLivestream(t, tx, ownerID, "stream"))
-	}
-	for i := len(livestreamIDs) - 1; i >= 0; i-- {
-		insertTestTag(t, tx, livestreamIDs[i], fmt.Sprintf("tag-%d", i))
-	}
-
-	got, err := NewLivestreamTagRepository().FindAllByLivestreamIDs(ctx, tx, livestreamIDs)
-	if err != nil {
-		t.Fatalf("FindAllByLivestreamIDs returned error: %v", err)
-	}
-	if len(got) != len(livestreamIDs) {
-		t.Fatalf("len(livestream tags) = %d, want %d", len(got), len(livestreamIDs))
-	}
-	if !slices.IsSortedFunc(got, func(a, b *domain.LivestreamTag) int { return int(a.ID) - int(b.ID) }) {
-		t.Errorf("livestream tags are not sorted by ID")
 	}
 }
 
