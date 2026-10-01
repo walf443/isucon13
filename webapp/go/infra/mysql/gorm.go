@@ -27,7 +27,7 @@ func gormConfig() *gorm.Config {
 // gormOf は repository.Querier の実体 (トランザクション) を *gorm.DB として返す。
 // repository.Querier は usecase から見ると不透明な値で、infra が渡したものだけがここへ来る。
 func gormOf(q repository.Querier) *gorm.DB {
-	return q.(*querier).tx
+	return q.(*querier).db
 }
 
 // dbOf は gormOf と同じだが、ctx を引き継いだ *gorm.DB を返す。クエリはこれから組み立てる。

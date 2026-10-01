@@ -1,7 +1,6 @@
 package main
 
 // ISUCON的な参考: https://github.com/isucon/isucon12-qualify/blob/main/webapp/go/isuports.go#L336
-// sqlx的な参考: https://jmoiron.github.io/sqlx/
 
 import (
 	"log"
