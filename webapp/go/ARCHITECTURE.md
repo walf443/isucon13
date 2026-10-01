@@ -16,8 +16,8 @@ domain  ←  usecase (+ usecase/repository)  ←  infra/*
 |---|---|
 | `domain` | エンティティ・値オブジェクト・型付き ID・ドメインのルール。他の層にも DB にも依存しない |
 | `usecase` | ユースケース。トランザクションの境界を持つ。外部 (DNS・初期化スクリプト・ログ) への要求は interface として定義する |
-| `usecase/repository` | repository の interface と `Querier` / `TxManager` / `ErrNotFound` |
-| `infra/mysql` | repository と `TxManager` の MySQL 実装、DB への接続 (`Config` / `ConfigFromEnv` / `Open`) |
+| `usecase/repository` | repository の interface と `Querier` (実行先を表す不透明な値) / `TxManager` / `ErrNotFound` |
+| `infra/mysql` | repository と `TxManager` の MySQL 実装 (GORM)、テーブルごとの行の型、DB への接続 (`Config` / `ConfigFromEnv` / `Open`) |
 | `infra/powerdns` | `usecase.DNSRecordRegistrar` の実装 (pdnsutil を呼ぶ) |
 | `infra/script` | `usecase.Initializer` の実装 (初期化スクリプトを呼ぶ) |
 | `interfaces/http/handler` | HTTP の入口。リクエストの解釈、usecase の呼び出し、レスポンスへの変換、ルーティング、セッション |
@@ -26,7 +26,8 @@ domain  ←  usecase (+ usecase/repository)  ←  infra/*
 依存の向きは golangci-lint の depguard で強制している (`.golangci.yml`)。
 
 - `domain` は `usecase` / `infra` / `interfaces` / `database/sql` に依存しない
-- `usecase` (`usecase/repository` を含む) は `infra` / `interfaces` / `database/sql` / `sqlx` / MySQL ドライバに依存しない
+- `usecase` (`usecase/repository` を含む) は `infra` / `interfaces` / `database/sql` / MySQL ドライバ / GORM に依存しない
+- `domain` と `interfaces` も GORM に依存しない
 - `infra` は `interfaces` に依存しない
 - `interfaces` は `infra` と `usecase/repository` に依存しない (データには usecase を通してアクセスする)
 
@@ -43,7 +44,9 @@ repository だけは数が多く、usecase の型と名前を分けたいので 
 - usecase のメソッドは `TxManager.RunInTx` の中で repository を呼ぶ。コミット・ロールバックの判断は usecase が行う
 - repository のメソッドは実行先の `repository.Querier` (DB またはトランザクション) を引数で受け取る
   - トランザクションの境界がコード上で見えることと、repository を 1 メソッド (1 SQL) ずつテストしやすいことを優先した
-- `Querier.ExecContext` は `sql.Result` ではなく `repository.Result` を返し、usecase 側を `database/sql` から切り離している
+- `Querier` は usecase から見ると不透明な値で、usecase は `TxManager` から受け取って repository に渡すだけで、中身を見ない
+  - 小文字のメソッド `querier()` を持つ interface で、`repository.QuerierBase` を埋め込んだ型 (infra の `querier`) だけが満たせる。関係のない値をうっかり渡すとコンパイルエラーになる
+  - 実体は `*gorm.DB` (トランザクション) で、infra の repository が `gormOf` / `dbOf` で取り出す。usecase は GORM に依存しない
 
 ### repository はテーブル単位
 
@@ -66,10 +69,20 @@ usecase の `XxxFiller` (`UserFiller` / `LivestreamFiller` など) が repositor
     呼び出し側が誤って Filler のエラーに `errors.Is(err, repository.ErrNotFound)` を使っても、404 にならない
 - Filler は他の Filler を使う (`LivestreamFiller` は配信者に `UserFiller` を使う、など)。`usecases.go` でそれぞれ 1 つ作って共有する
 
-### SQL
+### SQL (GORM)
 
-- SQL は完全なリテラルで書く。カラム一覧の定数化や文字列の連結による動的な組み立てはしない
-- 移行前に SQL で判定していたロジック (NG ワードの LIKE によるスパム判定など) は SQL のまま残す。Go に移すと照合順序やワイルドカードの扱いまで含めた同一性を保証できないため
+infra/mysql の SQL は GORM で書く。
+
+- 単純な処理 (ID・カラムでの取得、INSERT / DELETE / UPDATE、JOIN の件数・集計) は、ビルダー (`Where` / `Find` / `Create` / `Joins` / `Count` など) で書く
+  - 読み取りは必ず `Select("id, name")` のようにカラムを列挙する。`SELECT *` にしない (移行前の SQL と同じカラムだけを読み、テーブルにカラムが増えても結果が変わらないようにする)
+  - `FOR UPDATE` は `clause.Locking`、`slot = slot - 1` は `gorm.Expr` で書く
+- 移行前に SQL で判定していたロジック (NG ワードの LIKE によるスパム判定など) は、Go に移さず、リテラルの SQL を `Raw` / `Exec` で実行する。Go に移すと照合順序やワイルドカードの扱いまで含めた同一性を保証できないため
+- 行の型はテーブルごとに infra に作る (`userRow` など)。`TableName()` を必ず明示し、カラムは `gorm:"column:..."` で対応づけ、domain の型との変換 (`toDomain`) を持たせる
+  - `CreatedAt` は GORM が登録時刻を自動で設定する名前なので、`autoCreateTime:false` を付ける (usecase が渡した値をそのまま保存する)
+  - 見つからない場合は `gorm.ErrRecordNotFound` を `repository.ErrNotFound` に変換する
+- GORM の設定: ロガーは出力しない (移行前は SQL をログに出していなかった)、`SkipDefaultTransaction` を有効にする (トランザクションは usecase が持つ)、エラーの翻訳はしない (ドライバのエラー本文をそのまま返す。例: 重複登録の `Error 1062`)
+- `IN (...)` は `findIn` を使う。ID を昇順・重複なしにして 1000 件ずつに分けて引く (MySQL のプレースホルダーは 1 つのクエリで 65535 個までのため)。分割すると結果の並び順は崩れるので、並び順が必要なメソッドは並べ直す
+- 発行される SQL の文面は `gorm_test.go` のテスト (`recordSQL`) で固定している。repository を足したり変えたりしたら、そこに足す
 
 ### domain
 
@@ -80,7 +93,7 @@ usecase の `XxxFiller` (`UserFiller` / `LivestreamFiller` など) が repositor
 - 型付き ID (`domain.ID[T]`、`domain.UserID` など) を使い、文字列からの変換は `domain.ParseXxxID` で行う
 - 値オブジェクト: `Limit` (`ParseLimit` で範囲を検証して作る)、`ReservationPeriod`、`HashedPassword`、`IconHash` など
 - `json` タグは付けない。domain の構造をそのまま HTTP に出してしまわないため
-- `db` タグは付けてよい。外すと infra に domain とほぼ同じ行の型が増えるだけなので、テーブルと形がずれるまでは domain に置く
+- `db` タグは、sqlx を使っていたときの名残で、今は誰も使っていない (infra が行の型を別に持つため)。差分を小さくするために、そのまま残している。新しい型には付けなくてよい
 
 ### usecase
 
@@ -113,6 +126,10 @@ usecase の `XxxFiller` (`UserFiller` / `LivestreamFiller` など) が repositor
   - タグは紐付けの ID の昇順に並べる (`ORDER BY id` を明示した)
   - DB のエラーの 500 の本文は `failed to get themes: …` のように、まとめて取得したことを表すものになった
 - データ不整合 (テーマなどの欠損) の場合の 500 の本文が `sql: no rows in result set` から `not found` になった
+- sqlx から GORM に移行したことで、発行される SQL の文面が変わった (結果は同じ)
+  - `COUNT(*)` が `count(*)` になった、`GROUP BY` のカラム名にバッククォートが付いた、`LIMIT 1` が `LIMIT ?` になった、SQL の空白が保たれなくなった
+  - `FindImageByUserID` は `ORDER BY id LIMIT 1` になった (同じユーザのアイコンが複数ある場合に、ID が最小のものを使うことを明示した)
+  - MySQL ドライバが v1.7.1 から v1.8.1 に上がった (GORM の MySQL ドライバの要求)
 
 ## テスト
 
@@ -121,7 +138,7 @@ usecase の `XxxFiller` (`UserFiller` / `LivestreamFiller` など) が repositor
 | `domain` | 通常の単体テスト |
 | `usecase` | repository などを fake に差し替える。fake は interface を埋め込み、テストで設定した関数に処理を委ねる (未設定のメソッドを呼ぶと panic する)。Filler は fake にせず、テスト用のデータ (`fixture_test.go` の `detailFixture`) から作った本物を使い、組み立てた結果まで確認する |
 | `interfaces/http/handler` | usecase を fake に差し替え、`serve` / `send` で echo にリクエストを送り、`assertResponse` で確認する。エラーレスポンスでは本文 (`wantBody`) の確認を必須にしている |
-| `infra/mysql` | testcontainers で MySQL を起動し、実際のスキーマに対して 1 メソッドずつ確認する。`-short` ではスキップする |
+| `infra/mysql` | testcontainers で MySQL を起動し、実際のスキーマに対して 1 メソッドずつ確認する。`-short` ではスキップする。テストのデータは `insertSQL` / `execSQL` / `scanSQL` (`helper_test.go`) で SQL を直接実行して用意する。発行される SQL の文面の固定 (`recordSQL`)、7 万件の ID での一括取得、`FOR UPDATE` が本当にロックすること (別のトランザクションから `NOWAIT` で確認) など、実際の MySQL でしか分からないことも確かめている |
 | `infra/powerdns`, `infra/script` | 一時ディレクトリに置いた偽のコマンド・スクリプトを実行させて、渡す引数と出力・エラーの扱いを確認する |
 
 ## 静的検査と CI
@@ -139,6 +156,6 @@ usecase の `XxxFiller` (`UserFiller` / `LivestreamFiller` など) が repositor
 |---|---|
 | トランザクションを context で運ぶ | 境界が見えにくくなり、repository を 1 メソッドずつテストしにくくなる |
 | スパム判定を domain に移す | SQL (LIKE) と同じ判定になることを保証しにくい |
-| `db` タグを domain から外す | infra に domain とほぼ同じ型が増えるだけ |
+| `db` タグを domain から外す | もう使われていないが、消すと差分が大きくなるので、そのまま残している |
 | 統計の集約 repository・統計 usecase の分割 | テーブル単位でクエリがまとまっていることの方が価値がある。分けても改善が小さい |
 | ベンチマーカーでの確認 | 目的は Clean Architecture の実践で、環境構築の手間に見合わない |
