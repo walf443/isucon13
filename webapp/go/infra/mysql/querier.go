@@ -1,37 +1,19 @@
 package mysql
 
 import (
-	"context"
-	"database/sql"
-
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
+	"gorm.io/gorm"
 )
 
-// sqlxQuerier は *sqlx.DB と *sqlx.Tx の両方が満たすインターフェース。
-type sqlxQuerier interface {
-	GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
-	SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-}
-
-// querier は sqlxQuerier を repository.Querier として使えるようにする。
-// ExecContext の戻り値を sql.Result から repository.Result にするためだけの薄いラッパー。
+// querier は GORM の DB (トランザクション) を repository.Querier として渡すための値。
+// usecase は中身を見ずに repository に渡すだけで、infra の repository が gormOf で *gorm.DB を取り出す。
 type querier struct {
-	q sqlxQuerier
+	repository.QuerierBase
+	db *gorm.DB
 }
 
-func newQuerier(q sqlxQuerier) repository.Querier {
-	return &querier{q: q}
-}
+var _ repository.Querier = (*querier)(nil)
 
-func (w *querier) GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error {
-	return w.q.GetContext(ctx, dest, query, args...)
-}
-
-func (w *querier) SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error {
-	return w.q.SelectContext(ctx, dest, query, args...)
-}
-
-func (w *querier) ExecContext(ctx context.Context, query string, args ...interface{}) (repository.Result, error) {
-	return w.q.ExecContext(ctx, query, args...)
+func newQuerier(db *gorm.DB) repository.Querier {
+	return &querier{db: db}
 }

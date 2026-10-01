@@ -16,9 +16,7 @@ func TestIconRepository_FindImageByUserID(t *testing.T) {
 	tx := beginTestTx(t)
 
 	want := []byte{0x89, 'P', 'N', 'G', 0x00, 0xff}
-	if _, err := tx.ExecContext(ctx, "INSERT INTO icons (user_id, image) VALUES (?, ?)", 42, want); err != nil {
-		t.Fatalf("failed to insert icon: %v", err)
-	}
+	execSQL(t, tx, "INSERT INTO icons (user_id, image) VALUES (?, ?)", 42, want)
 
 	image, err := NewIconRepository().FindImageByUserID(ctx, tx, 42)
 	if err != nil {
@@ -124,11 +122,7 @@ func TestIconRepository_FindAllByUserIDs_OrderedByID(t *testing.T) {
 		userID domain.UserID
 		image  string
 	}{{bob, "bob"}, {alice, "alice old"}, {alice, "alice new"}} {
-		res, err := tx.ExecContext(ctx, "INSERT INTO icons (user_id, image) VALUES (?, ?)", c.userID, []byte(c.image))
-		if err != nil {
-			t.Fatalf("failed to insert icon: %v", err)
-		}
-		id, _ := res.LastInsertId()
+		id := insertSQL(t, tx, "INSERT INTO icons (user_id, image) VALUES (?, ?)", c.userID, []byte(c.image))
 		ids = append(ids, domain.IconID(id))
 	}
 
@@ -153,9 +147,7 @@ func TestIconRepository_FindImageByUserIDAndFindAllByUserIDs_AgreeOnDuplicatedIc
 
 	alice := insertTestUser(t, tx, "alice")
 	for _, image := range []string{"first", "second"} {
-		if _, err := tx.ExecContext(ctx, "INSERT INTO icons (user_id, image) VALUES (?, ?)", alice, []byte(image)); err != nil {
-			t.Fatalf("failed to insert icon: %v", err)
-		}
+		execSQL(t, tx, "INSERT INTO icons (user_id, image) VALUES (?, ?)", alice, []byte(image))
 	}
 	repo := NewIconRepository()
 

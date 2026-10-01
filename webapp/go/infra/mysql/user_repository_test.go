@@ -6,17 +6,14 @@ import (
 	"maps"
 	"testing"
 
+	driver "github.com/go-sql-driver/mysql"
 	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
 
 func insertTestUser(t *testing.T, tx repository.Querier, name string) domain.UserID {
 	t.Helper()
-	res, err := tx.ExecContext(context.Background(), "INSERT INTO users (name, display_name, password, description) VALUES (?, ?, ?, ?)", name, "Display "+name, "hashed", "desc "+name)
-	if err != nil {
-		t.Fatalf("failed to insert user: %v", err)
-	}
-	id, _ := res.LastInsertId()
+	id := insertSQL(t, tx, "INSERT INTO users (name, display_name, password, description) VALUES (?, ?, ?, ?)", name, "Display "+name, "hashed", "desc "+name)
 	return domain.UserID(id)
 }
 
@@ -24,11 +21,7 @@ func TestUserRepository_FindIDByName(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)
 
-	res, err := tx.ExecContext(ctx, "INSERT INTO users (name, display_name, password, description) VALUES (?, ?, ?, ?)", "alice", "Alice", "x", "")
-	if err != nil {
-		t.Fatalf("failed to insert user: %v", err)
-	}
-	lastID, _ := res.LastInsertId()
+	lastID := insertSQL(t, tx, "INSERT INTO users (name, display_name, password, description) VALUES (?, ?, ?, ?)", "alice", "Alice", "x", "")
 	wantID := domain.UserID(lastID)
 
 	id, err := NewUserRepository().FindIDByName(ctx, tx, "alice")
@@ -53,11 +46,7 @@ func TestUserRepository_FindByName(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)
 
-	res, err := tx.ExecContext(ctx, "INSERT INTO users (name, display_name, password, description) VALUES (?, ?, ?, ?)", "alice", "Alice", "hashed", "hello")
-	if err != nil {
-		t.Fatalf("failed to insert user: %v", err)
-	}
-	lastID, _ := res.LastInsertId()
+	lastID := insertSQL(t, tx, "INSERT INTO users (name, display_name, password, description) VALUES (?, ?, ?, ?)", "alice", "Alice", "hashed", "hello")
 	wantID := domain.UserID(lastID)
 
 	user, err := NewUserRepository().FindByName(ctx, tx, "alice")
@@ -83,11 +72,7 @@ func TestUserRepository_FindByID(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)
 
-	res, err := tx.ExecContext(ctx, "INSERT INTO users (name, display_name, password, description) VALUES (?, ?, ?, ?)", "alice", "Alice", "hashed", "hello")
-	if err != nil {
-		t.Fatalf("failed to insert user: %v", err)
-	}
-	lastID, _ := res.LastInsertId()
+	lastID := insertSQL(t, tx, "INSERT INTO users (name, display_name, password, description) VALUES (?, ?, ?, ?)", "alice", "Alice", "hashed", "hello")
 	id := domain.UserID(lastID)
 
 	user, err := NewUserRepository().FindByID(ctx, tx, id)
@@ -162,5 +147,26 @@ func TestUserRepository_FindAllByIDs(t *testing.T) {
 	got, err = repo.FindAllByIDs(ctx, tx, nil)
 	if err != nil || got == nil || len(got) != 0 {
 		t.Errorf("FindAllByIDs(nil) = %#v, %v, want empty", got, err)
+	}
+}
+
+// ユーザ名が重複した場合は、GORM が翻訳せずに、ドライバのエラー (Error 1062) がそのまま返ること。
+// 500 のレスポンスの本文に出るメッセージが、移行前と同じになる。
+func TestUserRepository_Create_DuplicateNameReturnsDriverError(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+	repo := NewUserRepository()
+
+	if _, err := repo.Create(ctx, tx, &domain.User{Name: "alice", HashedPassword: "hashed"}); err != nil {
+		t.Fatalf("Create returned error: %v", err)
+	}
+	_, err := repo.Create(ctx, tx, &domain.User{Name: "alice", HashedPassword: "hashed"})
+
+	mysqlErr, ok := errors.AsType[*driver.MySQLError](err)
+	if !ok || mysqlErr.Number != 1062 {
+		t.Fatalf("err = %v, want *mysql.MySQLError with number 1062", err)
+	}
+	if want := "Error 1062 (23000): Duplicate entry 'alice' for key 'users.uniq_user_name'"; err.Error() != want {
+		t.Errorf("err = %q, want %q", err.Error(), want)
 	}
 }

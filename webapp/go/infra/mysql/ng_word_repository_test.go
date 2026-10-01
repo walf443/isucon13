@@ -14,11 +14,7 @@ func TestNGWordRepository_FindAllByUserIDAndLivestreamID(t *testing.T) {
 
 	insert := func(userID domain.UserID, livestreamID domain.LivestreamID, word string, createdAt int64) domain.NGWordID {
 		t.Helper()
-		res, err := tx.ExecContext(ctx, "INSERT INTO ng_words (user_id, livestream_id, word, created_at) VALUES (?, ?, ?, ?)", userID, livestreamID, word, createdAt)
-		if err != nil {
-			t.Fatalf("failed to insert ng word: %v", err)
-		}
-		id, _ := res.LastInsertId()
+		id := insertSQL(t, tx, "INSERT INTO ng_words (user_id, livestream_id, word, created_at) VALUES (?, ?, ?, ?)", userID, livestreamID, word, createdAt)
 		return domain.NGWordID(id)
 	}
 	// 作成日時の降順になることを確認するため、ID の順序とはずらす
@@ -123,5 +119,23 @@ func TestNGWordRepository_CreateAndFindAllByLivestreamID(t *testing.T) {
 				t.Errorf("got %+v, want %+v", *w, want)
 			}
 		}
+	}
+}
+
+// NG ワードの登録時刻は、GORM が自動で設定せずに、渡した値をそのまま保存すること (0 でも現在時刻にならない)。
+func TestNGWordRepository_Create_KeepsGivenCreatedAt(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+	repo := NewNGWordRepository()
+
+	if _, err := repo.Create(ctx, tx, &domain.NGWord{UserID: 1, LivestreamID: 10, Word: "w", CreatedAt: 0}); err != nil {
+		t.Fatalf("Create returned error: %v", err)
+	}
+	got, err := repo.FindAllByLivestreamID(ctx, tx, 10)
+	if err != nil || len(got) != 1 {
+		t.Fatalf("FindAllByLivestreamID = %v, %v", got, err)
+	}
+	if got[0].CreatedAt != 0 {
+		t.Errorf("CreatedAt = %d, want 0", got[0].CreatedAt)
 	}
 }

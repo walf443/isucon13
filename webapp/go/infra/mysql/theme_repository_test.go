@@ -14,11 +14,7 @@ func TestThemeRepository_FindByUserID(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)
 
-	res, err := tx.ExecContext(ctx, "INSERT INTO themes (user_id, dark_mode) VALUES (?, ?)", 42, true)
-	if err != nil {
-		t.Fatalf("failed to insert theme: %v", err)
-	}
-	lastID, _ := res.LastInsertId()
+	lastID := insertSQL(t, tx, "INSERT INTO themes (user_id, dark_mode) VALUES (?, ?)", 42, true)
 	wantID := domain.ThemeID(lastID)
 
 	theme, err := NewThemeRepository().FindByUserID(ctx, tx, 42)

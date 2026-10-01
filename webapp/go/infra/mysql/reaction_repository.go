@@ -2,12 +2,37 @@ package mysql
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
+
+// reactionRow は reactions テーブルの行。
+type reactionRow struct {
+	ID           int64  `gorm:"column:id;primaryKey"`
+	UserID       int64  `gorm:"column:user_id"`
+	LivestreamID int64  `gorm:"column:livestream_id"`
+	EmojiName    string `gorm:"column:emoji_name"`
+	// CreatedAt は GORM が登録時刻を自動で設定する名前なので、自動設定を止める (usecase が渡した値をそのまま保存する)
+	CreatedAt int64 `gorm:"column:created_at;autoCreateTime:false"`
+}
+
+func (reactionRow) TableName() string { return "reactions" }
+
+func (r *reactionRow) toDomain() *domain.Reaction {
+	return &domain.Reaction{
+		ID:           domain.ReactionID(r.ID),
+		EmojiName:    r.EmojiName,
+		UserID:       domain.UserID(r.UserID),
+		LivestreamID: domain.LivestreamID(r.LivestreamID),
+		CreatedAt:    r.CreatedAt,
+	}
+}
+
+// favoriteEmojiRow は、最も使われた絵文字を引く集計クエリの結果の行。
+type favoriteEmojiRow struct {
+	EmojiName string `gorm:"column:emoji_name"`
+}
 
 type reactionRepository struct{}
 
@@ -16,54 +41,63 @@ func NewReactionRepository() repository.ReactionRepository {
 }
 
 func (r *reactionRepository) FindByID(ctx context.Context, q repository.Querier, id domain.ReactionID) (*domain.Reaction, error) {
-	var reaction domain.Reaction
-	err := q.GetContext(ctx, &reaction, "SELECT id, emoji_name, user_id, livestream_id, created_at FROM reactions WHERE id = ?", id)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, repository.ErrNotFound
-	}
+	var row reactionRow
+	err := dbOf(ctx, q).Select("id, emoji_name, user_id, livestream_id, created_at").Where("id = ?", id).Take(&row).Error
 	if err != nil {
-		return nil, err
+		return nil, notFound(err)
 	}
-	return &reaction, nil
+	return row.toDomain(), nil
 }
 
 func (r *reactionRepository) FindAllByLivestreamIDOrderByCreatedAtDesc(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.Reaction, error) {
-	var reactions []*domain.Reaction
-	if err := q.SelectContext(ctx, &reactions, "SELECT id, emoji_name, user_id, livestream_id, created_at FROM reactions WHERE livestream_id = ? ORDER BY created_at DESC", livestreamID); err != nil {
+	var rows []*reactionRow
+	err := dbOf(ctx, q).
+		Select("id, emoji_name, user_id, livestream_id, created_at").
+		Where("livestream_id = ?", livestreamID).
+		Order("created_at DESC").
+		Find(&rows).Error
+	if err != nil {
 		return nil, err
 	}
-	return reactions, nil
+	return mapRows(rows, (*reactionRow).toDomain), nil
 }
 
 func (r *reactionRepository) FindAllByLivestreamIDOrderByCreatedAtDescLimited(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, limit domain.Limit) ([]*domain.Reaction, error) {
-	var reactions []*domain.Reaction
-	if err := q.SelectContext(ctx, &reactions, "SELECT id, emoji_name, user_id, livestream_id, created_at FROM reactions WHERE livestream_id = ? ORDER BY created_at DESC LIMIT ?", livestreamID, limit); err != nil {
+	var rows []*reactionRow
+	err := dbOf(ctx, q).
+		Select("id, emoji_name, user_id, livestream_id, created_at").
+		Where("livestream_id = ?", livestreamID).
+		Order("created_at DESC").
+		Limit(int(limit)).
+		Find(&rows).Error
+	if err != nil {
 		return nil, err
 	}
-	return reactions, nil
+	return mapRows(rows, (*reactionRow).toDomain), nil
 }
 
 func (r *reactionRepository) Create(ctx context.Context, q repository.Querier, reaction *domain.Reaction) (domain.ReactionID, error) {
-	rs, err := q.ExecContext(ctx, "INSERT INTO reactions (user_id, livestream_id, emoji_name, created_at) VALUES (?, ?, ?, ?)", reaction.UserID, reaction.LivestreamID, reaction.EmojiName, reaction.CreatedAt)
-	if err != nil {
+	row := reactionRow{
+		UserID:       int64(reaction.UserID),
+		LivestreamID: int64(reaction.LivestreamID),
+		EmojiName:    reaction.EmojiName,
+		CreatedAt:    reaction.CreatedAt,
+	}
+	if err := dbOf(ctx, q).Create(&row).Error; err != nil {
 		return 0, err
 	}
-	id, err := rs.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-	return domain.ReactionID(id), nil
+	return domain.ReactionID(row.ID), nil
 }
 
 func (r *reactionRepository) CountByLivestreamOwnerID(ctx context.Context, q repository.Querier, userID domain.UserID) (int64, error) {
 	var reactions int64
-	// クエリ文字列は移行前のまま (空白も含めて) にしている
-	query := `
-		SELECT COUNT(*) FROM users u
-		INNER JOIN livestreams l ON l.user_id = u.id
-		INNER JOIN reactions r ON r.livestream_id = l.id
-		WHERE u.id = ?`
-	if err := q.GetContext(ctx, &reactions, query, userID); err != nil {
+	err := dbOf(ctx, q).
+		Table("users u").
+		Joins("INNER JOIN livestreams l ON l.user_id = u.id").
+		Joins("INNER JOIN reactions r ON r.livestream_id = l.id").
+		Where("u.id = ?", userID).
+		Count(&reactions).Error
+	if err != nil {
 		return 0, err
 	}
 	return reactions, nil
@@ -71,44 +105,45 @@ func (r *reactionRepository) CountByLivestreamOwnerID(ctx context.Context, q rep
 
 func (r *reactionRepository) CountByLivestreamOwnerName(ctx context.Context, q repository.Querier, name string) (int64, error) {
 	var reactions int64
-	// クエリ文字列は移行前のまま (空白も含めて) にしている
-	query := `SELECT COUNT(*) FROM users u 
-    INNER JOIN livestreams l ON l.user_id = u.id 
-    INNER JOIN reactions r ON r.livestream_id = l.id
-    WHERE u.name = ?
-	`
-	if err := q.GetContext(ctx, &reactions, query, name); err != nil {
+	err := dbOf(ctx, q).
+		Table("users u").
+		Joins("INNER JOIN livestreams l ON l.user_id = u.id").
+		Joins("INNER JOIN reactions r ON r.livestream_id = l.id").
+		Where("u.name = ?", name).
+		Count(&reactions).Error
+	if err != nil {
 		return 0, err
 	}
 	return reactions, nil
 }
 
 func (r *reactionRepository) FindFavoriteEmojiByLivestreamOwnerName(ctx context.Context, q repository.Querier, name string) (string, error) {
-	var favoriteEmoji string
-	// クエリ文字列は移行前のまま (空白も含めて) にしている
-	query := `
-	SELECT r.emoji_name
-	FROM users u
-	INNER JOIN livestreams l ON l.user_id = u.id
-	INNER JOIN reactions r ON r.livestream_id = l.id
-	WHERE u.name = ?
-	GROUP BY emoji_name
-	ORDER BY COUNT(*) DESC, emoji_name DESC
-	LIMIT 1
-	`
-	err := q.GetContext(ctx, &favoriteEmoji, query, name)
-	if errors.Is(err, sql.ErrNoRows) {
-		return "", repository.ErrNotFound
-	}
+	var row favoriteEmojiRow
+	// 同数の場合は絵文字名の降順で先頭のものを返す (ORDER BY の 2 つ目のキー)
+	err := dbOf(ctx, q).
+		Table("users u").
+		Select("r.emoji_name").
+		Joins("INNER JOIN livestreams l ON l.user_id = u.id").
+		Joins("INNER JOIN reactions r ON r.livestream_id = l.id").
+		Where("u.name = ?", name).
+		Group("emoji_name").
+		Order("COUNT(*) DESC, emoji_name DESC").
+		Take(&row).Error
 	if err != nil {
-		return "", err
+		return "", notFound(err)
 	}
-	return favoriteEmoji, nil
+	return row.EmojiName, nil
 }
 
 func (r *reactionRepository) CountByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error) {
 	var reactions int64
-	if err := q.GetContext(ctx, &reactions, "SELECT COUNT(*) FROM livestreams l INNER JOIN reactions r ON l.id = r.livestream_id WHERE l.id = ?", livestreamID); err != nil {
+	// CountTotalByLivestreamID とは JOIN 条件の書き方が違う (移行前のクエリの書き方を保っている)
+	err := dbOf(ctx, q).
+		Table("livestreams l").
+		Joins("INNER JOIN reactions r ON l.id = r.livestream_id").
+		Where("l.id = ?", livestreamID).
+		Count(&reactions).Error
+	if err != nil {
 		return 0, err
 	}
 	return reactions, nil
@@ -116,7 +151,12 @@ func (r *reactionRepository) CountByLivestreamID(ctx context.Context, q reposito
 
 func (r *reactionRepository) CountTotalByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error) {
 	var totalReactions int64
-	if err := q.GetContext(ctx, &totalReactions, "SELECT COUNT(*) FROM livestreams l INNER JOIN reactions r ON r.livestream_id = l.id WHERE l.id = ?", livestreamID); err != nil {
+	err := dbOf(ctx, q).
+		Table("livestreams l").
+		Joins("INNER JOIN reactions r ON r.livestream_id = l.id").
+		Where("l.id = ?", livestreamID).
+		Count(&totalReactions).Error
+	if err != nil {
 		return 0, err
 	}
 	return totalReactions, nil

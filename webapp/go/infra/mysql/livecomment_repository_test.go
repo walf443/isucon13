@@ -13,11 +13,7 @@ import (
 
 func insertTestLivecomment(t *testing.T, tx repository.Querier, userID domain.UserID, livestreamID domain.LivestreamID, comment string, createdAt int64) domain.LivecommentID {
 	t.Helper()
-	res, err := tx.ExecContext(context.Background(), "INSERT INTO livecomments (user_id, livestream_id, comment, tip, created_at) VALUES (?, ?, ?, ?, ?)", userID, livestreamID, comment, 10, createdAt)
-	if err != nil {
-		t.Fatalf("failed to insert livecomment: %v", err)
-	}
-	id, _ := res.LastInsertId()
+	id := insertSQL(t, tx, "INSERT INTO livecomments (user_id, livestream_id, comment, tip, created_at) VALUES (?, ?, ?, ?, ?)", userID, livestreamID, comment, 10, createdAt)
 	return domain.LivecommentID(id)
 }
 
@@ -67,9 +63,7 @@ func TestLivecommentRepository_DeleteAllByLivestreamIDMatchingNGWord(t *testing.
 	}
 
 	var remaining []domain.LivecommentID
-	if err := tx.SelectContext(ctx, &remaining, "SELECT id FROM livecomments ORDER BY id"); err != nil {
-		t.Fatalf("failed to get livecomments: %v", err)
-	}
+	scanSQL(t, tx, &remaining, "SELECT id FROM livecomments ORDER BY id")
 	if want := []domain.LivecommentID{safe, otherLivestream}; !slices.Equal(remaining, want) {
 		t.Errorf("remaining = %v, want %v (deleted should be %v, %v)", remaining, want, hit, hitUpper)
 	}
@@ -187,5 +181,27 @@ func TestLivecommentRepository_FindAllByIDs(t *testing.T) {
 	got, err = repo.FindAllByIDs(ctx, tx, nil)
 	if err != nil || got == nil || len(got) != 0 {
 		t.Errorf("FindAllByIDs(nil) = %#v, %v, want empty", got, err)
+	}
+}
+
+// ライブコメントの登録時刻は、GORM が自動で設定せずに、渡した値をそのまま保存すること (0 でも現在時刻にならない)。
+func TestLivecommentRepository_Create_KeepsGivenCreatedAt(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	ownerID := insertTestUser(t, tx, "alice")
+	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
+	repo := NewLivecommentRepository()
+
+	id, err := repo.Create(ctx, tx, &domain.Livecomment{UserID: ownerID, LivestreamID: livestreamID, Comment: "hello", Tip: 0, CreatedAt: 0})
+	if err != nil {
+		t.Fatalf("Create returned error: %v", err)
+	}
+	got, err := repo.FindByID(ctx, tx, id)
+	if err != nil {
+		t.Fatalf("FindByID returned error: %v", err)
+	}
+	if got.CreatedAt != 0 || got.Tip != 0 {
+		t.Errorf("livecomment = %+v, want CreatedAt 0 and Tip 0", got)
 	}
 }

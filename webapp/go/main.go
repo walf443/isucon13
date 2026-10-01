@@ -1,7 +1,6 @@
 package main
 
 // ISUCON的な参考: https://github.com/isucon/isucon12-qualify/blob/main/webapp/go/isuports.go#L336
-// sqlx的な参考: https://jmoiron.github.io/sqlx/
 
 import (
 	"log"
@@ -11,9 +10,9 @@ import (
 
 	"github.com/isucon/isucon13/webapp/go/infra/mysql"
 	"github.com/isucon/isucon13/webapp/go/interfaces/http/handler"
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"gorm.io/gorm"
 
 	echolog "github.com/labstack/gommon/log"
 )
@@ -35,7 +34,7 @@ func init() {
 	}
 }
 
-func connectDB(logger echo.Logger) (*sqlx.DB, error) {
+func connectDB(logger echo.Logger) (*gorm.DB, error) {
 	conf, err := mysql.ConfigFromEnv()
 	if err != nil {
 		return nil, err
@@ -56,7 +55,7 @@ func main() {
 		e.Logger.Errorf("failed to connect db: %v", err)
 		os.Exit(1)
 	}
-	defer conn.Close()
+	defer mysql.Close(conn)
 
 	// ユーザ登録で使うので、handler を組み立てる前に読み込む
 	subdomainAddr, ok := os.LookupEnv(powerDNSSubdomainAddressEnvKey)

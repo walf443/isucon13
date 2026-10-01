@@ -2,12 +2,23 @@ package mysql
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
+
+// themeRow は themes テーブルの行。
+type themeRow struct {
+	ID       int64 `gorm:"column:id;primaryKey"`
+	UserID   int64 `gorm:"column:user_id"`
+	DarkMode bool  `gorm:"column:dark_mode"`
+}
+
+func (themeRow) TableName() string { return "themes" }
+
+func (r *themeRow) toDomain() *domain.Theme {
+	return &domain.Theme{ID: domain.ThemeID(r.ID), UserID: domain.UserID(r.UserID), DarkMode: r.DarkMode}
+}
 
 type themeRepository struct{}
 
@@ -16,22 +27,27 @@ func NewThemeRepository() repository.ThemeRepository {
 }
 
 func (r *themeRepository) FindByUserID(ctx context.Context, q repository.Querier, userID domain.UserID) (*domain.Theme, error) {
-	var theme domain.Theme
-	err := q.GetContext(ctx, &theme, "SELECT id, user_id, dark_mode FROM themes WHERE user_id = ?", userID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, repository.ErrNotFound
-	}
+	var row themeRow
+	err := dbOf(ctx, q).Select("id, user_id, dark_mode").Where("user_id = ?", userID).Take(&row).Error
 	if err != nil {
-		return nil, err
+		return nil, notFound(err)
 	}
-	return &theme, nil
+	return row.toDomain(), nil
 }
 
 func (r *themeRepository) Create(ctx context.Context, q repository.Querier, theme *domain.Theme) error {
-	_, err := q.ExecContext(ctx, "INSERT INTO themes (user_id, dark_mode) VALUES(?, ?)", theme.UserID, theme.DarkMode)
-	return err
+	row := themeRow{UserID: int64(theme.UserID), DarkMode: theme.DarkMode}
+	return dbOf(ctx, q).Create(&row).Error
 }
 
 func (r *themeRepository) FindAllByUserIDs(ctx context.Context, q repository.Querier, userIDs []domain.UserID) ([]*domain.Theme, error) {
-	return selectIn[domain.Theme](ctx, q, "SELECT id, user_id, dark_mode FROM themes WHERE user_id IN (?)", userIDs)
+	rows, err := findIn(userIDs, func(chunk []domain.UserID) ([]*themeRow, error) {
+		var rows []*themeRow
+		err := dbOf(ctx, q).Select("id, user_id, dark_mode").Where("user_id IN ?", chunk).Find(&rows).Error
+		return rows, err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return mapRows(rows, (*themeRow).toDomain), nil
 }

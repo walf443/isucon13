@@ -10,11 +10,11 @@ import (
 	"github.com/isucon/isucon13/webapp/go/infra/script"
 	"github.com/isucon/isucon13/webapp/go/interfaces/http/handler"
 	"github.com/isucon/isucon13/webapp/go/usecase"
-	"github.com/jmoiron/sqlx"
+	"gorm.io/gorm"
 )
 
 // newUsecases は repository・usecase を組み立てる。
-func newUsecases(db *sqlx.DB, fallbackImagePath string, powerDNSSubdomainAddress string, logger usecase.Logger) (handler.Usecases, error) {
+func newUsecases(db *gorm.DB, fallbackImagePath string, powerDNSSubdomainAddress string, logger usecase.Logger) (handler.Usecases, error) {
 	fallbackIcon, err := os.ReadFile(fallbackImagePath)
 	if err != nil {
 		return handler.Usecases{}, fmt.Errorf("failed to read fallback image: %w", err)

@@ -11,9 +11,16 @@ import (
 
 func findTestLivestreamViewersHistories(t *testing.T, tx repository.Querier) []domain.LivestreamViewersHistory {
 	t.Helper()
-	var viewers []domain.LivestreamViewersHistory
-	if err := tx.SelectContext(context.Background(), &viewers, "SELECT id, user_id, livestream_id, created_at FROM livestream_viewers_history ORDER BY id"); err != nil {
-		t.Fatalf("failed to get livestream viewers: %v", err)
+	var rows []livestreamViewersHistoryRow
+	scanSQL(t, tx, &rows, "SELECT id, user_id, livestream_id, created_at FROM livestream_viewers_history ORDER BY id")
+	viewers := make([]domain.LivestreamViewersHistory, len(rows))
+	for i, row := range rows {
+		viewers[i] = domain.LivestreamViewersHistory{
+			ID:           domain.LivestreamViewersHistoryID(row.ID),
+			UserID:       domain.UserID(row.UserID),
+			LivestreamID: domain.LivestreamID(row.LivestreamID),
+			CreatedAt:    row.CreatedAt,
+		}
 	}
 	return viewers
 }
@@ -74,5 +81,20 @@ func TestLivestreamViewersHistoryRepository_DeleteByUserIDAndLivestreamID(t *tes
 	}
 	if want := []key{{2, 10}, {1, 20}}; !slices.Equal(got, want) {
 		t.Errorf("remaining = %v, want %v", got, want)
+	}
+}
+
+// 登録時刻は、GORM が自動で設定せずに、渡した値をそのまま保存すること (0 でも現在時刻にならない)。
+func TestLivestreamViewersHistoryRepository_Create_KeepsGivenCreatedAt(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	if err := NewLivestreamViewersHistoryRepository().Create(ctx, tx, &domain.LivestreamViewersHistory{UserID: 1, LivestreamID: 10, CreatedAt: 0}); err != nil {
+		t.Fatalf("Create returned error: %v", err)
+	}
+
+	viewers := findTestLivestreamViewersHistories(t, tx)
+	if len(viewers) != 1 || viewers[0].CreatedAt != 0 {
+		t.Errorf("viewers = %+v, want one with CreatedAt 0", viewers)
 	}
 }

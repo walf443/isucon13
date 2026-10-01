@@ -3,13 +3,24 @@ package mysql
 import (
 	"cmp"
 	"context"
-	"database/sql"
-	"errors"
 	"slices"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
+
+// iconRow は icons テーブルの行。
+type iconRow struct {
+	ID     int64  `gorm:"column:id;primaryKey"`
+	UserID int64  `gorm:"column:user_id"`
+	Image  []byte `gorm:"column:image"`
+}
+
+func (iconRow) TableName() string { return "icons" }
+
+func (r *iconRow) toDomain() *domain.Icon {
+	return &domain.Icon{ID: domain.IconID(r.ID), UserID: domain.UserID(r.UserID), Image: r.Image}
+}
 
 type iconRepository struct{}
 
@@ -18,40 +29,37 @@ func NewIconRepository() repository.IconRepository {
 }
 
 func (r *iconRepository) FindImageByUserID(ctx context.Context, q repository.Querier, userID domain.UserID) ([]byte, error) {
-	var image []byte
-	err := q.GetContext(ctx, &image, "SELECT image FROM icons WHERE user_id = ?", userID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, repository.ErrNotFound
-	}
+	var row iconRow
+	// 同じユーザのアイコンが複数ある場合 (データ不整合) は、ID が最小の行を使う (First は ID の昇順の先頭)
+	err := dbOf(ctx, q).Select("image").Where("user_id = ?", userID).First(&row).Error
 	if err != nil {
-		return nil, err
+		return nil, notFound(err)
 	}
-	return image, nil
+	return row.Image, nil
 }
 
 func (r *iconRepository) Create(ctx context.Context, q repository.Querier, userID domain.UserID, image []byte) (domain.IconID, error) {
-	rs, err := q.ExecContext(ctx, "INSERT INTO icons (user_id, image) VALUES (?, ?)", userID, image)
-	if err != nil {
+	row := iconRow{UserID: int64(userID), Image: image}
+	if err := dbOf(ctx, q).Create(&row).Error; err != nil {
 		return 0, err
 	}
-	id, err := rs.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-	return domain.IconID(id), nil
+	return domain.IconID(row.ID), nil
 }
 
 func (r *iconRepository) DeleteByUserID(ctx context.Context, q repository.Querier, userID domain.UserID) error {
-	_, err := q.ExecContext(ctx, "DELETE FROM icons WHERE user_id = ?", userID)
-	return err
+	return dbOf(ctx, q).Where("user_id = ?", userID).Delete(&iconRow{}).Error
 }
 
 func (r *iconRepository) FindAllByUserIDs(ctx context.Context, q repository.Querier, userIDs []domain.UserID) ([]*domain.Icon, error) {
-	icons, err := selectIn[domain.Icon](ctx, q, "SELECT id, user_id, image FROM icons WHERE user_id IN (?) ORDER BY id", userIDs)
+	rows, err := findIn(userIDs, func(chunk []domain.UserID) ([]*iconRow, error) {
+		var rows []*iconRow
+		err := dbOf(ctx, q).Select("id, user_id, image").Where("user_id IN ?", chunk).Order("id").Find(&rows).Error
+		return rows, err
+	})
 	if err != nil {
 		return nil, err
 	}
 	// ID を分割して引いた場合に、結果全体で ID の昇順になるようにする
-	slices.SortFunc(icons, func(a, b *domain.Icon) int { return cmp.Compare(a.ID, b.ID) })
-	return icons, nil
+	slices.SortFunc(rows, func(a, b *iconRow) int { return cmp.Compare(a.ID, b.ID) })
+	return mapRows(rows, (*iconRow).toDomain), nil
 }

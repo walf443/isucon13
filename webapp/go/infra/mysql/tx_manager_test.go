@@ -14,7 +14,7 @@ const txManagerTestUserID = 900001
 func countThemes(t *testing.T) int {
 	t.Helper()
 	var n int
-	if err := testDB.Get(&n, "SELECT COUNT(*) FROM themes WHERE user_id = ?", txManagerTestUserID); err != nil {
+	if err := testDB.Raw("SELECT COUNT(*) FROM themes WHERE user_id = ?", txManagerTestUserID).Scan(&n).Error; err != nil {
 		t.Fatalf("failed to count themes: %v", err)
 	}
 	return n
@@ -26,11 +26,10 @@ func TestTxManager_RunInTx(t *testing.T) {
 	}
 	ctx := context.Background()
 	t.Cleanup(func() {
-		_, _ = testDB.Exec("DELETE FROM themes WHERE user_id = ?", txManagerTestUserID)
+		_ = testDB.Exec("DELETE FROM themes WHERE user_id = ?", txManagerTestUserID).Error
 	})
 	insert := func(q repository.Querier) error {
-		_, err := q.ExecContext(ctx, "INSERT INTO themes (user_id, dark_mode) VALUES (?, ?)", txManagerTestUserID, false)
-		return err
+		return gormOf(q).Exec("INSERT INTO themes (user_id, dark_mode) VALUES (?, ?)", txManagerTestUserID, false).Error
 	}
 
 	t.Run("rolls back when fn returns error", func(t *testing.T) {
