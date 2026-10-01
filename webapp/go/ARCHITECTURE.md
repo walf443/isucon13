@@ -66,6 +66,38 @@ usecase の `XxxFiller` (`UserFiller` / `LivestreamFiller` など) が repositor
     呼び出し側が誤って Filler のエラーに `errors.Is(err, repository.ErrNotFound)` を使っても、404 にならない
 - Filler は他の Filler を使う (`LivestreamFiller` は配信者に `UserFiller` を使う、など)。`usecases.go` でそれぞれ 1 つ作って共有する
 
+### 型で取り違えを防ぐ
+
+同じ `string` や `int64` でも、意味が違うものには名前付きの型を付ける (`UserID` と `LivestreamID`、`Username` と `DisplayName`、`PlainPassword` と `HashedPassword` など)。
+引数の取り違えがコンパイルで見つかり、シグネチャを見れば何を渡すのかがわかる。
+
+**作り方は、値の出どころで分ける。**
+
+| 出どころ | 作り方 |
+|---|---|
+| 外部からの入力 (パスパラメータ、リクエストの本文、クエリ) | `domain.ParseXxx(s) (T, error)`。失敗しうることをシグネチャで表す |
+| すでに登録済みで信頼できる値 (DB から読んだ行) | 型の変換 (`domain.Username(s)`) でよい。infra が行をスキャンするときはこちら |
+
+- Go では型の変換を禁止できないので、外部の入力に型の変換を直接使わないのは規約。型のコメントに書いておく (テストでは使ってよい)
+- 外部の入力を受けるリクエストの型のフィールドは `string` / `int64` のままにして、handler が明示的に `ParseXxx` を呼ぶ。
+  リクエストの型のフィールドを `domain.Username` などにすると、JSON の読み込みで検証を通らずに入ってしまう
+- 検証に失敗したときのレスポンスは、そのエンドポイントの「存在しない」場合に揃える (参照 API や `login` は、不正な形のユーザ名のユーザは存在しないので 404 / 401 のまま)。
+  新しく作るもの (登録など) だけ 400 にする。メッセージは固定で、入力の値は含めない
+- 検証の規則は、その値が使われる先の要件から決める。例えばユーザ名はそのままサブドメイン (`<ユーザ名>.u.isucon.dev`) になるので、
+  DNS のラベルとして使える形 (英数字とハイフンだけの 1〜63 文字で、先頭と末尾がハイフンでない。`isDNSLabel`) だけを受け付ける。ベンチマーカーが作る名前の形は参考にとどめ、規則の根拠にしない
+  - 先頭が `-` の名前は `pdnsutil` のオプションに、`.` を含む名前は別の階層のサブドメインになりうる
+
+**HTTP の表現は domain の型に持ち込まない。** JSON の数値の配列 (`tags`) は `[]int64` のまま受け、handler の `parseTagIDs` で `[]domain.TagID` にする。
+今は件数の上限 (`maxTagCount`) だけを検証しているが、`error` を返す形にしてあるので、検証を足しても呼び出し側は変わらない。
+
+**表示してはいけない値は、自分で伏せ字になる型にする。** `PlainPassword` は `String()` と `GoString()` が `[REDACTED]` を返すので、
+`%v` / `%+v` / `%#v` やエラーへの埋め込みでも、パスワードがログに出ない。ハッシュ化と照合には元の値が使われる。
+
+**保存や外への出力の境界では、素の型に戻す。**
+- セッションは gob で保存するので、独自の型は登録が要る。保存する形式を変えないため、`string` / `int64` に変換して入れる (`string(user.Name)`、`int64(user.ID)`)
+- DNS の登録 (`AddRecord`) には、ユーザ名とサブドメインが別の概念なので、`string(input.Name)` と明示的に変換して渡す
+- レスポンスの型は `string` で持ち、`newXxx` で変換する
+
 ### SQL
 
 - SQL は完全なリテラルで書く。カラム一覧の定数化や文字列の連結による動的な組み立てはしない
@@ -78,7 +110,8 @@ usecase の `XxxFiller` (`UserFiller` / `LivestreamFiller` など) が repositor
   - 関連するデータを埋めて組み立てたものは `Detail` を付ける (`domain.UserDetail`、`domain.LivestreamDetail`)。組み立てた状態を使うドメインのロジックを、そのメソッドとして書けるように domain に置いている
   - handler のレスポンス・リクエストの型は `Response` / `Request` を付けて非公開にする (`userResponse`、`postUserRequest`)
 - 型付き ID (`domain.ID[T]`、`domain.UserID` など) を使い、文字列からの変換は `domain.ParseXxxID` で行う
-- 値オブジェクト: `Limit` (`ParseLimit` で範囲を検証して作る)、`ReservationPeriod`、`HashedPassword`、`IconHash` など
+- 値オブジェクト: `Limit` (`ParseLimit` で範囲を検証して作る)、`Username` (`ParseUsername`)、`PlainPassword`、`ReservationPeriod`、`HashedPassword`、`IconHash` など
+  - 作り方と使い分けは「型で取り違えを防ぐ」を参照
 - `json` タグは付けない。domain の構造をそのまま HTTP に出してしまわないため
 - `db` タグは付けてよい。外すと infra に domain とほぼ同じ行の型が増えるだけなので、テーブルと形がずれるまでは domain に置く
 
@@ -113,6 +146,9 @@ usecase の `XxxFiller` (`UserFiller` / `LivestreamFiller` など) が repositor
   - タグは紐付けの ID の昇順に並べる (`ORDER BY id` を明示した)
   - DB のエラーの 500 の本文は `failed to get themes: …` のように、まとめて取得したことを表すものになった
 - データ不整合 (テーマなどの欠損) の場合の 500 の本文が `sql: no rows in result set` から `not found` になった
+- ユーザ名を DNS のラベルとして検証するようにした。`POST /api/register` は、サブドメインとして使えない名前を 400 にする (これまでは DNS の登録の結果に任されていた)。
+  参照 API とログインは、不正な形のユーザ名を存在しないユーザと同じ応答にしたので、ステータスは変わらない
+- `POST /api/livestream/reservation` は、タグが 1000 件以上の場合 400 にする (これまで件数の上限は無かった)
 
 ## テスト
 
@@ -140,5 +176,7 @@ usecase の `XxxFiller` (`UserFiller` / `LivestreamFiller` など) が repositor
 | トランザクションを context で運ぶ | 境界が見えにくくなり、repository を 1 メソッドずつテストしにくくなる |
 | スパム判定を domain に移す | SQL (LIKE) と同じ判定になることを保証しにくい |
 | `db` タグを domain から外す | infra に domain とほぼ同じ型が増えるだけ |
+| `Username` を構造体にして `ParseUsername` 以外では作れなくする | JSON の読み込みや DB のスキャンのためのメソッドが増える。型の変換を外部の入力に使わない規約と、レビューで足りる |
+| リクエストの `tags` を `[]domain.TagID` で受ける | HTTP の表現 (JSON の数値) と domain の型は扱いが違う。変換は handler の `parseTagIDs` に置く |
 | 統計の集約 repository・統計 usecase の分割 | テーブル単位でクエリがまとまっていることの方が価値がある。分けても改善が小さい |
 | ベンチマーカーでの確認 | 目的は Clean Architecture の実践で、環境構築の手間に見合わない |
