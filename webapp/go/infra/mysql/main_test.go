@@ -82,7 +82,7 @@ func beginTestTx(t *testing.T) repository.Querier {
 	return newQuerier(tx)
 }
 
-// recordSQL はテスト終了までに GORM が発行した SELECT / INSERT の SQL (プレースホルダーのまま) を記録する。
+// recordSQL はテスト終了までに GORM が発行した SELECT / INSERT / DELETE の SQL (プレースホルダーのまま) を記録する。
 // repository が移行前と同じカラムを読んでいる (SELECT * にしていない) ことなどを確かめるのに使う。
 // 記録するのは q のトランザクションを作った *gorm.DB のコールバックなので、記録中は他のテストと並行して実行しないこと。
 func recordSQL(t *testing.T, q repository.Querier) *[]string {
@@ -97,9 +97,13 @@ func recordSQL(t *testing.T, q repository.Querier) *[]string {
 	if err := db.Callback().Create().After("gorm:create").Register(name, record); err != nil {
 		t.Fatalf("failed to register create callback: %v", err)
 	}
+	if err := db.Callback().Delete().After("gorm:delete").Register(name, record); err != nil {
+		t.Fatalf("failed to register delete callback: %v", err)
+	}
 	t.Cleanup(func() {
 		_ = db.Callback().Query().Remove(name)
 		_ = db.Callback().Create().Remove(name)
+		_ = db.Callback().Delete().Remove(name)
 	})
 	return &recorded
 }

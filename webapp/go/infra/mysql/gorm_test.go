@@ -103,6 +103,7 @@ func TestMigratedRepositories_IssueExplicitColumnSQL(t *testing.T) {
 	userID := insertTestUser(t, tx, "alice")
 	tags := NewTagRepository()
 	themes := NewThemeRepository()
+	icons := NewIconRepository()
 	// 記録するのは、ここから後に発行された SQL
 	*sqls = nil
 
@@ -123,11 +124,22 @@ func TestMigratedRepositories_IssueExplicitColumnSQL(t *testing.T) {
 			"SELECT id, user_id, dark_mode FROM `themes` WHERE user_id IN (?)"},
 		{"theme Create", func() error { return themes.Create(ctx, tx, &domain.Theme{UserID: userID, DarkMode: true}) },
 			"INSERT INTO `themes` (`user_id`,`dark_mode`) VALUES (?,?)"},
+		{"icon FindImageByUserID", func() error { _, err := icons.FindImageByUserID(ctx, tx, userID); return err },
+			"SELECT `image` FROM `icons` WHERE user_id = ? ORDER BY `icons`.`id` LIMIT ?"},
+		{"icon FindAllByUserIDs", func() error {
+			_, err := icons.FindAllByUserIDs(ctx, tx, []domain.UserID{userID, userID + 1})
+			return err
+		},
+			"SELECT id, user_id, image FROM `icons` WHERE user_id IN (?,?) ORDER BY id"},
+		{"icon Create", func() error { _, err := icons.Create(ctx, tx, userID, []byte("img")); return err },
+			"INSERT INTO `icons` (`user_id`,`image`) VALUES (?,?)"},
+		{"icon DeleteByUserID", func() error { return icons.DeleteByUserID(ctx, tx, userID) },
+			"DELETE FROM `icons` WHERE user_id = ?"},
 	}
 	for _, c := range calls {
 		*sqls = nil
 		err := c.call()
-		// theme FindByUserID は、まだテーマが無いので ErrNotFound になるが、SQL は発行されている
+		// theme / icon の FindXxx は、まだ無いので ErrNotFound になるが、SQL は発行されている
 		if err != nil && !errors.Is(err, repository.ErrNotFound) {
 			t.Fatalf("%s returned error: %v", c.name, err)
 		}
