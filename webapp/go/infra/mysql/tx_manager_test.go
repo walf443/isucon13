@@ -29,8 +29,7 @@ func TestTxManager_RunInTx(t *testing.T) {
 		_ = testDB.Exec("DELETE FROM themes WHERE user_id = ?", txManagerTestUserID).Error
 	})
 	insert := func(q repository.Querier) error {
-		_, err := q.ExecContext(ctx, "INSERT INTO themes (user_id, dark_mode) VALUES (?, ?)", txManagerTestUserID, false)
-		return err
+		return gormOf(q).Exec("INSERT INTO themes (user_id, dark_mode) VALUES (?, ?)", txManagerTestUserID, false).Error
 	}
 
 	t.Run("rolls back when fn returns error", func(t *testing.T) {

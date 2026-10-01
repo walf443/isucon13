@@ -13,11 +13,7 @@ import (
 
 func insertTestUser(t *testing.T, tx repository.Querier, name string) domain.UserID {
 	t.Helper()
-	res, err := tx.ExecContext(context.Background(), "INSERT INTO users (name, display_name, password, description) VALUES (?, ?, ?, ?)", name, "Display "+name, "hashed", "desc "+name)
-	if err != nil {
-		t.Fatalf("failed to insert user: %v", err)
-	}
-	id, _ := res.LastInsertId()
+	id := insertSQL(t, tx, "INSERT INTO users (name, display_name, password, description) VALUES (?, ?, ?, ?)", name, "Display "+name, "hashed", "desc "+name)
 	return domain.UserID(id)
 }
 
@@ -25,11 +21,7 @@ func TestUserRepository_FindIDByName(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)
 
-	res, err := tx.ExecContext(ctx, "INSERT INTO users (name, display_name, password, description) VALUES (?, ?, ?, ?)", "alice", "Alice", "x", "")
-	if err != nil {
-		t.Fatalf("failed to insert user: %v", err)
-	}
-	lastID, _ := res.LastInsertId()
+	lastID := insertSQL(t, tx, "INSERT INTO users (name, display_name, password, description) VALUES (?, ?, ?, ?)", "alice", "Alice", "x", "")
 	wantID := domain.UserID(lastID)
 
 	id, err := NewUserRepository().FindIDByName(ctx, tx, "alice")
@@ -54,11 +46,7 @@ func TestUserRepository_FindByName(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)
 
-	res, err := tx.ExecContext(ctx, "INSERT INTO users (name, display_name, password, description) VALUES (?, ?, ?, ?)", "alice", "Alice", "hashed", "hello")
-	if err != nil {
-		t.Fatalf("failed to insert user: %v", err)
-	}
-	lastID, _ := res.LastInsertId()
+	lastID := insertSQL(t, tx, "INSERT INTO users (name, display_name, password, description) VALUES (?, ?, ?, ?)", "alice", "Alice", "hashed", "hello")
 	wantID := domain.UserID(lastID)
 
 	user, err := NewUserRepository().FindByName(ctx, tx, "alice")
@@ -84,11 +72,7 @@ func TestUserRepository_FindByID(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)
 
-	res, err := tx.ExecContext(ctx, "INSERT INTO users (name, display_name, password, description) VALUES (?, ?, ?, ?)", "alice", "Alice", "hashed", "hello")
-	if err != nil {
-		t.Fatalf("failed to insert user: %v", err)
-	}
-	lastID, _ := res.LastInsertId()
+	lastID := insertSQL(t, tx, "INSERT INTO users (name, display_name, password, description) VALUES (?, ?, ?, ?)", "alice", "Alice", "hashed", "hello")
 	id := domain.UserID(lastID)
 
 	user, err := NewUserRepository().FindByID(ctx, tx, id)

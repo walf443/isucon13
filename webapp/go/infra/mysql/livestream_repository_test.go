@@ -12,27 +12,16 @@ import (
 
 func insertTestLivestream(t *testing.T, tx repository.Querier, userID domain.UserID, title string) domain.LivestreamID {
 	t.Helper()
-	res, err := tx.ExecContext(context.Background(),
+	id := insertSQL(t, tx,
 		"INSERT INTO livestreams (user_id, title, description, playlist_url, thumbnail_url, start_at, end_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
 		userID, title, "desc "+title, "https://example.com/"+title+".m3u8", "https://example.com/"+title+".jpg", 1700000000, 1700003600)
-	if err != nil {
-		t.Fatalf("failed to insert livestream: %v", err)
-	}
-	id, _ := res.LastInsertId()
 	return domain.LivestreamID(id)
 }
 
 func insertTestTag(t *testing.T, tx repository.Querier, livestreamID domain.LivestreamID, name string) domain.Tag {
 	t.Helper()
-	ctx := context.Background()
-	res, err := tx.ExecContext(ctx, "INSERT INTO tags (name) VALUES (?)", name)
-	if err != nil {
-		t.Fatalf("failed to insert tag: %v", err)
-	}
-	tagID, _ := res.LastInsertId()
-	if _, err := tx.ExecContext(ctx, "INSERT INTO livestream_tags (livestream_id, tag_id) VALUES (?, ?)", livestreamID, tagID); err != nil {
-		t.Fatalf("failed to insert livestream_tag: %v", err)
-	}
+	tagID := insertSQL(t, tx, "INSERT INTO tags (name) VALUES (?)", name)
+	execSQL(t, tx, "INSERT INTO livestream_tags (livestream_id, tag_id) VALUES (?, ?)", livestreamID, tagID)
 	return domain.Tag{ID: domain.TagID(tagID), Name: name}
 }
 
@@ -111,11 +100,7 @@ func TestLivestreamRepository_CreateAndLivestreamTagRepository_Create(t *testing
 	ownerID := insertTestUser(t, tx, "alice")
 	var tagIDs []domain.TagID
 	for _, name := range []string{"tag-a", "tag-b"} {
-		res, err := tx.ExecContext(ctx, "INSERT INTO tags (name) VALUES (?)", name)
-		if err != nil {
-			t.Fatalf("failed to insert tag: %v", err)
-		}
-		id, _ := res.LastInsertId()
+		id := insertSQL(t, tx, "INSERT INTO tags (name) VALUES (?)", name)
 		tagIDs = append(tagIDs, domain.TagID(id))
 	}
 

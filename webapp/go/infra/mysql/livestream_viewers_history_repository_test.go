@@ -11,9 +11,16 @@ import (
 
 func findTestLivestreamViewersHistories(t *testing.T, tx repository.Querier) []domain.LivestreamViewersHistory {
 	t.Helper()
-	var viewers []domain.LivestreamViewersHistory
-	if err := tx.SelectContext(context.Background(), &viewers, "SELECT id, user_id, livestream_id, created_at FROM livestream_viewers_history ORDER BY id"); err != nil {
-		t.Fatalf("failed to get livestream viewers: %v", err)
+	var rows []livestreamViewersHistoryRow
+	scanSQL(t, tx, &rows, "SELECT id, user_id, livestream_id, created_at FROM livestream_viewers_history ORDER BY id")
+	viewers := make([]domain.LivestreamViewersHistory, len(rows))
+	for i, row := range rows {
+		viewers[i] = domain.LivestreamViewersHistory{
+			ID:           domain.LivestreamViewersHistoryID(row.ID),
+			UserID:       domain.UserID(row.UserID),
+			LivestreamID: domain.LivestreamID(row.LivestreamID),
+			CreatedAt:    row.CreatedAt,
+		}
 	}
 	return viewers
 }

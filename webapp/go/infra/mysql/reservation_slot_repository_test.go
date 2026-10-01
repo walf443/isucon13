@@ -13,11 +13,7 @@ import (
 
 func insertTestReservationSlot(t *testing.T, tx repository.Querier, slot int64, startAt int64, endAt int64) domain.ReservationSlotID {
 	t.Helper()
-	res, err := tx.ExecContext(context.Background(), "INSERT INTO reservation_slots (slot, start_at, end_at) VALUES (?, ?, ?)", slot, startAt, endAt)
-	if err != nil {
-		t.Fatalf("failed to insert reservation slot: %v", err)
-	}
-	id, _ := res.LastInsertId()
+	id := insertSQL(t, tx, "INSERT INTO reservation_slots (slot, start_at, end_at) VALUES (?, ?, ?)", slot, startAt, endAt)
 	return domain.ReservationSlotID(id)
 }
 
@@ -91,9 +87,7 @@ func TestReservationSlotRepository_DecrementSlotsByRange(t *testing.T) {
 
 	for id, want := range map[domain.ReservationSlotID]int64{before: 5, first: 4, second: 2, after: 5} {
 		var slot int64
-		if err := tx.GetContext(ctx, &slot, "SELECT slot FROM reservation_slots WHERE id = ?", id); err != nil {
-			t.Fatalf("failed to get reservation slot: %v", err)
-		}
+		scanSQL(t, tx, &slot, "SELECT slot FROM reservation_slots WHERE id = ?", id)
 		if slot != want {
 			t.Errorf("slot of %d = %d, want %d", id, slot, want)
 		}

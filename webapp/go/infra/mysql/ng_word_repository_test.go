@@ -14,11 +14,7 @@ func TestNGWordRepository_FindAllByUserIDAndLivestreamID(t *testing.T) {
 
 	insert := func(userID domain.UserID, livestreamID domain.LivestreamID, word string, createdAt int64) domain.NGWordID {
 		t.Helper()
-		res, err := tx.ExecContext(ctx, "INSERT INTO ng_words (user_id, livestream_id, word, created_at) VALUES (?, ?, ?, ?)", userID, livestreamID, word, createdAt)
-		if err != nil {
-			t.Fatalf("failed to insert ng word: %v", err)
-		}
-		id, _ := res.LastInsertId()
+		id := insertSQL(t, tx, "INSERT INTO ng_words (user_id, livestream_id, word, created_at) VALUES (?, ?, ?, ?)", userID, livestreamID, word, createdAt)
 		return domain.NGWordID(id)
 	}
 	// 作成日時の降順になることを確認するため、ID の順序とはずらす

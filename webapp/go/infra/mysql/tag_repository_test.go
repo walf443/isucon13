@@ -13,9 +13,7 @@ func TestTagRepository_FindAll(t *testing.T) {
 	tx := beginTestTx(t)
 
 	for _, name := range []string{"ライブ配信", "ゲーム実況"} {
-		if _, err := tx.ExecContext(ctx, "INSERT INTO tags (name) VALUES (?)", name); err != nil {
-			t.Fatalf("failed to insert tag: %v", err)
-		}
+		execSQL(t, tx, "INSERT INTO tags (name) VALUES (?)", name)
 	}
 
 	tags, err := NewTagRepository().FindAll(ctx, tx)
@@ -56,11 +54,7 @@ func TestTagRepository_FindIDsByName(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)
 
-	res, err := tx.ExecContext(ctx, "INSERT INTO tags (name) VALUES (?)", "ゲーム実況")
-	if err != nil {
-		t.Fatalf("failed to insert tag: %v", err)
-	}
-	lastID, _ := res.LastInsertId()
+	lastID := insertSQL(t, tx, "INSERT INTO tags (name) VALUES (?)", "ゲーム実況")
 	wantID := domain.TagID(lastID)
 	repo := NewTagRepository()
 
@@ -87,11 +81,7 @@ func TestTagRepository_FindAllByIDs(t *testing.T) {
 
 	var ids []domain.TagID
 	for _, name := range []string{"ゲーム実況", "雑談", "歌枠"} {
-		res, err := tx.ExecContext(ctx, "INSERT INTO tags (name) VALUES (?)", name)
-		if err != nil {
-			t.Fatalf("failed to insert tag: %v", err)
-		}
-		id, _ := res.LastInsertId()
+		id := insertSQL(t, tx, "INSERT INTO tags (name) VALUES (?)", name)
 		ids = append(ids, domain.TagID(id))
 	}
 	repo := NewTagRepository()

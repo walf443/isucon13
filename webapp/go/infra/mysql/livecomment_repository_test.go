@@ -13,11 +13,7 @@ import (
 
 func insertTestLivecomment(t *testing.T, tx repository.Querier, userID domain.UserID, livestreamID domain.LivestreamID, comment string, createdAt int64) domain.LivecommentID {
 	t.Helper()
-	res, err := tx.ExecContext(context.Background(), "INSERT INTO livecomments (user_id, livestream_id, comment, tip, created_at) VALUES (?, ?, ?, ?, ?)", userID, livestreamID, comment, 10, createdAt)
-	if err != nil {
-		t.Fatalf("failed to insert livecomment: %v", err)
-	}
-	id, _ := res.LastInsertId()
+	id := insertSQL(t, tx, "INSERT INTO livecomments (user_id, livestream_id, comment, tip, created_at) VALUES (?, ?, ?, ?, ?)", userID, livestreamID, comment, 10, createdAt)
 	return domain.LivecommentID(id)
 }
 
@@ -67,9 +63,7 @@ func TestLivecommentRepository_DeleteAllByLivestreamIDMatchingNGWord(t *testing.
 	}
 
 	var remaining []domain.LivecommentID
-	if err := tx.SelectContext(ctx, &remaining, "SELECT id FROM livecomments ORDER BY id"); err != nil {
-		t.Fatalf("failed to get livecomments: %v", err)
-	}
+	scanSQL(t, tx, &remaining, "SELECT id FROM livecomments ORDER BY id")
 	if want := []domain.LivecommentID{safe, otherLivestream}; !slices.Equal(remaining, want) {
 		t.Errorf("remaining = %v, want %v (deleted should be %v, %v)", remaining, want, hit, hitUpper)
 	}
