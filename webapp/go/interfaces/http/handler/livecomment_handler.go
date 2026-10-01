@@ -1,0 +1,186 @@
+package handler
+
+import (
+	"encoding/json"
+	"errors"
+	"net/http"
+
+	"github.com/isucon/isucon13/webapp/go/domain"
+	"github.com/isucon/isucon13/webapp/go/usecase"
+	"github.com/labstack/echo/v4"
+)
+
+type livecommentResponse struct {
+	ID         domain.LivecommentID `json:"id"`
+	User       userResponse         `json:"user"`
+	Livestream livestreamResponse   `json:"livestream"`
+	Comment    string               `json:"comment"`
+	Tip        int64                `json:"tip"`
+	CreatedAt  int64                `json:"created_at"`
+}
+
+func newLivecomment(l *domain.LivecommentDetail) livecommentResponse {
+	return livecommentResponse{
+		ID:         l.ID,
+		User:       newUser(&l.User),
+		Livestream: newLivestream(&l.Livestream),
+		Comment:    l.Comment,
+		Tip:        l.Tip,
+		CreatedAt:  l.CreatedAt,
+	}
+}
+
+type livecommentReportResponse struct {
+	ID          domain.LivecommentReportID `json:"id"`
+	Reporter    userResponse               `json:"reporter"`
+	Livecomment livecommentResponse        `json:"livecomment"`
+	CreatedAt   int64                      `json:"created_at"`
+}
+
+func newLivecommentReport(r *domain.LivecommentReportDetail) livecommentReportResponse {
+	return livecommentReportResponse{
+		ID:          r.ID,
+		Reporter:    newUser(&r.Reporter),
+		Livecomment: newLivecomment(&r.Livecomment),
+		CreatedAt:   r.CreatedAt,
+	}
+}
+
+type postLivecommentRequest struct {
+	Comment string `json:"comment"`
+	Tip     int64  `json:"tip"`
+}
+
+type livecommentHandler struct {
+	livecommentUsecase usecase.LivecommentUsecase
+	reportUsecase      usecase.LivecommentReportUsecase
+}
+
+func newLivecommentHandler(livecommentUsecase usecase.LivecommentUsecase, reportUsecase usecase.LivecommentReportUsecase) *livecommentHandler {
+	return &livecommentHandler{livecommentUsecase: livecommentUsecase, reportUsecase: reportUsecase}
+}
+
+// GET /api/livestream/:livestream_id/livecomment
+func (h *livecommentHandler) GetLivecomments(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	livestreamID, err := domain.ParseLivestreamID(c.Param("livestream_id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
+	}
+
+	limit, err := parseLimitQueryParam(c, maxLivecommentsLimit)
+	if err != nil {
+		return err
+	}
+
+	livecomments, err := h.livecommentUsecase.FindAllByLivestreamID(ctx, livestreamID, limit)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	livecommentResponses := make([]livecommentResponse, len(livecomments))
+	for i, l := range livecomments {
+		livecommentResponses[i] = newLivecomment(l)
+	}
+	return c.JSON(http.StatusOK, livecommentResponses)
+}
+
+// (配信者向け)ライブコメントの報告一覧取得API
+// GET /api/livestream/:livestream_id/report
+func (h *livecommentHandler) GetLivecommentReports(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	livestreamID, err := domain.ParseLivestreamID(c.Param("livestream_id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
+	}
+
+	userID, err := getSessionUserID(c)
+	if err != nil {
+		return err
+	}
+
+	reports, err := h.reportUsecase.FindAllByLivestreamID(ctx, userID, livestreamID)
+	if errors.Is(err, usecase.ErrNotLivestreamOwner) {
+		return echo.NewHTTPError(http.StatusForbidden, "can't get other streamer's livecomment reports")
+	}
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	reportResponses := make([]livecommentReportResponse, len(reports))
+	for i, r := range reports {
+		reportResponses[i] = newLivecommentReport(r)
+	}
+	return c.JSON(http.StatusOK, reportResponses)
+}
+
+// ライブコメント投稿
+// POST /api/livestream/:livestream_id/livecomment
+func (h *livecommentHandler) PostLivecomment(c echo.Context) error {
+	ctx := c.Request().Context()
+	defer c.Request().Body.Close()
+
+	livestreamID, err := domain.ParseLivestreamID(c.Param("livestream_id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
+	}
+
+	userID, err := getSessionUserID(c)
+	if err != nil {
+		return err
+	}
+
+	var req postLivecommentRequest
+	if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
+	}
+
+	livecomment, err := h.livecommentUsecase.Create(ctx, userID, livestreamID, req.Comment, req.Tip)
+	if errors.Is(err, usecase.ErrLivestreamNotFound) {
+		return echo.NewHTTPError(http.StatusNotFound, "livestream not found")
+	}
+	if errors.Is(err, usecase.ErrSpamLivecomment) {
+		return echo.NewHTTPError(http.StatusBadRequest, "このコメントがスパム判定されました")
+	}
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusCreated, newLivecomment(livecomment))
+}
+
+// ライブコメント報告
+// POST /api/livestream/:livestream_id/livecomment/:livecomment_id/report
+func (h *livecommentHandler) PostLivecommentReport(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	livestreamID, err := domain.ParseLivestreamID(c.Param("livestream_id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "livestream_id in path must be integer")
+	}
+
+	livecommentID, err := domain.ParseLivecommentID(c.Param("livecomment_id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "livecomment_id in path must be integer")
+	}
+
+	userID, err := getSessionUserID(c)
+	if err != nil {
+		return err
+	}
+
+	report, err := h.reportUsecase.Create(ctx, userID, livestreamID, livecommentID)
+	if errors.Is(err, usecase.ErrLivestreamNotFound) {
+		return echo.NewHTTPError(http.StatusNotFound, "livestream not found")
+	}
+	if errors.Is(err, usecase.ErrLivecommentNotFound) {
+		return echo.NewHTTPError(http.StatusNotFound, "livecomment not found")
+	}
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusCreated, newLivecommentReport(report))
+}

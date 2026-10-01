@@ -1,0 +1,91 @@
+package usecase
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/isucon/isucon13/webapp/go/domain"
+	"github.com/isucon/isucon13/webapp/go/usecase/repository"
+)
+
+// UserRegistrationUsecase はユーザの登録を扱う。
+type UserRegistrationUsecase interface {
+	// Register はユーザを登録し、サブドメインの DNS レコードを登録して、テーマ・アイコンを含めたユーザを返す。
+	// 予約済みのユーザ名の場合 *ReservedUsernameError を返す。
+	Register(ctx context.Context, input RegisterUserInput) (*domain.UserDetail, error)
+}
+
+// RegisterUserInput は登録するユーザの内容。
+type RegisterUserInput struct {
+	Name        domain.Username
+	DisplayName string
+	Description string
+	// Password はハッシュ化する前のパスワード。
+	Password domain.PlainPassword
+	DarkMode bool
+}
+
+type userRegistrationUsecase struct {
+	txManager    repository.TxManager
+	userRepo     repository.UserRepository
+	themeRepo    repository.ThemeRepository
+	dnsRegistrar DNSRecordRegistrar
+	userFiller   *UserFiller
+}
+
+func NewUserRegistrationUsecase(txManager repository.TxManager, userRepo repository.UserRepository, themeRepo repository.ThemeRepository, dnsRegistrar DNSRecordRegistrar, userFiller *UserFiller) UserRegistrationUsecase {
+	return &userRegistrationUsecase{txManager: txManager, userRepo: userRepo, themeRepo: themeRepo, dnsRegistrar: dnsRegistrar, userFiller: userFiller}
+}
+
+func (u *userRegistrationUsecase) Register(ctx context.Context, input RegisterUserInput) (*domain.UserDetail, error) {
+	if reserved, ok := domain.FindReservedUsername(input.Name); ok {
+		return nil, &ReservedUsernameError{Name: reserved}
+	}
+
+	hashedPassword, err := domain.HashPassword(input.Password)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate hashed password: %w", err)
+	}
+
+	var userDetail *domain.UserDetail
+	err = u.txManager.RunInTx(ctx, func(q repository.Querier) error {
+		userID, err := u.userRepo.Create(ctx, q, &domain.User{
+			Name:           input.Name,
+			DisplayName:    input.DisplayName,
+			Description:    input.Description,
+			HashedPassword: hashedPassword,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to insert user: %w", err)
+		}
+
+		if err := u.themeRepo.Create(ctx, q, &domain.Theme{
+			UserID:   userID,
+			DarkMode: input.DarkMode,
+		}); err != nil {
+			return fmt.Errorf("failed to insert user theme: %w", err)
+		}
+
+		// 移行前と同じくトランザクション内で登録する (失敗した場合はユーザの登録もロールバックする)
+		// ユーザ名がそのままサブドメインの名前になる (ユーザ名とサブドメインは別の概念なので、ここで明示的に変換する)
+		if err := u.dnsRegistrar.AddRecord(string(input.Name)); err != nil {
+			// 移行前はコマンドの出力とエラーをそのままレスポンスにしていたので、メッセージを付け足さない
+			return err
+		}
+
+		user, err := u.userRepo.FindByID(ctx, q, userID)
+		if err != nil {
+			return fmt.Errorf("failed to fill user: %w", err)
+		}
+		userDetails, err := u.userFiller.Fill(ctx, q, []*domain.User{user})
+		if err != nil {
+			return fmt.Errorf("failed to fill user: %w", err)
+		}
+		userDetail = userDetails[userID]
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return userDetail, nil
+}
