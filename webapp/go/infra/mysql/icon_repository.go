@@ -1,9 +1,11 @@
 package mysql
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
+	"slices"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
@@ -45,5 +47,11 @@ func (r *iconRepository) DeleteByUserID(ctx context.Context, q repository.Querie
 }
 
 func (r *iconRepository) FindAllByUserIDs(ctx context.Context, q repository.Querier, userIDs []domain.UserID) ([]*domain.Icon, error) {
-	return selectIn[domain.Icon](ctx, q, "SELECT id, user_id, image FROM icons WHERE user_id IN (?)", userIDs)
+	icons, err := selectIn[domain.Icon](ctx, q, "SELECT id, user_id, image FROM icons WHERE user_id IN (?) ORDER BY id", userIDs)
+	if err != nil {
+		return nil, err
+	}
+	// ID を分割して引いた場合に、結果全体で ID の昇順になるようにする
+	slices.SortFunc(icons, func(a, b *domain.Icon) int { return cmp.Compare(a.ID, b.ID) })
+	return icons, nil
 }

@@ -108,3 +108,25 @@ func TestUserFiller_Fill_Errors(t *testing.T) {
 		})
 	}
 }
+
+// 同じユーザのアイコンが複数ある場合 (データ不整合) は、先頭 (ID が最小) のものを使う。
+func TestUserFiller_Fill_UsesFirstIconWhenDuplicated(t *testing.T) {
+	themeRepo := &fakeThemeRepository{
+		findAllByUserIDs: func(context.Context, repository.Querier, []domain.UserID) ([]*domain.Theme, error) {
+			return []*domain.Theme{{ID: 10, UserID: 1}}, nil
+		},
+	}
+	iconRepo := &fakeIconRepository{
+		findAllByUserIDs: func(context.Context, repository.Querier, []domain.UserID) ([]*domain.Icon, error) {
+			return []*domain.Icon{{ID: 1, UserID: 1, Image: []byte("old")}, {ID: 2, UserID: 1, Image: []byte("new")}}, nil
+		},
+	}
+
+	got, err := NewUserFiller(themeRepo, iconRepo, "").Fill(context.Background(), nil, []*domain.User{{ID: 1}})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if want := domain.HashIcon([]byte("old")); got[1].IconHash != want {
+		t.Errorf("icon hash = %q, want %q (the first icon)", got[1].IconHash, want)
+	}
+}

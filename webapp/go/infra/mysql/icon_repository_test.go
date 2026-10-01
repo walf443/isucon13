@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
@@ -107,5 +108,67 @@ func TestIconRepository_FindAllByUserIDs(t *testing.T) {
 	got, err = repo.FindAllByUserIDs(ctx, tx, nil)
 	if err != nil || got == nil || len(got) != 0 {
 		t.Errorf("FindAllByUserIDs(nil) = %#v, %v, want empty", got, err)
+	}
+}
+
+// 同じユーザのアイコンが複数ある場合 (データ不整合) は、全て ID の昇順で返す。
+func TestIconRepository_FindAllByUserIDs_OrderedByID(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	alice := insertTestUser(t, tx, "alice")
+	bob := insertTestUser(t, tx, "bob")
+	// ユーザの ID の順ではなく、アイコンの ID の順に並ぶこと
+	var ids []domain.IconID
+	for _, c := range []struct {
+		userID domain.UserID
+		image  string
+	}{{bob, "bob"}, {alice, "alice old"}, {alice, "alice new"}} {
+		res, err := tx.ExecContext(ctx, "INSERT INTO icons (user_id, image) VALUES (?, ?)", c.userID, []byte(c.image))
+		if err != nil {
+			t.Fatalf("failed to insert icon: %v", err)
+		}
+		id, _ := res.LastInsertId()
+		ids = append(ids, domain.IconID(id))
+	}
+
+	got, err := NewIconRepository().FindAllByUserIDs(ctx, tx, []domain.UserID{alice, bob})
+	if err != nil {
+		t.Fatalf("FindAllByUserIDs returned error: %v", err)
+	}
+	gotIDs := make([]domain.IconID, len(got))
+	for i, icon := range got {
+		gotIDs[i] = icon.ID
+	}
+	if !slices.Equal(gotIDs, ids) {
+		t.Errorf("icon IDs = %v, want %v", gotIDs, ids)
+	}
+}
+
+// 同じユーザのアイコンが複数ある場合 (データ不整合) に、FindImageByUserID (GetIcon の画像) と FindAllByUserIDs (アイコンのハッシュ) が
+// 同じ行を指すこと。
+func TestIconRepository_FindImageByUserIDAndFindAllByUserIDs_AgreeOnDuplicatedIcons(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	alice := insertTestUser(t, tx, "alice")
+	for _, image := range []string{"first", "second"} {
+		if _, err := tx.ExecContext(ctx, "INSERT INTO icons (user_id, image) VALUES (?, ?)", alice, []byte(image)); err != nil {
+			t.Fatalf("failed to insert icon: %v", err)
+		}
+	}
+	repo := NewIconRepository()
+
+	image, err := repo.FindImageByUserID(ctx, tx, alice)
+	if err != nil {
+		t.Fatalf("FindImageByUserID returned error: %v", err)
+	}
+	icons, err := repo.FindAllByUserIDs(ctx, tx, []domain.UserID{alice})
+	if err != nil || len(icons) == 0 {
+		t.Fatalf("FindAllByUserIDs = %v, %v", icons, err)
+	}
+	// 先頭 (ID が最小) のものが、どちらでも使われる行
+	if string(image) != "first" || string(icons[0].Image) != "first" {
+		t.Errorf("FindImageByUserID = %q, first of FindAllByUserIDs = %q, want both %q", image, icons[0].Image, "first")
 	}
 }

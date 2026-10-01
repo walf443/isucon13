@@ -7,7 +7,8 @@ import (
 )
 
 type IconRepository interface {
-	// FindAllByUserIDs は userIDs のユーザのアイコンを返す (順序は不定)。アイコンが未登録のユーザの分は結果に含まれない。
+	// FindAllByUserIDs は userIDs のユーザのアイコンを、アイコンの ID の昇順で返す。アイコンが未登録のユーザの分は結果に含まれない。
+	// 同じユーザのアイコンが複数ある場合 (データ不整合) は、全て返す。FindImageByUserID と同じく ID が最小のものを使うこと。
 	// userIDs が空の場合はクエリを発行せずに空のスライスを返す。
 	FindAllByUserIDs(ctx context.Context, q Querier, userIDs []domain.UserID) ([]*domain.Icon, error)
 	// FindImageByUserID はアイコンが登録されていない場合 ErrNotFound を返す。

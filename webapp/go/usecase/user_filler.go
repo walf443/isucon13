@@ -39,7 +39,13 @@ func (f *UserFiller) Fill(ctx context.Context, q repository.Querier, users []*do
 	if err != nil {
 		return nil, fmt.Errorf("failed to get icons: %w", err)
 	}
-	iconsByUserID := indexBy(icons, func(icon *domain.Icon) domain.UserID { return icon.UserID })
+	// 同じユーザのアイコンが複数ある場合 (データ不整合) は、FindImageByUserID と同じく ID が最小の (先頭の) ものを使う
+	iconsByUserID := make(map[domain.UserID]*domain.Icon, len(icons))
+	for _, icon := range icons {
+		if _, ok := iconsByUserID[icon.UserID]; !ok {
+			iconsByUserID[icon.UserID] = icon
+		}
+	}
 
 	userDetails := make(map[domain.UserID]*domain.UserDetail, len(userIDs))
 	for _, user := range users {
