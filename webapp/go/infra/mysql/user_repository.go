@@ -2,11 +2,9 @@ package mysql
 
 import (
 	"context"
-	"errors"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
-	"gorm.io/gorm"
 )
 
 // userRow は users テーブルの行。
@@ -39,11 +37,8 @@ func NewUserRepository() repository.UserRepository {
 func (r *userRepository) FindIDByName(ctx context.Context, q repository.Querier, name string) (domain.UserID, error) {
 	var row userRow
 	err := dbOf(ctx, q).Select("id").Where("name = ?", name).Take(&row).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return 0, repository.ErrNotFound
-	}
 	if err != nil {
-		return 0, err
+		return 0, notFound(err)
 	}
 	return domain.UserID(row.ID), nil
 }
@@ -52,11 +47,8 @@ func (r *userRepository) FindByName(ctx context.Context, q repository.Querier, n
 	var row userRow
 	// ユーザ名は UNIQUE なので、where で一意に特定できる
 	err := dbOf(ctx, q).Select("id, name, display_name, description, password").Where("name = ?", name).Take(&row).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, repository.ErrNotFound
-	}
 	if err != nil {
-		return nil, err
+		return nil, notFound(err)
 	}
 	return row.toDomain(), nil
 }
@@ -64,11 +56,8 @@ func (r *userRepository) FindByName(ctx context.Context, q repository.Querier, n
 func (r *userRepository) FindByID(ctx context.Context, q repository.Querier, id domain.UserID) (*domain.User, error) {
 	var row userRow
 	err := dbOf(ctx, q).Select("id, name, display_name, description, password").Where("id = ?", id).Take(&row).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, repository.ErrNotFound
-	}
 	if err != nil {
-		return nil, err
+		return nil, notFound(err)
 	}
 	return row.toDomain(), nil
 }

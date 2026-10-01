@@ -2,11 +2,9 @@ package mysql
 
 import (
 	"context"
-	"errors"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
-	"gorm.io/gorm"
 )
 
 // livestreamRow は livestreams テーブルの行。
@@ -45,11 +43,8 @@ func NewLivestreamRepository() repository.LivestreamRepository {
 func (r *livestreamRepository) FindByID(ctx context.Context, q repository.Querier, id domain.LivestreamID) (*domain.Livestream, error) {
 	var row livestreamRow
 	err := dbOf(ctx, q).Select("id, user_id, title, description, playlist_url, thumbnail_url, start_at, end_at").Where("id = ?", id).Take(&row).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, repository.ErrNotFound
-	}
 	if err != nil {
-		return nil, err
+		return nil, notFound(err)
 	}
 	return row.toDomain(), nil
 }

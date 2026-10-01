@@ -3,6 +3,7 @@ package mysql
 import (
 	"cmp"
 	"context"
+	"errors"
 	"slices"
 
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
@@ -35,6 +36,15 @@ func gormOf(q repository.Querier) *gorm.DB {
 // 読み取りは必ず Select でカラムを列挙する (移行前の SQL と同じカラムだけを読む。テーブルにカラムが増えても結果が変わらない)。
 func dbOf(ctx context.Context, q repository.Querier) *gorm.DB {
 	return gormOf(q).WithContext(ctx)
+}
+
+// notFound は Take / First が返した err が gorm.ErrRecordNotFound なら repository.ErrNotFound に変換し、それ以外はそのまま返す。
+// 1 件を引く repository のメソッドは、見つからない場合にこれを通して ErrNotFound を返す。
+func notFound(err error) error {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return repository.ErrNotFound
+	}
+	return err
 }
 
 // mapRows は行の型の一覧を domain の型の一覧にする。rows が空の場合も nil ではなく空のスライスを返す。

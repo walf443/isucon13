@@ -79,7 +79,7 @@ infra/mysql の SQL は GORM で書く。
 - 移行前に SQL で判定していたロジック (NG ワードの LIKE によるスパム判定など) は、Go に移さず、リテラルの SQL を `Raw` / `Exec` で実行する。Go に移すと照合順序やワイルドカードの扱いまで含めた同一性を保証できないため
 - 行の型はテーブルごとに infra に作る (`userRow` など)。`TableName()` を必ず明示し、カラムは `gorm:"column:..."` で対応づけ、domain の型との変換 (`toDomain`) を持たせる
   - `CreatedAt` は GORM が登録時刻を自動で設定する名前なので、`autoCreateTime:false` を付ける (usecase が渡した値をそのまま保存する)
-  - 見つからない場合は `gorm.ErrRecordNotFound` を `repository.ErrNotFound` に変換する
+  - 見つからない場合は `notFound` で `gorm.ErrRecordNotFound` を `repository.ErrNotFound` に変換する
 - GORM の設定: ロガーは出力しない (移行前は SQL をログに出していなかった)、`SkipDefaultTransaction` を有効にする (トランザクションは usecase が持つ)、エラーの翻訳はしない (ドライバのエラー本文をそのまま返す。例: 重複登録の `Error 1062`)
 - `IN (...)` は `findIn` を使う。ID を昇順・重複なしにして 1000 件ずつに分けて引く (MySQL のプレースホルダーは 1 つのクエリで 65535 個までのため)。分割すると結果の並び順は崩れるので、並び順が必要なメソッドは並べ直す
 - 発行される SQL の文面は `gorm_test.go` のテスト (`recordSQL`) で固定している。repository を足したり変えたりしたら、そこに足す

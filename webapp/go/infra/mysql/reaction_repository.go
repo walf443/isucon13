@@ -2,11 +2,9 @@ package mysql
 
 import (
 	"context"
-	"errors"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
-	"gorm.io/gorm"
 )
 
 // reactionRow は reactions テーブルの行。
@@ -45,11 +43,8 @@ func NewReactionRepository() repository.ReactionRepository {
 func (r *reactionRepository) FindByID(ctx context.Context, q repository.Querier, id domain.ReactionID) (*domain.Reaction, error) {
 	var row reactionRow
 	err := dbOf(ctx, q).Select("id, emoji_name, user_id, livestream_id, created_at").Where("id = ?", id).Take(&row).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, repository.ErrNotFound
-	}
 	if err != nil {
-		return nil, err
+		return nil, notFound(err)
 	}
 	return row.toDomain(), nil
 }
@@ -134,11 +129,8 @@ func (r *reactionRepository) FindFavoriteEmojiByLivestreamOwnerName(ctx context.
 		Group("emoji_name").
 		Order("COUNT(*) DESC, emoji_name DESC").
 		Take(&row).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return "", repository.ErrNotFound
-	}
 	if err != nil {
-		return "", err
+		return "", notFound(err)
 	}
 	return row.EmojiName, nil
 }

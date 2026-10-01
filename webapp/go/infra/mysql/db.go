@@ -76,6 +76,7 @@ func ConfigFromEnv() (Config, error) {
 }
 
 // Open は cfg の MySQL に接続し、疎通を確認した *gorm.DB を返す。
+// 疎通の確認 (ping) は gorm.Open が行う (DisableAutomaticPing を無効のままにしている) ので、ここでは重ねて行わない。
 func Open(cfg Config) (*gorm.DB, error) {
 	db, err := gorm.Open(gormmysql.Open(cfg.dsn()), gormConfig())
 	if err != nil {
@@ -86,10 +87,6 @@ func Open(cfg Config) (*gorm.DB, error) {
 		return nil, err
 	}
 	sqlDB.SetMaxOpenConns(10)
-
-	if err := sqlDB.Ping(); err != nil {
-		return nil, err
-	}
 
 	return db, nil
 }

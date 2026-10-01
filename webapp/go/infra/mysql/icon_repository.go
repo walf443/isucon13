@@ -3,12 +3,10 @@ package mysql
 import (
 	"cmp"
 	"context"
-	"errors"
 	"slices"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
-	"gorm.io/gorm"
 )
 
 // iconRow は icons テーブルの行。
@@ -34,11 +32,8 @@ func (r *iconRepository) FindImageByUserID(ctx context.Context, q repository.Que
 	var row iconRow
 	// 同じユーザのアイコンが複数ある場合 (データ不整合) は、ID が最小の行を使う (First は ID の昇順の先頭)
 	err := dbOf(ctx, q).Select("image").Where("user_id = ?", userID).First(&row).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, repository.ErrNotFound
-	}
 	if err != nil {
-		return nil, err
+		return nil, notFound(err)
 	}
 	return row.Image, nil
 }

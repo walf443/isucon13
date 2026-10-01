@@ -2,11 +2,9 @@ package mysql
 
 import (
 	"context"
-	"errors"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
-	"gorm.io/gorm"
 )
 
 // themeRow は themes テーブルの行。
@@ -31,11 +29,8 @@ func NewThemeRepository() repository.ThemeRepository {
 func (r *themeRepository) FindByUserID(ctx context.Context, q repository.Querier, userID domain.UserID) (*domain.Theme, error) {
 	var row themeRow
 	err := dbOf(ctx, q).Select("id, user_id, dark_mode").Where("user_id = ?", userID).Take(&row).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, repository.ErrNotFound
-	}
 	if err != nil {
-		return nil, err
+		return nil, notFound(err)
 	}
 	return row.toDomain(), nil
 }

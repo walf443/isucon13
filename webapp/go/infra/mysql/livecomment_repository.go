@@ -2,12 +2,10 @@ package mysql
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
-	"gorm.io/gorm"
 )
 
 // livecommentRow は livecomments テーブルの行。
@@ -70,11 +68,8 @@ func (r *livecommentRepository) FindAllByLivestreamIDOrderByCreatedAtDescLimited
 func (r *livecommentRepository) FindByID(ctx context.Context, q repository.Querier, id domain.LivecommentID) (*domain.Livecomment, error) {
 	var row livecommentRow
 	err := dbOf(ctx, q).Select("id, user_id, livestream_id, comment, tip, created_at").Where("id = ?", id).Take(&row).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, repository.ErrNotFound
-	}
 	if err != nil {
-		return nil, err
+		return nil, notFound(err)
 	}
 	return row.toDomain(), nil
 }

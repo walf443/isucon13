@@ -2,11 +2,9 @@ package mysql
 
 import (
 	"context"
-	"errors"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
-	"gorm.io/gorm"
 )
 
 // livecommentReportRow は livecomment_reports テーブルの行。
@@ -40,11 +38,8 @@ func NewLivecommentReportRepository() repository.LivecommentReportRepository {
 func (r *livecommentReportRepository) FindByID(ctx context.Context, q repository.Querier, id domain.LivecommentReportID) (*domain.LivecommentReport, error) {
 	var row livecommentReportRow
 	err := dbOf(ctx, q).Select("id, user_id, livestream_id, livecomment_id, created_at").Where("id = ?", id).Take(&row).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, repository.ErrNotFound
-	}
 	if err != nil {
-		return nil, err
+		return nil, notFound(err)
 	}
 	return row.toDomain(), nil
 }
