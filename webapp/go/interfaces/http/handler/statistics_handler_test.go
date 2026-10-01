@@ -139,3 +139,13 @@ func TestStatisticsHandler_GetLivestreamStatistics(t *testing.T) {
 		})
 	}
 }
+
+// 不正な形のユーザ名のユーザは存在しないので、ユーザが見つからない場合と同じ応答 (400) になり、usecase は呼ばれない。
+func TestStatisticsHandler_GetUserStatistics_InvalidUsername(t *testing.T) {
+	u := &fakeStatisticsUsecase{}
+	rec := serve(t, newStatisticsHandler(u).GetUserStatistics, testRequest{method: http.MethodGet, route: "/api/user/:username/statistics", path: "/api/user/a.b/statistics", cookie: sessionAs(1)})
+	assertResponse(t, rec, http.StatusBadRequest, errorBody(http.StatusBadRequest, "not found user that has the given username"))
+	if u.gotUsername != "" {
+		t.Errorf("usecase was called with %q, want it not to be called", u.gotUsername)
+	}
+}

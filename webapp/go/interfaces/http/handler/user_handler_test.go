@@ -159,6 +159,8 @@ func TestUserHandler_Register(t *testing.T) {
 		usecase  *fakeUserRegistrationUsecase
 		wantCode int
 		wantBody string
+		// notCalled は、リクエストの検証で弾かれて usecase が呼ばれないこと。
+		notCalled bool
 	}{
 		{
 			name:     "registers user",
@@ -182,9 +184,27 @@ func TestUserHandler_Register(t *testing.T) {
 			wantBody: errorBody(http.StatusBadRequest, "the username 'pipe' is reserved"),
 		},
 		{
+			// サブドメインとして使えない名前は usecase に渡さずに 400 にする (メッセージにリクエストの値は含めない)
+			name:      "returns 400 for a username that cannot be a subdomain",
+			body:      `{"name":"<b>a.b</b>","password":"x"}`,
+			usecase:   &fakeUserRegistrationUsecase{},
+			wantCode:  http.StatusBadRequest,
+			wantBody:  errorBody(http.StatusBadRequest, domain.ErrInvalidUsername.Error()),
+			notCalled: true,
+		},
+		{
+			// 先頭が - の名前は、pdnsutil にオプションとして解釈されかねない
+			name:      "returns 400 for a username that looks like a command option",
+			body:      `{"name":"-alice","password":"x"}`,
+			usecase:   &fakeUserRegistrationUsecase{},
+			wantCode:  http.StatusBadRequest,
+			wantBody:  errorBody(http.StatusBadRequest, domain.ErrInvalidUsername.Error()),
+			notCalled: true,
+		},
+		{
 			// メッセージには usecase のエラーにある予約済みの名前を使い、リクエストのユーザ名はそのまま返さない
 			name:     "uses the reserved name from the error, not the request",
-			body:     `{"name":"<b>ADMIN</b>","password":"x"}`,
+			body:     `{"name":"ADMIN","password":"x"}`,
 			usecase:  &fakeUserRegistrationUsecase{err: &usecase.ReservedUsernameError{Name: "admin"}},
 			wantCode: http.StatusBadRequest,
 			wantBody: errorBody(http.StatusBadRequest, "the username 'admin' is reserved"),
@@ -204,6 +224,9 @@ func TestUserHandler_Register(t *testing.T) {
 			// セッションは不要
 			rec := serve(t, newUserHandler(nil, tt.usecase).Register, testRequest{method: http.MethodPost, route: "/api/register", path: "/api/register", body: tt.body})
 			assertResponse(t, rec, tt.wantCode, tt.wantBody)
+			if tt.notCalled && tt.usecase.gotInput != (usecase.RegisterUserInput{}) {
+				t.Errorf("usecase was called with %+v, want it not to be called", tt.usecase.gotInput)
+			}
 			if tt.wantCode == http.StatusCreated {
 				want := usecase.RegisterUserInput{Name: "alice", DisplayName: "Alice", Description: "hello", Password: "s3cret", DarkMode: true}
 				if tt.usecase.gotInput != want {
@@ -211,6 +234,16 @@ func TestUserHandler_Register(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// 不正な形のユーザ名のユーザは存在しないので、ユーザが見つからない場合と同じ応答になり、usecase は呼ばれない。
+func TestUserHandler_GetUser_InvalidUsername(t *testing.T) {
+	u := &fakeUserUsecase{}
+	rec := serve(t, newUserHandler(u, nil).GetUser, testRequest{method: http.MethodGet, route: "/api/user/:username", path: "/api/user/a.b", cookie: sessionAs(1)})
+	assertResponse(t, rec, http.StatusNotFound, errorBody(http.StatusNotFound, "not found user that has the given username"))
+	if u.gotName != "" {
+		t.Errorf("usecase was called with %q, want it not to be called", u.gotName)
 	}
 }
 
@@ -243,6 +276,14 @@ func TestUserHandler_Login(t *testing.T) {
 			name:     "returns 401 on invalid credentials",
 			body:     `{"username":"alice","password":"wrong"}`,
 			usecase:  &fakeUserUsecase{err: usecase.ErrInvalidCredentials},
+			wantCode: http.StatusUnauthorized,
+			wantBody: errorBody(http.StatusUnauthorized, "invalid username or password"),
+		},
+		{
+			// 不正な形のユーザ名のユーザは存在しないので、ユーザが見つからない場合と同じ 401 にする
+			name:     "returns 401 for a username that cannot exist",
+			body:     `{"username":"a.b","password":"s3cret"}`,
+			usecase:  &fakeUserUsecase{},
 			wantCode: http.StatusUnauthorized,
 			wantBody: errorBody(http.StatusUnauthorized, "invalid username or password"),
 		},

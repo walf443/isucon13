@@ -435,3 +435,13 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 		})
 	}
 }
+
+// 不正な形のユーザ名のユーザは存在しないので、ユーザが見つからない場合と同じ応答になり、usecase は呼ばれない。
+func TestLivestreamHandler_GetUserLivestreams_InvalidUsername(t *testing.T) {
+	u := &fakeLivestreamUsecase{}
+	rec := serve(t, newLivestreamHandler(u, nil).GetUserLivestreams, testRequest{method: http.MethodGet, route: "/api/user/:username/livestream", path: "/api/user/a.b/livestream", cookie: sessionAs(1)})
+	assertResponse(t, rec, http.StatusNotFound, errorBody(http.StatusNotFound, "user not found"))
+	if u.gotUsername != "" {
+		t.Errorf("usecase was called with %q, want it not to be called", u.gotUsername)
+	}
+}

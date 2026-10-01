@@ -59,7 +59,12 @@ func newStatisticsHandler(statisticsUsecase usecase.StatisticsUsecase) *statisti
 func (h *statisticsHandler) GetUserStatistics(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	username := domain.Username(c.Param("username"))
+	username, err := domain.ParseUsername(c.Param("username"))
+	if err != nil {
+		// 不正な形のユーザ名のユーザは存在しないので、存在しない場合と同じ応答にする
+		// 他のエンドポイントと違い 404 ではなく 400 (移行前と同じ)
+		return echo.NewHTTPError(http.StatusBadRequest, "not found user that has the given username")
+	}
 
 	stats, err := h.statisticsUsecase.FindUserStatistics(ctx, username)
 	if errors.Is(err, usecase.ErrUserNotFound) {

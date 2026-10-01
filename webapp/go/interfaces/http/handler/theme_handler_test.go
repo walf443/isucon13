@@ -62,3 +62,13 @@ func TestThemeHandler_GetStreamerTheme(t *testing.T) {
 		})
 	}
 }
+
+// 不正な形のユーザ名のユーザは存在しないので、ユーザが見つからない場合と同じ応答になり、usecase は呼ばれない。
+func TestThemeHandler_GetStreamerTheme_InvalidUsername(t *testing.T) {
+	u := &fakeThemeUsecase{}
+	rec := serve(t, newThemeHandler(u).GetStreamerTheme, testRequest{method: http.MethodGet, route: "/api/user/:username/theme", path: "/api/user/a.b/theme", cookie: sessionAs(1)})
+	assertResponse(t, rec, http.StatusNotFound, errorBody(http.StatusNotFound, "not found user that has the given username"))
+	if u.gotUsername != "" {
+		t.Errorf("usecase was called with %q, want it not to be called", u.gotUsername)
+	}
+}

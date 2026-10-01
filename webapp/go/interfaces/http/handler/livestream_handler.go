@@ -106,7 +106,11 @@ func (h *livestreamHandler) GetMyLivestreams(c echo.Context) error {
 // GET /api/user/:username/livestream
 func (h *livestreamHandler) GetUserLivestreams(c echo.Context) error {
 	ctx := c.Request().Context()
-	username := domain.Username(c.Param("username"))
+	username, err := domain.ParseUsername(c.Param("username"))
+	if err != nil {
+		// 不正な形のユーザ名のユーザは存在しないので、存在しない場合と同じ応答にする
+		return echo.NewHTTPError(http.StatusNotFound, "user not found")
+	}
 
 	livestreams, err := h.livestreamUsecase.FindAllByUsername(ctx, username)
 	if errors.Is(err, usecase.ErrUserNotFound) {

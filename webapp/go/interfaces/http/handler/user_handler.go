@@ -38,9 +38,10 @@ func newUser(u *domain.UserDetail) userResponse {
 }
 
 type postUserRequest struct {
-	Name        domain.Username `json:"name"`
-	DisplayName string          `json:"display_name"`
-	Description string          `json:"description"`
+	// Name はユーザ名。外部からの入力なので、string で受けて domain.ParseUsername で検証する。
+	Name        string `json:"name"`
+	DisplayName string `json:"display_name"`
+	Description string `json:"description"`
 	// Password is non-hashed password.
 	Password domain.PlainPassword `json:"password"`
 	Theme    postUserRequestTheme `json:"theme"`
@@ -51,7 +52,8 @@ type postUserRequestTheme struct {
 }
 
 type loginRequest struct {
-	Username domain.Username `json:"username"`
+	// Username は外部からの入力なので、string で受けて domain.ParseUsername で検証する。
+	Username string `json:"username"`
 	// Password is non-hashed password.
 	Password domain.PlainPassword `json:"password"`
 }
@@ -70,7 +72,11 @@ func newUserHandler(userUsecase usecase.UserUsecase, registrationUsecase usecase
 // GET /api/user/:username
 func (h *userHandler) GetUser(c echo.Context) error {
 	ctx := c.Request().Context()
-	username := domain.Username(c.Param("username"))
+	username, err := domain.ParseUsername(c.Param("username"))
+	if err != nil {
+		// 不正な形のユーザ名のユーザは存在しないので、存在しない場合と同じ応答にする
+		return echo.NewHTTPError(http.StatusNotFound, "not found user that has the given username")
+	}
 
 	user, err := h.userUsecase.FindByName(ctx, username)
 	if errors.Is(err, usecase.ErrUserNotFound) {
@@ -114,8 +120,14 @@ func (h *userHandler) Register(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
 	}
 
+	// サブドメインとして使えない形のユーザ名は、DNS の登録に進む前に 400 にする
+	username, err := domain.ParseUsername(req.Name)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
 	user, err := h.registrationUsecase.Register(ctx, usecase.RegisterUserInput{
-		Name:        req.Name,
+		Name:        username,
 		DisplayName: req.DisplayName,
 		Description: req.Description,
 		Password:    req.Password,
@@ -142,7 +154,13 @@ func (h *userHandler) Login(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
 	}
 
-	user, err := h.userUsecase.Login(ctx, req.Username, req.Password)
+	username, err := domain.ParseUsername(req.Username)
+	if err != nil {
+		// 不正な形のユーザ名のユーザは存在しないので、ユーザが見つからない場合と同じ応答にする
+		return echo.NewHTTPError(http.StatusUnauthorized, "invalid username or password")
+	}
+
+	user, err := h.userUsecase.Login(ctx, username, req.Password)
 	if errors.Is(err, usecase.ErrInvalidCredentials) {
 		return echo.NewHTTPError(http.StatusUnauthorized, "invalid username or password")
 	}

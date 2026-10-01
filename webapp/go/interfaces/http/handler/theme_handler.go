@@ -27,7 +27,11 @@ func newThemeHandler(themeUsecase usecase.ThemeUsecase) *themeHandler {
 func (h *themeHandler) GetStreamerTheme(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	username := domain.Username(c.Param("username"))
+	username, err := domain.ParseUsername(c.Param("username"))
+	if err != nil {
+		// 不正な形のユーザ名のユーザは存在しないので、存在しない場合と同じ応答にする
+		return echo.NewHTTPError(http.StatusNotFound, "not found user that has the given username")
+	}
 
 	theme, err := h.themeUsecase.FindByUsername(ctx, username)
 	if errors.Is(err, usecase.ErrUserNotFound) {

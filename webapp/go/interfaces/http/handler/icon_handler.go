@@ -32,7 +32,11 @@ func newIconHandler(iconUsecase usecase.IconUsecase, fallbackImagePath string) *
 func (h *iconHandler) GetIcon(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	username := domain.Username(c.Param("username"))
+	username, err := domain.ParseUsername(c.Param("username"))
+	if err != nil {
+		// 不正な形のユーザ名のユーザは存在しないので、存在しない場合と同じ応答にする
+		return echo.NewHTTPError(http.StatusNotFound, "not found user that has the given username")
+	}
 
 	image, err := h.iconUsecase.FindImageByUsername(ctx, username)
 	if errors.Is(err, usecase.ErrUserNotFound) {

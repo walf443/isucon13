@@ -139,3 +139,13 @@ func TestIconHandler_PostIcon(t *testing.T) {
 		})
 	}
 }
+
+// 不正な形のユーザ名のユーザは存在しないので、ユーザが見つからない場合と同じ応答になり、usecase は呼ばれない。
+func TestIconHandler_GetIcon_InvalidUsername(t *testing.T) {
+	u := &fakeIconUsecase{}
+	rec := serve(t, newIconHandler(u, "").GetIcon, testRequest{method: http.MethodGet, route: "/api/user/:username/icon", path: "/api/user/a.b/icon"})
+	assertResponse(t, rec, http.StatusNotFound, errorBody(http.StatusNotFound, "not found user that has the given username"))
+	if u.gotUsername != "" {
+		t.Errorf("usecase was called with %q, want it not to be called", u.gotUsername)
+	}
+}
