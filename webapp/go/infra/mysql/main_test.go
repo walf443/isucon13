@@ -82,7 +82,7 @@ func beginTestTx(t *testing.T) repository.Querier {
 	return newQuerier(tx)
 }
 
-// recordSQL はテスト終了までに GORM が発行した SELECT / INSERT / UPDATE / DELETE の SQL (プレースホルダーのまま) を記録する。
+// recordSQL はテスト終了までに GORM が発行した SELECT / INSERT / UPDATE / DELETE (Raw / Exec も含む) の SQL (プレースホルダーのまま) を記録する。
 // repository が移行前と同じカラムを読んでいる (SELECT * にしていない) ことなどを確かめるのに使う。
 // 記録するのは q のトランザクションを作った *gorm.DB のコールバックなので、記録中は他のテストと並行して実行しないこと。
 func recordSQL(t *testing.T, q repository.Querier) *[]string {
@@ -103,11 +103,20 @@ func recordSQL(t *testing.T, q repository.Querier) *[]string {
 	if err := db.Callback().Update().After("gorm:update").Register(name, record); err != nil {
 		t.Fatalf("failed to register update callback: %v", err)
 	}
+	// Raw(...).Scan(...) は Row、Exec(...) は Raw のコールバックで実行される
+	if err := db.Callback().Row().After("gorm:row").Register(name, record); err != nil {
+		t.Fatalf("failed to register row callback: %v", err)
+	}
+	if err := db.Callback().Raw().After("gorm:raw").Register(name, record); err != nil {
+		t.Fatalf("failed to register raw callback: %v", err)
+	}
 	t.Cleanup(func() {
 		_ = db.Callback().Query().Remove(name)
 		_ = db.Callback().Create().Remove(name)
 		_ = db.Callback().Delete().Remove(name)
 		_ = db.Callback().Update().Remove(name)
+		_ = db.Callback().Row().Remove(name)
+		_ = db.Callback().Raw().Remove(name)
 	})
 	return &recorded
 }

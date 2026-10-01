@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
@@ -232,6 +233,7 @@ func TestMigratedRepositories_IssueExplicitColumnSQL(t *testing.T) {
 	viewers := NewLivestreamViewersHistoryRepository()
 	reports := NewLivecommentReportRepository()
 	reactions := NewReactionRepository()
+	ngWords := NewNGWordRepository()
 	period := domain.ReservationPeriod{StartAt: 1, EndAt: 2}
 	// 記録するのは、ここから後に発行された SQL
 	*sqls = nil
@@ -351,6 +353,18 @@ func TestMigratedRepositories_IssueExplicitColumnSQL(t *testing.T) {
 			"SELECT count(*) FROM livestreams l INNER JOIN reactions r ON l.id = r.livestream_id WHERE l.id = ?"},
 		{"reaction CountTotalByLivestreamID", func() error { _, err := reactions.CountTotalByLivestreamID(ctx, tx, 1); return err },
 			"SELECT count(*) FROM livestreams l INNER JOIN reactions r ON r.livestream_id = l.id WHERE l.id = ?"},
+		{"ng word FindAllByLivestreamID", func() error { _, err := ngWords.FindAllByLivestreamID(ctx, tx, 1); return err },
+			"SELECT id, user_id, livestream_id, word, created_at FROM `ng_words` WHERE livestream_id = ?"},
+		{"ng word FindAllByUserIDAndLivestreamID", func() error {
+			_, err := ngWords.FindAllByUserIDAndLivestreamID(ctx, tx, userID, 1)
+			return err
+		}, "SELECT id, user_id, livestream_id, word, created_at FROM `ng_words` WHERE user_id = ? AND livestream_id = ? ORDER BY created_at DESC"},
+		{"ng word Matches (raw)", func() error { _, err := ngWords.Matches(ctx, tx, "spam", "sp"); return err },
+			"SELECT COUNT(*) FROM (SELECT ? AS text) AS texts INNER JOIN (SELECT CONCAT('%', ?, '%') AS pattern) AS patterns ON texts.text LIKE patterns.pattern;"},
+		{"ng word Create", func() error {
+			_, err := ngWords.Create(ctx, tx, &domain.NGWord{UserID: userID, LivestreamID: 1, Word: "w", CreatedAt: 100})
+			return err
+		}, "INSERT INTO `ng_words` (`user_id`,`livestream_id`,`word`,`created_at`) VALUES (?,?,?,?)"},
 		{"user Create", func() error {
 			_, err := users.Create(ctx, tx, &domain.User{Name: "carol-sql", DisplayName: "Carol", Description: "d", HashedPassword: "hashed"})
 			return err
@@ -363,7 +377,8 @@ func TestMigratedRepositories_IssueExplicitColumnSQL(t *testing.T) {
 		if err != nil && !errors.Is(err, repository.ErrNotFound) && !errors.Is(err, sql.ErrNoRows) {
 			t.Fatalf("%s returned error: %v", c.name, err)
 		}
-		if len(*sqls) != 1 || (*sqls)[0] != c.want {
+		// Raw のリテラルは改行やタブを含むので、空白の違いは無視して比べる
+		if len(*sqls) != 1 || strings.Join(strings.Fields((*sqls)[0]), " ") != c.want {
 			t.Errorf("%s: SQL = %q, want [%q]", c.name, *sqls, c.want)
 		}
 	}

@@ -125,3 +125,21 @@ func TestNGWordRepository_CreateAndFindAllByLivestreamID(t *testing.T) {
 		}
 	}
 }
+
+// NG ワードの登録時刻は、GORM が自動で設定せずに、渡した値をそのまま保存すること (0 でも現在時刻にならない)。
+func TestNGWordRepository_Create_KeepsGivenCreatedAt(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+	repo := NewNGWordRepository()
+
+	if _, err := repo.Create(ctx, tx, &domain.NGWord{UserID: 1, LivestreamID: 10, Word: "w", CreatedAt: 0}); err != nil {
+		t.Fatalf("Create returned error: %v", err)
+	}
+	got, err := repo.FindAllByLivestreamID(ctx, tx, 10)
+	if err != nil || len(got) != 1 {
+		t.Fatalf("FindAllByLivestreamID = %v, %v", got, err)
+	}
+	if got[0].CreatedAt != 0 {
+		t.Errorf("CreatedAt = %d, want 0", got[0].CreatedAt)
+	}
+}
