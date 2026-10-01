@@ -42,7 +42,7 @@ type postUserRequest struct {
 	DisplayName string `json:"display_name"`
 	Description string `json:"description"`
 	// Password is non-hashed password.
-	Password string               `json:"password"`
+	Password domain.PlainPassword `json:"password"`
 	Theme    postUserRequestTheme `json:"theme"`
 }
 
@@ -53,7 +53,7 @@ type postUserRequestTheme struct {
 type loginRequest struct {
 	Username string `json:"username"`
 	// Password is non-hashed password.
-	Password string `json:"password"`
+	Password domain.PlainPassword `json:"password"`
 }
 
 type userHandler struct {

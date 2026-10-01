@@ -20,7 +20,7 @@ type fakeUserUsecase struct {
 	gotID      domain.UserID
 	gotName    string
 
-	gotPassword string
+	gotPassword domain.PlainPassword
 }
 
 type fakeUserRegistrationUsecase struct {
@@ -35,7 +35,7 @@ func (u *fakeUserRegistrationUsecase) Register(ctx context.Context, input usecas
 	return u.user, u.err
 }
 
-func (u *fakeUserUsecase) Login(ctx context.Context, username string, password string) (*domain.User, error) {
+func (u *fakeUserUsecase) Login(ctx context.Context, username string, password domain.PlainPassword) (*domain.User, error) {
 	u.gotName = username
 	u.gotPassword = password
 	return u.user, u.err
@@ -270,7 +270,8 @@ func TestUserHandler_Login(t *testing.T) {
 			}
 
 			if tt.usecase.gotName != "alice" || tt.usecase.gotPassword != "s3cret" {
-				t.Errorf("username = %q, password = %q", tt.usecase.gotName, tt.usecase.gotPassword)
+				// PlainPassword は表示すると伏せ字になるので、テストの値は string に変換して出す
+				t.Errorf("username = %q, password = %q", tt.usecase.gotName, string(tt.usecase.gotPassword))
 			}
 			if len(cookies) != 1 {
 				t.Fatalf("len(cookies) = %d, want 1", len(cookies))

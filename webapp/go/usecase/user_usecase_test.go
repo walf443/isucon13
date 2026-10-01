@@ -125,7 +125,7 @@ func TestUserUsecase_Login(t *testing.T) {
 		// user, userErr はユーザ名でユーザを引いた結果
 		user     *domain.User
 		userErr  error
-		password string
+		password domain.PlainPassword
 		want     *domain.User
 		wantErr  error
 		wantMsg  string

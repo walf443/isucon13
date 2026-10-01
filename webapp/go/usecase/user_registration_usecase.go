@@ -21,7 +21,7 @@ type RegisterUserInput struct {
 	DisplayName string
 	Description string
 	// Password はハッシュ化する前のパスワード。
-	Password string
+	Password domain.PlainPassword
 	DarkMode bool
 }
 

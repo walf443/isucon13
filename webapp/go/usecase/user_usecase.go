@@ -16,7 +16,7 @@ type UserUsecase interface {
 	FindByName(ctx context.Context, name string) (*domain.UserDetail, error)
 	// Login はユーザ名とパスワードを検証し、ユーザを返す。
 	// ユーザが存在しないかパスワードが違う場合 ErrInvalidCredentials を返す。
-	Login(ctx context.Context, username string, password string) (*domain.User, error)
+	Login(ctx context.Context, username string, password domain.PlainPassword) (*domain.User, error)
 }
 
 type userUsecase struct {
@@ -66,7 +66,7 @@ func (u *userUsecase) findUser(ctx context.Context, find func(q repository.Queri
 	return userDetail, nil
 }
 
-func (u *userUsecase) Login(ctx context.Context, username string, password string) (*domain.User, error) {
+func (u *userUsecase) Login(ctx context.Context, username string, password domain.PlainPassword) (*domain.User, error) {
 	var user *domain.User
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		var err error
