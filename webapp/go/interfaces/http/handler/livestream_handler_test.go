@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/isucon/isucon13/webapp/go/domain"
@@ -360,6 +361,8 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 		usecase  *fakeLivestreamReservationUsecase
 		wantCode int
 		wantBody string
+		// notCalled は、リクエストの検証で弾かれて usecase が呼ばれないこと。
+		notCalled bool
 	}{
 		{
 			name:   "reserves livestream",
@@ -386,6 +389,16 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 			usecase:  &fakeLivestreamReservationUsecase{},
 			wantCode: http.StatusBadRequest,
 			wantBody: errorBody(http.StatusBadRequest, "failed to decode the request body as json"),
+		},
+		{
+			// 件数の上限を超えるタグは、usecase に渡さずに 400 にする
+			name:      "returns 400 when there are too many tags",
+			cookie:    sessionAs(2),
+			body:      `{"tags":[` + strings.TrimSuffix(strings.Repeat("1,", maxTagCount), ",") + `],"title":"stream"}`,
+			usecase:   &fakeLivestreamReservationUsecase{},
+			wantCode:  http.StatusBadRequest,
+			wantBody:  errorBody(http.StatusBadRequest, "too many tags in the request body"),
+			notCalled: true,
 		},
 		{
 			name:     "returns 400 on bad time range",
@@ -418,6 +431,9 @@ func TestLivestreamHandler_ReserveLivestream(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			rec := serve(t, newLivestreamHandler(nil, tt.usecase).ReserveLivestream, testRequest{method: http.MethodPost, route: "/api/livestream/reservation", path: "/api/livestream/reservation", body: tt.body, cookie: tt.cookie})
 			assertResponse(t, rec, tt.wantCode, tt.wantBody)
+			if tt.notCalled && !reflect.DeepEqual(tt.usecase.gotInput, usecase.ReserveLivestreamInput{}) {
+				t.Errorf("usecase was called with %+v, want it not to be called", tt.usecase.gotInput)
+			}
 			if tt.wantCode == http.StatusCreated {
 				wantInput := usecase.ReserveLivestreamInput{
 					TagIDs:       []domain.TagID{1, 3},
@@ -455,6 +471,18 @@ func TestParseTagIDs(t *testing.T) {
 	for _, in := range [][]int64{nil, {}} {
 		if got, err := parseTagIDs(in); err != nil || got == nil || len(got) != 0 {
 			t.Errorf("parseTagIDs(%#v) = %#v, %v, want an empty non-nil slice", in, got, err)
+		}
+	}
+}
+
+// タグは maxTagCount 件未満なら受け付け、それ以上は errTooManyTags になる。
+func TestParseTagIDs_TooMany(t *testing.T) {
+	if got, err := parseTagIDs(make([]int64, maxTagCount-1)); err != nil || len(got) != maxTagCount-1 {
+		t.Errorf("parseTagIDs(%d tags) = %d tags, %v, want it to be accepted", maxTagCount-1, len(got), err)
+	}
+	for _, n := range []int{maxTagCount, maxTagCount + 1} {
+		if got, err := parseTagIDs(make([]int64, n)); !errors.Is(err, errTooManyTags) || got != nil {
+			t.Errorf("parseTagIDs(%d tags) = %v, %v, want errTooManyTags", n, got, err)
 		}
 	}
 }
