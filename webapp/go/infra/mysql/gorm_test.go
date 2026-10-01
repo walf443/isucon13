@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"reflect"
@@ -227,6 +228,8 @@ func TestMigratedRepositories_IssueExplicitColumnSQL(t *testing.T) {
 	users := NewUserRepository()
 	livestreams := NewLivestreamRepository()
 	livestreamTags := NewLivestreamTagRepository()
+	slots := NewReservationSlotRepository()
+	period := domain.ReservationPeriod{StartAt: 1, EndAt: 2}
 	// 記録するのは、ここから後に発行された SQL
 	*sqls = nil
 
@@ -294,6 +297,12 @@ func TestMigratedRepositories_IssueExplicitColumnSQL(t *testing.T) {
 			_, err := livestreamTags.FindAllByLivestreamIDs(ctx, tx, []domain.LivestreamID{1, 2})
 			return err
 		}, "SELECT id, livestream_id, tag_id FROM `livestream_tags` WHERE livestream_id IN (?,?) ORDER BY id"},
+		{"reservation slot FindAllByRangeForUpdate", func() error { _, err := slots.FindAllByRangeForUpdate(ctx, tx, period); return err },
+			"SELECT id, slot, start_at, end_at FROM `reservation_slots` WHERE start_at >= ? AND end_at <= ? FOR UPDATE"},
+		{"reservation slot FindSlotByStartAtAndEndAt", func() error { _, err := slots.FindSlotByStartAtAndEndAt(ctx, tx, 1, 2); return err },
+			"SELECT `slot` FROM `reservation_slots` WHERE start_at = ? AND end_at = ? LIMIT ?"},
+		{"reservation slot DecrementSlotsByRange", func() error { return slots.DecrementSlotsByRange(ctx, tx, period) },
+			"UPDATE `reservation_slots` SET `slot`=slot - 1 WHERE start_at >= ? AND end_at <= ?"},
 		{"user Create", func() error {
 			_, err := users.Create(ctx, tx, &domain.User{Name: "carol-sql", DisplayName: "Carol", Description: "d", HashedPassword: "hashed"})
 			return err
@@ -302,8 +311,8 @@ func TestMigratedRepositories_IssueExplicitColumnSQL(t *testing.T) {
 	for _, c := range calls {
 		*sqls = nil
 		err := c.call()
-		// theme / icon / user / livestream の FindXxx は、無いものを引くので ErrNotFound になるが、SQL は発行されている
-		if err != nil && !errors.Is(err, repository.ErrNotFound) {
+		// theme / icon / user / livestream の FindXxx は、無いものを引くので ErrNotFound (予約枠は sql.ErrNoRows) になるが、SQL は発行されている
+		if err != nil && !errors.Is(err, repository.ErrNotFound) && !errors.Is(err, sql.ErrNoRows) {
 			t.Fatalf("%s returned error: %v", c.name, err)
 		}
 		if len(*sqls) != 1 || (*sqls)[0] != c.want {
