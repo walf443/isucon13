@@ -146,9 +146,9 @@ func TestLivestreamRepository_CreateAndLivestreamTagRepository_Create(t *testing
 	if *got != want {
 		t.Errorf("livestream = %+v, want %+v", *got, want)
 	}
-	livestreamTags, err := livestreamTagRepo.FindAllByLivestreamID(ctx, tx, id)
+	livestreamTags, err := livestreamTagRepo.FindAllByLivestreamIDs(ctx, tx, []domain.LivestreamID{id})
 	if err != nil {
-		t.Fatalf("FindAllByLivestreamID returned error: %v", err)
+		t.Fatalf("FindAllByLivestreamIDs returned error: %v", err)
 	}
 	gotTagIDs := make([]domain.TagID, len(livestreamTags))
 	for i, lt := range livestreamTags {

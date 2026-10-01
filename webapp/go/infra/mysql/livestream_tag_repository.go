@@ -15,14 +15,6 @@ func NewLivestreamTagRepository() repository.LivestreamTagRepository {
 	return &livestreamTagRepository{}
 }
 
-func (r *livestreamTagRepository) FindAllByLivestreamID(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) ([]*domain.LivestreamTag, error) {
-	var livestreamTags []*domain.LivestreamTag
-	if err := q.SelectContext(ctx, &livestreamTags, "SELECT id, livestream_id, tag_id FROM livestream_tags WHERE livestream_id = ?", livestreamID); err != nil {
-		return nil, err
-	}
-	return livestreamTags, nil
-}
-
 func (r *livestreamTagRepository) Create(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID, tagID domain.TagID) error {
 	_, err := q.ExecContext(ctx, "INSERT INTO livestream_tags (livestream_id, tag_id) VALUES (?, ?)", livestreamID, tagID)
 	return err

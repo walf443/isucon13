@@ -53,14 +53,16 @@ repository だけは数が多く、usecase の型と名前を分けたいので 
 ### 詳細の組み立ては usecase の Filler が行う
 
 複数のテーブルを組み合わせた読み取り用のモデル (`domain.UserDetail` / `LivestreamDetail` / `LivecommentDetail` / `ReactionDetail` / `LivecommentReportDetail`) は、
-usecase の `XxxFiller` (`UserFiller` / `LivestreamFiller` など) が repository の単発のメソッドを組み合わせて組み立てる。
+usecase の `XxxFiller` (`UserFiller` / `LivestreamFiller` など) が repository のメソッドを組み合わせて組み立てる。
 
 - `Fill(ctx, q, models)` は、行の型の一覧を受け取り、ID ごとの map で返す。並び順は呼び出し側で決める (`orderedBy` で元の順序に並べ直す)
-  - 1 件だけの場合も長さ 1 のスライスで渡す。まとめて取得する作りにしておけば、将来 `IN (...)` で取得するように変えても呼び出し側は変わらない
-- 同じ ID が複数含まれていても 1 回だけ取得する
+  - 1 件だけの場合も長さ 1 のスライスで渡す
+- 付随するデータは、テーブルごとに 1 回のクエリ (`FindAllByIDs` などの `IN (...)`) でまとめて取得する。件数が増えてもクエリの回数は変わらない
+  - 渡す ID の一覧は `uniqueKeys` で重複を除き、結果は `indexBy` で ID ごとの map にしてから組み立てる
+  - 一括取得のメソッドは見つからない ID を結果に含めないだけなので、欠けているかどうかは Filler が判定する
 - 主となる行 (ユーザ・ライブ配信など) は呼び出し側が引き、見つからない場合の 404 への変換やエラーメッセージも呼び出し側で決める
   - 付随するデータ (テーマ・配信者・タグなど) が無いのはデータ不整合なので 500 にする
-  - Filler は付随するデータの `repository.ErrNotFound` を `asMissingDetail` で `errMissingDetail` に置き換えてから返す (メッセージは変えない)。
+  - Filler は付随するデータが欠けている場合、`repository.ErrNotFound` としては判定されない `errMissingDetail` を返す (メッセージは `not found` のまま)。
     呼び出し側が誤って Filler のエラーに `errors.Is(err, repository.ErrNotFound)` を使っても、404 にならない
 - Filler は他の Filler を使う (`LivestreamFiller` は配信者に `UserFiller` を使う、など)。`usecases.go` でそれぞれ 1 つ作って共有する
 
@@ -107,7 +109,9 @@ usecase の `XxxFiller` (`UserFiller` / `LivestreamFiller` など) が repositor
 明らかな不具合の修正や、層を分けたことで生じる差は、合意の上でコミットメッセージに残す。これまでに合意した差は次のとおり。
 
 - 認証を middleware にしたことで `POST /api/livestream/:livestream_id/reaction` の検証順が変わった (セッション無しで不正な ID の場合 400 → 403)
-- 詳細の組み立てを Filler に移したことで、重複した ID の取得が 1 回になり、SQL の順序・回数が変わる場合がある (結果は同じ)
+- 詳細の組み立てを Filler に移し、付随するデータを `IN (...)` でまとめて取得するようにした (N+1 の解消)。発行する SQL の文面・順序・回数は変わるが、結果は同じ
+  - タグは紐付けの ID の昇順に並べる (`ORDER BY id` を明示した)
+  - DB のエラーの 500 の本文は `failed to get themes: …` のように、まとめて取得したことを表すものになった
 - データ不整合 (テーマなどの欠損) の場合の 500 の本文が `sql: no rows in result set` から `not found` になった
 
 ## テスト

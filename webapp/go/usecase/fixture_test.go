@@ -44,17 +44,9 @@ func (f *detailFixture) record(call string) {
 	f.calls = append(f.calls, call)
 }
 
-// userRepo は f のユーザを ID で引ける fakeUserRepository を返す。
+// userRepo は f のユーザを ID の一覧でまとめて引ける fakeUserRepository を返す。
 func (f *detailFixture) userRepo() *fakeUserRepository {
 	return &fakeUserRepository{
-		findByID: func(_ context.Context, _ repository.Querier, id domain.UserID) (*domain.User, error) {
-			f.record(fmt.Sprintf("user %d", id))
-			user, ok := f.users[id]
-			if !ok {
-				return nil, repository.ErrNotFound
-			}
-			return user, nil
-		},
 		findAllByIDs: func(_ context.Context, _ repository.Querier, ids []domain.UserID) ([]*domain.User, error) {
 			f.record(fmt.Sprintf("users %v", ids))
 			var found []*domain.User
