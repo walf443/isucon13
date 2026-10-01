@@ -12,7 +12,7 @@ import (
 type IconUsecase interface {
 	// FindImageByUsername はユーザが存在しない場合 ErrUserNotFound、
 	// アイコンが未登録の場合 ErrIconNotFound を返す。
-	FindImageByUsername(ctx context.Context, username string) ([]byte, error)
+	FindImageByUsername(ctx context.Context, username domain.Username) ([]byte, error)
 	// Update はユーザのアイコンを置き換え、新しいアイコンの ID を返す。
 	Update(ctx context.Context, userID domain.UserID, image []byte) (domain.IconID, error)
 }
@@ -27,7 +27,7 @@ func NewIconUsecase(txManager repository.TxManager, userRepo repository.UserRepo
 	return &iconUsecase{txManager: txManager, userRepo: userRepo, iconRepo: iconRepo}
 }
 
-func (u *iconUsecase) FindImageByUsername(ctx context.Context, username string) ([]byte, error) {
+func (u *iconUsecase) FindImageByUsername(ctx context.Context, username domain.Username) ([]byte, error) {
 	var image []byte
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		userID, err := u.userRepo.FindIDByName(ctx, q, username)

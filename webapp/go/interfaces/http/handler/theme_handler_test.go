@@ -13,10 +13,10 @@ import (
 type fakeThemeUsecase struct {
 	theme       *domain.Theme
 	err         error
-	gotUsername string
+	gotUsername domain.Username
 }
 
-func (u *fakeThemeUsecase) FindByUsername(ctx context.Context, username string) (*domain.Theme, error) {
+func (u *fakeThemeUsecase) FindByUsername(ctx context.Context, username domain.Username) (*domain.Theme, error) {
 	u.gotUsername = username
 	return u.theme, u.err
 }

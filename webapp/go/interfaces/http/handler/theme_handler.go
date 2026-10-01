@@ -27,7 +27,7 @@ func newThemeHandler(themeUsecase usecase.ThemeUsecase) *themeHandler {
 func (h *themeHandler) GetStreamerTheme(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	username := c.Param("username")
+	username := domain.Username(c.Param("username"))
 
 	theme, err := h.themeUsecase.FindByUsername(ctx, username)
 	if errors.Is(err, usecase.ErrUserNotFound) {

@@ -13,10 +13,10 @@ type UserUsecase interface {
 	// FindByID はユーザが存在しない場合 ErrUserNotFound を返す。
 	FindByID(ctx context.Context, id domain.UserID) (*domain.UserDetail, error)
 	// FindByName はユーザが存在しない場合 ErrUserNotFound を返す。
-	FindByName(ctx context.Context, name string) (*domain.UserDetail, error)
+	FindByName(ctx context.Context, name domain.Username) (*domain.UserDetail, error)
 	// Login はユーザ名とパスワードを検証し、ユーザを返す。
 	// ユーザが存在しないかパスワードが違う場合 ErrInvalidCredentials を返す。
-	Login(ctx context.Context, username string, password domain.PlainPassword) (*domain.User, error)
+	Login(ctx context.Context, username domain.Username, password domain.PlainPassword) (*domain.User, error)
 }
 
 type userUsecase struct {
@@ -35,7 +35,7 @@ func (u *userUsecase) FindByID(ctx context.Context, id domain.UserID) (*domain.U
 	})
 }
 
-func (u *userUsecase) FindByName(ctx context.Context, name string) (*domain.UserDetail, error) {
+func (u *userUsecase) FindByName(ctx context.Context, name domain.Username) (*domain.UserDetail, error) {
 	return u.findUser(ctx, func(q repository.Querier) (*domain.User, error) {
 		return u.userRepo.FindByName(ctx, q, name)
 	})
@@ -66,7 +66,7 @@ func (u *userUsecase) findUser(ctx context.Context, find func(q repository.Queri
 	return userDetail, nil
 }
 
-func (u *userUsecase) Login(ctx context.Context, username string, password domain.PlainPassword) (*domain.User, error) {
+func (u *userUsecase) Login(ctx context.Context, username domain.Username, password domain.PlainPassword) (*domain.User, error) {
 	var user *domain.User
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		var err error

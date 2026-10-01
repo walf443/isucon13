@@ -32,7 +32,7 @@ func newIconHandler(iconUsecase usecase.IconUsecase, fallbackImagePath string) *
 func (h *iconHandler) GetIcon(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	username := c.Param("username")
+	username := domain.Username(c.Param("username"))
 
 	image, err := h.iconUsecase.FindImageByUsername(ctx, username)
 	if errors.Is(err, usecase.ErrUserNotFound) {

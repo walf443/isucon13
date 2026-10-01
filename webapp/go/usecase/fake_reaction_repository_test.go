@@ -19,8 +19,8 @@ type fakeReactionRepository struct {
 	countByLivestreamID                              func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error)
 	countTotalByLivestreamID                         func(ctx context.Context, q repository.Querier, livestreamID domain.LivestreamID) (int64, error)
 	countByLivestreamOwnerID                         func(ctx context.Context, q repository.Querier, userID domain.UserID) (int64, error)
-	countByLivestreamOwnerName                       func(ctx context.Context, q repository.Querier, name string) (int64, error)
-	findFavoriteEmojiByLivestreamOwnerName           func(ctx context.Context, q repository.Querier, name string) (string, error)
+	countByLivestreamOwnerName                       func(ctx context.Context, q repository.Querier, name domain.Username) (int64, error)
+	findFavoriteEmojiByLivestreamOwnerName           func(ctx context.Context, q repository.Querier, name domain.Username) (string, error)
 }
 
 func (r *fakeReactionRepository) FindByID(ctx context.Context, q repository.Querier, id domain.ReactionID) (*domain.Reaction, error) {
@@ -51,10 +51,10 @@ func (r *fakeReactionRepository) CountByLivestreamOwnerID(ctx context.Context, q
 	return r.countByLivestreamOwnerID(ctx, q, userID)
 }
 
-func (r *fakeReactionRepository) CountByLivestreamOwnerName(ctx context.Context, q repository.Querier, name string) (int64, error) {
+func (r *fakeReactionRepository) CountByLivestreamOwnerName(ctx context.Context, q repository.Querier, name domain.Username) (int64, error) {
 	return r.countByLivestreamOwnerName(ctx, q, name)
 }
 
-func (r *fakeReactionRepository) FindFavoriteEmojiByLivestreamOwnerName(ctx context.Context, q repository.Querier, name string) (string, error) {
+func (r *fakeReactionRepository) FindFavoriteEmojiByLivestreamOwnerName(ctx context.Context, q repository.Querier, name domain.Username) (string, error) {
 	return r.findFavoriteEmojiByLivestreamOwnerName(ctx, q, name)
 }

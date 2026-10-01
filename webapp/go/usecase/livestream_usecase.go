@@ -16,7 +16,7 @@ type LivestreamUsecase interface {
 	FindAllByUserID(ctx context.Context, userID domain.UserID) ([]*domain.LivestreamDetail, error)
 	// FindAllByUsername は指定したユーザが配信者のライブ配信を返す。
 	// ユーザが存在しない場合 ErrUserNotFound を返す。
-	FindAllByUsername(ctx context.Context, username string) ([]*domain.LivestreamDetail, error)
+	FindAllByUsername(ctx context.Context, username domain.Username) ([]*domain.LivestreamDetail, error)
 	// FindAllByTagName は指定した名前のタグが付いたライブ配信を ID の降順で返す。
 	// タグが存在しない場合は空のスライスを返す。
 	FindAllByTagName(ctx context.Context, tagName string) ([]*domain.LivestreamDetail, error)
@@ -91,7 +91,7 @@ func (u *livestreamUsecase) FindAllByUserID(ctx context.Context, userID domain.U
 	return livestreamDetails, nil
 }
 
-func (u *livestreamUsecase) FindAllByUsername(ctx context.Context, username string) ([]*domain.LivestreamDetail, error) {
+func (u *livestreamUsecase) FindAllByUsername(ctx context.Context, username domain.Username) ([]*domain.LivestreamDetail, error) {
 	var livestreamDetails []*domain.LivestreamDetail
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		userID, err := u.userRepo.FindIDByName(ctx, q, username)

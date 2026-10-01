@@ -19,7 +19,7 @@ var (
 
 func TestUserUsecase_FindByName(t *testing.T) {
 	userRepo := &fakeUserRepository{
-		findByName: func(_ context.Context, _ repository.Querier, name string) (*domain.User, error) {
+		findByName: func(_ context.Context, _ repository.Querier, name domain.Username) (*domain.User, error) {
 			if name != "alice" {
 				t.Errorf("name = %q, want %q", name, "alice")
 			}
@@ -86,7 +86,7 @@ func TestUserUsecase_Errors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			userRepo := &fakeUserRepository{
-				findByName: func(context.Context, repository.Querier, string) (*domain.User, error) {
+				findByName: func(context.Context, repository.Querier, domain.Username) (*domain.User, error) {
 					return tt.user, tt.userErr
 				},
 				findByID: func(context.Context, repository.Querier, domain.UserID) (*domain.User, error) {
@@ -148,7 +148,7 @@ func TestUserUsecase_Login(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			txManager := &fakeTxManager{}
 			userRepo := &fakeUserRepository{
-				findByName: func(_ context.Context, _ repository.Querier, name string) (*domain.User, error) {
+				findByName: func(_ context.Context, _ repository.Querier, name domain.Username) (*domain.User, error) {
 					if name != "alice" {
 						t.Errorf("name = %q, want %q", name, "alice")
 					}

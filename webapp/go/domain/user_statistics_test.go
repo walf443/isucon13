@@ -15,7 +15,7 @@ func TestUserRanking_RankOf(t *testing.T) {
 	sort.Sort(ranking)
 
 	tests := []struct {
-		username string
+		username Username
 		want     int64
 	}{
 		{username: "carol", want: 1},

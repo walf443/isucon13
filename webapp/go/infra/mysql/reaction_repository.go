@@ -69,7 +69,7 @@ func (r *reactionRepository) CountByLivestreamOwnerID(ctx context.Context, q rep
 	return reactions, nil
 }
 
-func (r *reactionRepository) CountByLivestreamOwnerName(ctx context.Context, q repository.Querier, name string) (int64, error) {
+func (r *reactionRepository) CountByLivestreamOwnerName(ctx context.Context, q repository.Querier, name domain.Username) (int64, error) {
 	var reactions int64
 	// クエリ文字列は移行前のまま (空白も含めて) にしている
 	query := `SELECT COUNT(*) FROM users u 
@@ -83,7 +83,7 @@ func (r *reactionRepository) CountByLivestreamOwnerName(ctx context.Context, q r
 	return reactions, nil
 }
 
-func (r *reactionRepository) FindFavoriteEmojiByLivestreamOwnerName(ctx context.Context, q repository.Querier, name string) (string, error) {
+func (r *reactionRepository) FindFavoriteEmojiByLivestreamOwnerName(ctx context.Context, q repository.Querier, name domain.Username) (string, error) {
 	var favoriteEmoji string
 	// クエリ文字列は移行前のまま (空白も含めて) にしている
 	query := `

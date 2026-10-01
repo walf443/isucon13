@@ -15,7 +15,7 @@ func NewUserRepository() repository.UserRepository {
 	return &userRepository{}
 }
 
-func (r *userRepository) FindIDByName(ctx context.Context, q repository.Querier, name string) (domain.UserID, error) {
+func (r *userRepository) FindIDByName(ctx context.Context, q repository.Querier, name domain.Username) (domain.UserID, error) {
 	var id domain.UserID
 	err := q.GetContext(ctx, &id, "SELECT id FROM users WHERE name = ?", name)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -27,7 +27,7 @@ func (r *userRepository) FindIDByName(ctx context.Context, q repository.Querier,
 	return id, nil
 }
 
-func (r *userRepository) FindByName(ctx context.Context, q repository.Querier, name string) (*domain.User, error) {
+func (r *userRepository) FindByName(ctx context.Context, q repository.Querier, name domain.Username) (*domain.User, error) {
 	var user domain.User
 	err := q.GetContext(ctx, &user, "SELECT id, name, display_name, description, password FROM users WHERE name = ?", name)
 	if errors.Is(err, sql.ErrNoRows) {

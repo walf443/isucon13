@@ -11,7 +11,7 @@ type UserStatistics struct {
 }
 
 type UserRankingEntry struct {
-	Username string
+	Username Username
 	Score    int64
 }
 
@@ -30,7 +30,7 @@ func (r UserRanking) Less(i, j int) bool {
 
 // RankOf は並べ替え済みのランキングにおける username の順位 (末尾が 1 位) を返す。
 // username がランキングに無い場合は len(r)+1 を返す。
-func (r UserRanking) RankOf(username string) int64 {
+func (r UserRanking) RankOf(username Username) int64 {
 	var rank int64 = 1
 	for i := len(r) - 1; i >= 0; i-- {
 		entry := r[i]

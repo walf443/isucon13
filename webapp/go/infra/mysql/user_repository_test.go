@@ -150,11 +150,11 @@ func TestUserRepository_FindAllByIDs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindAllByIDs returned error: %v", err)
 	}
-	names := map[domain.UserID]string{}
+	names := map[domain.UserID]domain.Username{}
 	for _, u := range got {
 		names[u.ID] = u.Name
 	}
-	if want := map[domain.UserID]string{alice: "alice", bob: "bob"}; !maps.Equal(names, want) {
+	if want := map[domain.UserID]domain.Username{alice: "alice", bob: "bob"}; !maps.Equal(names, want) {
 		t.Errorf("users = %v, want %v", names, want)
 	}
 

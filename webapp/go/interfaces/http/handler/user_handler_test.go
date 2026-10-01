@@ -18,7 +18,7 @@ type fakeUserUsecase struct {
 	user       *domain.User
 	err        error
 	gotID      domain.UserID
-	gotName    string
+	gotName    domain.Username
 
 	gotPassword domain.PlainPassword
 }
@@ -35,7 +35,7 @@ func (u *fakeUserRegistrationUsecase) Register(ctx context.Context, input usecas
 	return u.user, u.err
 }
 
-func (u *fakeUserUsecase) Login(ctx context.Context, username string, password domain.PlainPassword) (*domain.User, error) {
+func (u *fakeUserUsecase) Login(ctx context.Context, username domain.Username, password domain.PlainPassword) (*domain.User, error) {
 	u.gotName = username
 	u.gotPassword = password
 	return u.user, u.err
@@ -46,7 +46,7 @@ func (u *fakeUserUsecase) FindByID(ctx context.Context, id domain.UserID) (*doma
 	return u.userDetail, u.err
 }
 
-func (u *fakeUserUsecase) FindByName(ctx context.Context, name string) (*domain.UserDetail, error) {
+func (u *fakeUserUsecase) FindByName(ctx context.Context, name domain.Username) (*domain.UserDetail, error) {
 	u.gotName = name
 	return u.userDetail, u.err
 }
@@ -292,6 +292,7 @@ func TestUserHandler_Login(t *testing.T) {
 			if userID, ok := sess.Values[defaultUserIDKey].(int64); !ok || userID != 5 {
 				t.Errorf("USERID = %#v, want int64(5)", sess.Values[defaultUserIDKey])
 			}
+			// セッションは gob で保存するので、独自の型 (domain.Username) ではなく string で入っていること
 			if sess.Values[defaultUsernameKey] != "alice" {
 				t.Errorf("USERNAME = %#v, want alice", sess.Values[defaultUsernameKey])
 			}

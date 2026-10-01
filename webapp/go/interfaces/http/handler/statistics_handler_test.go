@@ -15,7 +15,7 @@ type fakeStatisticsUsecase struct {
 	livestreamStatistics *domain.LivestreamStatistics
 	err                  error
 
-	gotUsername     string
+	gotUsername     domain.Username
 	gotLivestreamID domain.LivestreamID
 }
 
@@ -24,7 +24,7 @@ func (u *fakeStatisticsUsecase) FindLivestreamStatistics(ctx context.Context, li
 	return u.livestreamStatistics, u.err
 }
 
-func (u *fakeStatisticsUsecase) FindUserStatistics(ctx context.Context, username string) (*domain.UserStatistics, error) {
+func (u *fakeStatisticsUsecase) FindUserStatistics(ctx context.Context, username domain.Username) (*domain.UserStatistics, error) {
 	u.gotUsername = username
 	return u.userStatistics, u.err
 }

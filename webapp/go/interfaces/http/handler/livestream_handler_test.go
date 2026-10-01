@@ -20,7 +20,7 @@ type fakeLivestreamUsecase struct {
 
 	gotID       domain.LivestreamID
 	gotUserID   domain.UserID
-	gotUsername string
+	gotUsername domain.Username
 	gotTagName  string
 	gotLimit    *domain.Limit
 	// calls は呼ばれたメソッド名を順に記録する
@@ -53,7 +53,7 @@ func (u *fakeLivestreamUsecase) FindAll(ctx context.Context, limit *domain.Limit
 	return u.livestreams, u.err
 }
 
-func (u *fakeLivestreamUsecase) FindAllByUsername(ctx context.Context, username string) ([]*domain.LivestreamDetail, error) {
+func (u *fakeLivestreamUsecase) FindAllByUsername(ctx context.Context, username domain.Username) ([]*domain.LivestreamDetail, error) {
 	u.gotUsername = username
 	return u.livestreams, u.err
 }

@@ -4,8 +4,8 @@ import "testing"
 
 func TestFindReservedUsername(t *testing.T) {
 	tests := []struct {
-		name         string
-		wantReserved string
+		name         Username
+		wantReserved Username
 		wantOK       bool
 	}{
 		{name: "pipe", wantReserved: "pipe", wantOK: true},

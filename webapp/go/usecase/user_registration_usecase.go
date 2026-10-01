@@ -17,7 +17,7 @@ type UserRegistrationUsecase interface {
 
 // RegisterUserInput は登録するユーザの内容。
 type RegisterUserInput struct {
-	Name        string
+	Name        domain.Username
 	DisplayName string
 	Description string
 	// Password はハッシュ化する前のパスワード。
@@ -67,7 +67,8 @@ func (u *userRegistrationUsecase) Register(ctx context.Context, input RegisterUs
 		}
 
 		// 移行前と同じくトランザクション内で登録する (失敗した場合はユーザの登録もロールバックする)
-		if err := u.dnsRegistrar.AddRecord(input.Name); err != nil {
+		// ユーザ名がそのままサブドメインの名前になる (ユーザ名とサブドメインは別の概念なので、ここで明示的に変換する)
+		if err := u.dnsRegistrar.AddRecord(string(input.Name)); err != nil {
 			// 移行前はコマンドの出力とエラーをそのままレスポンスにしていたので、メッセージを付け足さない
 			return err
 		}

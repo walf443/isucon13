@@ -13,7 +13,7 @@ import (
 
 func newTestUserStatisticsRepos() (*fakeUserRepository, *fakeLivestreamRepository, *fakeLivecommentRepository, *fakeReactionRepository, *fakeLivestreamViewersHistoryRepository) {
 	userRepo := &fakeUserRepository{
-		findByName: func(_ context.Context, _ repository.Querier, name string) (*domain.User, error) {
+		findByName: func(_ context.Context, _ repository.Querier, name domain.Username) (*domain.User, error) {
 			if name != "bob" {
 				return nil, fmt.Errorf("unexpected user name %q", name)
 			}
@@ -51,7 +51,7 @@ func newTestUserStatisticsRepos() (*fakeUserRepository, *fakeLivestreamRepositor
 	}
 	reactionCounts := map[domain.UserID]int64{1: 10, 2: 5, 3: 0}
 	// 配信者名で集計するクエリは、統計対象のユーザ (bob) で呼ばれる
-	checkOwnerName := func(name string) error {
+	checkOwnerName := func(name domain.Username) error {
 		if name != "bob" {
 			return fmt.Errorf("unexpected owner name %q", name)
 		}
@@ -61,10 +61,10 @@ func newTestUserStatisticsRepos() (*fakeUserRepository, *fakeLivestreamRepositor
 		countByLivestreamOwnerID: func(_ context.Context, _ repository.Querier, userID domain.UserID) (int64, error) {
 			return reactionCounts[userID], nil
 		},
-		countByLivestreamOwnerName: func(_ context.Context, _ repository.Querier, name string) (int64, error) {
+		countByLivestreamOwnerName: func(_ context.Context, _ repository.Querier, name domain.Username) (int64, error) {
 			return 5, checkOwnerName(name)
 		},
-		findFavoriteEmojiByLivestreamOwnerName: func(_ context.Context, _ repository.Querier, name string) (string, error) {
+		findFavoriteEmojiByLivestreamOwnerName: func(_ context.Context, _ repository.Querier, name domain.Username) (string, error) {
 			return "smile", checkOwnerName(name)
 		},
 	}
@@ -101,7 +101,7 @@ func TestStatisticsUsecase_FindUserStatistics(t *testing.T) {
 
 func TestStatisticsUsecase_FindUserStatistics_NoReactions(t *testing.T) {
 	userRepo, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo := newTestUserStatisticsRepos()
-	reactionRepo.findFavoriteEmojiByLivestreamOwnerName = func(context.Context, repository.Querier, string) (string, error) {
+	reactionRepo.findFavoriteEmojiByLivestreamOwnerName = func(context.Context, repository.Querier, domain.Username) (string, error) {
 		return "", repository.ErrNotFound
 	}
 	u := NewStatisticsUsecase(&fakeTxManager{}, userRepo, livestreamRepo, livecommentRepo, reactionRepo, viewerRepo, &fakeLivecommentReportRepository{})
@@ -128,7 +128,7 @@ func TestStatisticsUsecase_FindUserStatistics_Errors(t *testing.T) {
 		{
 			name: "user not found",
 			modify: func(ur *fakeUserRepository, _ *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository) {
-				ur.findByName = func(context.Context, repository.Querier, string) (*domain.User, error) {
+				ur.findByName = func(context.Context, repository.Querier, domain.Username) (*domain.User, error) {
 					return nil, repository.ErrNotFound
 				}
 			},
@@ -137,7 +137,7 @@ func TestStatisticsUsecase_FindUserStatistics_Errors(t *testing.T) {
 		{
 			name: "get user fails",
 			modify: func(ur *fakeUserRepository, _ *fakeLivestreamRepository, _ *fakeLivecommentRepository, _ *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository) {
-				ur.findByName = func(context.Context, repository.Querier, string) (*domain.User, error) { return nil, boom }
+				ur.findByName = func(context.Context, repository.Querier, domain.Username) (*domain.User, error) { return nil, boom }
 			},
 			wantErr: boom,
 			wantMsg: "failed to get user: boom",
@@ -169,7 +169,7 @@ func TestStatisticsUsecase_FindUserStatistics_Errors(t *testing.T) {
 		{
 			name: "count total reactions fails",
 			modify: func(_ *fakeUserRepository, _ *fakeLivestreamRepository, _ *fakeLivecommentRepository, rr *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository) {
-				rr.countByLivestreamOwnerName = func(context.Context, repository.Querier, string) (int64, error) { return 0, boom }
+				rr.countByLivestreamOwnerName = func(context.Context, repository.Querier, domain.Username) (int64, error) { return 0, boom }
 			},
 			wantErr: boom,
 			wantMsg: "failed to count total reactions: boom",
@@ -205,7 +205,7 @@ func TestStatisticsUsecase_FindUserStatistics_Errors(t *testing.T) {
 		{
 			name: "find favorite emoji fails",
 			modify: func(_ *fakeUserRepository, _ *fakeLivestreamRepository, _ *fakeLivecommentRepository, rr *fakeReactionRepository, _ *fakeLivestreamViewersHistoryRepository) {
-				rr.findFavoriteEmojiByLivestreamOwnerName = func(context.Context, repository.Querier, string) (string, error) { return "", boom }
+				rr.findFavoriteEmojiByLivestreamOwnerName = func(context.Context, repository.Querier, domain.Username) (string, error) { return "", boom }
 			},
 			wantErr: boom,
 			wantMsg: "failed to find favorite emoji: boom",

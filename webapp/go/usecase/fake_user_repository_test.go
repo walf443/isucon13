@@ -13,15 +13,15 @@ import (
 type fakeUserRepository struct {
 	repository.UserRepository
 
-	findIDByName func(ctx context.Context, q repository.Querier, name string) (domain.UserID, error)
+	findIDByName func(ctx context.Context, q repository.Querier, name domain.Username) (domain.UserID, error)
 	findByID     func(ctx context.Context, q repository.Querier, id domain.UserID) (*domain.User, error)
 	findAllByIDs func(ctx context.Context, q repository.Querier, ids []domain.UserID) ([]*domain.User, error)
-	findByName   func(ctx context.Context, q repository.Querier, name string) (*domain.User, error)
+	findByName   func(ctx context.Context, q repository.Querier, name domain.Username) (*domain.User, error)
 	findAll      func(ctx context.Context, q repository.Querier) ([]*domain.User, error)
 	create       func(ctx context.Context, q repository.Querier, user *domain.User) (domain.UserID, error)
 }
 
-func (r *fakeUserRepository) FindIDByName(ctx context.Context, q repository.Querier, name string) (domain.UserID, error) {
+func (r *fakeUserRepository) FindIDByName(ctx context.Context, q repository.Querier, name domain.Username) (domain.UserID, error) {
 	return r.findIDByName(ctx, q, name)
 }
 
@@ -29,7 +29,7 @@ func (r *fakeUserRepository) FindByID(ctx context.Context, q repository.Querier,
 	return r.findByID(ctx, q, id)
 }
 
-func (r *fakeUserRepository) FindByName(ctx context.Context, q repository.Querier, name string) (*domain.User, error) {
+func (r *fakeUserRepository) FindByName(ctx context.Context, q repository.Querier, name domain.Username) (*domain.User, error) {
 	return r.findByName(ctx, q, name)
 }
 
@@ -43,9 +43,9 @@ func (r *fakeUserRepository) Create(ctx context.Context, q repository.Querier, u
 
 // newUserRepositoryFindingID はユーザ名 name から id (失敗させる場合は err) を引く fakeUserRepository を返す。
 // name 以外のユーザ名で呼ばれた場合はテストを失敗させる。
-func newUserRepositoryFindingID(t *testing.T, name string, id domain.UserID, err error) *fakeUserRepository {
+func newUserRepositoryFindingID(t *testing.T, name domain.Username, id domain.UserID, err error) *fakeUserRepository {
 	return &fakeUserRepository{
-		findIDByName: func(_ context.Context, _ repository.Querier, gotName string) (domain.UserID, error) {
+		findIDByName: func(_ context.Context, _ repository.Querier, gotName domain.Username) (domain.UserID, error) {
 			if gotName != name {
 				t.Errorf("name = %q, want %q", gotName, name)
 			}

@@ -19,12 +19,12 @@ type fakeIconUsecase struct {
 	iconID    domain.IconID
 	updateErr error
 
-	gotUsername string
+	gotUsername domain.Username
 	gotUserID   domain.UserID
 	gotImage    []byte
 }
 
-func (u *fakeIconUsecase) FindImageByUsername(ctx context.Context, username string) ([]byte, error) {
+func (u *fakeIconUsecase) FindImageByUsername(ctx context.Context, username domain.Username) ([]byte, error) {
 	u.gotUsername = username
 	return u.image, u.err
 }

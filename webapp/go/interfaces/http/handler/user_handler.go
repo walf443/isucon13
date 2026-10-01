@@ -26,7 +26,7 @@ type userResponse struct {
 func newUser(u *domain.UserDetail) userResponse {
 	return userResponse{
 		ID:          u.ID,
-		Name:        u.Name,
+		Name:        string(u.Name),
 		DisplayName: u.DisplayName,
 		Description: u.Description,
 		Theme: themeResponse{
@@ -38,9 +38,9 @@ func newUser(u *domain.UserDetail) userResponse {
 }
 
 type postUserRequest struct {
-	Name        string `json:"name"`
-	DisplayName string `json:"display_name"`
-	Description string `json:"description"`
+	Name        domain.Username `json:"name"`
+	DisplayName string          `json:"display_name"`
+	Description string          `json:"description"`
 	// Password is non-hashed password.
 	Password domain.PlainPassword `json:"password"`
 	Theme    postUserRequestTheme `json:"theme"`
@@ -51,7 +51,7 @@ type postUserRequestTheme struct {
 }
 
 type loginRequest struct {
-	Username string `json:"username"`
+	Username domain.Username `json:"username"`
 	// Password is non-hashed password.
 	Password domain.PlainPassword `json:"password"`
 }
@@ -70,7 +70,7 @@ func newUserHandler(userUsecase usecase.UserUsecase, registrationUsecase usecase
 // GET /api/user/:username
 func (h *userHandler) GetUser(c echo.Context) error {
 	ctx := c.Request().Context()
-	username := c.Param("username")
+	username := domain.Username(c.Param("username"))
 
 	user, err := h.userUsecase.FindByName(ctx, username)
 	if errors.Is(err, usecase.ErrUserNotFound) {
@@ -167,7 +167,8 @@ func (h *userHandler) Login(c echo.Context) error {
 	sess.Values[defaultSessionIDKey] = sessionID
 	// requireSession などは int64 として取り出すので、domain.UserID ではなく int64 で保存する
 	sess.Values[defaultUserIDKey] = int64(user.ID)
-	sess.Values[defaultUsernameKey] = user.Name
+	// セッションは gob で保存するので、独自の型 (domain.Username) は登録が要る。保存する形式を保つため、string にして入れる
+	sess.Values[defaultUsernameKey] = string(user.Name)
 	sess.Values[defaultSessionExpiresKey] = sessionEndAt.Unix()
 
 	if err := sess.Save(c.Request(), c.Response()); err != nil {

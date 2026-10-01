@@ -24,8 +24,8 @@ type ReactionRepository interface {
 	// CountByLivestreamOwnerID は指定したユーザが配信者のライブ配信へのリアクション数を返す。
 	CountByLivestreamOwnerID(ctx context.Context, q Querier, userID domain.UserID) (int64, error)
 	// CountByLivestreamOwnerName は指定した名前のユーザが配信者のライブ配信へのリアクション数を返す。
-	CountByLivestreamOwnerName(ctx context.Context, q Querier, name string) (int64, error)
+	CountByLivestreamOwnerName(ctx context.Context, q Querier, name domain.Username) (int64, error)
 	// FindFavoriteEmojiByLivestreamOwnerName は指定した名前のユーザが配信者のライブ配信で最も多く使われた絵文字を返す。
 	// 同数の場合は絵文字名の降順で先頭のものを返す。リアクションが無い場合 ErrNotFound を返す。
-	FindFavoriteEmojiByLivestreamOwnerName(ctx context.Context, q Querier, name string) (string, error)
+	FindFavoriteEmojiByLivestreamOwnerName(ctx context.Context, q Querier, name domain.Username) (string, error)
 }

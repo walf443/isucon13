@@ -13,7 +13,7 @@ import (
 type StatisticsUsecase interface {
 	// FindUserStatistics は指定したユーザの配信者としての統計情報を返す。
 	// ユーザが存在しない場合 ErrUserNotFound を返す。
-	FindUserStatistics(ctx context.Context, username string) (*domain.UserStatistics, error)
+	FindUserStatistics(ctx context.Context, username domain.Username) (*domain.UserStatistics, error)
 	// FindLivestreamStatistics は指定したライブ配信の統計情報を返す。
 	// ライブ配信が存在しない場合 ErrLivestreamNotFound を返す。
 	FindLivestreamStatistics(ctx context.Context, livestreamID domain.LivestreamID) (*domain.LivestreamStatistics, error)
@@ -41,7 +41,7 @@ func NewStatisticsUsecase(txManager repository.TxManager, userRepo repository.Us
 	}
 }
 
-func (u *statisticsUsecase) FindUserStatistics(ctx context.Context, username string) (*domain.UserStatistics, error) {
+func (u *statisticsUsecase) FindUserStatistics(ctx context.Context, username domain.Username) (*domain.UserStatistics, error) {
 	// ユーザごとに、紐づく配信について、累計リアクション数、累計ライブコメント数、累計売上金額を算出
 	// また、現在の合計視聴者数もだす
 	var stats *domain.UserStatistics

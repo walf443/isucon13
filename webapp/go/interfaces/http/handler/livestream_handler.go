@@ -106,7 +106,7 @@ func (h *livestreamHandler) GetMyLivestreams(c echo.Context) error {
 // GET /api/user/:username/livestream
 func (h *livestreamHandler) GetUserLivestreams(c echo.Context) error {
 	ctx := c.Request().Context()
-	username := c.Param("username")
+	username := domain.Username(c.Param("username"))
 
 	livestreams, err := h.livestreamUsecase.FindAllByUsername(ctx, username)
 	if errors.Is(err, usecase.ErrUserNotFound) {

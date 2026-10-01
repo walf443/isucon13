@@ -59,7 +59,7 @@ func newStatisticsHandler(statisticsUsecase usecase.StatisticsUsecase) *statisti
 func (h *statisticsHandler) GetUserStatistics(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	username := c.Param("username")
+	username := domain.Username(c.Param("username"))
 
 	stats, err := h.statisticsUsecase.FindUserStatistics(ctx, username)
 	if errors.Is(err, usecase.ErrUserNotFound) {

@@ -11,7 +11,7 @@ import (
 
 type ThemeUsecase interface {
 	// FindByUsername はユーザが存在しない場合 ErrUserNotFound を返す。
-	FindByUsername(ctx context.Context, username string) (*domain.Theme, error)
+	FindByUsername(ctx context.Context, username domain.Username) (*domain.Theme, error)
 }
 
 type themeUsecase struct {
@@ -24,7 +24,7 @@ func NewThemeUsecase(txManager repository.TxManager, userRepo repository.UserRep
 	return &themeUsecase{txManager: txManager, userRepo: userRepo, themeRepo: themeRepo}
 }
 
-func (u *themeUsecase) FindByUsername(ctx context.Context, username string) (*domain.Theme, error) {
+func (u *themeUsecase) FindByUsername(ctx context.Context, username domain.Username) (*domain.Theme, error) {
 	var theme *domain.Theme
 	err := u.txManager.RunInTx(ctx, func(q repository.Querier) error {
 		userID, err := u.userRepo.FindIDByName(ctx, q, username)

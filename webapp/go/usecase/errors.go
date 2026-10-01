@@ -13,7 +13,7 @@ var ErrUserNotFound = errors.New("user not found")
 // ReservedUsernameError は予約済みのユーザ名 Name で登録しようとしたことを表す。
 // Name には利用者の入力ではなく、予約済みの名前の一覧にある値を入れる。
 type ReservedUsernameError struct {
-	Name string
+	Name domain.Username
 }
 
 func (e *ReservedUsernameError) Error() string {

@@ -62,7 +62,7 @@ func TestSelectIn_MoreIDsThanMySQLPlaceholderLimit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindAllByIDs returned error: %v", err)
 	}
-	names := map[string]bool{}
+	names := map[domain.Username]bool{}
 	for _, u := range got {
 		names[u.Name] = true
 	}
