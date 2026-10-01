@@ -76,3 +76,18 @@ func TestLivestreamViewersHistoryRepository_DeleteByUserIDAndLivestreamID(t *tes
 		t.Errorf("remaining = %v, want %v", got, want)
 	}
 }
+
+// 登録時刻は、GORM が自動で設定せずに、渡した値をそのまま保存すること (0 でも現在時刻にならない)。
+func TestLivestreamViewersHistoryRepository_Create_KeepsGivenCreatedAt(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+
+	if err := NewLivestreamViewersHistoryRepository().Create(ctx, tx, &domain.LivestreamViewersHistory{UserID: 1, LivestreamID: 10, CreatedAt: 0}); err != nil {
+		t.Fatalf("Create returned error: %v", err)
+	}
+
+	viewers := findTestLivestreamViewersHistories(t, tx)
+	if len(viewers) != 1 || viewers[0].CreatedAt != 0 {
+		t.Errorf("viewers = %+v, want one with CreatedAt 0", viewers)
+	}
+}

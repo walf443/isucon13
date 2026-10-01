@@ -229,6 +229,7 @@ func TestMigratedRepositories_IssueExplicitColumnSQL(t *testing.T) {
 	livestreams := NewLivestreamRepository()
 	livestreamTags := NewLivestreamTagRepository()
 	slots := NewReservationSlotRepository()
+	viewers := NewLivestreamViewersHistoryRepository()
 	period := domain.ReservationPeriod{StartAt: 1, EndAt: 2}
 	// 記録するのは、ここから後に発行された SQL
 	*sqls = nil
@@ -303,6 +304,15 @@ func TestMigratedRepositories_IssueExplicitColumnSQL(t *testing.T) {
 			"SELECT `slot` FROM `reservation_slots` WHERE start_at = ? AND end_at = ? LIMIT ?"},
 		{"reservation slot DecrementSlotsByRange", func() error { return slots.DecrementSlotsByRange(ctx, tx, period) },
 			"UPDATE `reservation_slots` SET `slot`=slot - 1 WHERE start_at >= ? AND end_at <= ?"},
+		{"viewers history Create", func() error {
+			return viewers.Create(ctx, tx, &domain.LivestreamViewersHistory{UserID: userID, LivestreamID: 1, CreatedAt: 100})
+		}, "INSERT INTO `livestream_viewers_history` (`user_id`,`livestream_id`,`created_at`) VALUES (?,?,?)"},
+		{"viewers history DeleteByUserIDAndLivestreamID", func() error { return viewers.DeleteByUserIDAndLivestreamID(ctx, tx, userID, 1) },
+			"DELETE FROM `livestream_viewers_history` WHERE user_id = ? AND livestream_id = ?"},
+		{"viewers history CountByLivestreamID", func() error { _, err := viewers.CountByLivestreamID(ctx, tx, 1); return err },
+			"SELECT count(*) FROM `livestream_viewers_history` WHERE livestream_id = ?"},
+		{"viewers history CountViewersByLivestreamID", func() error { _, err := viewers.CountViewersByLivestreamID(ctx, tx, 1); return err },
+			"SELECT count(*) FROM livestreams l INNER JOIN livestream_viewers_history h ON h.livestream_id = l.id WHERE l.id = ?"},
 		{"user Create", func() error {
 			_, err := users.Create(ctx, tx, &domain.User{Name: "carol-sql", DisplayName: "Carol", Description: "d", HashedPassword: "hashed"})
 			return err
