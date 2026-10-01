@@ -7,7 +7,8 @@ import (
 	"strconv"
 
 	driver "github.com/go-sql-driver/mysql"
-	"github.com/jmoiron/sqlx"
+	gormmysql "gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 // Config は MySQL への接続設定。
@@ -74,19 +75,32 @@ func ConfigFromEnv() (Config, error) {
 	return conf, nil
 }
 
-// Open は cfg の MySQL に接続し、疎通を確認した *sqlx.DB を返す。
-func Open(cfg Config) (*sqlx.DB, error) {
-	db, err := sqlx.Open("mysql", cfg.dsn())
+// Open は cfg の MySQL に接続し、疎通を確認した *gorm.DB を返す。
+func Open(cfg Config) (*gorm.DB, error) {
+	db, err := gorm.Open(gormmysql.Open(cfg.dsn()), gormConfig())
 	if err != nil {
 		return nil, err
 	}
-	db.SetMaxOpenConns(10)
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, err
+	}
+	sqlDB.SetMaxOpenConns(10)
 
-	if err := db.Ping(); err != nil {
+	if err := sqlDB.Ping(); err != nil {
 		return nil, err
 	}
 
 	return db, nil
+}
+
+// Close は Open した *gorm.DB の接続を閉じる。
+func Close(db *gorm.DB) error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
 }
 
 // dsn はドライバの既定値を土台に cfg の値で上書きした DSN を返す。

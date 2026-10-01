@@ -21,6 +21,10 @@ linters:
               desc: domain must not depend on interfaces
             - pkg: database/sql
               desc: domain must not depend on database/sql
+            - pkg: gorm.io/gorm
+              desc: domain must not depend on GORM
+            - pkg: gorm.io/driver/mysql
+              desc: domain must not depend on the GORM MySQL driver
         usecase:
           files:
             - "**/usecase/**"
@@ -36,6 +40,10 @@ linters:
               desc: usecase must not depend on sqlx
             - pkg: github.com/go-sql-driver/mysql
               desc: usecase must not depend on the MySQL driver
+            - pkg: gorm.io/gorm
+              desc: usecase must not depend on GORM
+            - pkg: gorm.io/driver/mysql
+              desc: usecase must not depend on the GORM MySQL driver
         infra:
           files:
             - "**/infra/**"
@@ -51,6 +59,10 @@ linters:
             # handler は usecase を通してデータにアクセスする
             - pkg: github.com/isucon/isucon13/webapp/go/usecase/repository
               desc: interfaces must access data through usecases, not repositories
+            - pkg: gorm.io/gorm
+              desc: interfaces must not depend on GORM
+            - pkg: gorm.io/driver/mysql
+              desc: interfaces must not depend on the GORM MySQL driver
   exclusions:
     presets:
       # defer xxx.Close() などの戻り値を見ない慣用的な書き方を errcheck の対象外にする

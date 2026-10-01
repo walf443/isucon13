@@ -9,13 +9,14 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
-	"github.com/jmoiron/sqlx"
 	"github.com/testcontainers/testcontainers-go/modules/mysql"
+	gormmysql "gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 // testDB はパッケージ内のテストで共有する MySQL コンテナへの接続。
 // -short 指定時は nil になり、DB を使うテストはスキップされる。
-var testDB *sqlx.DB
+var testDB *gorm.DB
 
 func TestMain(m *testing.M) {
 	flag.Parse()
@@ -51,12 +52,12 @@ func TestMain(m *testing.M) {
 			fmt.Fprintf(os.Stderr, "failed to get connection string: %v\n", err)
 			return 1
 		}
-		testDB, err = sqlx.Open("mysql", dsn)
+		testDB, err = gorm.Open(gormmysql.Open(dsn), gormConfig())
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to open db: %v\n", err)
 			return 1
 		}
-		defer testDB.Close()
+		defer func() { _ = Close(testDB) }()
 
 		return m.Run()
 	}()
@@ -71,12 +72,34 @@ func beginTestTx(t *testing.T) repository.Querier {
 		t.Skip("skipping test that requires MySQL in short mode")
 	}
 
-	tx, err := testDB.BeginTxx(context.Background(), nil)
-	if err != nil {
-		t.Fatalf("failed to begin transaction: %v", err)
+	tx := testDB.Begin()
+	if tx.Error != nil {
+		t.Fatalf("failed to begin transaction: %v", tx.Error)
 	}
 	t.Cleanup(func() {
-		_ = tx.Rollback()
+		_ = tx.Rollback().Error
 	})
 	return newQuerier(tx)
+}
+
+// recordSQL はテスト終了までに GORM が発行した SELECT / INSERT の SQL (プレースホルダーのまま) を記録する。
+// repository が移行前と同じカラムを読んでいる (SELECT * にしていない) ことなどを確かめるのに使う。
+// 記録するのは q のトランザクションを作った *gorm.DB のコールバックなので、記録中は他のテストと並行して実行しないこと。
+func recordSQL(t *testing.T, q repository.Querier) *[]string {
+	t.Helper()
+	db := gormOf(q)
+	var recorded []string
+	record := func(tx *gorm.DB) { recorded = append(recorded, tx.Statement.SQL.String()) }
+	const name = "test:record_sql"
+	if err := db.Callback().Query().After("gorm:query").Register(name, record); err != nil {
+		t.Fatalf("failed to register query callback: %v", err)
+	}
+	if err := db.Callback().Create().After("gorm:create").Register(name, record); err != nil {
+		t.Fatalf("failed to register create callback: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = db.Callback().Query().Remove(name)
+		_ = db.Callback().Create().Remove(name)
+	})
+	return &recorded
 }
