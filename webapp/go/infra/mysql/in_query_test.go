@@ -44,30 +44,27 @@ func TestSelectInChunked_ConcatenatesChunks(t *testing.T) {
 	}
 }
 
-// MySQL のプレースホルダーの上限 (65535) を超える数の ID でも、分割して引けること。
-func TestSelectIn_MoreIDsThanMySQLPlaceholderLimit(t *testing.T) {
+// MySQL のプレースホルダーの上限 (65535) を超える数の ID でも、selectIn を使う repository が分割して引けること。
+// まだ GORM に移行していない repository (selectIn を使うもの) の分で、移行したら gorm_test.go の表 (withManyIDs) に移す。
+func TestLivestreamRepository_FindAllByIDs_MoreIDsThanMySQLPlaceholderLimit(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTestTx(t)
 
-	alice := insertTestUser(t, tx, "alice")
-	bob := insertTestUser(t, tx, "bob")
-	ids := []domain.UserID{alice}
-	// 存在しない ID で水増しする
-	for id := domain.UserID(1_000_000); len(ids) < 70_000; id++ {
-		ids = append(ids, id)
-	}
-	ids = append(ids, bob)
+	ownerID := insertTestUser(t, tx, "alice")
+	first := insertTestLivestream(t, tx, ownerID, "first")
+	second := insertTestLivestream(t, tx, ownerID, "second")
 
-	got, err := NewUserRepository().FindAllByIDs(ctx, tx, ids)
+	got, err := NewLivestreamRepository().FindAllByIDs(ctx, tx, withManyIDs(first, second))
 	if err != nil {
 		t.Fatalf("FindAllByIDs returned error: %v", err)
 	}
-	names := map[string]bool{}
-	for _, u := range got {
-		names[u.Name] = true
+	gotIDs := make([]domain.LivestreamID, len(got))
+	for i, l := range got {
+		gotIDs[i] = l.ID
 	}
-	if len(got) != 2 || !names["alice"] || !names["bob"] {
-		t.Errorf("users = %+v, want alice and bob", got)
+	slices.Sort(gotIDs)
+	if want := []domain.LivestreamID{first, second}; !slices.Equal(gotIDs, want) {
+		t.Errorf("IDs = %v, want %v", gotIDs, want)
 	}
 }
 

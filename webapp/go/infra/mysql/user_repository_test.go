@@ -6,6 +6,7 @@ import (
 	"maps"
 	"testing"
 
+	driver "github.com/go-sql-driver/mysql"
 	"github.com/isucon/isucon13/webapp/go/domain"
 	"github.com/isucon/isucon13/webapp/go/usecase/repository"
 )
@@ -162,5 +163,26 @@ func TestUserRepository_FindAllByIDs(t *testing.T) {
 	got, err = repo.FindAllByIDs(ctx, tx, nil)
 	if err != nil || got == nil || len(got) != 0 {
 		t.Errorf("FindAllByIDs(nil) = %#v, %v, want empty", got, err)
+	}
+}
+
+// ユーザ名が重複した場合は、GORM が翻訳せずに、ドライバのエラー (Error 1062) がそのまま返ること。
+// 500 のレスポンスの本文に出るメッセージが、移行前と同じになる。
+func TestUserRepository_Create_DuplicateNameReturnsDriverError(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTestTx(t)
+	repo := NewUserRepository()
+
+	if _, err := repo.Create(ctx, tx, &domain.User{Name: "alice", HashedPassword: "hashed"}); err != nil {
+		t.Fatalf("Create returned error: %v", err)
+	}
+	_, err := repo.Create(ctx, tx, &domain.User{Name: "alice", HashedPassword: "hashed"})
+
+	mysqlErr, ok := errors.AsType[*driver.MySQLError](err)
+	if !ok || mysqlErr.Number != 1062 {
+		t.Fatalf("err = %v, want *mysql.MySQLError with number 1062", err)
+	}
+	if want := "Error 1062 (23000): Duplicate entry 'alice' for key 'users.uniq_user_name'"; err.Error() != want {
+		t.Errorf("err = %q, want %q", err.Error(), want)
 	}
 }

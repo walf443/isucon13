@@ -65,32 +65,117 @@ func TestFindInChunked_ReturnsFindError(t *testing.T) {
 	}
 }
 
-// MySQL のプレースホルダーの上限 (65535) を超える数の ID でも、GORM の IN ? を分割して引けること。
-func TestTagRepository_FindAllByIDs_MoreIDsThanMySQLPlaceholderLimit(t *testing.T) {
-	ctx := context.Background()
-	tx := beginTestTx(t)
-
-	ownerID := insertTestUser(t, tx, "alice")
-	livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
-	a := insertTestTag(t, tx, livestreamID, "A")
-	b := insertTestTag(t, tx, livestreamID, "B")
-	ids := []domain.TagID{a.ID}
-	// 存在しない ID で水増しする
-	for id := domain.TagID(1_000_000); len(ids) < 70_000; id++ {
+// withManyIDs は real の ID のあいだに、存在しない ID を水増しして、MySQL のプレースホルダーの上限 (65535) を超える数にした一覧を返す。
+func withManyIDs[ID ~int64](real ...ID) []ID {
+	ids := []ID{real[0]}
+	for id := ID(1_000_000); len(ids) < 70_000; id++ {
 		ids = append(ids, id)
 	}
-	ids = append(ids, b.ID)
+	return append(ids, real[1:]...)
+}
 
-	got, err := NewTagRepository().FindAllByIDs(ctx, tx, ids)
-	if err != nil {
-		t.Fatalf("FindAllByIDs returned error: %v", err)
+func int64s[ID ~int64](ids []ID) []int64 {
+	converted := make([]int64, len(ids))
+	for i, id := range ids {
+		converted[i] = int64(id)
 	}
-	names := map[string]bool{}
-	for _, tag := range got {
-		names[tag.Name] = true
+	return converted
+}
+
+// GORM に移行した repository の一括取得のメソッドが、MySQL のプレースホルダーの上限を超える数の ID でも、IN ? を分割して引けること。
+// repository を GORM に移行するたびに、その一括取得のメソッドをこの表に足す (findIn を使っていないと、ここで失敗する)。
+func TestMigratedRepositories_BulkMethodsAcceptMoreIDsThanMySQLPlaceholderLimit(t *testing.T) {
+	ctx := context.Background()
+
+	tests := []struct {
+		name string
+		// run はデータを登録し、一括取得のメソッドを水増しした ID で呼んで、期待する行の ID と返ってきた行の ID を返す。
+		run func(t *testing.T, tx repository.Querier) (want, got []int64)
+	}{
+		{
+			name: "UserRepository.FindAllByIDs",
+			run: func(t *testing.T, tx repository.Querier) ([]int64, []int64) {
+				alice, bob := insertTestUser(t, tx, "alice"), insertTestUser(t, tx, "bob")
+				users, err := NewUserRepository().FindAllByIDs(ctx, tx, withManyIDs(alice, bob))
+				if err != nil {
+					t.Fatalf("FindAllByIDs returned error: %v", err)
+				}
+				got := make([]int64, len(users))
+				for i, u := range users {
+					got[i] = int64(u.ID)
+				}
+				return int64s([]domain.UserID{alice, bob}), got
+			},
+		},
+		{
+			name: "ThemeRepository.FindAllByUserIDs",
+			run: func(t *testing.T, tx repository.Querier) ([]int64, []int64) {
+				alice, bob := insertTestUser(t, tx, "alice"), insertTestUser(t, tx, "bob")
+				for _, userID := range []domain.UserID{alice, bob} {
+					if err := NewThemeRepository().Create(ctx, tx, &domain.Theme{UserID: userID}); err != nil {
+						t.Fatalf("Create returned error: %v", err)
+					}
+				}
+				themes, err := NewThemeRepository().FindAllByUserIDs(ctx, tx, withManyIDs(alice, bob))
+				if err != nil {
+					t.Fatalf("FindAllByUserIDs returned error: %v", err)
+				}
+				got := make([]int64, len(themes))
+				for i, theme := range themes {
+					got[i] = int64(theme.UserID)
+				}
+				return int64s([]domain.UserID{alice, bob}), got
+			},
+		},
+		{
+			name: "IconRepository.FindAllByUserIDs",
+			run: func(t *testing.T, tx repository.Querier) ([]int64, []int64) {
+				alice, bob := insertTestUser(t, tx, "alice"), insertTestUser(t, tx, "bob")
+				for _, userID := range []domain.UserID{alice, bob} {
+					if _, err := NewIconRepository().Create(ctx, tx, userID, []byte("icon")); err != nil {
+						t.Fatalf("Create returned error: %v", err)
+					}
+				}
+				icons, err := NewIconRepository().FindAllByUserIDs(ctx, tx, withManyIDs(alice, bob))
+				if err != nil {
+					t.Fatalf("FindAllByUserIDs returned error: %v", err)
+				}
+				got := make([]int64, len(icons))
+				for i, icon := range icons {
+					got[i] = int64(icon.UserID)
+				}
+				return int64s([]domain.UserID{alice, bob}), got
+			},
+		},
+		{
+			name: "TagRepository.FindAllByIDs",
+			run: func(t *testing.T, tx repository.Querier) ([]int64, []int64) {
+				ownerID := insertTestUser(t, tx, "alice")
+				livestreamID := insertTestLivestream(t, tx, ownerID, "stream")
+				a, b := insertTestTag(t, tx, livestreamID, "A"), insertTestTag(t, tx, livestreamID, "B")
+				tags, err := NewTagRepository().FindAllByIDs(ctx, tx, withManyIDs(a.ID, b.ID))
+				if err != nil {
+					t.Fatalf("FindAllByIDs returned error: %v", err)
+				}
+				got := make([]int64, len(tags))
+				for i, tag := range tags {
+					got[i] = int64(tag.ID)
+				}
+				return int64s([]domain.TagID{a.ID, b.ID}), got
+			},
+		},
 	}
-	if len(got) != 2 || !names["A"] || !names["B"] {
-		t.Errorf("tags = %+v, want A and B", got)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tx := beginTestTx(t)
+			want, got := tt.run(t, tx)
+			slices.Sort(want)
+			slices.Sort(got)
+			if !slices.Equal(got, want) {
+				t.Errorf("returned IDs = %v, want %v", got, want)
+			}
+		})
 	}
 }
 
@@ -104,6 +189,7 @@ func TestMigratedRepositories_IssueExplicitColumnSQL(t *testing.T) {
 	tags := NewTagRepository()
 	themes := NewThemeRepository()
 	icons := NewIconRepository()
+	users := NewUserRepository()
 	// 記録するのは、ここから後に発行された SQL
 	*sqls = nil
 
@@ -135,11 +221,25 @@ func TestMigratedRepositories_IssueExplicitColumnSQL(t *testing.T) {
 			"INSERT INTO `icons` (`user_id`,`image`) VALUES (?,?)"},
 		{"icon DeleteByUserID", func() error { return icons.DeleteByUserID(ctx, tx, userID) },
 			"DELETE FROM `icons` WHERE user_id = ?"},
+		{"user FindIDByName", func() error { _, err := users.FindIDByName(ctx, tx, "nobody"); return err },
+			"SELECT `id` FROM `users` WHERE name = ? LIMIT ?"},
+		{"user FindByName", func() error { _, err := users.FindByName(ctx, tx, "nobody"); return err },
+			"SELECT id, name, display_name, description, password FROM `users` WHERE name = ? LIMIT ?"},
+		{"user FindByID", func() error { _, err := users.FindByID(ctx, tx, userID); return err },
+			"SELECT id, name, display_name, description, password FROM `users` WHERE id = ? LIMIT ?"},
+		{"user FindAll", func() error { _, err := users.FindAll(ctx, tx); return err },
+			"SELECT id, name, display_name, description, password FROM `users`"},
+		{"user FindAllByIDs", func() error { _, err := users.FindAllByIDs(ctx, tx, []domain.UserID{userID, userID + 1}); return err },
+			"SELECT id, name, display_name, description, password FROM `users` WHERE id IN (?,?)"},
+		{"user Create", func() error {
+			_, err := users.Create(ctx, tx, &domain.User{Name: "carol-sql", DisplayName: "Carol", Description: "d", HashedPassword: "hashed"})
+			return err
+		}, "INSERT INTO `users` (`name`,`display_name`,`description`,`password`) VALUES (?,?,?,?)"},
 	}
 	for _, c := range calls {
 		*sqls = nil
 		err := c.call()
-		// theme / icon の FindXxx は、まだ無いので ErrNotFound になるが、SQL は発行されている
+		// theme / icon / user の FindXxx は、無いものを引くので ErrNotFound になるが、SQL は発行されている
 		if err != nil && !errors.Is(err, repository.ErrNotFound) {
 			t.Fatalf("%s returned error: %v", c.name, err)
 		}
